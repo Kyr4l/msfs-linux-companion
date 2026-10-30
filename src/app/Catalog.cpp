@@ -340,12 +340,17 @@ Catalog& CatalogSet::ensure(const std::string& id, const std::string& title) {
     return items.back();
 }
 
-std::vector<CatalogEntry> CatalogSet::liveEntriesFor(const std::vector<std::pair<std::string, bool>>& inputEvents, const std::vector<std::string>& lvars) {
+std::vector<CatalogEntry> CatalogSet::liveEntriesFor(const std::vector<std::pair<std::string, bool>>& inputEvents, const std::vector<std::string>& lvars,
+                                                     const std::string& aircraftId) {
+    const bool foreignFlyByWire = !aircraftId.empty() && aircraftId != "A32NX" && aircraftId != "A380X";
     std::vector<CatalogEntry> out;
     out.reserve(inputEvents.size() + lvars.size());
     for (const auto& [name, isString] : inputEvents)
         if (!isString) out.push_back(makeInputEventEntry(name, false));  // text-valued events cannot be toggled or set from a number
-    for (const auto& n : lvars) out.push_back(makeLiveLVarEntry(n));
+    for (const auto& n : lvars) {
+        if (foreignFlyByWire && (n.rfind("A32NX_", 0) == 0 || n.rfind("A380X_", 0) == 0)) continue;
+        out.push_back(makeLiveLVarEntry(n));
+    }
     return out;
 }
 

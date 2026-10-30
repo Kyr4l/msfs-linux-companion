@@ -84,7 +84,10 @@ public:
     // (Re)adds the standard events to every catalog that has no curated file. Call after loading or adding catalogs.
     void refreshStandard();
     // Live entries for a snapshot of the sim: input events (not the text ones) and L: variables.
-    static std::vector<CatalogEntry> liveEntriesFor(const std::vector<std::pair<std::string, bool>>& inputEvents, const std::vector<std::string>& lvars);
+    // The sim lists every L: variable it has ever seen, whichever aircraft created it: with an aircraft id, the
+    // FlyByWire variables (A32NX_*, A380X_*) are left out for every aircraft that is not a FlyByWire one.
+    static std::vector<CatalogEntry> liveEntriesFor(const std::vector<std::pair<std::string, bool>>& inputEvents, const std::vector<std::string>& lvars,
+                                                    const std::string& aircraftId = "");
 
     auto begin() { return items.begin(); }
     auto end() { return items.end(); }

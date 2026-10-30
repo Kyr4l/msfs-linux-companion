@@ -29,6 +29,7 @@ hardware path in it was exercised on the real devices it targets, and no issues 
 | Asobo CJ4 catalog (`data/asobo_cj4_catalog.json`) | all 309 cockpit input events the sim reports are labeled by panel. 41 entries are marked *verified* and were checked on a running CJ4 with `--script` (set the control, read the simulator's own `(A:...)` state, compare): the eight exterior lights, cabin lights 1-3, pitot / airframe / engine-1 anti-ice, brightness knobs 15-18, the HDG, ALT, SPD, BARO-1 and CRS-1 knobs, the three trims, and the AP, YD, FD-1, HDG, ALT, VS and FLC buttons. Everything else (the FMS CDUs, the AS3000 keys, electrical, fuel, engines, gear, brakes, pressurization) takes its behaviour from the control's name and says so in its note; nothing in the tool lies about that. Flaps and spoilers did not respond to values on the ground and `LIGHTING_PANEL_1` misbehaves, so they are listed without a behaviour and with a note |
 | What the CJ4 taught about cockpit input events | rotary knobs act once per event (`+1` up, `-1` down); the three trims want a value of 2 or more (up) or 0 or less (down) and ignore 1; the autopilot, yaw damper, flight director and mode buttons **toggle on every event whatever its value** (sending 0 to a button that is off turns it on), so a push button sends exactly one event on press and nothing on release; lights, anti-ice and brightness knobs are plain set-value controls |
 | FlyByWire A380X | catalog generated from the FlyByWire A380X docs; the APU, FCU and many overhead names were confirmed present in an installed A380X package. **Not yet exercised on the A380X in flight with this tool**: verify an A380X binding with its *Test* button before relying on it. The docs describe the development branch: the stable build's baro knob uses its own `A380X_EFIS_CP_BARO_PUSH/PULL_<n>` H events and lacks the `A32NX.FCU_EFIS_*_BARO_*` events the docs list, so the A380X catalog has no baro recipes and its EFIS baro entries may do nothing on older builds |
+| Guides | the flow logic is unit-tested and the validator checks every guide. The app was run against a real CJ4 on the ground with both engines running: the questions were answered from the sim (on the ground; both engines, through a two-variable sum). The sim closed before the step ticks could be watched in the window; the same variables were read correctly by the script runner |
 | Device safety | the tool only sends identity queries, config *reads* and volatile motor levels; it never writes flash, restarts or re-flashes a device (`--dump-winwing-config` gives a baseline to diff) |
 
 If you have a Winwing device that is not listed, discovery plus `--motor-sweep` will usually find
@@ -192,6 +193,23 @@ intact. The first time a newer build saves over an older file it keeps the origi
 fields are ignored rather than rejected. `ctest` runs a round-trip test of exactly this (a schema-1
 fixture, optionally your own config: `build/config_roundtrip ~/.config/msfs-linuxrebind/config.json`,
 which only ever works on a copy), plus a test that every documented command-line option is accepted.
+
+## Guides
+
+The *Guides* tab holds step-by-step guides per aircraft (`data/<aircraft>_guide.json`). A guide works like a
+flowchart: pick a topic ("Start the engines"), answer a few questions, follow the checklists.
+
+* **Questions are answered by the simulator when it can**: "is the aircraft on the ground?", "how many engines are running?"
+  are read from the sim (the answer it suggests is highlighted; you can always pick another). Without a connection, or
+  without the MobiFlight module for sim variables, you answer by hand.
+* **Each step shows where the control is**: the panel section of the control from the aircraft's catalog, with the
+  control lit. It is a schematic of the catalog's sections, not a photo of the cockpit; where a source says where to look
+  (for example the camera the sim's own checklist jumps to) the step says so.
+* **Steps tick themselves** when the simulator confirms them (parking brake set, generators on ...) and can be ticked by
+  hand; some show live readouts (N2, ITT) for "wait until ..." steps.
+* **Sources**: every step names the document it comes from. Procedures are not written from memory; a step that is
+  technique rather than a documented procedure says so. `tools/validate_guides.py` refuses guides whose controls are not
+  in the catalog, whose steps have no source, or whose flow has dead ends. The format is in `docs/GUIDES.md`.
 
 ## Vibration (Winwing URSA MINOR and friends)
 

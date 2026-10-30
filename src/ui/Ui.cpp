@@ -174,7 +174,7 @@ void AppContext::syncLive() {
     if (snap.aircraftId.empty()) return;
     std::vector<std::pair<std::string, bool>> events;
     for (const auto& e : snap.inputEvents) events.emplace_back(e.name, e.isString);
-    auto fresh = CatalogSet::liveEntriesFor(events, snap.lvars);
+    auto fresh = CatalogSet::liveEntriesFor(events, snap.lvars, snap.aircraftId);
     const bool changed = catalogs.applyLive(snap.aircraftId, snap.aircraftLabel, fresh);
     if (!changed) return;
     if (const Catalog* c = catalogs.find(snap.aircraftId)) {
@@ -1726,9 +1726,22 @@ void Ui::drawGuideCard(const Catalog& cat, const std::vector<int>& targets) {
     dl->AddRectFilled(p0, p1, ImGui::GetColorU32(ImVec4(0.13f, 0.14f, 0.17f, 1.0f)), fs * 0.5f);
     dl->AddRect(p0, p1, ImGui::GetColorU32(ImVec4(0.30f, 0.32f, 0.38f, 1.0f)), fs * 0.5f);
     const std::string title = card->region + (card->section.empty() ? "" : "  >  " + card->section);
-    dl->PushClipRect(p0, ImVec2(p1.x, p0.y + headH), true);
+    const bool hasPhotos = !card->reference.empty();
+    const float photoW = hasPhotos ? ImGui::CalcTextSize("photos >").x + pad : 0.0f;
+    dl->PushClipRect(p0, ImVec2(p1.x - photoW, p0.y + headH), true);
     dl->AddText(ImVec2(p0.x + pad, p0.y + (headH - fs) * 0.5f), ImGui::GetColorU32(ImGuiCol_Text), title.c_str());
     dl->PopClipRect();
+    if (hasPhotos) {  // the FlyByWire docs have real photos of the panel
+        ImGui::SetCursorScreenPos(ImVec2(p1.x - photoW - pad * 0.5f, p0.y + 2));
+        ImGui::PushID(card);
+        const bool clicked = ImGui::InvisibleButton("photos", ImVec2(photoW + pad * 0.5f, headH - 4));
+        const bool hov = ImGui::IsItemHovered();
+        dl->AddText(ImVec2(p1.x - photoW, p0.y + (headH - fs) * 0.5f), hov ? ImGui::GetColorU32(ImVec4(0.45f, 0.75f, 1.0f, 1.0f)) : ImGui::GetColorU32(ImGuiCol_TextDisabled), "photos >");
+        if (hov) ImGui::SetTooltip("Open the real photos of this panel (FlyByWire docs) in your browser:\n%s", card->reference.c_str());
+        if (clicked && !openDocsUrl(card->reference)) LOG_WARN("Could not open %s (is xdg-open installed?)", card->reference.c_str());
+        ImGui::PopID();
+        ImGui::SetCursorScreenPos(p0);
+    }
     const ImU32 gold = ImGui::GetColorU32(ImVec4(1.0f, 0.78f, 0.15f, 1.0f));
     for (size_t k = 0; k < shown; ++k) {
         const PanelGroup& g = card->groups[first + k];

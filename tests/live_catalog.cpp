@@ -156,6 +156,14 @@ int main() {
         reloaded.applyLive("Asobo_CJ4", cj4->title, fresh);
         CHECK(reloaded.find("Asobo_CJ4")->title == "Asobo CJ4 (from the sim)");
         CHECK(CatalogSet::liveEntriesFor({{"ANTI_ICE_ENGINE_1", false}}, {})[0].section == "ANTI ICE");
+        // the sim's L: list is global: another aircraft's FlyByWire variables do not belong to the CJ4
+        {
+            const std::vector<std::string> all = {"A32NX_ENGINE_N2:1", "A380X_EFIS_L_BARO", "CJ4_SAI_State", "WT_PRESS_MAN_ALT_ON"};
+            CHECK(CatalogSet::liveEntriesFor({}, all, "Asobo_CJ4").size() == 2);
+            CHECK(CatalogSet::liveEntriesFor({}, all, "A32NX").size() == 4);
+            CHECK(CatalogSet::liveEntriesFor({}, all, "A380X").size() == 4);
+            CHECK(CatalogSet::liveEntriesFor({}, all).size() == 4);
+        }
         const unsigned rev = cj4->revision;
         CHECK(!set.applyLive("Asobo_CJ4", "Asobo CJ4", fresh));  // identical report: nothing changes, no view rebuild
         CHECK(set.find("Asobo_CJ4")->revision == rev);
