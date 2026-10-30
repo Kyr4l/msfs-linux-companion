@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "sim/AircraftId.hpp"
 #include "sim/SimConnectClient.hpp"
 
 namespace lr::sim {
@@ -48,11 +49,25 @@ struct Telemetry {
            brakeLeft = 0, brakeRight = 0, iasKt = 0, altAgl = 0;
 };
 
+// What the sim reports about the cockpit of the loaded aircraft (see SimBridge::liveSnapshot()).
+struct LiveInputEvent {
+    std::string name;
+    bool isString = false;
+};
+struct LiveSnapshot {
+    std::string aircraftId, aircraftLabel;  // from AircraftLoaded (empty until the sim told us)
+    std::vector<LiveInputEvent> inputEvents;
+    std::vector<std::string> lvars;
+    bool inputEventsDone = false;           // enumeration answered (even if empty)
+    bool lvarsDone = false;
+    uint64_t revision = 0;                  // bumped on every change; compare to know when to rebuild a catalog
+};
+
 struct SimCommand {
-    enum class Type { SimEvent, HEvent, LVarSet, LVarToggle, CalcCode, MobiFlightPing, MobiFlightRaw };
+    enum class Type { SimEvent, HEvent, LVarSet, LVarToggle, CalcCode, MobiFlightPing, MobiFlightRaw, InputEventSet, InputEventToggle };
     Type type = Type::SimEvent;
     std::string name;    // event name / L var / H event / calculator code / raw MF command
-    double value = 0;    // event parameter or L var value
+    double value = 0;    // event parameter, L var / input event value, or the number of toggle positions
     std::string origin;  // free text for the log ("binding: AP1", "test")
 };
 
@@ -79,6 +94,15 @@ public:
     std::optional<double> lvarValue(const std::string& name) const;
     std::vector<std::pair<std::string, double>> lvarValues() const;
     void execCalculatorCode(const std::string& code, const std::string& origin = {});
+    // B: input events: cockpit switches exposed by the loaded aircraft (SimConnect input events, no add-on needed)
+    void setInputEvent(const std::string& name, double value, const std::string& origin = {});
+    void toggleInputEvent(const std::string& name, int positions, const std::string& origin = {});
+    void watchInputEvents(std::vector<std::string> names);  // polled a few times a second for display
+    std::optional<double> inputEventValue(const std::string& name) const;
+    void requestLiveRefresh();      // re-enumerate input events and L: vars of the loaded aircraft now
+    void setInitialScanDelayMs(int ms) { initialScanDelayMs_ = ms; }  // wait after an aircraft loads before listing its controls
+    LiveSnapshot liveSnapshot() const;
+    uint64_t liveRevision() const { return liveRevision_.load(); }
     void probeMobiFlight();
 
     SimStatus status() const;
@@ -100,6 +124,13 @@ private:
     void onMobiFlightClientReady();
     void applyLVarWatch();
     void handleLVarData(const RecvClientData& d);
+    void onAircraftPath(const std::string& cfgPath);
+    void scheduleLiveScan(int delayMs);
+    void pumpLiveScan();                 // sends the enumeration requests when due and publishes finished results
+    void publishLive();
+    void handleInputEventList(const RecvInputEventList& l);
+    void handleInputEventValue(const RecvInputEventValue& v);
+    void handleMobiFlightResponse(const std::string& text);
     void rememberSend(uint32_t sendId, std::string desc);
     std::string describeSend(uint32_t sendId);
     void dropConnection(const std::string& why);
@@ -138,6 +169,31 @@ private:
     std::vector<std::string> lvarRegistered_;    // what the module currently has, index = datum id
     std::unordered_map<std::string, double> lvarValues_;
     bool lvarWatchDirty_ = false;
+
+    // --- input events (bridge thread owns these; the UI reads copies through liveSnapshot())
+    std::unordered_map<std::string, uint64_t> inputHash_;      // name -> hash for the loaded aircraft
+    std::unordered_map<std::string, bool> inputIsString_;
+    std::vector<LiveInputEvent> inputEventsPending_;           // collected until the replies stop arriving
+    bool inputEnumInFlight_ = false;
+    std::chrono::steady_clock::time_point inputEnumLastPacket_{};
+    std::chrono::steady_clock::time_point nextLiveScanAt_{};
+    bool liveScanPending_ = false;
+    int liveScanTries_ = 0;
+    bool lvarListRequested_ = false;
+    bool lvarCollecting_ = false;
+    std::vector<std::string> lvarNamesPending_;
+    std::chrono::steady_clock::time_point lvarListSentAt_{};
+    uint32_t nextGetRequest_ = 5000;
+    struct PendingToggle { std::string name; uint64_t hash; int positions; std::string origin; };
+    std::unordered_map<uint32_t, PendingToggle> pendingToggles_;
+    std::deque<SimCommand> deferredToggles_;   // toggles of an event whose previous toggle has not been answered yet
+    std::atomic<int> initialScanDelayMs_{3000};
+    std::unordered_map<uint32_t, std::string> pendingWatchGets_;  // request id -> input event name
+    std::vector<std::string> inputWatch_;
+    std::unordered_map<std::string, double> inputValues_;         // guarded by m_
+    std::chrono::steady_clock::time_point nextInputPollAt_{};
+    LiveSnapshot live_;                                          // guarded by m_
+    std::atomic<uint64_t> liveRevision_{0};
 };
 
 }  // namespace lr::sim

@@ -8,6 +8,8 @@
 #include <sstream>
 #include <string>
 
+#include <nlohmann/json.hpp>
+
 #include "app/Profile.hpp"
 
 namespace fs = std::filesystem;
@@ -41,21 +43,35 @@ static void sameBindings(const Profile& a, const Profile& b) {
     }
 }
 
+static int versionOf(const fs::path& p) {
+    try {
+        nlohmann::json j;
+        std::ifstream in(p);
+        in >> j;
+        return j.value("version", 1);
+    } catch (...) {
+        return 1;
+    }
+}
+
 static void checkUpgrade(const fs::path& original, const fs::path& work, bool verifyFixtureValues) {
+    const int from = versionOf(original);
+    const std::string bakName = work.string() + ".v" + std::to_string(from) + ".bak";
     fs::remove(work);
-    fs::remove(work.string() + ".v1.bak");
+    fs::remove(bakName);
     fs::copy_file(original, work);
     const std::string before = slurp(work);
 
     Settings s;
     std::string err;
     CHECK(loadSettings(work.string(), s, err));
-    CHECK(s.loadedVersion == 1);
+    CHECK(s.loadedVersion == from);
     CHECK(!s.profiles.empty());
-    for (const auto& p : s.profiles) CHECK(p.aircraft == "A32NX");  // old profiles are A32NX profiles
+    if (from == 1) for (const auto& p : s.profiles) CHECK(p.aircraft == "A32NX");  // schema 1 profiles are A32NX profiles
+    if (from >= 2 && verifyFixtureValues) CHECK(s.profiles.size() == 2 && s.profiles[1].aircraft == "A380X");
 
     if (verifyFixtureValues) {
-        CHECK(s.profiles.size() == 1 && s.profiles[0].bindings.size() == 2);
+        CHECK(s.profiles.size() == (from >= 2 ? 2u : 1u) && s.profiles[0].bindings.size() == 2);
         const Binding& b0 = s.profiles[0].bindings[0];
         CHECK(b0.label == "APU master" && b0.onPress.size() == 1 && b0.onPress[0].kind == ActionKind::LVarToggle);
         const Binding& b1 = s.profiles[0].bindings[1];
@@ -70,7 +86,7 @@ static void checkUpgrade(const fs::path& original, const fs::path& work, bool ve
 
     // save (the upgrade): backup must appear, byte-identical to what was on disk
     CHECK(saveSettings(work.string(), s, err));
-    const std::string bak = work.string() + ".v1.bak";
+    const std::string bak = bakName;
     CHECK(fs::exists(bak));
     CHECK(slurp(bak) == before);
 
@@ -99,7 +115,9 @@ int main(int argc, char** argv) {
     fs::create_directories(tmp);
 
     std::printf("fixture: schema 1 -> %d upgrade\n", kConfigVersion);
-    checkUpgrade(fs::path(LINUXREBIND_TEST_FIXTURES) / "config_v1.json", tmp / "fixture.json", true);
+    checkUpgrade(fs::path(LINUXREBIND_TEST_FIXTURES) / "config_v1.json", tmp / "fixture1.json", true);
+    std::printf("fixture: schema 2 -> %d upgrade\n", kConfigVersion);
+    checkUpgrade(fs::path(LINUXREBIND_TEST_FIXTURES) / "config_v2.json", tmp / "fixture2.json", true);
 
     if (argc > 1) {
         std::printf("real config copy: %s\n", argv[1]);

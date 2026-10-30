@@ -54,8 +54,9 @@ std::string formatTime(std::chrono::system_clock::time_point tp) {
 }
 
 bool actionKindCombo(const char* label, ActionKind& kind) {
-    static const ActionKind kinds[] = {ActionKind::SimEvent, ActionKind::HEvent, ActionKind::LVarSet, ActionKind::LVarToggle, ActionKind::CalcCode};
-    constexpr int n = 5;
+    static const ActionKind kinds[] = {ActionKind::SimEvent, ActionKind::InputEvent, ActionKind::InputEventToggle, ActionKind::HEvent,
+                                       ActionKind::LVarSet, ActionKind::LVarToggle, ActionKind::CalcCode};
+    constexpr int n = 7;
     int idx = 0;
     for (int i = 0; i < n; ++i)
         if (kinds[i] == kind) idx = i;
@@ -81,6 +82,12 @@ void AppContext::pushProfileToEngine() {
             for (const auto& a : *list)
                 if ((a.kind == ActionKind::LVarSet || a.kind == ActionKind::LVarToggle) && !a.name.empty()) vars.push_back(a.name);
     bridge.watchLVars(vars);
+    std::vector<std::string> inputs;
+    for (const auto& b : p.bindings)
+        for (const auto* list : {&b.onPress, &b.onRelease})
+            for (const auto& a : *list)
+                if ((a.kind == ActionKind::InputEvent || a.kind == ActionKind::InputEventToggle) && !a.name.empty()) inputs.push_back(a.name);
+    bridge.watchInputEvents(inputs);
 }
 
 bool AppContext::suggestedAxisRange(const Binding& b, double& lo, double& hi) const {
@@ -119,12 +126,50 @@ void AppContext::warnAxisRanges() const {
         }
 }
 
-const Catalog* AppContext::catalogFor(const std::string& aircraft) const {
-    for (const auto& c : catalogs)
-        if (c.aircraft == aircraft) return &c;
-    for (const auto& c : catalogs)
-        if (c.aircraft == kDefaultAircraft) return &c;
-    return catalogs.empty() ? nullptr : &catalogs.front();
+const Catalog* AppContext::catalogFor(const std::string& aircraft) const { return catalogs.forAircraft(aircraft); }
+
+static std::string liveCacheFile(const std::string& aircraft) {
+    std::string safe;
+    for (char c : aircraft) safe += (std::isalnum(static_cast<unsigned char>(c)) || c == '-' || c == '_') ? c : '_';
+    return (std::filesystem::path(configDir()) / "live" / (safe + ".json")).string();
+}
+
+void AppContext::loadLiveCaches() {
+    std::error_code ec;
+    const std::filesystem::path dir = std::filesystem::path(configDir()) / "live";
+    if (!std::filesystem::is_directory(dir, ec)) return;
+    for (const auto& f : std::filesystem::directory_iterator(dir, ec)) {
+        if (f.path().extension() != ".json") continue;
+        Catalog cached;
+        std::string err;
+        if (!Catalog::loadLive(f.path().string(), cached, err)) { LOG_WARN("Ignoring %s: %s", f.path().string().c_str(), err.c_str()); continue; }
+        catalogs.applyLive(cached.aircraft, cached.title, cached.entries);
+        LOG_INFO("Cached controls for %s: %zu entries", cached.aircraft.c_str(), cached.entries.size());
+    }
+    catalogs.refreshStandard();
+}
+
+void AppContext::syncLive() {
+    const uint64_t rev = bridge.liveRevision();
+    if (rev == liveSeen) return;
+    liveSeen = rev;
+    const sim::LiveSnapshot snap = bridge.liveSnapshot();
+    if (snap.aircraftId.empty()) return;
+    std::vector<std::pair<std::string, bool>> events;
+    for (const auto& e : snap.inputEvents) events.emplace_back(e.name, e.isString);
+    auto fresh = CatalogSet::liveEntriesFor(events, snap.lvars);
+    const bool changed = catalogs.applyLive(snap.aircraftId, snap.aircraftLabel, fresh);
+    if (!changed) return;
+    if (const Catalog* c = catalogs.find(snap.aircraftId)) {
+        std::string err;
+        if (!c->saveLive(liveCacheFile(snap.aircraftId), err)) LOG_WARN("Could not cache the controls of %s: %s", snap.aircraftId.c_str(), err.c_str());
+    }
+}
+
+void AppContext::forgetLive(const std::string& aircraft) {
+    catalogs.forgetLive(aircraft);
+    std::error_code ec;
+    std::filesystem::remove(liveCacheFile(aircraft), ec);
 }
 
 void AppContext::pushHapticsConfig() {
@@ -192,6 +237,7 @@ bool Ui::inputIsPressed(const input::InputId& id) const {
 void Ui::draw() {
     devices_ = ctx_.input.devices();
     status_ = ctx_.bridge.status();
+    ctx_.syncLive();  // folds new input events / L: vars reported by the sim into the catalog
 
     const ImGuiViewport* vp = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(vp->WorkPos);
@@ -474,6 +520,7 @@ void Ui::drawBindingsTab() {
             return (c && c->aircraft == p.aircraft) ? c->label() : p.aircraft;
         }().c_str())) {
         for (const auto& c : ctx_.catalogs) {
+            if (c.aircraft == kStandardCatalogId) continue;  // not an aircraft
             if (ImGui::Selectable(c.label().c_str(), c.aircraft == p.aircraft)) {
                 p.aircraft = c.aircraft;
                 viewAircraft_.clear();
@@ -507,9 +554,10 @@ void Ui::drawBindingsTab() {
     if (ImGui::BeginPopup("profile_name")) {
         ImGui::InputText("Name", &newProfileName_);
         if (!renamingProfile_) {
-            if (ImGui::BeginCombo("Aircraft##new", newProfileAircraft_.c_str())) {
+            const Catalog* chosen = ctx_.catalogs.find(newProfileAircraft_);
+            if (ImGui::BeginCombo("Aircraft##new", chosen ? chosen->label().c_str() : newProfileAircraft_.c_str())) {
                 for (const auto& c : ctx_.catalogs)
-                    if (ImGui::Selectable(c.label().c_str(), c.aircraft == newProfileAircraft_)) newProfileAircraft_ = c.aircraft;
+                    if (c.aircraft != kStandardCatalogId && ImGui::Selectable(c.label().c_str(), c.aircraft == newProfileAircraft_)) newProfileAircraft_ = c.aircraft;
                 ImGui::EndCombo();
             }
         }
@@ -548,7 +596,8 @@ void Ui::drawBindingsTab() {
     {
         const std::string det = detectAircraft(status_.aircraft);
         if (!det.empty() && det != p.aircraft) {
-            ImGui::TextColored(kYellow, "The loaded aircraft looks like the %s, this profile is for the %s.", det.c_str(), p.aircraft.c_str());
+            const sim::AircraftId loaded = sim::identifyAircraft(status_.aircraft);
+            ImGui::TextColored(kYellow, "The loaded aircraft is the %s, this profile is for the %s.", loaded.label.c_str(), p.aircraft.c_str());
             ImGui::SameLine();
             const Profile* match = nullptr;
             for (const auto& prof : s.profiles)
@@ -560,7 +609,7 @@ void Ui::drawBindingsTab() {
                     ctx_.markDirty();
                 }
             } else if (ImGui::SmallButton("Create a profile for it")) {
-                newProfileName_ = det;
+                newProfileName_ = sim::identifyAircraft(status_.aircraft).label;
                 newProfileAircraft_ = det;
                 renamingProfile_ = false;
                 ImGui::OpenPopup("profile_name");
@@ -628,6 +677,12 @@ void Ui::drawBindingsTab() {
             }
             auto actionLine = [&](const Action& a) {
                 ImGui::TextUnformatted(a.describe().c_str());
+                if (a.kind == ActionKind::InputEvent || a.kind == ActionKind::InputEventToggle) {
+                    if (auto v = ctx_.bridge.inputEventValue(a.name)) {
+                        ImGui::SameLine();
+                        ImGui::TextColored(*v != 0 ? kGreen : kGrey, "[now %g]", *v);
+                    }
+                }
                 if (a.kind == ActionKind::LVarSet || a.kind == ActionKind::LVarToggle) {
                     if (auto v = ctx_.bridge.lvarValue(a.name)) {
                         ImGui::SameLine();
@@ -682,13 +737,18 @@ void Ui::drawActionList(const char* id, std::vector<Action>& actions, int listIn
         const char* hint = a.kind == ActionKind::SimEvent ? "A32NX.FCU_AP_1_PUSH or GEAR_UP" :
                            a.kind == ActionKind::HEvent ? "A32NX_EFIS_L_CHRONO_PUSHED" :
                            a.kind == ActionKind::LVarSet ? "A32NX_AUTOBRAKES_ARMED_MODE_SET" :
-                           a.kind == ActionKind::LVarToggle ? "A32NX_OVHD_APU_MASTER_SW_PB_IS_ON" : "1 (>L:A32NX_SOME_VAR)";
+                           a.kind == ActionKind::LVarToggle ? "A32NX_OVHD_APU_MASTER_SW_PB_IS_ON" :
+                           (a.kind == ActionKind::InputEvent || a.kind == ActionKind::InputEventToggle) ? "LIGHTING_LANDING_1" : "1 (>L:A32NX_SOME_VAR)";
         ImGui::InputTextWithHint("##name", hint, &a.name);
-        if (a.kind == ActionKind::SimEvent || a.kind == ActionKind::LVarSet) {
+        if (a.kind == ActionKind::SimEvent || a.kind == ActionKind::LVarSet || a.kind == ActionKind::InputEvent || a.kind == ActionKind::InputEventToggle) {
             ImGui::SameLine();
             ImGui::SetNextItemWidth(110);
             ImGui::InputDouble("##value", &a.value, 0, 0, "%g");
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip(a.kind == ActionKind::SimEvent ? "Event parameter (0 for plain push buttons)" : "Value written to the L: var");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip(a.kind == ActionKind::SimEvent ? "Event parameter (0 for plain push buttons)"
+                                  : a.kind == ActionKind::LVarSet ? "Value written to the L: var"
+                                  : a.kind == ActionKind::InputEvent ? "Value the cockpit input event is set to (switch position)"
+                                                                     : "Number of positions to cycle through (2 = on/off, 3 = a three-position switch)");
         }
         ImGui::SameLine();
         if (ImGui::SmallButton("x")) toDelete = i;
@@ -868,16 +928,8 @@ const Catalog& Ui::currentCatalog() const {
     return c ? *c : empty;
 }
 
-std::string Ui::detectAircraft(const std::string& cfgPath) const {
-    std::string low = cfgPath;
-    std::transform(low.begin(), low.end(), low.begin(), [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
-    const std::pair<const char*, const char*> rules[] = {{"a380", "A380X"}, {"a320", "A32NX"}, {"a32nx", "A32NX"}};
-    for (const auto& [needle, id] : rules)
-        if (low.find(needle) != std::string::npos)
-            for (const auto& c : ctx_.catalogs)
-                if (c.aircraft == id) return id;
-    return {};
-}
+std::string Ui::detectAircraft(const std::string& cfgPath) const { return sim::identifyAircraft(cfgPath).id; }
+
 
 std::string Ui::uniqueProfileName(const std::string& wanted) const {
     auto taken = [&](const std::string& n) {
@@ -930,6 +982,7 @@ bool endsWith(const std::string& s, const char* suffix) {
 // Which entry a click on a control should pick: switches toggle, push buttons push, knobs click up.
 int entryScore(const CatalogEntry& e, bool knob) {
     if (e.kind == "calc_code") return 95;  // recipes are complete on their own
+    if (e.kind == "input_event") return 86;
     if (e.kind == "lvar" && e.values == "0|1") return 80;
     if (e.kind == "sim_event") {
         if (endsWith(e.api, "_PUSH")) return 90;
@@ -958,6 +1011,7 @@ void Ui::rebuildPanelModel(const Catalog& cat) {
     panelModel_ = PanelModel{};
     panelModel_.cat = &cat;
     panelModel_.entryCount = cat.entries.size();
+    panelModel_.revision = cat.revision;
     for (int i = 0; i < static_cast<int>(cat.entries.size()); ++i) {
         const CatalogEntry& e = cat.entries[static_cast<size_t>(i)];
         if (std::find(panelModel_.regions.begin(), panelModel_.regions.end(), e.panel) == panelModel_.regions.end()) panelModel_.regions.push_back(e.panel);
@@ -1001,7 +1055,7 @@ void Ui::rebuildPanelModel(const Catalog& cat) {
 }
 
 void Ui::drawPanelsView(const Catalog& cat, bool pickMode, const std::vector<std::string>& words, float reserveBelow) {
-    if (panelModel_.cat != &cat || panelModel_.entryCount != cat.entries.size()) rebuildPanelModel(cat);
+    if (panelModel_.cat != &cat || panelModel_.entryCount != cat.entries.size() || panelModel_.revision != cat.revision) rebuildPanelModel(cat);
 
     auto entryVisible = [&](int idx) {
         const CatalogEntry& e = cat.entries[static_cast<size_t>(idx)];
@@ -1312,7 +1366,37 @@ void Ui::drawCatalogTab() {
             if (ImGui::SmallButton("show the profile's aircraft")) { viewAircraft_.clear(); catalogSelected_ = -1; }
         }
     }
-    ImGui::TextDisabled("Generated from the FlyByWire flight deck API docs plus ready-made recipes. Double-click an entry to create a binding for it; filter 'recipes' or 'baro' for the QNH helpers.");
+    {
+        // what the sim told us about the aircraft being browsed (any aircraft, not only the loaded one: the lists are cached)
+        const Catalog& shownCat = currentCatalog();
+        const sim::LiveSnapshot live = ctx_.bridge.liveSnapshot();
+        const bool isLoaded = !live.aircraftId.empty() && live.aircraftId == shownCat.aircraft;
+        size_t nInput = 0, nLVar = 0;
+        for (const auto& e : shownCat.entries) {
+            if (e.live && e.kind == "input_event") ++nInput;
+            if (e.live && e.kind == "lvar") ++nLVar;
+        }
+        if (shownCat.aircraft == kStandardCatalogId) {
+            ImGui::TextDisabled("K: events that cockpits fire, found in the MSFS installation (names only). 'cockpit only' ones are not in the MSFS controls menu. "
+                                "Every aircraft without a curated catalog includes these.");
+        } else {
+            ImGui::TextDisabled("%zu cockpit input events and %zu L: variables reported by the sim%s.", nInput, nLVar, isLoaded ? " for the loaded aircraft" : " (cached from an earlier session)");
+            ImGui::SameLine();
+            if (ImGui::SmallButton("Refresh from the sim")) ctx_.bridge.requestLiveRefresh();
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Asks the running sim for the controls of the loaded aircraft again. Variables appear as the cockpit is used: press Refresh after exercising a system.");
+            if (nInput + nLVar > 0) {
+                ImGui::SameLine();
+                if (ImGui::SmallButton("Forget the cached list")) { ctx_.forgetLive(shownCat.aircraft); catalogSelected_ = -1; }
+            }
+            if (isLoaded && live.inputEventsDone && nInput == 0)
+                ImGui::TextColored(kYellow, "The sim listed no cockpit input events for this aircraft yet. Wait until the flight has loaded, then Refresh.");
+            if (isLoaded && status_.mobiflight == sim::ModuleState::NotFound)
+                ImGui::TextColored(kYellow, "L: variables are listed by the MobiFlight WASM module, which was not found.");
+            if (!shownCat.curated && nInput + nLVar == 0 && !isLoaded)
+                ImGui::TextColored(kYellow, "Nothing reported by the sim for this aircraft yet. Load it in MSFS with this tool running.");
+        }
+    }
+    ImGui::TextDisabled("Double-click an entry to create a binding for it. Cockpit input events (B:) are the switches the controls menu cannot bind.");
     drawCatalogBrowser("tab", false);
 }
 
@@ -1522,7 +1606,7 @@ void Ui::drawSettingsTab() {
 
     ImGui::SeparatorText("Files");
     ImGui::Text("Config:  %s", ctx_.configPath.c_str());
-    for (const auto& c : ctx_.catalogs) ImGui::Text("Catalog (%s): %s", c.aircraft.c_str(), c.sourcePath.c_str());
+    for (const auto& c : ctx_.catalogs) ImGui::Text("Catalog (%s): %s", c.aircraft.c_str(), c.sourcePath.empty() ? "from the sim / cache" : c.sourcePath.c_str());
     if (ctx_.catalogs.empty()) ImGui::TextUnformatted("Catalog: (none)");
     if (ImGui::Button("Save now")) ctx_.save();
 

@@ -97,6 +97,7 @@ std::vector<Action> Engine::withValue(const std::vector<Action>& actions, double
     for (auto& a : out) {
         switch (a.kind) {
             case ActionKind::SimEvent:
+            case ActionKind::InputEvent:
             case ActionKind::LVarSet: a.value = v; break;
             case ActionKind::CalcCode: {
                 size_t pos = 0;
@@ -104,6 +105,7 @@ std::vector<Action> Engine::withValue(const std::vector<Action>& actions, double
                 break;
             }
             case ActionKind::HEvent:
+            case ActionKind::InputEventToggle:
             case ActionKind::LVarToggle: break;
         }
     }
@@ -179,6 +181,8 @@ void Engine::fire(const std::vector<Action>& actions, const std::string& origin)
             case ActionKind::HEvent: bridge_.sendHEvent(a.name, origin); break;
             case ActionKind::LVarSet: bridge_.setLVar(a.name, a.value, origin); break;
             case ActionKind::LVarToggle: bridge_.toggleLVar(a.name, origin); break;
+            case ActionKind::InputEvent: bridge_.setInputEvent(a.name, a.value, origin); break;
+            case ActionKind::InputEventToggle: bridge_.toggleInputEvent(a.name, a.value >= 2 ? static_cast<int>(a.value) : 2, origin); break;
             case ActionKind::CalcCode: bridge_.execCalculatorCode(a.name, origin); break;
         }
     }

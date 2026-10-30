@@ -275,6 +275,27 @@ uint32_t SimConnectClient::clearClientDataDefinition(uint32_t defineId) {
     return send(w);
 }
 
+uint32_t SimConnectClient::enumerateInputEvents(uint32_t requestId) {
+    ByteWriter w = begin(0x4f);
+    w.u32(requestId);
+    return send(w);
+}
+
+uint32_t SimConnectClient::getInputEvent(uint32_t requestId, uint64_t hash) {
+    ByteWriter w = begin(0x50);
+    w.u32(requestId);
+    w.u64(hash);
+    return send(w);
+}
+
+uint32_t SimConnectClient::setInputEvent(uint64_t hash, double value) {
+    ByteWriter w = begin(0x51);
+    w.u64(hash);
+    w.u32(8);  // payload length: one float64
+    w.f64(value);
+    return send(w);
+}
+
 uint32_t SimConnectClient::requestClientData(uint32_t clientDataId, uint32_t requestId, uint32_t defineId, uint32_t period,
                                              uint32_t flags, uint32_t origin, uint32_t interval, uint32_t limit) {
     ByteWriter w = begin(0x3b);
@@ -401,6 +422,31 @@ RecvSystemState SimConnectClient::parseSystemState(const RecvMessage& m) {
     s.requestId = r.u32(); s.dataInteger = r.u32(); s.dataFloat = r.f32();
     s.dataString = r.str(260);
     return s;
+}
+
+RecvInputEventList SimConnectClient::parseInputEventList(const RecvMessage& m) {
+    ByteReader r(m.body.data(), m.body.size());
+    RecvInputEventList l;
+    l.requestId = r.u32(); l.arraySize = r.u32(); l.entryNumber = r.u32(); l.outOf = r.u32();
+    // descriptors are packed (76 bytes): char name[64]; uint64 hash; uint32 type
+    for (uint32_t i = 0; i < l.arraySize && r.remaining() >= 76; ++i) {
+        InputEventDescriptor d;
+        d.name = r.str(64);
+        d.hash = r.u64();
+        d.type = r.u32();
+        l.events.push_back(std::move(d));
+    }
+    return l;
+}
+
+RecvInputEventValue SimConnectClient::parseGetInputEvent(const RecvMessage& m) {
+    ByteReader r(m.body.data(), m.body.size());
+    RecvInputEventValue v;
+    v.requestId = r.u32();
+    v.type = r.u32();
+    if (v.type == 1) v.text = r.str(256);
+    else v.number = r.f64();
+    return v;
 }
 
 RecvClientData SimConnectClient::parseClientData(const RecvMessage& m) {

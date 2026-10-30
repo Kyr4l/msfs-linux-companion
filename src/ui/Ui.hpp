@@ -17,7 +17,7 @@ namespace lr::app {
 struct AppContext {
     Settings settings;
     std::string configPath;
-    std::vector<Catalog> catalogs;  // one per aircraft, from data/*_catalog.json
+    CatalogSet catalogs;  // one per aircraft: data/*_catalog.json, what the sim reported, and the standard events
     sim::SimBridge& bridge;
     Engine& engine;
     input::InputManager& input;
@@ -34,7 +34,11 @@ struct AppContext {
     bool suggestedAxisRange(const Binding& b, double& lo, double& hi) const;
     int fixAxisRanges(Profile& p);              // applies the suggestion to every wrong binding, returns how many
     void warnAxisRanges() const;                // log one line per wrong binding (startup)
-    const Catalog* catalogFor(const std::string& aircraft) const;  // exact match, else the default aircraft, else the first
+    const Catalog* catalogFor(const std::string& aircraft) const;  // exact match, else the standard events, else the first
+    void loadLiveCaches();                                          // ~/.config/msfs-linuxrebind/live/*.json from earlier sessions
+    void syncLive();                                                // folds the sim's current lists into the catalog, saves the cache
+    void forgetLive(const std::string& aircraft);
+    uint64_t liveSeen = ~0ull;
     void pushProfileToEngine();
     void pushHapticsConfig();
     void markDirty();
@@ -91,6 +95,7 @@ private:
     struct PanelModel {
         const Catalog* cat = nullptr;
         size_t entryCount = 0;
+        unsigned revision = 0;
         std::vector<std::string> regions;  // in order of first appearance
         std::vector<PanelCard> cards;
     };

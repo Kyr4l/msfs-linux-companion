@@ -47,6 +47,8 @@ void usage() {
         "  --fire KIND:NAME[=V]   connect, fire one action and exit. KIND: sim_event, h_event, lvar_set, lvar_toggle, calc_code\n"
         "                         e.g. --fire lvar_toggle:A32NX_OVHD_APU_MASTER_SW_PB_IS_ON   --fire sim_event:A32NX.FCU_AP_1_PUSH\n"
         "  --read NAME            connect, print the value of L:NAME (needs MobiFlight) and exit\n"
+        "  --read-input NAME      connect, print the value of the cockpit input event B:NAME of the loaded aircraft and exit\n"
+        "  --list-controls        connect, print the aircraft the sim reports and its cockpit input events and L: variables, then exit\n"
 
         "  --version, --help");
 }
@@ -61,7 +63,8 @@ int main(int argc, char** argv) {
     bool probeWinwing = false;
     bool motorSweep = false;
     bool dumpConfig = false;
-    std::vector<std::string> fireSpecs, readNames;
+    std::vector<std::string> fireSpecs, readNames, readInputs;
+    bool listControls = false;
     int sweepDevice = -1;
     std::string hostOverride, profileOverride, configPath, catalogPath, startTab;
     int portOverride = 0;
@@ -75,6 +78,8 @@ int main(int argc, char** argv) {
         else if (a == "--dump-winwing-config") dumpConfig = true;
         else if (a == "--fire") { std::string v; next(v); fireSpecs.push_back(v); }
         else if (a == "--read") { std::string v; next(v); readNames.push_back(v); }
+        else if (a == "--read-input") { std::string v; next(v); readInputs.push_back(v); }
+        else if (a == "--list-controls") listControls = true;
         else if (a == "--motor-sweep") {
             motorSweep = true;
             if (i + 1 < argc && argv[i + 1][0] != '-') sweepDevice = static_cast<int>(std::strtol(argv[++i], nullptr, 0));
@@ -189,12 +194,11 @@ int main(int argc, char** argv) {
             app::Catalog cat;
             std::string err;
             if (!cat.load(path, err)) { LOG_WARN("Catalog %s not loaded: %s", path.c_str(), err.c_str()); continue; }
-            bool replaced = false;
-            for (auto& existing : ctx.catalogs)
-                if (existing.aircraft == cat.aircraft) { existing = cat; replaced = true; }
-            if (!replaced) ctx.catalogs.push_back(std::move(cat));
-            LOG_INFO("Catalog %s: %zu entries from %s", ctx.catalogs.back().aircraft.c_str(), ctx.catalogs.back().entries.size(), path.c_str());
+            LOG_INFO("Catalog %s: %zu entries from %s", cat.aircraft.c_str(), cat.entries.size(), path.c_str());
+            ctx.catalogs.addShipped(std::move(cat));
         }
+        ctx.catalogs.refreshStandard();
+        ctx.loadLiveCaches();
         if (ctx.catalogs.empty()) LOG_WARN("No action catalog found (expected data/*_catalog.json)");
     }
 
@@ -207,12 +211,15 @@ int main(int argc, char** argv) {
     hapticsEngine.start();
     input.start([&engine](const input::InputEvent& ev) { engine.onInput(ev); }, [&engine] { engine.tick(); });
 
-    if (!fireSpecs.empty() || !readNames.empty()) {
+    if (!fireSpecs.empty() || !readNames.empty() || !readInputs.empty() || listControls) {
         // One-shot scripting mode: wait for the sim (and the MobiFlight module when needed), act, exit.
         std::vector<std::string> watch;
         for (const auto& r : readNames) watch.push_back(r);
         bridge.watchLVars(watch);
         bool needModule = !readNames.empty();
+        bool needInputEvents = !readInputs.empty() || listControls;
+        bridge.setInitialScanDelayMs(400);  // one-shot mode: a flight that is already loaded has its cockpit registered
+        bridge.watchInputEvents(readInputs);
         std::vector<app::Action> actions;
         for (const auto& spec : fireSpecs) {
             app::Action act;
@@ -224,18 +231,51 @@ int main(int argc, char** argv) {
             if (eq != std::string::npos && act.kind != app::ActionKind::CalcCode) { act.name = rest.substr(0, eq); act.value = std::atof(rest.c_str() + eq + 1); }
             else act.name = rest;
             needModule |= app::actionNeedsMobiFlight(act.kind);
+            needInputEvents |= act.kind == app::ActionKind::InputEvent || act.kind == app::ActionKind::InputEventToggle;
             actions.push_back(act);
         }
-        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(20);
+        const auto startedAt = std::chrono::steady_clock::now();
+        const auto deadline = startedAt + std::chrono::seconds(listControls ? 45 : 25);
         for (;;) {
             auto st = bridge.status();
-            if (st.state == sim::ConnState::Connected && (!needModule || st.mobiflight == sim::ModuleState::Detected)) break;
+            const auto snapNow = bridge.liveSnapshot();
+            // --list-controls reports whatever there is once the sim has had ~30 s; actions need the event list
+            const bool eventsReady = !needInputEvents || snapNow.inputEventsDone ||
+                                     (listControls && !snapNow.aircraftId.empty() && std::chrono::steady_clock::now() - startedAt > std::chrono::seconds(30));
+            if (st.state == sim::ConnState::Connected && eventsReady && (!needModule || st.mobiflight == sim::ModuleState::Detected)) break;
             if (std::chrono::steady_clock::now() > deadline || g_signalled) { std::fprintf(stderr, "simulator%s not available\n", needModule ? " / MobiFlight module" : ""); return 1; }
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
+        if (listControls) {
+            // L: variables come from the MobiFlight module; give it a few seconds, the list is optional
+            for (int i = 0; i < 80 && !bridge.liveSnapshot().lvarsDone; ++i) std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            const sim::LiveSnapshot snap = bridge.liveSnapshot();
+            std::printf("aircraft: %s (%s)\n", snap.aircraftId.empty() ? "unknown" : snap.aircraftId.c_str(), snap.aircraftLabel.c_str());
+            std::printf("cockpit input events (B:): %zu\n", snap.inputEvents.size());
+            for (const auto& e : snap.inputEvents) std::printf("  B:%s%s\n", e.name.c_str(), e.isString ? "  (text)" : "");
+            if (snap.lvarsDone) {
+                std::printf("L: variables: %zu\n", snap.lvars.size());
+                for (const auto& n : snap.lvars) std::printf("  L:%s\n", n.c_str());
+            } else {
+                std::printf("L: variables: not available (MobiFlight module not detected)\n");
+            }
+        }
         if (!actions.empty()) {
             engine.fire(actions, "cli");
-            std::this_thread::sleep_for(std::chrono::milliseconds(600));
+            std::this_thread::sleep_for(std::chrono::milliseconds(900));
+        }
+        if (!readInputs.empty()) {
+            for (int i = 0; i < 40; ++i) {
+                bool all = true;
+                for (const auto& r : readInputs) all &= bridge.inputEventValue(r).has_value();
+                if (all) break;
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+            for (const auto& r : readInputs) {
+                auto v = bridge.inputEventValue(r);
+                if (v) std::printf("B:%s = %g\n", r.c_str(), *v);
+                else std::printf("B:%s = (no value received: unknown event for this aircraft?)\n", r.c_str());
+            }
         }
         if (!readNames.empty()) {
             // give the module a moment to register and publish the values

@@ -8,7 +8,7 @@
 
 namespace lr::app {
 
-enum class ActionKind { SimEvent, HEvent, LVarSet, LVarToggle, CalcCode };
+enum class ActionKind { SimEvent, HEvent, LVarSet, LVarToggle, CalcCode, InputEvent, InputEventToggle };
 
 const char* actionKindName(ActionKind k);   // "sim_event" ... (stable, used in JSON)
 const char* actionKindLabel(ActionKind k);  // "K: event" ... (UI)
@@ -18,7 +18,7 @@ bool actionNeedsMobiFlight(ActionKind k);
 struct Action {
     ActionKind kind = ActionKind::SimEvent;
     std::string name;   // event name / L var / H event / RPN code
-    double value = 0;   // event parameter or L var value
+    double value = 0;   // event parameter, L var / input event value; for input_event_toggle the number of positions (default 2)
     std::string describe() const;
 };
 
@@ -58,9 +58,9 @@ struct Profile {
     std::vector<Binding> bindings;
 };
 
-// Config schema: 1 = original, 2 = profiles carry an "aircraft". Newer files stay readable by older
+// Config schema: 1 = original, 2 = profiles carry an "aircraft", 3 = input event (B:) actions. Newer files stay readable by older
 // builds (unknown fields are ignored); loading a file older than kConfigVersion never loses data.
-constexpr int kConfigVersion = 2;
+constexpr int kConfigVersion = 3;
 
 struct Settings {
     int loadedVersion = kConfigVersion;  // schema version of the file this was read from

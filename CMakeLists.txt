@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(msfs-linuxrebind VERSION 0.4.0 LANGUAGES CXX)
+project(msfs-linuxrebind VERSION 0.5.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -83,6 +83,12 @@ if(LINUXREBIND_BUILD_TESTS)
   target_include_directories(axis_engine PRIVATE src third_party)
   target_link_libraries(axis_engine PRIVATE Threads::Threads)
   add_test(NAME axis_engine COMMAND axis_engine)
+  add_executable(live_catalog tests/live_catalog.cpp src/app/Catalog.cpp src/app/Profile.cpp src/input/Evdev.cpp src/sim/SimConnectClient.cpp)
+  target_include_directories(live_catalog PRIVATE src third_party)
+  target_link_libraries(live_catalog PRIVATE Threads::Threads)
+  add_test(NAME live_catalog COMMAND live_catalog)
+  # end to end through the real binary against the mock simulator posing as the CJ4
+  add_test(NAME live_controls COMMAND bash ${CMAKE_SOURCE_DIR}/tests/live_controls.sh $<TARGET_FILE:msfs-linuxrebind> ${CMAKE_SOURCE_DIR})
   # Every documented command-line option must be accepted (exit code 2 = "unknown option"). Regression test for
   # a refactor that once silently dropped --config/--host/--port/--profile/--catalog/--motor-sweep.
   add_test(NAME cli_options COMMAND bash ${CMAKE_SOURCE_DIR}/tests/cli_options.sh $<TARGET_FILE:msfs-linuxrebind>

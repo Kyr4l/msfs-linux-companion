@@ -28,6 +28,7 @@ constexpr uint32_t EV_SYS_PAUSE = 2;
 constexpr uint32_t EV_SYS_AIRCRAFT_LOADED = 3;
 constexpr uint32_t REQ_SYS_AIRCRAFT_LOADED = 1;
 constexpr uint32_t REQ_SYS_SIM = 2;
+constexpr uint32_t REQ_ENUM_INPUT_EVENTS = 200;
 constexpr uint32_t DEF_TELEMETRY = 10;
 constexpr uint32_t REQ_TELEMETRY = 10;
 
@@ -164,6 +165,46 @@ void SimBridge::setLVar(const std::string& name, double value, const std::string
 void SimBridge::execCalculatorCode(const std::string& code, const std::string& origin) {
     enqueue({SimCommand::Type::CalcCode, code, 0, origin});
 }
+void SimBridge::setInputEvent(const std::string& name, double value, const std::string& origin) {
+    enqueue({SimCommand::Type::InputEventSet, name, value, origin});
+}
+void SimBridge::toggleInputEvent(const std::string& name, int positions, const std::string& origin) {
+    enqueue({SimCommand::Type::InputEventToggle, name, static_cast<double>(positions), origin});
+}
+
+void SimBridge::watchInputEvents(std::vector<std::string> names) {
+    std::vector<std::string> clean;
+    for (auto& n : names) {
+        std::string v = stripPrefix(n, "B:");
+        if (!v.empty() && std::find(clean.begin(), clean.end(), v) == clean.end()) clean.push_back(v);
+    }
+    std::lock_guard<std::mutex> lock(m_);
+    if (clean == inputWatch_) return;
+    inputWatch_ = std::move(clean);
+    nextInputPollAt_ = {};
+}
+
+std::optional<double> SimBridge::inputEventValue(const std::string& name) const {
+    std::lock_guard<std::mutex> lock(m_);
+    auto it = inputValues_.find(stripPrefix(name, "B:"));
+    if (it == inputValues_.end()) return std::nullopt;
+    return it->second;
+}
+
+LiveSnapshot SimBridge::liveSnapshot() const {
+    std::lock_guard<std::mutex> lock(m_);
+    return live_;
+}
+
+void SimBridge::requestLiveRefresh() {
+    std::lock_guard<std::mutex> lock(m_);
+    liveScanPending_ = true;
+    liveScanTries_ = 0;
+    nextLiveScanAt_ = clock::now();
+    live_.inputEventsDone = live_.lvarsDone = false;
+    cv_.notify_all();
+}
+
 void SimBridge::toggleLVar(const std::string& name, const std::string& origin) {
     enqueue({SimCommand::Type::LVarToggle, name, 0, origin});
 }
@@ -270,6 +311,21 @@ void SimBridge::dropConnection(const std::string& why) {
     telemetryRequested_ = false;
     eventIds_.clear();
     sentLog_.clear();
+    inputHash_.clear();
+    inputIsString_.clear();
+    inputEventsPending_.clear();
+    pendingToggles_.clear();
+    deferredToggles_.clear();
+    pendingWatchGets_.clear();
+    inputEnumInFlight_ = false;
+    liveScanPending_ = false;
+    lvarListRequested_ = false;
+    lvarCollecting_ = false;
+    {
+        // the cached lists in live_ stay readable (the UI keeps showing the last aircraft) but are no longer "done"
+        live_.inputEventsDone = live_.lvarsDone = false;
+        inputValues_.clear();
+    }
     mfSetupDone_ = false;
     mfClientReady_ = false;
     mfClientRequested_ = false;
@@ -588,6 +644,36 @@ void SimBridge::execute(const SimCommand& cmd) {
             LOG_INFO("-> L:%s toggle%s", name.c_str(), where.c_str());
             break;
         }
+        case SimCommand::Type::InputEventSet: {
+            const std::string name = stripPrefix(cmd.name, "B:");
+            auto it = inputHash_.find(name);
+            if (it == inputHash_.end()) {
+                LOG_WARN("B:%s is not an input event of the loaded aircraft (%zu known)%s", name.c_str(), inputHash_.size(), where.c_str());
+                if (!liveScanPending_) requestLiveRefresh();
+                break;
+            }
+            rememberSend(client_.setInputEvent(it->second, cmd.value), "input event " + name + " = " + formatNumber(cmd.value));
+            LOG_INFO("-> B:%s = %s%s", name.c_str(), formatNumber(cmd.value).c_str(), where.c_str());
+            break;
+        }
+        case SimCommand::Type::InputEventToggle: {
+            const std::string name = stripPrefix(cmd.name, "B:");
+            auto it = inputHash_.find(name);
+            if (it == inputHash_.end()) {
+                LOG_WARN("B:%s is not an input event of the loaded aircraft (%zu known)%s", name.c_str(), inputHash_.size(), where.c_str());
+                if (!liveScanPending_) requestLiveRefresh();
+                break;
+            }
+            // one toggle in flight per event: a second one would read the same old position and undo nothing
+            bool busy = false;
+            for (const auto& [rq, pt] : pendingToggles_) busy |= pt.name == name;
+            if (busy) { deferredToggles_.push_back(cmd); break; }
+            // read the current position from the sim, then write the next one when the answer arrives
+            const uint32_t req = nextGetRequest_++;
+            pendingToggles_[req] = {name, it->second, cmd.value >= 2 ? static_cast<int>(cmd.value) : 2, cmd.origin};
+            rememberSend(client_.getInputEvent(req, it->second), "get input event " + name);
+            break;
+        }
         case SimCommand::Type::CalcCode: {
             sendMobiFlightCommand("MF.SimVars.Set." + cmd.name, "calculator code");
             LOG_INFO("-> calc: %s%s", cmd.name.c_str(), where.c_str());
@@ -678,18 +764,31 @@ void SimBridge::handleMessage(const RecvMessage& m) {
             RecvEventFilename e = SimConnectClient::parseEventFilename(m);
             if (e.eventId == EV_SYS_AIRCRAFT_LOADED) {
                 LOG_INFO("Aircraft loaded: %s", e.fileName.c_str());
-                std::lock_guard<std::mutex> lock(m_);
-                status_.aircraft = e.fileName;
+                {
+                    std::lock_guard<std::mutex> lock(m_);
+                    status_.aircraft = e.fileName;
+                }
+                onAircraftPath(e.fileName);
             }
             break;
         }
         case RecvId::SystemState: {
             RecvSystemState s = SimConnectClient::parseSystemState(m);
-            std::lock_guard<std::mutex> lock(m_);
-            if (s.requestId == REQ_SYS_AIRCRAFT_LOADED) status_.aircraft = s.dataString;
-            else if (s.requestId == REQ_SYS_SIM) status_.simRunning = s.dataInteger != 0;
+            std::string aircraftFromState;
+            {
+                std::lock_guard<std::mutex> lock(m_);
+                if (s.requestId == REQ_SYS_AIRCRAFT_LOADED) { status_.aircraft = s.dataString; aircraftFromState = s.dataString; }
+                else if (s.requestId == REQ_SYS_SIM) status_.simRunning = s.dataInteger != 0;
+            }
+            if (!aircraftFromState.empty()) onAircraftPath(aircraftFromState);
             break;
         }
+        case RecvId::EnumerateInputEvents:
+            handleInputEventList(SimConnectClient::parseInputEventList(m));
+            break;
+        case RecvId::GetInputEvent:
+            handleInputEventValue(SimConnectClient::parseGetInputEvent(m));
+            break;
         case RecvId::SimObjectData: {
             RecvClientData d = SimConnectClient::parseSimObjectData(m);
             if (d.requestId == REQ_TELEMETRY) handleTelemetry(d);
@@ -699,18 +798,7 @@ void SimBridge::handleMessage(const RecvMessage& m) {
             RecvClientData c = SimConnectClient::parseClientData(m);
             if (c.requestId == REQ_MF_RESPONSE || c.requestId == REQ_OUR_RESPONSE) {
                 std::string text(reinterpret_cast<const char*>(c.data.data()), strnlen(reinterpret_cast<const char*>(c.data.data()), c.data.size()));
-                if (text == "MF.Pong") {
-                    {
-                        std::lock_guard<std::mutex> lock(m_);
-                        if (status_.mobiflight != ModuleState::Detected) LOG_INFO("MobiFlight WASM module detected");
-                        status_.mobiflight = ModuleState::Detected;
-                    }
-                    registerMobiFlightClient();
-                } else if (text == std::string("MF.Clients.Add.") + MF_CLIENT_NAME + ".Finished") {
-                    if (!mfClientReady_) onMobiFlightClientReady();
-                } else {
-                    LOG_DEBUG("MobiFlight response: %s", text.c_str());
-                }
+                handleMobiFlightResponse(text);
             } else if (c.requestId == REQ_OUR_LVARS) {
                 handleLVarData(c);
             }
@@ -719,6 +807,197 @@ void SimBridge::handleMessage(const RecvMessage& m) {
         default:
             break;
     }
+}
+
+void SimBridge::handleMobiFlightResponse(const std::string& text) {
+    if (text == "MF.Pong") {
+        {
+            std::lock_guard<std::mutex> lock(m_);
+            if (status_.mobiflight != ModuleState::Detected) LOG_INFO("MobiFlight WASM module detected");
+            status_.mobiflight = ModuleState::Detected;
+        }
+        registerMobiFlightClient();
+    } else if (text == std::string("MF.Clients.Add.") + MF_CLIENT_NAME + ".Finished") {
+        if (!mfClientReady_) onMobiFlightClientReady();
+        if (liveScanPending_ || !live_.lvarsDone) liveScanPending_ = true;  // the L: var list needs our client
+    } else if (text == "MF.LVars.List.Start") {
+        lvarCollecting_ = true;
+        lvarNamesPending_.clear();
+    } else if (text == "MF.LVars.List.End") {
+        lvarCollecting_ = false;
+        std::sort(lvarNamesPending_.begin(), lvarNamesPending_.end());
+        lvarNamesPending_.erase(std::unique(lvarNamesPending_.begin(), lvarNamesPending_.end()), lvarNamesPending_.end());
+        {
+            std::lock_guard<std::mutex> lock(m_);
+            live_.lvars = lvarNamesPending_;
+            live_.lvarsDone = true;
+        }
+        LOG_INFO("Sim reports %zu L: variables for the loaded aircraft", lvarNamesPending_.size());
+        publishLive();
+    } else if (lvarCollecting_ && text.rfind("MF.", 0) != 0 && !text.empty()) {
+        lvarNamesPending_.push_back(text);
+    } else {
+        LOG_DEBUG("MobiFlight response: %s", text.c_str());
+    }
+}
+
+void SimBridge::onAircraftPath(const std::string& cfgPath) {
+    const AircraftId id = identifyAircraft(cfgPath);
+    bool changed;
+    {
+        std::lock_guard<std::mutex> lock(m_);
+        changed = id.id != live_.aircraftId;
+        live_.aircraftId = id.id;
+        live_.aircraftLabel = id.label;
+        if (changed) {
+            live_.inputEvents.clear();
+            live_.lvars.clear();
+            live_.inputEventsDone = live_.lvarsDone = false;
+        }
+    }
+    inputHash_.clear();
+    inputIsString_.clear();
+    lvarListRequested_ = false;
+    if (changed) LOG_INFO("Aircraft id: %s", id.id.empty() ? "(unknown)" : id.id.c_str());
+    // the cockpit registers its input events while it loads: ask after a short delay and retry while the list is empty
+    scheduleLiveScan(initialScanDelayMs_);
+    publishLive();
+}
+
+void SimBridge::scheduleLiveScan(int delayMs) {
+    std::lock_guard<std::mutex> lock(m_);
+    liveScanPending_ = true;
+    liveScanTries_ = 0;
+    nextLiveScanAt_ = clock::now() + std::chrono::milliseconds(delayMs);
+}
+
+void SimBridge::publishLive() {
+    liveRevision_.fetch_add(1);
+}
+
+void SimBridge::handleInputEventList(const RecvInputEventList& l) {
+    for (const auto& d : l.events) {
+        if (d.name.empty()) continue;
+        inputHash_[d.name] = d.hash;
+        inputIsString_[d.name] = d.type == 1;
+        inputEventsPending_.push_back({d.name, d.type == 1});
+    }
+    inputEnumInFlight_ = true;
+    inputEnumLastPacket_ = clock::now();
+}
+
+void SimBridge::handleInputEventValue(const RecvInputEventValue& v) {
+    if (auto t = pendingToggles_.find(v.requestId); t != pendingToggles_.end()) {
+        const PendingToggle pt = t->second;
+        pendingToggles_.erase(t);
+        if (v.type == 1) {
+            LOG_WARN("B:%s holds text, cannot toggle it", pt.name.c_str());
+            return;
+        }
+        const long long cur = std::llround(v.number);
+        const long long next = ((cur % pt.positions) + pt.positions + 1) % pt.positions;
+        const std::string where = pt.origin.empty() ? std::string() : " [" + pt.origin + "]";
+        rememberSend(client_.setInputEvent(pt.hash, static_cast<double>(next)), "input event " + pt.name + " = " + std::to_string(next));
+        LOG_INFO("-> B:%s %lld -> %lld (of %d)%s", pt.name.c_str(), cur, next, pt.positions, where.c_str());
+        {
+            std::lock_guard<std::mutex> lock(m_);
+            inputValues_[pt.name] = static_cast<double>(next);
+            status_.commandsSent++;
+            status_.lastActivity = clock::now();
+        }
+        // the next waiting toggle of this event can read the new position now
+        for (auto it = deferredToggles_.begin(); it != deferredToggles_.end(); ++it) {
+            if (stripPrefix(it->name, "B:") != pt.name) continue;
+            SimCommand again = *it;
+            deferredToggles_.erase(it);
+            execute(again);
+            break;
+        }
+        return;
+    }
+    if (auto w = pendingWatchGets_.find(v.requestId); w != pendingWatchGets_.end()) {
+        if (v.type == 0) {
+            std::lock_guard<std::mutex> lock(m_);
+            inputValues_[w->second] = v.number;
+        }
+        pendingWatchGets_.erase(w);
+    }
+}
+
+// Sends the enumeration requests when they are due and publishes results once the reply packets stop arriving.
+void SimBridge::pumpLiveScan() {
+    const auto now = clock::now();
+    // a finished (quiet for 300 ms) input event list becomes the published one
+    if (inputEnumInFlight_ && now - inputEnumLastPacket_ > std::chrono::milliseconds(300)) {
+        inputEnumInFlight_ = false;
+        std::sort(inputEventsPending_.begin(), inputEventsPending_.end(), [](const LiveInputEvent& a, const LiveInputEvent& b) { return a.name < b.name; });
+        inputEventsPending_.erase(std::unique(inputEventsPending_.begin(), inputEventsPending_.end(),
+                                              [](const LiveInputEvent& a, const LiveInputEvent& b) { return a.name == b.name; }),
+                                  inputEventsPending_.end());
+        {
+            std::lock_guard<std::mutex> lock(m_);
+            // an empty answer usually means the cockpit has not registered its events yet: keep waiting and retrying
+            if (!inputEventsPending_.empty() || live_.inputEvents.empty()) live_.inputEvents = inputEventsPending_;
+            live_.inputEventsDone = !inputEventsPending_.empty();
+        }
+        if (inputEventsPending_.empty()) LOG_INFO("Sim reported no cockpit input events yet (try %d)", liveScanTries_);
+        else LOG_INFO("Sim reports %zu cockpit input events for the loaded aircraft", inputEventsPending_.size());
+        inputEventsPending_.clear();
+        publishLive();
+    }
+
+    bool due;
+    {
+        std::lock_guard<std::mutex> lock(m_);
+        due = liveScanPending_ && now >= nextLiveScanAt_ && !live_.aircraftId.empty();
+    }
+    if (due && !inputEnumInFlight_) {
+        bool haveEvents;
+        {
+            std::lock_guard<std::mutex> lock(m_);
+            haveEvents = live_.inputEventsDone && !live_.inputEvents.empty();
+        }
+        if (!haveEvents) {
+            inputEventsPending_.clear();
+            rememberSend(client_.enumerateInputEvents(REQ_ENUM_INPUT_EVENTS), "enumerate input events");
+            ++liveScanTries_;
+        }
+        // L: variables through our own MobiFlight client, once it exists
+        if (mfClientReady_ && !lvarListRequested_) {
+            lvarListRequested_ = true;
+            lvarListSentAt_ = now;
+            sendMobiFlightCommand("MF.LVars.List", "list L: variables");
+        }
+        std::lock_guard<std::mutex> lock(m_);
+        const bool eventsOk = live_.inputEventsDone && !live_.inputEvents.empty();
+        const bool lvarsOk = live_.lvarsDone || status_.mobiflight == ModuleState::NotFound;
+        if ((eventsOk && lvarsOk) || liveScanTries_ >= 8) {
+            liveScanPending_ = false;
+            // an empty answer is a real answer after the last try: do not leave the UI waiting
+            if (!live_.inputEventsDone) live_.inputEventsDone = true;
+            if (!live_.lvarsDone && status_.mobiflight == ModuleState::NotFound) live_.lvarsDone = true;
+        } else {
+            nextLiveScanAt_ = now + std::chrono::seconds(4);
+        }
+    }
+
+    // poll the values of watched input events (cheap: only the ones used by bindings)
+    std::vector<std::string> watch;
+    {
+        std::lock_guard<std::mutex> lock(m_);
+        if (now >= nextInputPollAt_) {
+            watch = inputWatch_;
+            nextInputPollAt_ = now + std::chrono::milliseconds(500);
+        }
+    }
+    for (const auto& n : watch) {
+        auto it = inputHash_.find(n);
+        if (it == inputHash_.end() || inputIsString_[n]) continue;
+        const uint32_t req = nextGetRequest_++;
+        pendingWatchGets_[req] = n;
+        rememberSend(client_.getInputEvent(req, it->second), "poll input event " + n);
+    }
+    if (pendingWatchGets_.size() > 256) pendingWatchGets_.clear();  // never let lost replies pile up
 }
 
 void SimBridge::threadMain() {
@@ -730,6 +1009,8 @@ void SimBridge::threadMain() {
             {
                 std::lock_guard<std::mutex> lock(m_);
                 status_.lastError.clear();
+                // a deliberate disconnect (new endpoint, user request) must not delay the next attempt by the failure back-off
+                nextConnectAttempt_ = clock::now();
             }
         }
         if (!client_.isConnected()) {
@@ -770,6 +1051,7 @@ void SimBridge::threadMain() {
         if (st == ConnState::Connected) {
             drainQueue();
             if (telemetryWanted_ && !telemetryRequested_) setupTelemetry();
+            pumpLiveScan();
             bool dirty;
             {
                 std::lock_guard<std::mutex> lock(m_);

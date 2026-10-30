@@ -25,6 +25,7 @@ hardware path in it was exercised on the real devices it targets, and no issues 
 | WINCTRL URSA MINOR Combat Throttle Metal.EX (`4098:b970`) | controllers discovered over hidraw, both grip motors driven and felt, addresses confirmed by hand, config words dumped before and after |
 | WINCTRL URSA MINOR Combat Joystick (`4098:bc29`/`bc2a`) | discovered the same way; motor address from the community kernel driver and X-Plane plugin |
 | Axis bindings | verified end to end with a virtual (uinput) joystick through the real app and a mock simulator: value mode sent 10, 20 ... 100, step mode sent the right number of +/- events, and "Listen for input" captured the moved axis in the GUI. Your physical axes were read (ranges and rest positions) but not yet moved by hand with this tool |
+| Live controls of any aircraft (CJ4, F/A-18E ...) | the whole path (aircraft identification, listing the cockpit input events, set / toggle / cycle / read back, the L: variable list, the catalog, the cache, the profile banner) was verified through the real app against a mock simulator that speaks the protocol. **Not yet run against a real CJ4, F/A-18E or any other default aircraft**, because MSFS was not running while it was written: how the real sim answers (timing, which events each aircraft exposes, what values a switch takes) is the part still to confirm. Please report what you find |
 | FlyByWire A380X | catalog generated from the FlyByWire A380X docs; the APU, FCU and many overhead names were confirmed present in an installed A380X package. **Not yet exercised on the A380X in flight with this tool**: verify an A380X binding with its *Test* button before relying on it. The docs describe the development branch: the stable build's baro knob uses its own `A380X_EFIS_CP_BARO_PUSH/PULL_<n>` H events and lacks the `A32NX.FCU_EFIS_*_BARO_*` events the docs list, so the A380X catalog has no baro recipes and its EFIS baro entries may do nothing on older builds |
 | Device safety | the tool only sends identity queries, config *reads* and volatile motor levels; it never writes flash, restarts or re-flashes a device (`--dump-winwing-config` gives a baseline to diff) |
 
@@ -69,7 +70,7 @@ Options: `--wayland` / `--x11` (force a platform), `--headless` (no window, run 
 `--host`, `--port`, `--profile NAME`, `--config FILE`, `--catalog FILE`, `--quiet`,
 `--probe-winwing`, `--motor-sweep [DEV]`, `--dump-winwing-config`,
 `--fire KIND:NAME[=V]` (one-shot action, e.g. `--fire lvar_toggle:A32NX_OVHD_APU_MASTER_SW_PB_IS_ON`),
-`--read NAME` (print an `L:` var).
+`--read NAME` (print an `L:` var), `--read-input NAME` (print a cockpit input event), `--list-controls` (print the loaded aircraft's input events and L: variables).
 
 ### AppImage
 
@@ -182,10 +183,10 @@ the *Catalog* tab offer; it never changes existing bindings, so you can re-assig
 
 ### Upgrading does not break your configuration
 
-The config is versioned (`version` in `config.json`; 2 since 0.2.0). Profiles written by older builds
+The config is versioned (`version` in `config.json`; 2 since 0.2.0, 3 since 0.5.0, which added `B:` actions). Profiles written by older builds
 have no aircraft and load as A32NX profiles with every binding, haptics setting and device address
 intact. The first time a newer build saves over an older file it keeps the original once as
-`config.json.v1.bak` (never overwritten afterwards), so rolling back is a file copy. Unknown or newer
+`config.json.v<old version>.bak` (for example `config.json.v2.bak`) (never overwritten afterwards), so rolling back is a file copy. Unknown or newer
 fields are ignored rather than rejected. `ctest` runs a round-trip test of exactly this (a schema-1
 fixture, optionally your own config: `build/config_roundtrip ~/.config/msfs-linuxrebind/config.json`,
 which only ever works on a copy), plus a test that every documented command-line option is accepted.
@@ -234,6 +235,8 @@ then `sudo udevadm control --reload && sudo udevadm trigger` and re-plug the dev
 
 * `tools/mock_simconnect.py --port 5500` is a fake SimConnect server (answers Open, logs events,
   emulates the MobiFlight areas); run the app with `--port 5500` to test without MSFS.
+* `tools/build_standard_catalog.py --packages <Official/Steam> --input <MSFS>/Input` regenerates `data/standard_catalog.json` from an installation (read-only, names only).
+* `tools/mock_simconnect.py --aircraft Asobo_CJ4` poses as any aircraft (input events, MobiFlight client, L: variable list).
 * `tools/build_catalog.py --all` regenerates `data/a32nx_catalog.json` and `data/a380x_catalog.json` from the FlyByWire docs.
 * `ctest --test-dir build` runs the config compatibility, command-line option and axis tests.
 * `tools/virtual_joystick.py` is a uinput joystick for exercising bindings without hardware.

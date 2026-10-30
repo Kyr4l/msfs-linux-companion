@@ -63,6 +63,22 @@ struct RecvException { uint32_t exception = 0, sendId = 0, index = 0; };
 struct RecvEvent { uint32_t groupId = 0, eventId = 0, data = 0; };
 struct RecvEventFilename { uint32_t groupId = 0, eventId = 0, data = 0; std::string fileName; uint32_t flags = 0; };
 struct RecvSystemState { uint32_t requestId = 0; uint32_t dataInteger = 0; float dataFloat = 0; std::string dataString; };
+struct InputEventDescriptor {
+    std::string name;
+    uint64_t hash = 0;
+    uint32_t type = 0;  // 0 = double, 1 = string
+};
+struct RecvInputEventList {  // one packet of the EnumerateInputEvents reply
+    uint32_t requestId = 0, arraySize = 0, entryNumber = 0, outOf = 0;
+    std::vector<InputEventDescriptor> events;
+};
+struct RecvInputEventValue {  // GetInputEvent reply (requestId) or SubscribeInputEvent notification (hash)
+    uint32_t requestId = 0;
+    uint64_t hash = 0;
+    uint32_t type = 0;
+    double number = 0;
+    std::string text;
+};
 struct RecvClientData {
     uint32_t requestId = 0, objectId = 0, defineId = 0, flags = 0, entryNumber = 0, outOf = 0, defineCount = 0;
     std::vector<uint8_t> data;
@@ -105,6 +121,10 @@ public:
     uint32_t createClientData(uint32_t clientDataId, uint32_t size, uint32_t flags);
     uint32_t addToClientDataDefinition(uint32_t defineId, uint32_t offset, uint32_t sizeOrType, float epsilon = 0, uint32_t datumId = 0);
     uint32_t clearClientDataDefinition(uint32_t defineId);
+    // SimConnect input events ("B:" events) - MSFS 2020 SU10 and later, protocol KittyHawk
+    uint32_t enumerateInputEvents(uint32_t requestId);
+    uint32_t getInputEvent(uint32_t requestId, uint64_t hash);
+    uint32_t setInputEvent(uint64_t hash, double value);
     uint32_t requestClientData(uint32_t clientDataId, uint32_t requestId, uint32_t defineId, uint32_t period, uint32_t flags,
                                uint32_t origin = 0, uint32_t interval = 0, uint32_t limit = 0);
     uint32_t setClientData(uint32_t clientDataId, uint32_t defineId, uint32_t unitSize, const void* data, size_t len);
@@ -118,6 +138,8 @@ public:
     static RecvEventFilename parseEventFilename(const RecvMessage& m);
     static RecvSystemState parseSystemState(const RecvMessage& m);
     static RecvClientData parseClientData(const RecvMessage& m);
+    static RecvInputEventList parseInputEventList(const RecvMessage& m);
+    static RecvInputEventValue parseGetInputEvent(const RecvMessage& m);
     static RecvClientData parseSimObjectData(const RecvMessage& m) { return parseClientData(m); }  // same layout
 
     uint64_t bytesSent() const { return bytesSent_; }

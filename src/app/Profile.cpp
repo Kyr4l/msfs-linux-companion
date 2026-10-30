@@ -18,6 +18,8 @@ const char* actionKindName(ActionKind k) {
         case ActionKind::LVarSet: return "lvar_set";
         case ActionKind::LVarToggle: return "lvar_toggle";
         case ActionKind::CalcCode: return "calc_code";
+        case ActionKind::InputEvent: return "input_event";
+        case ActionKind::InputEventToggle: return "input_event_toggle";
     }
     return "sim_event";
 }
@@ -29,18 +31,21 @@ const char* actionKindLabel(ActionKind k) {
         case ActionKind::LVarSet: return "L: var set (needs MobiFlight)";
         case ActionKind::LVarToggle: return "L: var toggle 0/1 (needs MobiFlight)";
         case ActionKind::CalcCode: return "RPN calculator code (needs MobiFlight)";
+        case ActionKind::InputEvent: return "B: input event, set value (cockpit switch)";
+        case ActionKind::InputEventToggle: return "B: input event, toggle / cycle positions";
     }
     return "?";
 }
 
 bool actionKindFromName(const std::string& s, ActionKind& out) {
-    for (ActionKind k : {ActionKind::SimEvent, ActionKind::HEvent, ActionKind::LVarSet, ActionKind::LVarToggle, ActionKind::CalcCode}) {
+    for (ActionKind k : {ActionKind::SimEvent, ActionKind::HEvent, ActionKind::LVarSet, ActionKind::LVarToggle, ActionKind::CalcCode,
+                         ActionKind::InputEvent, ActionKind::InputEventToggle}) {
         if (s == actionKindName(k)) { out = k; return true; }
     }
     return false;
 }
 
-bool actionNeedsMobiFlight(ActionKind k) { return k != ActionKind::SimEvent; }
+bool actionNeedsMobiFlight(ActionKind k) { return k != ActionKind::SimEvent && k != ActionKind::InputEvent && k != ActionKind::InputEventToggle; }
 
 static std::string num(double v) {
     char buf[64];
@@ -56,6 +61,8 @@ std::string Action::describe() const {
         case ActionKind::LVarSet: return "L:" + name + " = " + num(value);
         case ActionKind::LVarToggle: return "L:" + name + " toggle";
         case ActionKind::CalcCode: return "calc: " + name;
+        case ActionKind::InputEvent: return "B:" + name + " = " + num(value);
+        case ActionKind::InputEventToggle: return "B:" + name + (value > 2 ? " cycle " + num(value) : std::string(" toggle"));
     }
     return name;
 }
