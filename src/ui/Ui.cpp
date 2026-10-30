@@ -1801,6 +1801,12 @@ void Ui::drawGuidesTab() {
         ImGui::SetWindowFontScale(1.25f);
         ImGui::TextUnformatted(g->title.c_str());
         ImGui::SetWindowFontScale(1.0f);
+        if (!g->notice.empty()) {
+            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + std::min(ImGui::GetContentRegionAvail().x, ImGui::GetFontSize() * 60));
+            ImGui::TextColored(kYellow, "%s", g->notice.c_str());
+            ImGui::PopTextWrapPos();
+            ImGui::Spacing();
+        }
         ImGui::TextDisabled("What do you want to do?");
         ImGui::Spacing();
         const float w = std::min(ImGui::GetContentRegionAvail().x, ImGui::GetFontSize() * 34);

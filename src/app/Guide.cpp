@@ -98,6 +98,7 @@ bool Guide::load(const std::string& path, std::string& err) {
         in >> j;
         aircraft = j.value("aircraft", "");
         title = j.value("title", "");
+        notice = j.value("notice", "");
         sources.clear();
         for (const auto& s : j.value("sources", json::array())) sources.push_back(s.get<std::string>());
         topics.clear();

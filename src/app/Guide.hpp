@@ -84,6 +84,7 @@ struct GuideTopic {
 
 struct Guide {
     std::string aircraft, title;
+    std::string notice;  // what was checked against the real aircraft and what was not, shown on the topics page
     std::vector<std::string> sources;
     std::vector<GuideTopic> topics;
     std::unordered_map<std::string, GuideNode> nodes;

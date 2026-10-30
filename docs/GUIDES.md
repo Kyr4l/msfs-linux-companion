@@ -9,6 +9,7 @@ on with the control highlighted. Run `tools/validate_guides.py` after every edit
 {
   "aircraft": "Asobo_CJ4",                 // the catalog id (data/<name>_catalog.json "aircraft")
   "title": "Cessna Citation CJ4",
+  "notice": "what was checked on the real aircraft and what was not (shown on the topics page)",
   "sources": ["where the procedures come from (documents, URLs)"],
   "topics": [
     {"id": "engine_start", "title": "Start the engines", "summary": "one line", "start": "es_ground"}
