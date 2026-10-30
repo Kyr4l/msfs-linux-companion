@@ -20,6 +20,20 @@ inline std::string lowerAscii(std::string s) {
     return s;
 }
 
+// "Asobo_CJ4", "asobo_cj4", "Asobo CJ4" and "ASOBO-CJ4" are one aircraft: how the folder is spelled depends on who reports it
+// (the sim, a livery, an older config, a label typed by hand). Ids are compared by their letters and digits only.
+inline std::string aircraftKey(const std::string& s) {
+    std::string k;
+    for (unsigned char c : s)
+        if (std::isalnum(c)) k += static_cast<char>(std::tolower(c));
+    return k;
+}
+
+inline bool sameAircraft(const std::string& a, const std::string& b) {
+    const std::string ka = aircraftKey(a);
+    return !ka.empty() && ka == aircraftKey(b);
+}
+
 inline AircraftId identifyAircraft(const std::string& cfgPath) {
     // folder that holds aircraft.cfg = last path component before the file name
     std::string p = cfgPath;

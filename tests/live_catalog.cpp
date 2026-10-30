@@ -249,6 +249,59 @@ int main() {
         std::filesystem::remove(path);
     }
 
+    // ---- one aircraft, however it is spelled: the sim, a livery or an old config may say Asobo_CJ4, asobo_cj4 or Asobo CJ4
+    {
+        for (const char* v : {"Asobo_CJ4", "asobo_cj4", "Asobo CJ4", "ASOBO-CJ4", "ASOBO CJ4", " asobo_cj4 "})
+            CHECK(sim::sameAircraft(v, "Asobo_CJ4"));
+        CHECK(sim::sameAircraft("a32nx", "A32NX"));
+        CHECK(!sim::sameAircraft("Asobo_CJ4", "Asobo_FA18E"));
+        CHECK(!sim::sameAircraft("Asobo_A320_NEO", "A32NX"));  // Asobo's own A320 is not the FlyByWire one
+        CHECK(!sim::sameAircraft("", "") && !sim::sameAircraft("Asobo_CJ4", ""));
+        // the folder as MSFS reports it (any case) is the same aircraft as the catalog's id
+        const auto lower = sim::identifyAircraft("C:\\x\\SimObjects\\Airplanes\\asobo_cj4\\aircraft.cfg");
+        CHECK(lower.id == "asobo_cj4" && sim::sameAircraft(lower.id, "Asobo_CJ4"));
+
+        CatalogSet set;
+        Catalog cj4;
+        cj4.aircraft = "Asobo_CJ4";
+        cj4.title = "Cessna Citation CJ4 (Asobo)";
+        CatalogEntry e;
+        e.api = e.name = "LIGHTING_NAV_1";
+        e.kind = "input_event";
+        cj4.entries.push_back(e);
+        cj4.curated = true;
+        set.addShipped(cj4);
+        Catalog a32;
+        a32.aircraft = "A32NX";
+        set.addShipped(a32);
+        for (const char* v : {"asobo_cj4", "ASOBO CJ4", "Asobo-CJ4"}) {
+            CHECK(set.find(v) && set.find(v)->aircraft == "Asobo_CJ4");
+            CHECK(set.canonicalId(v) == "Asobo_CJ4");
+            CHECK(set.forAircraft(v)->aircraft == "Asobo_CJ4");
+        }
+        CHECK(set.canonicalId("Mystery_Plane") == "Mystery_Plane");
+        const size_t before = set.items.size();
+        set.ensure("asobo_cj4", "x");  // the sim reported another spelling: no second catalog
+        CHECK(set.items.size() == before);
+        set.ensure("Mystery_Plane", "Mystery");
+        CHECK(set.items.size() == before + 1);
+        CHECK(set.find("mystery plane") != nullptr);
+
+        // profiles saved with the wrong spelling are rewritten to the catalog's
+        Settings st;
+        for (const char* aircraft : {"asobo_cj4", "ASOBO CJ4", "A32NX", "a32nx", "Mystery_Plane", "Never_Seen"}) {
+            Profile p;
+            p.name = std::string("p-") + aircraft;
+            p.aircraft = aircraft;
+            st.profiles.push_back(p);
+        }
+        CHECK(canonicalizeProfileAircraft(st, set) == 3);  // asobo_cj4, ASOBO CJ4, a32nx
+        CHECK(st.profiles[0].aircraft == "Asobo_CJ4" && st.profiles[1].aircraft == "Asobo_CJ4");
+        CHECK(st.profiles[2].aircraft == "A32NX" && st.profiles[3].aircraft == "A32NX");
+        CHECK(st.profiles[4].aircraft == "Mystery_Plane" && st.profiles[5].aircraft == "Never_Seen");
+        CHECK(canonicalizeProfileAircraft(st, set) == 0);  // nothing left to do
+    }
+
     // ---- which local listeners get a SimConnect handshake when the configured port does not answer
     {
         using lr::sim::ProbeTarget;

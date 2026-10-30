@@ -72,6 +72,8 @@ public:
     // Adds a shipped catalog file's content (replaces a catalog with the same aircraft id).
     void addShipped(Catalog c);
     Catalog* find(const std::string& id);
+    // The id as the catalog spells it ("Asobo_CJ4" for "asobo_cj4"), or `id` itself when there is no such catalog.
+    std::string canonicalId(const std::string& id) const;
     const Catalog* find(const std::string& id) const;
     const Catalog* standard() const { return find(kStandardCatalogId); }
     // Catalog to use for a profile's aircraft: exact match, else the standard events, else the first one.
@@ -100,5 +102,8 @@ public:
 // Builds catalog entries for what the sim reports about the loaded aircraft.
 CatalogEntry makeInputEventEntry(const std::string& name, bool isString);
 CatalogEntry makeLiveLVarEntry(const std::string& name);
+
+// Rewrites each profile's aircraft to the spelling of its catalog (a profile saved as "asobo_cj4" becomes "Asobo_CJ4"). Returns how many changed.
+int canonicalizeProfileAircraft(Settings& s, const CatalogSet& catalogs);
 
 }  // namespace lr::app

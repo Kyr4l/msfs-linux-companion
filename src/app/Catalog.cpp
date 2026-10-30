@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Kyr4l
 #include "app/Catalog.hpp"
+#include "sim/AircraftId.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -300,16 +301,35 @@ bool Catalog::loadLive(const std::string& path, Catalog& out, std::string& err) 
 
 // ---------------------------------------------------------------- CatalogSet
 
+// Ids are matched by their letters and digits (see sim::aircraftKey): the sim, a livery and an old config may spell one aircraft
+// "Asobo_CJ4", "asobo_cj4" or "Asobo CJ4".
 Catalog* CatalogSet::find(const std::string& id) {
     for (auto& c : items)
-        if (c.aircraft == id) return &c;
+        if (sim::sameAircraft(c.aircraft, id)) return &c;
     return nullptr;
 }
 
 const Catalog* CatalogSet::find(const std::string& id) const {
     for (const auto& c : items)
-        if (c.aircraft == id) return &c;
+        if (sim::sameAircraft(c.aircraft, id)) return &c;
     return nullptr;
+}
+
+std::string CatalogSet::canonicalId(const std::string& id) const {
+    const Catalog* c = find(id);
+    return c ? c->aircraft : id;
+}
+
+int canonicalizeProfileAircraft(Settings& s, const CatalogSet& catalogs) {
+    int changed = 0;
+    for (auto& p : s.profiles) {
+        const std::string canon = catalogs.canonicalId(p.aircraft);
+        if (canon != p.aircraft) {
+            p.aircraft = canon;
+            ++changed;
+        }
+    }
+    return changed;
 }
 
 const Catalog* CatalogSet::forAircraft(const std::string& id) const {

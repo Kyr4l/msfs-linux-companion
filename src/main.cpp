@@ -226,6 +226,11 @@ int main(int argc, char** argv) {
         }
         ctx.catalogs.refreshStandard();
         ctx.loadLiveCaches();
+        // a profile saved with another spelling of its aircraft ("asobo_cj4" for "Asobo_CJ4") would never match the loaded one
+        if (const int n = app::canonicalizeProfileAircraft(ctx.settings, ctx.catalogs)) {
+            LOG_INFO("%d profile(s) had their aircraft rewritten to the spelling of its catalog", n);
+            ctx.markDirty();
+        }
         for (const auto& path : app::listDataFiles("_guide.json")) {
             app::Guide g;
             std::string err;

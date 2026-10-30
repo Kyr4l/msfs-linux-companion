@@ -82,7 +82,7 @@ void AppContext::pushProfileToEngine() {
 
 const Guide* AppContext::guideFor(const std::string& aircraft) const {
     for (const auto& g : guides)
-        if (g.aircraft == aircraft) return &g;
+        if (sim::sameAircraft(g.aircraft, aircraft)) return &g;
     return nullptr;
 }
 
@@ -179,14 +179,15 @@ void AppContext::syncLive() {
     if (!changed) return;
     if (const Catalog* c = catalogs.find(snap.aircraftId)) {
         std::string err;
-        if (!c->saveLive(liveCacheFile(snap.aircraftId), err)) LOG_WARN("Could not cache the controls of %s: %s", snap.aircraftId.c_str(), err.c_str());
+        if (!c->saveLive(liveCacheFile(c->aircraft), err)) LOG_WARN("Could not cache the controls of %s: %s", c->aircraft.c_str(), err.c_str());
     }
 }
 
 void AppContext::forgetLive(const std::string& aircraft) {
+    const std::string canon = catalogs.canonicalId(aircraft);  // the spelling that names the cache file
     catalogs.forgetLive(aircraft);
     std::error_code ec;
-    std::filesystem::remove(liveCacheFile(aircraft), ec);
+    std::filesystem::remove(liveCacheFile(canon), ec);
 }
 
 void AppContext::pushHapticsConfig() {
@@ -359,7 +360,12 @@ void Ui::drawStatusBar() {
     ImGui::SameLine(0, 30);
     {
         // the loaded aircraft by name ("Asobo CJ4"), not by the file name every aircraft shares ("aircraft.CFG")
-        const std::string shown = status_.aircraft.empty() ? "-" : (sim::identifyAircraft(status_.aircraft).label.empty() ? baseName(status_.aircraft) : sim::identifyAircraft(status_.aircraft).label);
+        std::string shown = "-";
+        if (!status_.aircraft.empty()) {
+            const sim::AircraftId loadedId = sim::identifyAircraft(status_.aircraft);
+            const Catalog* known = ctx_.catalogs.find(loadedId.id);
+            shown = known && known->curated ? known->label() : (loadedId.label.empty() ? baseName(status_.aircraft) : loadedId.label);
+        }
         ImGui::Text("Aircraft: %s", shown.c_str());
     }
     if (!status_.aircraft.empty() && ImGui::IsItemHovered()) ImGui::SetTooltip("%s", status_.aircraft.c_str());
@@ -539,11 +545,11 @@ void Ui::drawBindingsTab() {
     ImGui::SetNextItemWidth(260);
     if (ImGui::BeginCombo("##profile_aircraft", [&] {
             const Catalog* c = ctx_.catalogFor(p.aircraft);
-            return (c && c->aircraft == p.aircraft) ? c->label() : p.aircraft;
+            return (c && sim::sameAircraft(c->aircraft, p.aircraft)) ? c->label() : p.aircraft;
         }().c_str())) {
         for (const auto& c : ctx_.catalogs) {
             if (c.aircraft == kStandardCatalogId) continue;  // not an aircraft
-            if (ImGui::Selectable(c.label().c_str(), c.aircraft == p.aircraft)) {
+            if (ImGui::Selectable(c.label().c_str(), sim::sameAircraft(c.aircraft, p.aircraft))) {
                 p.aircraft = c.aircraft;
                 viewAircraft_.clear();
                 ctx_.markDirty();
@@ -579,7 +585,7 @@ void Ui::drawBindingsTab() {
             const Catalog* chosen = ctx_.catalogs.find(newProfileAircraft_);
             if (ImGui::BeginCombo("Aircraft##new", chosen ? chosen->label().c_str() : newProfileAircraft_.c_str())) {
                 for (const auto& c : ctx_.catalogs)
-                    if (c.aircraft != kStandardCatalogId && ImGui::Selectable(c.label().c_str(), c.aircraft == newProfileAircraft_)) newProfileAircraft_ = c.aircraft;
+                    if (c.aircraft != kStandardCatalogId && ImGui::Selectable(c.label().c_str(), sim::sameAircraft(c.aircraft, newProfileAircraft_))) newProfileAircraft_ = c.aircraft;
                 ImGui::EndCombo();
             }
         }
@@ -617,13 +623,15 @@ void Ui::drawBindingsTab() {
 
     {
         const std::string det = detectAircraft(status_.aircraft);
-        if (!det.empty() && det != p.aircraft) {
+        if (!det.empty() && !sim::sameAircraft(det, p.aircraft)) {
             const sim::AircraftId loaded = sim::identifyAircraft(status_.aircraft);
-            ImGui::TextColored(kYellow, "The loaded aircraft is the %s, this profile is for the %s.", loaded.label.c_str(), p.aircraft.c_str());
+            const Catalog* profCat = ctx_.catalogFor(p.aircraft);
+            const std::string profLabel = (profCat && sim::sameAircraft(profCat->aircraft, p.aircraft)) ? profCat->label() : p.aircraft;
+            ImGui::TextColored(kYellow, "The loaded aircraft is the %s, this profile is for the %s.", loaded.label.c_str(), profLabel.c_str());
             ImGui::SameLine();
             const Profile* match = nullptr;
             for (const auto& prof : s.profiles)
-                if (prof.aircraft == det) { match = &prof; break; }
+                if (sim::sameAircraft(prof.aircraft, det)) { match = &prof; break; }
             if (match) {
                 if (ImGui::SmallButton((std::string("Switch to \"") + match->name + "\"").c_str())) {
                     s.activeProfile = match->name;
@@ -632,7 +640,7 @@ void Ui::drawBindingsTab() {
                 }
             } else if (ImGui::SmallButton("Create a profile for it")) {
                 newProfileName_ = sim::identifyAircraft(status_.aircraft).label;
-                newProfileAircraft_ = det;
+                newProfileAircraft_ = ctx_.catalogs.canonicalId(det);
                 renamingProfile_ = false;
                 ImGui::OpenPopup("profile_name");
             }
@@ -1414,9 +1422,9 @@ void Ui::drawCatalogTab() {
         ImGui::SetNextItemWidth(300);
         if (ImGui::BeginCombo("##catalog_aircraft", currentCatalog().label().c_str())) {
             for (const auto& c : ctx_.catalogs) {
-                const bool sel = c.aircraft == shown;
+                const bool sel = sim::sameAircraft(c.aircraft, shown);
                 if (ImGui::Selectable(c.label().c_str(), sel)) {
-                    viewAircraft_ = (active && c.aircraft == active->aircraft) ? std::string() : c.aircraft;
+                    viewAircraft_ = (active && sim::sameAircraft(c.aircraft, active->aircraft)) ? std::string() : c.aircraft;
                     catalogSelected_ = -1;
                 }
             }
@@ -1433,7 +1441,7 @@ void Ui::drawCatalogTab() {
         // what the sim told us about the aircraft being browsed (any aircraft, not only the loaded one: the lists are cached)
         const Catalog& shownCat = currentCatalog();
         const sim::LiveSnapshot live = ctx_.bridge.liveSnapshot();
-        const bool isLoaded = !live.aircraftId.empty() && live.aircraftId == shownCat.aircraft;
+        const bool isLoaded = sim::sameAircraft(live.aircraftId, shownCat.aircraft);
         size_t nInput = 0, nLVar = 0;
         for (const auto& e : shownCat.entries) {
             if (e.live && e.kind == "input_event") ++nInput;
@@ -1781,7 +1789,7 @@ void Ui::drawGuidesTab() {
     ImGui::SetNextItemWidth(ImGui::GetFontSize() * 22);
     if (ImGui::BeginCombo("##guideAircraft", g->title.c_str())) {
         for (const auto& o : ctx_.guides)
-            if (ImGui::Selectable(o.title.c_str(), o.aircraft == g->aircraft) && o.aircraft != g->aircraft) {
+            if (ImGui::Selectable(o.title.c_str(), sim::sameAircraft(o.aircraft, g->aircraft)) && !sim::sameAircraft(o.aircraft, g->aircraft)) {
                 guideAircraft_ = o.aircraft;
                 guideRun_ = GuideRun{};
                 guideTicked_.clear();
@@ -1798,7 +1806,7 @@ void Ui::drawGuidesTab() {
     ImGui::Separator();
 
     const Catalog* cat = ctx_.catalogFor(g->aircraft);
-    if (cat && cat->aircraft != g->aircraft) cat = nullptr;  // never show another aircraft's panels
+    if (cat && !sim::sameAircraft(cat->aircraft, g->aircraft)) cat = nullptr;  // never show another aircraft's panels
 
     ImGui::BeginChild("guide_body", ImVec2(0, 0));
     if (!guideRun_.active() || guideRun_.guide() != g) {
