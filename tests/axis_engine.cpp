@@ -216,7 +216,7 @@ int main() {
         st.profiles[0].bindings[0].axis.invert = true;
         st.profiles[0].bindings[0].axis.outMax = 255;
         st.profiles[0].bindings[1].axis.stepPercent = 7.5;
-        const auto path = (std::filesystem::temp_directory_path() / "msfs-linuxrebind-axis-test.json").string();
+        const auto path = (std::filesystem::temp_directory_path() / "msfs-linux-companion-axis-test.json").string();
         std::string err;
         CHECK(saveSettings(path, st, err));
         Settings back;

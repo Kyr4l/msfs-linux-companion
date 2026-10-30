@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Kyr4l
-// msfs-linuxrebind: bind HOTAS buttons to MSFS 2020 cockpit events from Linux.
+// msfs-linux-companion (formerly msfs-linuxrebind): HOTAS bindings, cockpit catalogs, guides and haptics for MSFS 2020, on Linux.
 #include <csignal>
 #include <sys/resource.h>
 #include <sys/syscall.h>
@@ -43,13 +43,13 @@ void onSignal(int) { g_signalled = 1; }
 
 void usage() {
     std::puts(
-        "msfs-linuxrebind [options]\n"
+        "msfs-linux-companion [options]\n"
         "  --wayland | --x11      force the GLFW platform (default: Wayland if available, else X11)\n"
         "  --headless             no window; run the active profile until SIGINT\n"
         "  --host HOST            SimConnect host (default from config, 127.0.0.1)\n"
         "  --port PORT            SimConnect TCP port (default from config, 500)\n"
         "  --profile NAME         activate this profile for the session\n"
-        "  --config FILE          config file (default $XDG_CONFIG_HOME/msfs-linuxrebind/config.json)\n"
+        "  --config FILE          config file (default $XDG_CONFIG_HOME/msfs-linux-companion/config.json)\n"
         "  --catalog FILE         extra action catalog JSON (all data/*_catalog.json are loaded automatically)\n"
         "  --tab NAME             start on a tab: Bindings, Devices, Catalog, Vibration, Log, Settings\n"
         "  --quiet                do not echo the log to stderr\n"
@@ -115,7 +115,7 @@ int main(int argc, char** argv) {
         else if (a == "--tab") next(startTab);
         else if (a == "--quiet" || a == "-q") Log::instance().echoToStderr = false;
         else if (a == "--version") {
-            std::printf("msfs-linuxrebind %s\nLicense GPL-3.0-only: free software, no warranty. Source: https://github.com/Kyr4l/msfs2020-linuxrebind\n", LINUXREBIND_VERSION);
+            std::printf("msfs-linux-companion %s\nLicense GPL-3.0-only: free software, no warranty. Source: https://github.com/Kyr4l/msfs-linux-companion\n", COMPANION_VERSION);
             return 0;
         }
         else if (a == "--help" || a == "-h") { usage(); return 0; }
@@ -336,7 +336,7 @@ int main(int argc, char** argv) {
             doc["aircraft"] = snap.aircraftId;
             doc["label"] = snap.aircraftLabel;
             doc["sim"] = bridge.status().simVersion;
-            doc["tool_version"] = LINUXREBIND_VERSION;
+            doc["tool_version"] = COMPANION_VERSION;
             doc["input_events"] = nlohmann::json::array();
             for (const auto& e : snap.inputEvents) {
                 nlohmann::json j{{"name", e.name}, {"text", e.isString}};
@@ -423,10 +423,10 @@ int main(int argc, char** argv) {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-        glfwWindowHintString(GLFW_WAYLAND_APP_ID, "msfs-linuxrebind");
-        glfwWindowHintString(GLFW_X11_CLASS_NAME, "msfs-linuxrebind");
-        glfwWindowHintString(GLFW_X11_INSTANCE_NAME, "msfs-linuxrebind");
-        GLFWwindow* window = glfwCreateWindow(1280, 800, "MSFS Linux Rebind", nullptr, nullptr);
+        glfwWindowHintString(GLFW_WAYLAND_APP_ID, "msfs-linux-companion");
+        glfwWindowHintString(GLFW_X11_CLASS_NAME, "msfs-linux-companion");
+        glfwWindowHintString(GLFW_X11_INSTANCE_NAME, "msfs-linux-companion");
+        GLFWwindow* window = glfwCreateWindow(1280, 800, "MSFS Linux Companion", nullptr, nullptr);
         if (!window) {
             LOG_ERROR("Window creation failed");
             glfwTerminate();

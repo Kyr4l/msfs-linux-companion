@@ -1,6 +1,6 @@
 # Third-party components
 
-msfs-linuxrebind itself is licensed under the GNU General Public License v3.0 only (see `LICENSE`).
+msfs-linux-companion itself is licensed under the GNU General Public License v3.0 only (see `LICENSE`).
 It includes or links the following components, each under its own licence, all of which are compatible with the GPL-3.0:
 
 | Component | Use | Licence |

@@ -45,7 +45,7 @@ struct AppContext {
     int fixAxisRanges(Profile& p);              // applies the suggestion to every wrong binding, returns how many
     void warnAxisRanges() const;                // log one line per wrong binding (startup)
     const Catalog* catalogFor(const std::string& aircraft) const;  // exact match, else the standard events, else the first
-    void loadLiveCaches();                                          // ~/.config/msfs-linuxrebind/live/*.json from earlier sessions
+    void loadLiveCaches();                                          // ~/.config/msfs-linux-companion/live/*.json from earlier sessions
     void syncLive();                                                // folds the sim's current lists into the catalog, saves the cache
     void forgetLive(const std::string& aircraft);
     uint64_t liveSeen = ~0ull;

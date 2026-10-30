@@ -400,9 +400,9 @@ void Ui::drawSplash() {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
     ImGui::Begin("##splash", nullptr, flags);
     ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * 1.6f);
-    ImGui::TextUnformatted("MSFS Linux Rebind");
+    ImGui::TextUnformatted("MSFS Linux Companion");
     ImGui::PopFont();
-    ImGui::TextDisabled("version %s - starting up", LINUXREBIND_VERSION);
+    ImGui::TextDisabled("version %s - starting up", COMPANION_VERSION);
     ImGui::Spacing();
     auto line = [&](bool done, const char* what, const char* pending) {
         dot(done ? kGreen : kYellow);
@@ -1682,8 +1682,8 @@ void Ui::drawSettingsTab() {
     if (ImGui::Button("Save now")) ctx_.save();
 
     ImGui::SeparatorText("About");
-    ImGui::Text("msfs-linuxrebind %s - native Linux SimConnect client, Dear ImGui %s", LINUXREBIND_VERSION, IMGUI_VERSION);
-    ImGui::TextDisabled("Free software under the GNU GPL v3 (GPL-3.0-only), no warranty. Source and licences: github.com/Kyr4l/msfs2020-linuxrebind");
+    ImGui::Text("msfs-linux-companion %s - native Linux SimConnect client, Dear ImGui %s", COMPANION_VERSION, IMGUI_VERSION);
+    ImGui::TextDisabled("Free software under the GNU GPL v3 (GPL-3.0-only), no warranty. Source and licences: github.com/Kyr4l/msfs-linux-companion");
     ImGui::TextWrapped("K: events (standard and A32NX.* custom events) go straight through SimConnect. H: events, L: vars and RPN code are executed by the MobiFlight WASM module (install it in the Community folder).");
 }
 

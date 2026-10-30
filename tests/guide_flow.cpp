@@ -91,7 +91,7 @@ int main(int argc, char** argv) {
 
     // broken files are refused
     {
-        const auto path = (std::filesystem::temp_directory_path() / "msfs-linuxrebind-bad-guide.json").string();
+        const auto path = (std::filesystem::temp_directory_path() / "msfs-linux-companion-bad-guide.json").string();
         std::ofstream(path) << R"({"aircraft":"X","topics":[{"id":"t","title":"T","start":"nowhere"}],"nodes":{}})";
         Guide bad;
         CHECK(!bad.load(path, err) && err.find("nowhere") != std::string::npos);

@@ -195,7 +195,7 @@ int main() {
 
         // cache round trip: only live entries are written
         set.applyLive("Asobo_CJ4", "Asobo CJ4", fresh);
-        const auto path = (std::filesystem::temp_directory_path() / "msfs-linuxrebind-live-test.json").string();
+        const auto path = (std::filesystem::temp_directory_path() / "msfs-linux-companion-live-test.json").string();
         std::string err;
         CHECK(set.find("Asobo_CJ4")->saveLive(path, err));
         Catalog back;
@@ -236,7 +236,7 @@ int main() {
         p.bindings.push_back(b);
         st.profiles.push_back(p);
         st.activeProfile = "CJ4";
-        const auto path = (std::filesystem::temp_directory_path() / "msfs-linuxrebind-b-test.json").string();
+        const auto path = (std::filesystem::temp_directory_path() / "msfs-linux-companion-b-test.json").string();
         std::string err;
         CHECK(saveSettings(path, st, err));
         Settings back;

@@ -67,7 +67,7 @@ constexpr uint32_t REQ_MF_RESPONSE = 100;
 constexpr uint32_t MF_MESSAGE_SIZE = 1024;
 // Our private MobiFlight client (registered with "MF.Clients.Add.<name>"): own command/response areas and an
 // LVars area the module fills with the variables we ask for, so other MobiFlight clients cannot shift our indices.
-constexpr const char* MF_CLIENT_NAME = "msfs-linuxrebind";
+constexpr const char* MF_CLIENT_NAME = "msfs-linux-companion";
 constexpr uint32_t CD_OUR_COMMAND = 110;
 constexpr uint32_t CD_OUR_RESPONSE = 111;
 constexpr uint32_t CD_OUR_LVARS = 112;
@@ -497,7 +497,7 @@ bool simConnectAnswers(const std::string& host, uint16_t port, int timeoutMs) {
     SimConnectClient probe;
     std::string err;
     if (!probe.connect(host, port, 300, err)) return false;
-    probe.open("msfs-linuxrebind-probe");
+    probe.open("msfs-linux-companion-probe");
     const auto deadline = clock::now() + std::chrono::milliseconds(timeoutMs);
     std::vector<RecvMessage> msgs;
     while (clock::now() < deadline) {
@@ -560,7 +560,7 @@ bool SimBridge::tryConnect() {
     }
     failedConnects_ = 0;
     LOG_INFO("SimConnect: TCP connected to %s:%u, sending Open", host.c_str(), port);
-    uint32_t id = client_.open("msfs-linuxrebind");
+    uint32_t id = client_.open("msfs-linux-companion");
     rememberSend(id, "Open");
     openSentAt_ = clock::now();
     std::lock_guard<std::mutex> lock(m_);

@@ -114,13 +114,13 @@ static void checkUpgrade(const fs::path& original, const fs::path& work, bool ve
 }
 
 int main(int argc, char** argv) {
-    const fs::path tmp = fs::temp_directory_path() / "msfs-linuxrebind-config-test";
+    const fs::path tmp = fs::temp_directory_path() / "msfs-linux-companion-config-test";
     fs::create_directories(tmp);
 
     std::printf("fixture: schema 1 -> %d upgrade\n", kConfigVersion);
-    checkUpgrade(fs::path(LINUXREBIND_TEST_FIXTURES) / "config_v1.json", tmp / "fixture1.json", true);
+    checkUpgrade(fs::path(COMPANION_TEST_FIXTURES) / "config_v1.json", tmp / "fixture1.json", true);
     std::printf("fixture: schema 2 -> %d upgrade\n", kConfigVersion);
-    checkUpgrade(fs::path(LINUXREBIND_TEST_FIXTURES) / "config_v2.json", tmp / "fixture2.json", true);
+    checkUpgrade(fs::path(COMPANION_TEST_FIXTURES) / "config_v2.json", tmp / "fixture2.json", true);
 
     if (argc > 1) {
         std::printf("real config copy: %s\n", argv[1]);

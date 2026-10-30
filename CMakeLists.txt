@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 Kyr4l
 cmake_minimum_required(VERSION 3.20)
-project(msfs-linuxrebind VERSION 0.6.1 LANGUAGES CXX)
+project(msfs-linux-companion VERSION 0.7.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -12,7 +12,7 @@ endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  message(FATAL_ERROR "msfs-linuxrebind is Linux only (evdev + Wayland/X11).")
+  message(FATAL_ERROR "msfs-linux-companion is Linux only (evdev + Wayland/X11).")
 endif()
 
 find_package(PkgConfig REQUIRED)
@@ -38,7 +38,7 @@ add_library(imgui STATIC
 target_include_directories(imgui PUBLIC ${IMGUI_DIR} ${IMGUI_DIR}/backends ${IMGUI_DIR}/misc/cpp)
 target_link_libraries(imgui PUBLIC PkgConfig::GLFW OpenGL::GL)
 
-add_executable(msfs-linuxrebind
+add_executable(msfs-linux-companion
   src/main.cpp
   src/sim/SimConnectClient.cpp
   src/sim/SimBridge.cpp
@@ -53,37 +53,37 @@ add_executable(msfs-linuxrebind
   src/app/Paths.cpp
   src/ui/Ui.cpp
 )
-target_include_directories(msfs-linuxrebind PRIVATE src third_party)
-target_link_libraries(msfs-linuxrebind PRIVATE imgui Threads::Threads)
-target_compile_definitions(msfs-linuxrebind PRIVATE
-  LINUXREBIND_VERSION="${PROJECT_VERSION}"
-  LINUXREBIND_SOURCE_DATA_DIR="${CMAKE_SOURCE_DIR}/data"
+target_include_directories(msfs-linux-companion PRIVATE src third_party)
+target_link_libraries(msfs-linux-companion PRIVATE imgui Threads::Threads)
+target_compile_definitions(msfs-linux-companion PRIVATE
+  COMPANION_VERSION="${PROJECT_VERSION}"
+  COMPANION_SOURCE_DATA_DIR="${CMAKE_SOURCE_DIR}/data"
 )
-target_compile_options(msfs-linuxrebind PRIVATE -Wall -Wextra -Wno-unused-parameter)
+target_compile_options(msfs-linux-companion PRIVATE -Wall -Wextra -Wno-unused-parameter)
 
-option(LINUXREBIND_STATIC_CXX "Link libstdc++ and libgcc statically (for portable AppImage builds)" OFF)
-if(LINUXREBIND_STATIC_CXX)
-  target_link_options(msfs-linuxrebind PRIVATE -static-libstdc++ -static-libgcc)
+option(COMPANION_STATIC_CXX "Link libstdc++ and libgcc statically (for portable AppImage builds)" OFF)
+if(COMPANION_STATIC_CXX)
+  target_link_options(msfs-linux-companion PRIVATE -static-libstdc++ -static-libgcc)
 endif()
 
-install(TARGETS msfs-linuxrebind RUNTIME DESTINATION bin)
-install(DIRECTORY data/ DESTINATION share/msfs-linuxrebind/data)
-install(FILES packaging/msfs-linuxrebind.desktop DESTINATION share/applications)
-install(FILES LICENSE THIRD_PARTY_NOTICES.md DESTINATION share/licenses/msfs-linuxrebind)
-install(FILES third_party/imgui/LICENSE.txt DESTINATION share/licenses/msfs-linuxrebind RENAME LICENSE.imgui)
-install(FILES third_party/nlohmann/LICENSE.MIT DESTINATION share/licenses/msfs-linuxrebind RENAME LICENSE.nlohmann-json)
-install(FILES packaging/icons/msfs-linuxrebind.svg DESTINATION share/icons/hicolor/scalable/apps)
+install(TARGETS msfs-linux-companion RUNTIME DESTINATION bin)
+install(DIRECTORY data/ DESTINATION share/msfs-linux-companion/data)
+install(FILES packaging/msfs-linux-companion.desktop DESTINATION share/applications)
+install(FILES LICENSE THIRD_PARTY_NOTICES.md DESTINATION share/licenses/msfs-linux-companion)
+install(FILES third_party/imgui/LICENSE.txt DESTINATION share/licenses/msfs-linux-companion RENAME LICENSE.imgui)
+install(FILES third_party/nlohmann/LICENSE.MIT DESTINATION share/licenses/msfs-linux-companion RENAME LICENSE.nlohmann-json)
+install(FILES packaging/icons/msfs-linux-companion.svg DESTINATION share/icons/hicolor/scalable/apps)
 foreach(size 16 32 48 64 128 256 512)
-  install(FILES packaging/icons/msfs-linuxrebind-${size}.png DESTINATION share/icons/hicolor/${size}x${size}/apps RENAME msfs-linuxrebind.png)
+  install(FILES packaging/icons/msfs-linux-companion-${size}.png DESTINATION share/icons/hicolor/${size}x${size}/apps RENAME msfs-linux-companion.png)
 endforeach()
 
-option(LINUXREBIND_BUILD_TESTS "Build the config compatibility test (ctest)" ON)
-if(LINUXREBIND_BUILD_TESTS)
+option(COMPANION_BUILD_TESTS "Build the config compatibility test (ctest)" ON)
+if(COMPANION_BUILD_TESTS)
   enable_testing()
   add_executable(config_roundtrip tests/config_roundtrip.cpp src/app/Profile.cpp src/input/Evdev.cpp)
   target_include_directories(config_roundtrip PRIVATE src third_party)
   target_link_libraries(config_roundtrip PRIVATE Threads::Threads)
-  target_compile_definitions(config_roundtrip PRIVATE LINUXREBIND_TEST_FIXTURES="${CMAKE_SOURCE_DIR}/tests/fixtures")
+  target_compile_definitions(config_roundtrip PRIVATE COMPANION_TEST_FIXTURES="${CMAKE_SOURCE_DIR}/tests/fixtures")
   add_test(NAME config_roundtrip COMMAND config_roundtrip)
   add_executable(axis_engine tests/axis_engine.cpp src/app/Engine.cpp src/app/Profile.cpp src/app/Paths.cpp src/input/Evdev.cpp
                  src/sim/SimBridge.cpp src/sim/SimConnectClient.cpp)
@@ -101,10 +101,10 @@ if(LINUXREBIND_BUILD_TESTS)
   target_include_directories(guide_flow PRIVATE src third_party)
   add_test(NAME guide_flow COMMAND guide_flow ${CMAKE_SOURCE_DIR})
   # end to end through the real binary against the mock simulator posing as the CJ4
-  add_test(NAME live_controls COMMAND bash ${CMAKE_SOURCE_DIR}/tests/live_controls.sh $<TARGET_FILE:msfs-linuxrebind> ${CMAKE_SOURCE_DIR})
+  add_test(NAME live_controls COMMAND bash ${CMAKE_SOURCE_DIR}/tests/live_controls.sh $<TARGET_FILE:msfs-linux-companion> ${CMAKE_SOURCE_DIR})
   # Every documented command-line option must be accepted (exit code 2 = "unknown option"). Regression test for
   # a refactor that once silently dropped --config/--host/--port/--profile/--catalog/--motor-sweep.
-  add_test(NAME idle_cost COMMAND bash ${CMAKE_SOURCE_DIR}/tests/idle_cost.sh $<TARGET_FILE:msfs-linuxrebind> ${CMAKE_SOURCE_DIR})
-  add_test(NAME cli_options COMMAND bash ${CMAKE_SOURCE_DIR}/tests/cli_options.sh $<TARGET_FILE:msfs-linuxrebind>
+  add_test(NAME idle_cost COMMAND bash ${CMAKE_SOURCE_DIR}/tests/idle_cost.sh $<TARGET_FILE:msfs-linux-companion> ${CMAKE_SOURCE_DIR})
+  add_test(NAME cli_options COMMAND bash ${CMAKE_SOURCE_DIR}/tests/cli_options.sh $<TARGET_FILE:msfs-linux-companion>
            ${CMAKE_SOURCE_DIR}/tests/fixtures/config_v1.json)
 endif()

@@ -4,7 +4,7 @@
 """Builds a curated catalog (data/<id>_catalog.json) for an aircraft whose controls come from the simulator itself.
 
 The cockpit input events (B:) of an aircraft cannot be documented offline: the list is whatever the sim reports
-(`msfs-linuxrebind --dump-controls FILE` writes it). This tool turns such a dump into a hand-quality catalog:
+(`msfs-linux-companion --dump-controls FILE` writes it). This tool turns such a dump into a hand-quality catalog:
 every event is given a panel, a section, a readable function name and a behaviour by the rules module of the aircraft
 (tools/aircraft_rules/<module>.py). It refuses to produce a catalog when an event of the dump has no rule, so a new
 aircraft version that adds controls shows up as an error instead of as an unlabeled entry.

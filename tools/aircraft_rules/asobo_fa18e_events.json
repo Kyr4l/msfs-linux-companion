@@ -2,7 +2,7 @@
  "aircraft": "Asobo_FA18E",
  "label": "Asobo FA18E",
  "sim": "11.0.282174.999",
- "note": "Cockpit input events the sim reports for the Asobo F/A-18E (msfs-linuxrebind --dump-controls), names only",
+ "note": "Cockpit input events the sim reports for the Asobo F/A-18E (msfs-linux-companion --dump-controls), names only",
  "input_events": [
   "AS04F_AS04F_HSI_Switch_CRS",
   "AS04F_DDI_Knob_Brightness_MFD_1",

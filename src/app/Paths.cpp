@@ -2,6 +2,8 @@
 // Copyright (C) 2026 Kyr4l
 #include "app/Paths.hpp"
 
+#include "util/Log.hpp"
+
 #include <spawn.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -20,13 +22,32 @@ namespace lr::app {
 
 namespace fs = std::filesystem;
 
+// The program was called msfs-linuxrebind until 0.6.x. The first time the new folder is looked up and does not exist, the old one
+// (config, imgui.ini, live catalogs) is copied into it; the old folder stays, so an older build keeps its settings.
+static void migrateLegacyConfig(const fs::path& base) {
+    const fs::path from = base / "msfs-linuxrebind", to = base / "msfs-linux-companion", tmp = base / "msfs-linux-companion.migrating";
+    std::error_code ec;
+    if (!fs::is_directory(from, ec) || fs::exists(to, ec)) return;
+    fs::remove_all(tmp, ec);
+    fs::copy(from, tmp, fs::copy_options::recursive, ec);  // into a temporary name first: an interrupted copy must not look like a migrated folder
+    if (!ec) fs::rename(tmp, to, ec);
+    if (ec) {
+        fs::remove_all(tmp, ec);
+        LOG_WARN("Could not copy the settings of the former folder %s to %s: %s", from.c_str(), to.c_str(), ec.message().c_str());
+        return;
+    }
+    LOG_INFO("Settings copied from the former folder %s to %s (the old folder was left in place)", from.c_str(), to.c_str());
+}
+
 std::string configDir() {
     const char* xdg = std::getenv("XDG_CONFIG_HOME");
     fs::path base;
     if (xdg && *xdg) base = xdg;
     else if (const char* home = std::getenv("HOME"); home && *home) base = fs::path(home) / ".config";
     else base = ".";
-    return (base / "msfs-linuxrebind").string();
+    static const bool migrated = (migrateLegacyConfig(base), true);  // once per run
+    (void)migrated;
+    return (base / "msfs-linux-companion").string();
 }
 
 std::string stateDir() {
@@ -35,7 +56,7 @@ std::string stateDir() {
     if (xdg && *xdg) base = xdg;
     else if (const char* home = std::getenv("HOME"); home && *home) base = fs::path(home) / ".local" / "state";
     else base = ".";
-    const fs::path dir = base / "msfs-linuxrebind";
+    const fs::path dir = base / "msfs-linux-companion";
     std::error_code ec;
     fs::create_directories(dir, ec);
     return dir.string();
@@ -75,9 +96,9 @@ static std::vector<fs::path> dataDirs() {
     return {
         fs::path(configDir()),                               // user override
         exe / "data",                                        // run from build dir with data copied
-        exe / ".." / "share" / "msfs-linuxrebind" / "data",  // installed
-#ifdef LINUXREBIND_SOURCE_DATA_DIR
-        fs::path(LINUXREBIND_SOURCE_DATA_DIR),               // dev build
+        exe / ".." / "share" / "msfs-linux-companion" / "data",  // installed
+#ifdef COMPANION_SOURCE_DATA_DIR
+        fs::path(COMPANION_SOURCE_DATA_DIR),               // dev build
 #endif
         fs::current_path() / "data",
     };

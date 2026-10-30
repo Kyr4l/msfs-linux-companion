@@ -5,8 +5,8 @@
 #include <vector>
 
 namespace lr::app {
-std::string configDir();                 // $XDG_CONFIG_HOME/msfs-linuxrebind
-std::string stateDir();                 // $XDG_STATE_HOME/msfs-linuxrebind (created)
+std::string configDir();                 // $XDG_CONFIG_HOME/msfs-linux-companion
+std::string stateDir();                 // $XDG_STATE_HOME/msfs-linux-companion (created)
 std::string newSessionLogPath();         // stateDir()/session-<date>-<time>-<pid>.log; only the 40 newest session logs are kept
 std::string configFile();                // .../config.json
 std::string imguiIniFile();              // .../imgui.ini

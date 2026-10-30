@@ -26,7 +26,7 @@ echo '{"version":3,"host":"127.0.0.1","port":'"$PORT"',"auto_connect":true,"acti
 "$BIN" --headless --config "$TMP/config.json" -q >"$TMP/app.log" 2>&1 &
 APP=$!; PIDS+=("$APP")
 sleep 6
-grep -q "OPEN from 'msfs-linuxrebind'" "$TMP/mock.log" && ok "connected to the simulator" || bad "did not connect"
+grep -q "OPEN from 'msfs-linux-companion'" "$TMP/mock.log" && ok "connected to the simulator" || bad "did not connect"
 
 read -r wake cpu < <(python3 -I "$ROOT/tests/sample_threads.py" "$APP" 6)
 echo "      connected and idle: $wake wake-ups/s, $cpu % of one core"

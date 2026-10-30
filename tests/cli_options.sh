@@ -25,4 +25,15 @@ check "dump-winwing-config" --dump-winwing-config --quiet
 "$BIN" --help 2>&1 | grep -q -- '--config' || { echo "FAIL: --help does not list --config"; fail=1; }
 # the config must have been read, not rejected: the log names the profile
 timeout 2 "$BIN" --headless --config "$TMP/config.json" --port 1 2>&1 | grep -q 'Config: .*profile "A32NX", 2 bindings' || { echo "FAIL: --config was not applied"; fail=1; }
+# the settings of the former name (msfs-linuxrebind) are copied once to the new folder and the old one stays
+XDG="$TMP/xdg"; mkdir -p "$XDG/msfs-linuxrebind/live"
+cp "$CFG" "$XDG/msfs-linuxrebind/config.json"; echo '{}' > "$XDG/msfs-linuxrebind/live/x.json"
+XDG_CONFIG_HOME="$XDG" timeout 2 "$BIN" --headless --port 1 2>&1 | grep -q 'Config: .*msfs-linux-companion/config.json (profile "A32NX", 2 bindings' \
+    || { echo "FAIL: the former settings folder was not migrated"; fail=1; }
+[ -f "$XDG/msfs-linux-companion/live/x.json" ] && [ -f "$XDG/msfs-linuxrebind/config.json" ] \
+    || { echo "FAIL: migration did not copy the live folder or removed the old one"; fail=1; }
+[ -e "$XDG/msfs-linux-companion.migrating" ] && { echo "FAIL: temporary migration folder left behind"; fail=1; }
+echo '{"profiles":[{"name":"Mine","aircraft":"A32NX","bindings":[]}],"active_profile":"Mine"}' > "$XDG/msfs-linux-companion/config.json"
+XDG_CONFIG_HOME="$XDG" timeout 2 "$BIN" --headless --port 1 2>&1 | grep -q 'profile "Mine"' \
+    || { echo "FAIL: a second start replaced the new settings with the old ones"; fail=1; }
 exit $fail

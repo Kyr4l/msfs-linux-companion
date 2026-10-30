@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 Kyr4l
-"""Tiny fake SimConnect TCP server for testing msfs-linuxrebind without MSFS.
+"""Tiny fake SimConnect TCP server for testing msfs-linux-companion without MSFS.
 
 It speaks just enough of the wire protocol: answers Open, logs mapped/transmitted
 events, emulates the MobiFlight WASM module command/response areas (replies

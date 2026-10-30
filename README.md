@@ -1,4 +1,6 @@
-# msfs-linuxrebind
+# msfs-linux-companion
+
+A native Linux companion for Microsoft Flight Simulator 2020 (formerly *msfs-linuxrebind*): HOTAS bindings, curated cockpit catalogs, in-app guides and Winwing vibration.
 
 Bind HOTAS buttons to Microsoft Flight Simulator 2020 cockpit controls **from Linux**, including the
 FlyByWire A32NX functions that the in-game controls menu cannot bind (FCU pushes/pulls,
@@ -63,11 +65,11 @@ was detected.
 ## Build
 
 ```sh
-git clone --recursive https://github.com/Kyr4l/msfs-2020-linuxrebind.git
-cd msfs-2020-linuxrebind
+git clone --recursive https://github.com/Kyr4l/msfs-linux-companion.git
+cd msfs-linux-companion
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 ninja -C build
-./build/msfs-linuxrebind
+./build/msfs-linux-companion
 ```
 
 Options: `--wayland` / `--x11` (force a platform), `--headless` (no window, run the active profile),
@@ -79,7 +81,7 @@ Options: `--wayland` / `--x11` (force a platform), `--headless` (no window, run 
 ### AppImage
 
 ```sh
-./packaging/build-appimage.sh      # -> dist/msfs-linuxrebind-<version>-x86_64.AppImage
+./packaging/build-appimage.sh      # -> dist/msfs-linux-companion-<version>-x86_64.AppImage
 ```
 
 The script builds with libstdc++/libgcc linked statically, bundles GLFW (3.4+ is often missing on
@@ -89,7 +91,13 @@ on first use. libGL, the X11/Wayland client libraries and glibc come from the ho
 same shapes as the SVG). `sudo ninja -C build install` installs the binary, catalog, `.desktop`
 file and hicolor icons the classic way instead.
 
-Config is stored in `~/.config/msfs-linuxrebind/config.json` and saved automatically.
+Config is stored in `~/.config/msfs-linux-companion/config.json` and saved automatically.
+
+**Coming from msfs-linuxrebind (0.6.x and earlier)?** The program was renamed in 0.7.0. The first start copies
+`~/.config/msfs-linuxrebind/` (profiles, window layout, live catalogs) to the new folder and leaves the old one in place; once
+you are happy, delete it, and `~/.local/state/msfs-linuxrebind/` (old session logs) too. A udev rule you installed under the
+old file name keeps working, it only matches devices. The `msfs-linuxrebind` binary, `.desktop` file and window class are now
+`msfs-linux-companion`: update launchers and window rules.
 
 ## MSFS side: SimConnect over TCP
 
@@ -184,7 +192,7 @@ the *Catalog* tab offer; it never changes existing bindings, so you can re-assig
   FlyByWire docs define the placeholder; the ADIRS and the air-conditioning packs stop at 3). A number
   the aircraft does not have simply does nothing.
 * Catalog files are `data/<aircraft>_catalog.json`; any `*_catalog.json` placed in
-  `~/.config/msfs-linuxrebind/` overrides the shipped one with the same name, and `--catalog FILE`
+  `~/.config/msfs-linux-companion/` overrides the shipped one with the same name, and `--catalog FILE`
   adds one for a single run. `tools/build_catalog.py --all` regenerates the shipped ones.
 
 ### Upgrading does not break your configuration
@@ -194,7 +202,7 @@ have no aircraft and load as A32NX profiles with every binding, haptics setting 
 intact. The first time a newer build saves over an older file it keeps the original once as
 `config.json.v<old version>.bak` (for example `config.json.v2.bak`) (never overwritten afterwards), so rolling back is a file copy. Unknown or newer
 fields are ignored rather than rejected. `ctest` runs a round-trip test of exactly this (a schema-1
-fixture, optionally your own config: `build/config_roundtrip ~/.config/msfs-linuxrebind/config.json`,
+fixture, optionally your own config: `build/config_roundtrip ~/.config/msfs-linux-companion/config.json`,
 which only ever works on a copy), plus a test that every documented command-line option is accepted.
 
 ## Guides
@@ -239,7 +247,7 @@ family `0x00`) makes every controller behind the USB device answer with its id, 
 name is then read from its flash. Controllers named "... L" / "... R" become the left/right
 motors (index 0, which may need adjusting: run `--motor-sweep` to find the index that buzzes). *Discover controllers* in the Vibration tab shows the list and lets you pick
 which one is which; the *LED test* (index 0 on the base = backlight) and *Pulse* buttons confirm
-it. `msfs-linuxrebind --probe-winwing` prints the same from the command line.
+it. `msfs-linux-companion --probe-winwing` prints the same from the command line.
 
 ## Performance
 
@@ -282,7 +290,7 @@ records `GUI: N frames in 10 s` so that is easy to check on your machine.
 
 MSFS under Proton crashes now and then on its own (the crash reports in `.../Microsoft Flight Simulator/MSFSReport-OldCrashes/`
 show stacks inside the sim's audio and UI code), so a crash is not automatically this tool's doing. To tell, every run writes
-a timestamped, line-flushed log to `~/.local/state/msfs-linuxrebind/session-<date>-<time>-<pid>.log` (the last 40 are kept),
+a timestamped, line-flushed log to `~/.local/state/msfs-linux-companion/session-<date>-<time>-<pid>.log` (the last 40 are kept),
 including everything the tool sent to the sim. Compare the time of the sim's crash report (`TimeUTC=`, and the
 `[SimConnect_connection]` section, which lists the clients that were connected) with the last lines of the log of that time.
 A crash that follows a burst of commands is worth reporting together with the two files.
@@ -297,7 +305,7 @@ value only appends it to the module's list.
 If the Log tab reports "permission denied":
 
 ```
-# /etc/udev/rules.d/70-msfs-linuxrebind.rules
+# /etc/udev/rules.d/70-msfs-linux-companion.rules
 # evdev joystick nodes and Winwing hidraw nodes for the logged-in user
 SUBSYSTEM=="input", ENV{ID_INPUT_JOYSTICK}=="1", TAG+="uaccess"
 KERNEL=="hidraw*", ATTRS{idVendor}=="4098", TAG+="uaccess"

@@ -2,7 +2,7 @@
  "aircraft": "Asobo_CJ4",
  "label": "Asobo CJ4",
  "sim": "11.0.282174.999",
- "note": "Cockpit input events the sim reports for the Asobo CJ4 (msfs-linuxrebind --dump-controls), names only",
+ "note": "Cockpit input events the sim reports for the Asobo CJ4 (msfs-linux-companion --dump-controls), names only",
  "input_events": [
   "AS3000_Lower_1_CAS_PAGE",
   "AS3000_Lower_1_DATA",
