@@ -186,6 +186,7 @@ bool loadSettings(const std::string& path, Settings& out, std::string& err) {
         s.host = j.value("host", s.host);
         s.port = j.value("port", s.port);
         s.autoConnect = j.value("auto_connect", s.autoConnect);
+        s.guideAutodetect = j.value("guide_autodetect", s.guideAutodetect);
         s.activeProfile = j.value("active_profile", "");
         if (j.contains("haptics")) {
             const json& h = j["haptics"];
@@ -239,7 +240,7 @@ bool saveSettings(const std::string& path, const Settings& s, std::string& err) 
         devices[key] = json{{"enabled", dc.enabled}, {"family", dc.identity.family},
                             {"left_device", dc.identity.left.device}, {"left_index", dc.identity.left.index},
                             {"right_device", dc.identity.right.device}, {"right_index", dc.identity.right.index}};
-    json j{{"version", kConfigVersion}, {"host", s.host}, {"port", s.port}, {"auto_connect", s.autoConnect},
+    json j{{"version", kConfigVersion}, {"host", s.host}, {"port", s.port}, {"auto_connect", s.autoConnect}, {"guide_autodetect", s.guideAutodetect},
            {"active_profile", s.activeProfile}, {"profiles", profiles},
            {"haptics", {{"enabled", s.haptics.enabled}, {"master", s.haptics.master}, {"rules", rules}, {"devices", devices}}}};
     try {

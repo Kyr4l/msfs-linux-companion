@@ -127,6 +127,7 @@ private:
     void registerMobiFlightClient();
     void onMobiFlightClientReady();
     void applyLVarWatch();
+    void setupLVarDefinition();
     void handleLVarData(const RecvClientData& d);
     void onAircraftPath(const std::string& cfgPath);
     void scheduleLiveScan(int delayMs);
@@ -172,7 +173,11 @@ private:
     std::vector<std::string> lvarWatch_;         // wanted
     std::vector<std::string> lvarRegistered_;    // what the module currently has, index = datum id
     std::unordered_map<std::string, double> lvarValues_;
-    std::chrono::steady_clock::time_point nextLVarSnapshotAt_{};
+    std::chrono::steady_clock::time_point lvarRegisteredAt_{};
+    std::chrono::steady_clock::time_point lvarAcceptFrom_{};  // values before this are the old content of new slots
+    bool lvarDefSent_ = false;   // the fixed SimConnect definition and requests exist on this connection
+    bool lvarRebuild_ = false;   // empty the module's list and add everything again
+    int lvarRetries_ = 0;        // rebuilds because values never arrived
     int lvarUpdatesLogged_ = 0;  // debug log of the first updates after each registration
     bool lvarWatchDirty_ = false;
 

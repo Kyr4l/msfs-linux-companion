@@ -145,6 +145,7 @@ void GuideRun::start(const Guide& g, const std::string& topicId) {
 }
 
 void GuideRun::restart() {
+    autoSuppressed_ = false;
     history_.clear();
     finished_ = false;
     cur_.clear();
@@ -153,6 +154,7 @@ void GuideRun::restart() {
 }
 
 void GuideRun::go(const std::string& next) {
+    autoSuppressed_ = false;
     history_.push_back(cur_);
     if (next.empty() || !guide_->node(next)) { finished_ = true; return; }
     cur_ = next;
@@ -177,11 +179,13 @@ bool GuideRun::back() {
     if (finished_) {  // go() recorded the node the guide ended on; that node is still the current one
         finished_ = false;
         if (!history_.empty()) history_.pop_back();
+        autoSuppressed_ = current() && current()->type == "question";
         return true;
     }
     if (history_.empty()) return false;
     cur_ = history_.back();
     history_.pop_back();
+    autoSuppressed_ = current() && current()->type == "question";
     return true;
 }
 

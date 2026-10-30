@@ -10,12 +10,17 @@ requests. Run:  tools/mock_simconnect.py [--port 500] and point the app at it.
 
 Options: --aircraft FOLDER   aircraft folder name reported by AircraftLoaded (default FlyByWire_A320_NEO), e.g. Asobo_CJ4
          --late N            the first N EnumerateInputEvents requests answer with an empty list (cockpit still loading)
+Watched values: MF.SimVars.Clear / MF.SimVars.Add.<code> fill the module's list for the client; slot n holds the n-th code, its
+value is a fixed number derived from the code. Like the real module the area keeps its old content until the new value is
+written a moment after the Add, changes are pushed to ON_SET requests and every second all 512 slots go to PERIOD_SECOND ones.
 Input events: a small fixed set per aircraft, Set/Get work and are logged ("INPUT EVENT SET name=value").
 """
 import argparse
 import socket
 import struct
 import threading
+import time
+import zlib
 
 RECV_EXCEPTION, RECV_OPEN, RECV_QUIT, RECV_EVENT, RECV_EVENT_FILENAME = 1, 2, 3, 4, 6
 RECV_SIMOBJECT_DATA, RECV_SYSTEM_STATE, RECV_CLIENT_DATA = 8, 15, 16
@@ -37,6 +42,13 @@ LVARS = ["A32NX_FOO", "ASOBO_LIGHT_STATE", "CJ4_PANEL_BRT", "LIGHTING_LANDING_1"
 FNV_OFFSET, FNV_PRIME = 0xcbf29ce484222325, 0x100000001b3
 
 
+def lvar_value(code):
+    return float(zlib.crc32(code.encode()) % 97 + 1)
+
+
+LVAR_SLOTS = 512
+
+
 def name_hash(name):
     h = FNV_OFFSET
     for ch in name.encode():
@@ -49,6 +61,7 @@ class Config:
     late = 0
     enum_requests = 0
     values = {}
+    lvar_area = {}  # slot -> value; the module's area outlives the clients
 
 
 class Client(threading.Thread):
@@ -67,13 +80,40 @@ class Client(threading.Thread):
         self.requests = {}  # request id -> (data id, define id)
         self.sim_requests = {}  # request id -> define id (simobject data)
         self.sim_defs = {}  # define id -> list of (name, units)
+        self.req_info = {}  # request id -> (client data id, define id, period, flags)
+        self.lvar_codes = []  # the module's list for this client
+        self.send_lock = threading.Lock()
+        self.ticker = None
 
     def aircraft_path(self):
         return ("C:\\mock\\SimObjects\\Airplanes\\%s\\aircraft.CFG" % Config.aircraft).encode()
 
     def send(self, msg_id, payload):
         data = struct.pack("<III", 12 + len(payload), 5, msg_id) + payload
-        self.sock.sendall(data)
+        with self.send_lock:
+            self.sock.sendall(data)
+
+    def lvar_requests(self, period):
+        return [(rid, did) for rid, (cid, did, per, fl) in self.req_info.items()
+                if per == period and self.client_data_names.get(cid, "").endswith(".LVars")]
+
+    def push_lvars(self, period, slots):
+        pairs = b"".join(struct.pack("<If", i, Config.lvar_area.get(i, 0.0)) for i in slots)
+        for rid, did in self.lvar_requests(period):
+            try:
+                self.send(RECV_CLIENT_DATA, struct.pack("<7I", rid, 0, did, 0, 0, 0, len(slots)) + pairs)
+            except OSError:
+                return
+
+    def tick(self):
+        while True:
+            time.sleep(1.0)
+            if self.lvar_requests(4):
+                self.push_lvars(4, range(LVAR_SLOTS))
+
+    def module_writes(self, slot, code):
+        Config.lvar_area[slot] = lvar_value(code)
+        self.push_lvars(3, [slot])
 
     def log(self, *a):
         print(f"[{self.addr[1]}]", *a, flush=True)
@@ -147,7 +187,11 @@ class Client(threading.Thread):
         elif t == 0x3B:
             cid, rid, did, period, flags, *_ = struct.unpack_from("<8I", b, 0)
             self.requests[rid] = (cid, did)
-            self.log(f"request client data {self.client_data_names.get(cid)} req {rid}")
+            self.req_info[rid] = (cid, did, period, flags)
+            self.log(f"request client data {self.client_data_names.get(cid)} req {rid} period {period} flags {flags}")
+            if self.client_data_names.get(cid, "").endswith(".LVars") and period == 4 and self.ticker is None:
+                self.ticker = threading.Thread(target=self.tick, daemon=True)
+                self.ticker.start()
         elif t == 0x3C:
             cid, did, res, count, unit = struct.unpack_from("<IIIII", b, 0)
             text = cstr(b[20:20 + unit])
@@ -166,6 +210,16 @@ class Client(threading.Thread):
                     responses.append(f"MF.Clients.Add.{cname}.Finished")
                 elif text == "MF.LVars.List":
                     responses = ["MF.LVars.List.Start"] + sorted(LVARS) + ["MF.LVars.List.End"]
+                elif text == "MF.SimVars.Clear":
+                    self.lvar_codes = []  # the area keeps its content (stale until the new codes are written)
+                elif text.startswith("MF.SimVars.Add."):
+                    code = text[len("MF.SimVars.Add."):]
+                    slot = len(self.lvar_codes)
+                    self.lvar_codes.append(code)
+                    self.log(f"   watch slot {slot}: {code}")
+                    if slot in Config.lvar_area:
+                        self.push_lvars(3, [slot])  # the old content of the slot goes out before the module has written the new value
+                    threading.Timer(0.05, self.module_writes, (slot, code)).start()
                 elif text.startswith("MF.SimVars.Set."):
                     self.log(f"   execute_calculator_code: {text[len('MF.SimVars.Set.'):]}")
                 for resp in responses:

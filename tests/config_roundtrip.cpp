@@ -101,6 +101,7 @@ static void checkUpgrade(const fs::path& original, const fs::path& work, bool ve
         sameBindings(s.profiles[i], t.profiles[i]);
     }
     CHECK(t.activeProfile == s.activeProfile && t.host == s.host && t.port == s.port && t.autoConnect == s.autoConnect);
+    CHECK(t.guideAutodetect == s.guideAutodetect);
 
     // second save must not overwrite the backup with the new format
     t.profiles[0].aircraft = "A380X";

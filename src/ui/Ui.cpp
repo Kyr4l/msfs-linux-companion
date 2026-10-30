@@ -1790,7 +1790,11 @@ void Ui::drawGuidesTab() {
         ImGui::EndCombo();
     }
     ImGui::SameLine();
-    ImGui::TextDisabled("Answers and ticks come from the simulator when it reports the state; you can always answer or tick by hand.");
+    if (ImGui::Checkbox("Autodetect answers", &ctx_.settings.guideAutodetect)) ctx_.markDirty();
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("When the simulator tells the answer to a question (on the ground? engines running?), the guide takes it\nand moves on. The next page lists what was detected; Back returns to the question so you can change it.");
+    ImGui::SameLine();
+    ImGui::TextDisabled("Ticks come from the simulator when it reports the state; you can always tick by hand.");
     ImGui::Separator();
 
     const Catalog* cat = ctx_.catalogFor(g->aircraft);
@@ -1815,6 +1819,7 @@ void Ui::drawGuidesTab() {
             if (ImGui::Button(t.title.c_str(), ImVec2(w, ImGui::GetFrameHeight() * 1.6f))) {
                 guideRun_.start(*g, t.id);
                 guideTicked_.clear();
+                guideDetected_.clear();
             }
             ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + w);
             ImGui::TextDisabled("%s", t.summary.c_str());
@@ -1847,6 +1852,7 @@ void Ui::drawGuideNode(const Guide& g, const Catalog* cat) {
         std::vector<GuideProbe> probes = g.probesOf(*node);
         if (guideWatchSig_ != sig) {
             guideWatchSig_ = sig;
+            guideNodeSince_ = ImGui::GetTime();
             ctx_.guideProbes = std::move(probes);
             ctx_.refreshWatches();
         }
@@ -1855,7 +1861,7 @@ void Ui::drawGuideNode(const Guide& g, const Catalog* cat) {
     const GuideTopic* topic = g.topic(guideRun_.topic());
     if (ImGui::Button("< Back") && guideRun_.canGoBack()) guideRun_.back();
     ImGui::SameLine();
-    if (ImGui::Button("Restart")) { guideRun_.restart(); guideTicked_.clear(); }
+    if (ImGui::Button("Restart")) { guideRun_.restart(); guideTicked_.clear(); guideDetected_.clear(); }
     ImGui::SameLine();
     if (ImGui::Button("All topics")) { guideRun_ = GuideRun{}; return; }
     ImGui::SameLine();
@@ -1863,6 +1869,18 @@ void Ui::drawGuideNode(const Guide& g, const Catalog* cat) {
     ImGui::Separator();
     ImGui::Spacing();
     const float wrap = std::min(ImGui::GetContentRegionAvail().x, ImGui::GetFontSize() * 60);
+
+    {   // answers the simulator gave: keep those on the path that led here (Back drops the ones after it)
+        const auto& hist = guideRun_.history();
+        guideDetected_.erase(std::remove_if(guideDetected_.begin(), guideDetected_.end(),
+                                            [&](const auto& e) { return e.first == node->id || std::find(hist.begin(), hist.end(), e.first) == hist.end(); }),
+                             guideDetected_.end());
+        if (!guideDetected_.empty()) {
+            ImGui::TextDisabled("Detected from the simulator (Back to change):");
+            for (const auto& e : guideDetected_) ImGui::TextColored(kGreen, "  %s", e.second.c_str());
+            ImGui::Spacing();
+        }
+    }
 
     if (guideRun_.finished()) {
         ImGui::SetWindowFontScale(1.25f);
@@ -1889,8 +1907,20 @@ void Ui::drawGuideNode(const Guide& g, const Catalog* cat) {
         ImGui::PopTextWrapPos();
         ImGui::Spacing();
         const auto suggested = node->autoChoice(read);
-        if (node->autoProbe.valid() && !suggested)
-            ImGui::TextDisabled("The simulator did not report this (not connected, or the MobiFlight module is missing): answer by hand.");
+        if (ctx_.settings.guideAutodetect && suggested && guideRun_.autoAllowed()) {
+            for (const auto& c : node->choices)
+                if (c.id == *suggested) {
+                    guideDetected_.emplace_back(node->id, node->text + "  ->  " + c.label);
+                    guideRun_.choose(c.id);
+                    return;
+                }
+        }
+        if (node->autoProbe.valid() && !suggested) {
+            const bool asking = ctx_.settings.guideAutodetect && guideRun_.autoAllowed() && status_.state == sim::ConnState::Connected &&
+                                ImGui::GetTime() - guideNodeSince_ < 3.0;
+            if (asking) ImGui::TextDisabled("Asking the simulator...");
+            else ImGui::TextDisabled("The simulator did not report this (not connected, or the MobiFlight module is missing): answer by hand.");
+        }
         const float bw = std::min(ImGui::GetContentRegionAvail().x, ImGui::GetFontSize() * 30);
         for (const auto& c : node->choices) {
             ImGui::PushID(c.id.c_str());

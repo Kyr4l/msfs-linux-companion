@@ -74,6 +74,21 @@ int main(int argc, char** argv) {
     run.restart();
     CHECK(run.current()->id == "q" && run.depth() == 1);
 
+    // answers taken from the simulator: not again right after Back (the user is changing that answer)
+    {
+        GuideRun r;
+        r.start(g, "t");
+        CHECK(r.autoAllowed());
+        CHECK(r.choose("yes") && r.autoAllowed());
+        CHECK(r.back() && r.current()->id == "q" && !r.autoAllowed());   // back on the question: do not auto-answer it again
+        CHECK(r.choose("no") && r.autoAllowed());                        // moving forward lifts it
+        CHECK(r.advance() && r.finished() && r.back() && r.current()->id == "air" && r.autoAllowed());  // not a question
+        CHECK(r.back() && !r.autoAllowed());
+        r.restart();
+        CHECK(r.autoAllowed());
+        CHECK(r.history().empty() && r.choose("yes") && r.history().size() == 1 && r.history()[0] == "q");
+    }
+
     // broken files are refused
     {
         const auto path = (std::filesystem::temp_directory_path() / "msfs-linuxrebind-bad-guide.json").string();

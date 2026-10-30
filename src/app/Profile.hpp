@@ -69,6 +69,7 @@ struct Settings {
     std::string host = "127.0.0.1";
     int port = 500;
     bool autoConnect = true;
+    bool guideAutodetect = true;  // guides: take the answer the simulator reports instead of asking
     std::string activeProfile;
     std::vector<Profile> profiles;
     haptics::HapticsConfig haptics;

@@ -143,6 +143,8 @@ private:
     std::string guideAircraft_;
     std::set<std::string> guideTicked_;  // steps the user ticked by hand: "node:index"
     std::string guideWatchSig_;
+    std::vector<std::pair<std::string, std::string>> guideDetected_;  // questions answered from the simulator: node id, "question  ->  answer"
+    double guideNodeSince_ = 0;                                       // when the open page appeared (ImGui time)
 
     // log
     int logMinLevel_ = 1;

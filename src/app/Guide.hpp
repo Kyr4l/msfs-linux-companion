@@ -111,6 +111,10 @@ public:
     bool back();
     bool canGoBack() const { return !history_.empty() || finished_; }
     size_t depth() const { return history_.size() + 1; }
+    const std::vector<std::string>& history() const { return history_; }
+    // false right after going Back to a question: the user is changing that answer, so it must not be taken from the
+    // simulator again until the user moves forward
+    bool autoAllowed() const { return !autoSuppressed_; }
 
 private:
     void go(const std::string& next);
@@ -118,6 +122,7 @@ private:
     std::string topic_, cur_;
     std::vector<std::string> history_;
     bool finished_ = false;
+    bool autoSuppressed_ = false;
 };
 
 }  // namespace lr::app

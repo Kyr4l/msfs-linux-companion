@@ -50,7 +50,7 @@ std::string newSessionLogPath() {
         if (n.rfind("session-", 0) == 0 && n.size() > 4 && n.compare(n.size() - 4, 4, ".log") == 0) old.push_back(e.path());
     }
     std::sort(old.begin(), old.end());
-    while (old.size() > 9) { fs::remove(old.front(), ec); old.erase(old.begin()); }
+    while (old.size() > 39) { fs::remove(old.front(), ec); old.erase(old.begin()); }
     char stamp[32];
     const std::time_t t = std::time(nullptr);
     std::tm tm{};

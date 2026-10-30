@@ -71,9 +71,9 @@ constexpr uint32_t CD_OUR_RESPONSE = 111;
 constexpr uint32_t CD_OUR_LVARS = 112;
 constexpr uint32_t REQ_OUR_RESPONSE = 111;
 constexpr uint32_t REQ_OUR_LVARS = 112;
-constexpr uint32_t REQ_OUR_LVARS_SNAPSHOT = 113;  // one-shot read of every watched value (see pollWatched)
+constexpr uint32_t REQ_OUR_LVARS_SNAPSHOT = 113;  // every watched value, once a second (see setupLVarDefinition)
 constexpr uint32_t DEF_OUR_LVARS = 112;
-constexpr size_t MF_MAX_LVARS = 1000;  // 4096-byte area / 4-byte floats
+constexpr size_t MF_LVAR_SLOTS = 512;  // datums defined once per connection (the module's area holds 1024 floats)
 
 std::string formatNumber(double v) {
     char buf[64];
@@ -237,6 +237,7 @@ void SimBridge::watchLVars(std::vector<std::string> names) {
     }
     std::lock_guard<std::mutex> lock(m_);
     if (clean == lvarWatch_) return;
+    lvarRetries_ = 0;
     lvarWatch_ = std::move(clean);
     lvarWatchDirty_ = true;
     cv_.notify_all();
@@ -355,6 +356,7 @@ void SimBridge::dropConnection(const std::string& why) {
     mfClientRequested_ = false;
     lvarRegistered_.clear();
     lvarValues_.clear();
+    lvarDefSent_ = false;  // the definition belongs to the connection
     lvarWatchDirty_ = true;
     nextConnectAttempt_ = clock::now() + std::chrono::seconds(3);
 }
@@ -572,7 +574,24 @@ void SimBridge::onMobiFlightClientReady() {
     lvarWatchDirty_ = true;
 }
 
-// (Re)registers the watched L: vars with the module and (re)defines the tagged LVars read.
+// The SimConnect side is defined ONCE per connection: MF_LVAR_SLOTS float datums (tag = slot number) and two requests that
+// are never touched again (changes as they happen, and every value once a second). What is watched is decided only on
+// the MobiFlight side, by appending codes to the module's list for our private client: slot n is the n-th code added.
+// Earlier versions stopped the request, cleared the definition and defined it again whenever the watched set changed;
+// the simulator stopped answering a few seconds after such a change (and later died) in two sessions, so the definition
+// is never changed any more.
+void SimBridge::setupLVarDefinition() {
+    for (size_t i = 0; i < MF_LVAR_SLOTS; ++i)
+        client_.addToClientDataDefinition(DEF_OUR_LVARS, static_cast<uint32_t>(i * 4), 4, 0, static_cast<uint32_t>(i));
+    rememberSend(client_.requestClientData(CD_OUR_LVARS, REQ_OUR_LVARS, DEF_OUR_LVARS, CD_PERIOD_ON_SET, CD_REQUEST_FLAG_CHANGED | CD_REQUEST_FLAG_TAGGED),
+                 "request LVars (changes)");
+    rememberSend(client_.requestClientData(CD_OUR_LVARS, REQ_OUR_LVARS_SNAPSHOT, DEF_OUR_LVARS, CD_PERIOD_SECOND, CD_REQUEST_FLAG_TAGGED),
+                 "request LVars (every second)");
+    lvarDefSent_ = true;
+}
+
+// Appends the watched codes the module does not have yet. Nothing is removed (the list only grows within a connection);
+// it is emptied and rebuilt from the wanted set when it would not fit, or when values never arrive.
 void SimBridge::applyLVarWatch() {
     std::vector<std::string> wanted;
     {
@@ -581,33 +600,39 @@ void SimBridge::applyLVarWatch() {
         wanted = lvarWatch_;
     }
     if (!mfClientReady_) return;
-    if (wanted.size() > MF_MAX_LVARS) wanted.resize(MF_MAX_LVARS);
-    if (wanted == lvarRegistered_) return;
-    if (!lvarRegistered_.empty()) {
-        // Stop the previous request before changing the definition.
-        rememberSend(client_.requestClientData(CD_OUR_LVARS, REQ_OUR_LVARS, DEF_OUR_LVARS, CD_PERIOD_NEVER, 0), "stop LVars request");
-        rememberSend(client_.clearClientDataDefinition(DEF_OUR_LVARS), "clear LVars definition");
+    if (!lvarDefSent_) {
+        setupLVarDefinition();
+        lvarRebuild_ = true;  // the module may still hold the list of an earlier run of this tool
     }
-    sendMobiFlightCommand("MF.SimVars.Clear", "MobiFlight clear vars");
-    lvarRegistered_.clear();
-    {
-        std::lock_guard<std::mutex> lock(m_);
-        lvarValues_.clear();
+    auto known = [&](const std::string& c) { return std::find(lvarRegistered_.begin(), lvarRegistered_.end(), c) != lvarRegistered_.end(); };
+    std::vector<std::string> add;
+    for (const auto& w : wanted)
+        if (!known(w)) add.push_back(w);
+    if (!lvarRebuild_ && lvarRegistered_.size() + add.size() > MF_LVAR_SLOTS) {
+        LOG_INFO("MobiFlight: the watch list is full (%zu), rebuilding it from what is wanted now", lvarRegistered_.size());
+        lvarRebuild_ = true;
     }
-    for (size_t i = 0; i < wanted.size(); ++i) {
-        sendMobiFlightCommand("MF.SimVars.Add." + (isRawCode(wanted[i]) ? wanted[i] : "(L:" + wanted[i] + ")"), "watch " + wanted[i]);
-        rememberSend(client_.addToClientDataDefinition(DEF_OUR_LVARS, static_cast<uint32_t>(i * 4), 4, 0, static_cast<uint32_t>(i)),
-                     "define L:" + wanted[i]);
-        lvarRegistered_.push_back(wanted[i]);
+    if (lvarRebuild_) {
+        sendMobiFlightCommand("MF.SimVars.Clear", "MobiFlight clear vars");
+        lvarRegistered_.clear();
+        {
+            std::lock_guard<std::mutex> lock(m_);
+            lvarValues_.clear();
+        }
+        add = wanted;
+        if (add.size() > MF_LVAR_SLOTS) add.resize(MF_LVAR_SLOTS);
+        lvarRebuild_ = false;
     }
-    if (!wanted.empty()) {
-        rememberSend(client_.requestClientData(CD_OUR_LVARS, REQ_OUR_LVARS, DEF_OUR_LVARS, CD_PERIOD_ON_SET,
-                                               CD_REQUEST_FLAG_CHANGED | CD_REQUEST_FLAG_TAGGED),
-                     "request LVars");
+    if (add.empty()) return;
+    for (const auto& c : add) {
+        sendMobiFlightCommand("MF.SimVars.Add." + (isRawCode(c) ? c : "(L:" + c + ")"), "watch " + c);
+        lvarRegistered_.push_back(c);
     }
     lvarUpdatesLogged_ = 0;
-    nextLVarSnapshotAt_ = clock::now() + std::chrono::milliseconds(200);  // after the module had a frame to fill the new area
-    LOG_INFO("MobiFlight: watching %zu L: var(s)", wanted.size());
+    lvarRegisteredAt_ = clock::now();
+    // values that arrive before the module has evaluated the new codes would be the old content of those slots
+    lvarAcceptFrom_ = lvarRegisteredAt_ + std::chrono::milliseconds(400);
+    LOG_INFO("MobiFlight: watching %zu L: var(s), %zu new", lvarRegistered_.size(), add.size());
 }
 
 void SimBridge::handleLVarData(const RecvClientData& d) {
@@ -615,6 +640,7 @@ void SimBridge::handleLVarData(const RecvClientData& d) {
     const size_t n = d.data.size();
     size_t off = 0;
     std::lock_guard<std::mutex> lock(m_);
+    if (clock::now() < lvarAcceptFrom_) return;
     static bool first = true;
     if (first) { LOG_INFO("MobiFlight: L: var values flowing (%u datum(s) in first update)", d.defineCount); first = false; }
     if (lvarUpdatesLogged_ < 5) { ++lvarUpdatesLogged_; LOG_DEBUG("L: var update: %u datum(s), %zu byte(s), %zu registered", d.defineCount, n, lvarRegistered_.size()); }
@@ -1056,12 +1082,23 @@ void SimBridge::pumpLiveScan() {
     }
     if (pendingWatchGets_.size() > 4096) pendingWatchGets_.clear();  // never let lost replies pile up
 
-    // The L: values arrive by change notifications, and SimConnect compares with what it sent for the previous set of
-    // watches: after the set was swapped, values that happen to equal the old ones at the same positions never came
-    // (a guide's first page went through, the next one stayed blank). So ask for all of them once a second as well.
-    if (mfClientReady_ && !lvarRegistered_.empty() && now >= nextLVarSnapshotAt_) {
-        rememberSend(client_.requestClientData(CD_OUR_LVARS, REQ_OUR_LVARS_SNAPSHOT, DEF_OUR_LVARS, CD_PERIOD_ONCE, CD_REQUEST_FLAG_TAGGED), "poll LVars");
-        nextLVarSnapshotAt_ = now + std::chrono::seconds(1);
+    // Codes that still have no value 2.5 s after they were added mean the module did not take them (or did not answer):
+    // empty its list and add everything again, at most twice per change of the watched set.
+    if (mfClientReady_ && lvarDefSent_ && !lvarRegistered_.empty() && now - lvarRegisteredAt_ > std::chrono::milliseconds(2500) && lvarRetries_ < 2) {
+        bool missing = false;
+        {
+            std::lock_guard<std::mutex> lock(m_);
+            for (const auto& c : lvarRegistered_)
+                if (!lvarValues_.count(c)) { missing = true; break; }
+        }
+        if (missing) {
+            ++lvarRetries_;
+            LOG_WARN("MobiFlight: no value yet for some of the %zu watched code(s), adding them again (try %d)", lvarRegistered_.size(), lvarRetries_);
+            lvarRebuild_ = true;
+            lvarRegisteredAt_ = now;
+            std::lock_guard<std::mutex> lock(m_);
+            lvarWatchDirty_ = true;
+        }
     }
 }
 
