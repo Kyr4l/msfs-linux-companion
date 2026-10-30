@@ -34,9 +34,20 @@ Action CatalogEntry::toAction() const {
         a.kind = ActionKind::CalcCode;
         a.name = "1 (>A:" + name + ", Bool)";
     } else if (kind == "input_event") {
-        a.kind = ActionKind::InputEventToggle;  // most cockpit switches: flip between positions; edit the kind/value for momentary ones
         a.name = name;
-        a.value = 2;
+        if (behavior == "knob_up" || behavior == "knob_down") {
+            a.kind = ActionKind::InputEvent;
+            a.value = hasValue ? value : (behavior == "knob_up" ? 1 : -1);  // trims want 10 / 0 instead (see the CJ4 rules)
+        } else if (behavior == "press") {
+            a.kind = ActionKind::InputEvent;  // one event per press: the sim acts on every event and resets the value itself
+            a.value = 1;
+        } else if (behavior == "level") {
+            a.kind = ActionKind::InputEvent;
+            a.value = hasValue ? value : (hasAxisRange ? axisMax : 100);
+        } else {
+            a.kind = ActionKind::InputEventToggle;  // latched switches and anything unknown: flip / cycle the positions
+            a.value = positions >= 2 ? positions : 2;
+        }
     } else if (kind == "calc_code") {
         a.kind = ActionKind::CalcCode;
         a.name = name;
@@ -61,6 +72,7 @@ std::vector<Action> CatalogEntry::toActions() const {
 }
 
 bool CatalogEntry::isCaptainSide() const {
+    if (kind == "input_event") return false;  // the _L_ / _R_ twin rule is for the FlyByWire event names only
     return api.find("_L_") != std::string::npos || api.find("EFIS_L_") != std::string::npos;
 }
 
@@ -74,6 +86,7 @@ std::string CatalogEntry::firstOfficerApi() const {
 }
 
 bool CatalogEntry::isIncDec() const {
+    if (behavior == "knob_up" || behavior == "knob_down") return true;
     for (const char* suffix : {"_INC", "_DEC", "_INCREMENT", "_DECREMENT"})
         if (api.size() >= strlen(suffix) && api.compare(api.size() - strlen(suffix), strlen(suffix), suffix) == 0) return true;
     return api.find("BARO_INC") != std::string::npos || api.find("BARO_DEC") != std::string::npos;
@@ -102,6 +115,10 @@ bool Catalog::load(const std::string& path, std::string& err) {
             c.remark = e.value("remark", "");
             c.description = e.value("description", "");
             c.reference = e.value("reference", "");
+            c.behavior = e.value("behavior", "");
+            c.positions = e.value("positions", 2);
+            c.verified = e.value("verified", false);
+            c.note = e.value("note", "");
             c.live = e.value("live", false);
             c.standard = e.value("standard", false);
             c.cockpitOnly = e.value("cockpit_only", false);
@@ -194,10 +211,10 @@ bool Catalog::setLiveEntries(std::vector<CatalogEntry> fresh) {
     // names the curated part already lists stay out of the live part (no duplicates in the panels)
     std::unordered_set<std::string> have;
     for (const auto& e : entries)
-        if (!e.live) have.insert(e.api);
+        if (!e.live) have.insert(e.kind + ":" + e.name);
     std::vector<CatalogEntry> wanted;
     for (auto& e : fresh)
-        if (have.insert(e.api).second) wanted.push_back(std::move(e));
+        if (have.insert(e.kind + ":" + e.name).second) wanted.push_back(std::move(e));
 
     std::vector<std::string> before, after;
     for (const auto& e : entries) if (e.live) before.push_back(e.api);
@@ -214,9 +231,9 @@ bool Catalog::setLiveEntries(std::vector<CatalogEntry> fresh) {
 void Catalog::addStandardEntries(const std::vector<CatalogEntry>& standard) {
     removeStandardEntries();
     std::unordered_set<std::string> have;
-    for (const auto& e : entries) have.insert(e.api);
+    for (const auto& e : entries) have.insert(e.kind + ":" + e.name);
     for (const auto& e : standard)
-        if (have.insert(e.api).second) entries.push_back(e);
+        if (have.insert(e.kind + ":" + e.name).second) entries.push_back(e);
     ++revision;
 }
 

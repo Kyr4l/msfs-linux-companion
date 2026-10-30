@@ -94,11 +94,12 @@ void AppContext::pushProfileToEngine() {
 
 bool AppContext::suggestedAxisRange(const Binding& b, double& lo, double& hi) const {
     for (const auto& a : b.onPress) {
-        if (a.kind != ActionKind::SimEvent) continue;
+        const bool input = a.kind == ActionKind::InputEvent || a.kind == ActionKind::InputEventToggle;
+        if (a.kind != ActionKind::SimEvent && !input) continue;
         for (const auto& cat : catalogs)
             for (const auto& e : cat.entries)
-                if (e.hasAxisRange && e.name == a.name) { lo = e.axisMin; hi = e.axisMax; return true; }
-        if (axisEventRange(a.name, lo, hi)) return true;
+                if (e.hasAxisRange && e.name == a.name && (e.kind == "input_event") == input) { lo = e.axisMin; hi = e.axisMax; return true; }
+        if (!input && axisEventRange(a.name, lo, hi)) return true;
     }
     return false;
 }
@@ -976,6 +977,15 @@ void Ui::newBindingFrom(const CatalogEntry& e) {
 // ---------------------------------------------------------------- Catalog panels view
 
 namespace {
+std::string behaviorText(const CatalogEntry& e) {
+    if (e.behavior == "latched") return e.positions >= 3 ? "switch with " + std::to_string(e.positions) + " positions: toggled / cycled" : "switch: toggled on / off";
+    if (e.behavior == "knob_up") return "knob: one click up per press (hold to repeat)";
+    if (e.behavior == "knob_down") return "knob: one click down per press (hold to repeat)";
+    if (e.behavior == "press") return "push button: one event per press, nothing on release";
+    if (e.behavior == "level") return "level: set from an axis" + (e.hasAxisRange ? " (" + std::to_string(static_cast<int>(e.axisMin)) + " to " + std::to_string(static_cast<int>(e.axisMax)) + ")" : std::string());
+    return e.behavior;
+}
+
 bool endsWith(const std::string& s, const char* suffix) {
     const size_t n = strlen(suffix);
     return s.size() >= n && s.compare(s.size() - n, n, suffix) == 0;
@@ -984,7 +994,7 @@ bool endsWith(const std::string& s, const char* suffix) {
 // Which entry a click on a control should pick: switches toggle, push buttons push, knobs click up.
 int entryScore(const CatalogEntry& e, bool knob) {
     if (e.kind == "calc_code") return 95;  // recipes are complete on their own
-    if (e.kind == "input_event") return 86;
+    if (e.kind == "input_event") return e.behavior == "knob_up" ? 88 : (e.behavior == "knob_down" ? 87 : 86);
     if (e.kind == "lvar" && e.values == "0|1") return 80;
     if (e.kind == "sim_event") {
         if (endsWith(e.api, "_PUSH")) return 90;
@@ -1041,7 +1051,9 @@ void Ui::rebuildPanelModel(const Catalog& cat) {
             bool incdec = false, steps = false;
             for (int idx : g.entries) {
                 const CatalogEntry& e = cat.entries[static_cast<size_t>(idx)];
-                if (endsWith(e.api, "_INC") || endsWith(e.api, "_DEC")) incdec = true;
+                if (endsWith(e.api, "_INC") || endsWith(e.api, "_DEC") || e.behavior == "knob_up" || e.behavior == "knob_down") incdec = true;
+                if (e.behavior == "latched" && e.positions >= 3) steps = true;
+                if (e.behavior == "level") incdec = true;
                 if (e.kind == "lvar" && e.values.find("..") != std::string::npos && e.values != "0..1") steps = true;
             }
             if (incdec || containsAny(fn, {"KNOB", "ROTARY", "DIAL", "BRT", "BRIGHT"})) g.style = 1;
@@ -1163,6 +1175,17 @@ void Ui::drawPanelsView(const Catalog& cat, bool pickMode, const std::vector<std
                         dl->AddCircleFilled(ImVec2(ic.x + t * ir * 0.9f, ic.y - ir * 1.1f), 1.8f, colDim);
                     dl->AddLine(ic, ImVec2(ic.x, ic.y - ir * 0.85f), ImGui::GetColorU32(ImVec4(0.1f, 0.1f, 0.1f, 1)), 2.0f);
                 }
+                // verified on the real simulator: a small green tick in the corner
+                {
+                    bool anyVerified = false;
+                    for (int idx : g.entries) anyVerified |= cat.entries[static_cast<size_t>(idx)].verified;
+                    if (anyVerified) {
+                        const ImVec2 t(c1.x - fs * 0.7f, c0.y + fs * 0.7f);
+                        dl->AddCircleFilled(t, fs * 0.32f, ImGui::GetColorU32(ImVec4(0.25f, 0.75f, 0.35f, 1)), 12);
+                        dl->AddLine(ImVec2(t.x - fs * 0.16f, t.y), ImVec2(t.x - fs * 0.03f, t.y + fs * 0.13f), ImGui::GetColorU32(ImVec4(0.05f, 0.1f, 0.05f, 1)), 1.6f);
+                        dl->AddLine(ImVec2(t.x - fs * 0.03f, t.y + fs * 0.13f), ImVec2(t.x + fs * 0.17f, t.y - fs * 0.12f), ImGui::GetColorU32(ImVec4(0.05f, 0.1f, 0.05f, 1)), 1.6f);
+                    }
+                }
                 // label (wraps over at most two lines, clipped)
                 dl->PushClipRect(ImVec2(c0.x + cellH, c0.y), c1, true);
                 dl->AddText(ImGui::GetFont(), fs, ImVec2(c0.x + cellH, c0.y + fs * 0.35f), colText, g.function.c_str(), nullptr, cellW - cellH - pad * 0.5f);
@@ -1178,6 +1201,14 @@ void Ui::drawPanelsView(const Catalog& cat, bool pickMode, const std::vector<std
                         ImGui::TextDisabled("%s", e.type.c_str());
                         ImGui::SameLine();
                         ImGui::TextUnformatted(e.api.size() > 70 ? (e.api.substr(0, 67) + "...").c_str() : e.api.c_str());
+                    }
+                    const CatalogEntry& pe = cat.entries[static_cast<size_t>(g.preferred >= 0 ? g.preferred : g.entries[0])];
+                    if (!pe.behavior.empty()) {
+                        ImGui::Spacing();
+                        ImGui::TextDisabled("%s", behaviorText(pe).c_str());
+                        if (pe.verified) ImGui::TextColored(kGreen, "verified on the real simulator");
+                        else if (pe.kind == "input_event" && !pe.note.empty()) ImGui::TextColored(kYellow, "not verified: %s", pe.note.c_str());
+                        else if (pe.kind == "input_event") ImGui::TextColored(kYellow, "not verified yet");
                     }
                     ImGui::TextDisabled("Click to select, double-click to create a binding");
                     ImGui::EndTooltip();
@@ -1315,12 +1346,21 @@ void Ui::drawCatalogBrowser(const char* id, bool pickMode) {
         ImGui::Text("Selected: %s", desc.c_str());
         if (actionNeedsMobiFlight(acts[0].kind)) { ImGui::SameLine(); ImGui::TextColored(kYellow, "(needs MobiFlight WASM module)"); }
         if (!sel->description.empty()) ImGui::TextWrapped("%s", sel->description.c_str());
+        if (!sel->behavior.empty()) {
+            ImGui::TextDisabled("%s", behaviorText(*sel).c_str());
+            if (sel->verified) { ImGui::SameLine(); ImGui::TextColored(kGreen, "verified on the real simulator"); }
+            else if (sel->kind == "input_event") { ImGui::SameLine(); ImGui::TextColored(kYellow, "not verified yet%s%s", sel->note.empty() ? "" : ": ", sel->note.c_str()); }
+        }
         if (sel->isCaptainSide() && !sel->firstOfficerApi().empty()) {
             ImGui::Checkbox("Both sides: also add the first officer (R) twin", &catalogBothSides_);
         }
         if (sel->isIncDec()) ImGui::TextDisabled("+/- entry: a new binding from it gets 'repeat while held' so a button acts like turning the knob.");
         if (pickMode) {
-            if (ImGui::Button("Add to press")) { for (const auto& a : acts) draft_.onPress.push_back(a); applyEntryRangeToAxisDraft(draft_, *sel); ImGui::CloseCurrentPopup(); }
+            if (ImGui::Button("Add to press")) {
+                for (const auto& a : acts) draft_.onPress.push_back(a);
+                applyEntryRangeToAxisDraft(draft_, *sel);
+                ImGui::CloseCurrentPopup();
+            }
             ImGui::SameLine();
             if (ImGui::Button("Add to release")) { for (const auto& a : acts) draft_.onRelease.push_back(a); ImGui::CloseCurrentPopup(); }
             ImGui::SameLine();

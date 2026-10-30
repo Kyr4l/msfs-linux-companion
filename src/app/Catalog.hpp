@@ -20,6 +20,16 @@ struct CatalogEntry {
     bool live = false;               // discovered from the running sim (input events, L: vars), cached on disk
     bool standard = false;           // from the shared standard-events catalog, merged into aircraft without a curated catalog
     bool cockpitOnly = false;        // standard events: used by cockpit behaviours but not offered by the MSFS controls menu
+    // How a cockpit input event (B:) behaves; empty = not known (offered as a toggle):
+    //   latched   value is the state (0/1, or 0..positions-1): toggled / cycled
+    //   knob_up   one rotary click up (+1 unless the entry has a value),  knob_down  one click down (-1 unless it has a value)
+    //   press     momentary button or toggle button: ONE event per press, nothing on release (the sim acts on every
+    //             event whatever its value and resets the value itself, so a release event would act a second time)
+    //   level     absolute value (axis, trim, brightness, volume), range in axis_range
+    std::string behavior;
+    int positions = 2;               // latched: number of switch positions
+    bool verified = false;           // behaviour checked against the real simulator (set, then read the sim's own state)
+    std::string note;                // what was seen, or why it is not verified
     bool hasAxisRange = false;       // an axis-style event: the docs give the parameter range it expects
     double axisMin = 0, axisMax = 0;
     std::string searchKey;  // lower-cased concatenation for filtering

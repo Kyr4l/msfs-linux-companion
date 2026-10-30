@@ -48,6 +48,7 @@ add_executable(msfs-linuxrebind
   src/app/Profile.cpp
   src/app/Catalog.cpp
   src/app/Engine.cpp
+  src/app/Script.cpp
   src/app/Paths.cpp
   src/ui/Ui.cpp
 )
@@ -92,6 +93,9 @@ if(LINUXREBIND_BUILD_TESTS)
   target_include_directories(live_catalog PRIVATE src third_party)
   target_link_libraries(live_catalog PRIVATE Threads::Threads)
   add_test(NAME live_catalog COMMAND live_catalog)
+  add_executable(curated_catalogs tests/curated_catalogs.cpp src/app/Catalog.cpp src/app/Profile.cpp src/input/Evdev.cpp)
+  target_include_directories(curated_catalogs PRIVATE src third_party)
+  add_test(NAME curated_catalogs COMMAND curated_catalogs ${CMAKE_SOURCE_DIR})
   # end to end through the real binary against the mock simulator posing as the CJ4
   add_test(NAME live_controls COMMAND bash ${CMAKE_SOURCE_DIR}/tests/live_controls.sh $<TARGET_FILE:msfs-linuxrebind> ${CMAKE_SOURCE_DIR})
   # Every documented command-line option must be accepted (exit code 2 = "unknown option"). Regression test for

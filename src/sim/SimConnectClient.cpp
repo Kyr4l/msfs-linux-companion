@@ -298,6 +298,12 @@ uint32_t SimConnectClient::setInputEvent(uint64_t hash, double value) {
     return send(w);
 }
 
+uint32_t SimConnectClient::enumerateInputEventParams(uint64_t hash) {
+    ByteWriter w = begin(0x54);
+    w.u64(hash);
+    return send(w);
+}
+
 uint32_t SimConnectClient::requestClientData(uint32_t clientDataId, uint32_t requestId, uint32_t defineId, uint32_t period,
                                              uint32_t flags, uint32_t origin, uint32_t interval, uint32_t limit) {
     ByteWriter w = begin(0x3b);
@@ -449,6 +455,15 @@ RecvInputEventValue SimConnectClient::parseGetInputEvent(const RecvMessage& m) {
     if (v.type == 1) v.text = r.str(256);
     else v.number = r.f64();
     return v;
+}
+
+RecvInputEventParams SimConnectClient::parseInputEventParams(const RecvMessage& m) {
+    ByteReader r(m.body.data(), m.body.size());
+    RecvInputEventParams p;
+    p.hash = r.u64();
+    const size_t n = r.remaining();
+    if (n) p.text.assign(reinterpret_cast<const char*>(r.cursor()), strnlen(reinterpret_cast<const char*>(r.cursor()), n));
+    return p;
 }
 
 RecvClientData SimConnectClient::parseClientData(const RecvMessage& m) {

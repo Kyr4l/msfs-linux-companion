@@ -81,6 +81,10 @@ struct RecvInputEventValue {  // GetInputEvent reply (requestId) or SubscribeInp
     double number = 0;
     std::string text;
 };
+struct RecvInputEventParams {
+    uint64_t hash = 0;
+    std::string text;  // description of the event's parameters, as the sim words it
+};
 struct RecvClientData {
     uint32_t requestId = 0, objectId = 0, defineId = 0, flags = 0, entryNumber = 0, outOf = 0, defineCount = 0;
     std::vector<uint8_t> data;
@@ -127,6 +131,7 @@ public:
     uint32_t enumerateInputEvents(uint32_t requestId);
     uint32_t getInputEvent(uint32_t requestId, uint64_t hash);
     uint32_t setInputEvent(uint64_t hash, double value);
+    uint32_t enumerateInputEventParams(uint64_t hash);
     uint32_t requestClientData(uint32_t clientDataId, uint32_t requestId, uint32_t defineId, uint32_t period, uint32_t flags,
                                uint32_t origin = 0, uint32_t interval = 0, uint32_t limit = 0);
     uint32_t setClientData(uint32_t clientDataId, uint32_t defineId, uint32_t unitSize, const void* data, size_t len);
@@ -142,6 +147,7 @@ public:
     static RecvClientData parseClientData(const RecvMessage& m);
     static RecvInputEventList parseInputEventList(const RecvMessage& m);
     static RecvInputEventValue parseGetInputEvent(const RecvMessage& m);
+    static RecvInputEventParams parseInputEventParams(const RecvMessage& m);
     static RecvClientData parseSimObjectData(const RecvMessage& m) { return parseClientData(m); }  // same layout
 
     uint64_t bytesSent() const { return bytesSent_; }

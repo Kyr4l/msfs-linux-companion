@@ -18,6 +18,7 @@
 #include "app/Engine.hpp"
 #include "app/Paths.hpp"
 #include "app/Profile.hpp"
+#include "app/Script.hpp"
 #include "haptics/Haptics.hpp"
 #include "haptics/WinwingHid.hpp"
 #include "input/Evdev.hpp"
@@ -53,6 +54,8 @@ void usage() {
         "  --read NAME            connect, print the value of L:NAME (needs MobiFlight) and exit\n"
         "  --read-input NAME      connect, print the value of the cockpit input event B:NAME of the loaded aircraft and exit\n"
         "  --list-controls        connect, print the aircraft the sim reports and its cockpit input events and L: variables, then exit\n"
+        "  --input-params NAME    connect, print how the sim describes the parameters of the cockpit input event B:NAME and exit\n"
+        "  --script FILE          connect, run a check script (set a control, read the simulator's own state, compare) and exit; see src/app/Script.hpp\n"
         "  --dump-controls FILE   like --list-controls, but also reads every input event's current value and writes everything to FILE (JSON)\n"
 
         "  --version, --help");
@@ -70,7 +73,8 @@ int main(int argc, char** argv) {
     bool dumpConfig = false;
     std::vector<std::string> fireSpecs, readNames, readInputs;
     bool listControls = false;
-    std::string dumpControlsPath;
+    std::string dumpControlsPath, scriptPath;
+    std::vector<std::string> paramNames;
     int sweepDevice = -1;
     std::string hostOverride, profileOverride, configPath, catalogPath, startTab;
     int portOverride = 0;
@@ -86,6 +90,8 @@ int main(int argc, char** argv) {
         else if (a == "--read") { std::string v; next(v); readNames.push_back(v); }
         else if (a == "--read-input") { std::string v; next(v); readInputs.push_back(v); }
         else if (a == "--list-controls") listControls = true;
+        else if (a == "--script") next(scriptPath);
+        else if (a == "--input-params") { std::string v; next(v); paramNames.push_back(v); }
         else if (a == "--dump-controls") { next(dumpControlsPath); listControls = true; }
         else if (a == "--motor-sweep") {
             motorSweep = true;
@@ -221,13 +227,19 @@ int main(int argc, char** argv) {
     hapticsEngine.start();
     input.start([&engine](const input::InputEvent& ev) { engine.onInput(ev); }, [&engine] { engine.tick(); });
 
-    if (!fireSpecs.empty() || !readNames.empty() || !readInputs.empty() || listControls) {
+    if (!fireSpecs.empty() || !readNames.empty() || !readInputs.empty() || listControls || !paramNames.empty() || !scriptPath.empty()) {
         // One-shot scripting mode: wait for the sim (and the MobiFlight module when needed), act, exit.
         std::vector<std::string> watch;
         for (const auto& r : readNames) watch.push_back(r);
         bridge.watchLVars(watch);
         bool needModule = !readNames.empty();
-        bool needInputEvents = !readInputs.empty() || listControls;
+        bool needInputEvents = !readInputs.empty() || listControls || !paramNames.empty();
+        if (!scriptPath.empty()) {
+            const app::ScriptNeeds sn = app::scanScript(scriptPath);
+            if (!sn.ok) { std::fprintf(stderr, "script: %s\n", sn.error.c_str()); return 2; }
+            needInputEvents = true;
+            needModule = needModule || sn.calculatorCode;
+        }
         bridge.setInitialScanDelayMs(400);  // one-shot mode: a flight that is already loaded has its cockpit registered
         bridge.watchInputEvents(readInputs);
         std::vector<app::Action> actions;
@@ -256,6 +268,26 @@ int main(int argc, char** argv) {
             if (std::chrono::steady_clock::now() > deadline || g_signalled) { std::fprintf(stderr, "simulator%s not available\n", needModule ? " / MobiFlight module" : ""); return 1; }
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
+        if (!scriptPath.empty()) {
+            const int failed = app::runScript(bridge, scriptPath);
+            input.stop();
+            hapticsEngine.stop();
+            bridge.stop();
+            return failed == 0 ? 0 : 1;
+        }
+        if (!paramNames.empty()) {
+            bridge.requestInputParams(paramNames);
+            for (int i = 0; i < 40; ++i) {
+                bool all = true;
+                for (const auto& n : paramNames) all &= bridge.inputParams(n).has_value();
+                if (all) break;
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+            for (const auto& n : paramNames) {
+                auto t = bridge.inputParams(n);
+                std::printf("B:%s params: %s\n", n.c_str(), t ? ("\"" + *t + "\"").c_str() : "(no answer)");
+            }
+        }
         if (!dumpControlsPath.empty()) {
             // read every event's current value (batched polling), then write one JSON document
             const sim::LiveSnapshot first = bridge.liveSnapshot();
@@ -265,6 +297,13 @@ int main(int argc, char** argv) {
             for (int i = 0; i < 300; ++i) {  // up to 30 s
                 size_t have = 0;
                 for (const auto& n : names) have += bridge.inputEventValue(n).has_value();
+                if (have >= names.size()) break;
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+            bridge.requestInputParams(names);
+            for (int i = 0; i < 100; ++i) {  // up to 10 s for the parameter descriptions
+                size_t have = 0;
+                for (const auto& n : names) have += bridge.inputParams(n).has_value();
                 if (have >= names.size()) break;
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
@@ -279,6 +318,7 @@ int main(int argc, char** argv) {
             for (const auto& e : snap.inputEvents) {
                 nlohmann::json j{{"name", e.name}, {"text", e.isString}};
                 if (auto v = bridge.inputEventValue(e.name)) j["value"] = *v;
+                if (auto t = bridge.inputParams(e.name)) j["params"] = *t;
                 doc["input_events"].push_back(j);
             }
             doc["lvars"] = snap.lvars;

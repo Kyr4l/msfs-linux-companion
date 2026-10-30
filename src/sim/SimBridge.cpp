@@ -199,6 +199,19 @@ LiveSnapshot SimBridge::liveSnapshot() const {
     return live_;
 }
 
+void SimBridge::requestInputParams(const std::vector<std::string>& names) {
+    std::lock_guard<std::mutex> lock(m_);
+    for (const auto& n : names) inputParamQueue_.push_back(stripPrefix(n, "B:"));
+    cv_.notify_all();
+}
+
+std::optional<std::string> SimBridge::inputParams(const std::string& name) const {
+    std::lock_guard<std::mutex> lock(m_);
+    auto it = inputParams_.find(stripPrefix(name, "B:"));
+    if (it == inputParams_.end()) return std::nullopt;
+    return it->second;
+}
+
 void SimBridge::requestLiveRefresh() {
     std::lock_guard<std::mutex> lock(m_);
     liveScanPending_ = true;
@@ -212,10 +225,13 @@ void SimBridge::toggleLVar(const std::string& name, const std::string& origin) {
     enqueue({SimCommand::Type::LVarToggle, name, 0, origin});
 }
 
+// A watched name is an L: variable name, or raw calculator code in parentheses such as "(A:LIGHT NAV, Bool)".
+static bool isRawCode(const std::string& n) { return !n.empty() && n.front() == '('; }
+
 void SimBridge::watchLVars(std::vector<std::string> names) {
     std::vector<std::string> clean;
     for (auto& n : names) {
-        std::string v = stripPrefix(n, "L:");
+        std::string v = isRawCode(n) ? n : stripPrefix(n, "L:");
         if (!v.empty() && std::find(clean.begin(), clean.end(), v) == clean.end()) clean.push_back(v);
     }
     std::lock_guard<std::mutex> lock(m_);
@@ -227,7 +243,7 @@ void SimBridge::watchLVars(std::vector<std::string> names) {
 
 std::optional<double> SimBridge::lvarValue(const std::string& name) const {
     std::lock_guard<std::mutex> lock(m_);
-    auto it = lvarValues_.find(stripPrefix(name, "L:"));
+    auto it = lvarValues_.find(isRawCode(name) ? name : stripPrefix(name, "L:"));
     if (it == lvarValues_.end()) return std::nullopt;
     return it->second;
 }
@@ -317,6 +333,7 @@ void SimBridge::dropConnection(const std::string& why) {
     inputHash_.clear();
     inputIsString_.clear();
     inputEventsPending_.clear();
+    inputParamQueue_.clear();
     pendingToggles_.clear();
     deferredToggles_.clear();
     pendingWatchGets_.clear();
@@ -573,7 +590,7 @@ void SimBridge::applyLVarWatch() {
         lvarValues_.clear();
     }
     for (size_t i = 0; i < wanted.size(); ++i) {
-        sendMobiFlightCommand("MF.SimVars.Add.(L:" + wanted[i] + ")", "watch L:" + wanted[i]);
+        sendMobiFlightCommand("MF.SimVars.Add." + (isRawCode(wanted[i]) ? wanted[i] : "(L:" + wanted[i] + ")"), "watch " + wanted[i]);
         rememberSend(client_.addToClientDataDefinition(DEF_OUR_LVARS, static_cast<uint32_t>(i * 4), 4, 0, static_cast<uint32_t>(i)),
                      "define L:" + wanted[i]);
         lvarRegistered_.push_back(wanted[i]);
@@ -789,6 +806,16 @@ void SimBridge::handleMessage(const RecvMessage& m) {
         case RecvId::EnumerateInputEvents:
             handleInputEventList(SimConnectClient::parseInputEventList(m));
             break;
+        case RecvId::EnumerateInputEventParams: {
+            const RecvInputEventParams p = SimConnectClient::parseInputEventParams(m);
+            for (const auto& [name, hash] : inputHash_)
+                if (hash == p.hash) {
+                    std::lock_guard<std::mutex> lock(m_);
+                    inputParams_[name] = p.text;
+                    break;
+                }
+            break;
+        }
         case RecvId::GetInputEvent:
             handleInputEventValue(SimConnectClient::parseGetInputEvent(m));
             break;
@@ -982,6 +1009,19 @@ void SimBridge::pumpLiveScan() {
         } else {
             nextLiveScanAt_ = now + std::chrono::seconds(4);
         }
+    }
+
+    // parameter descriptions asked for with requestInputParams(), a few per tick
+    for (int i = 0; i < 40; ++i) {
+        std::string name;
+        {
+            std::lock_guard<std::mutex> lock(m_);
+            if (inputParamQueue_.empty()) break;
+            name = inputParamQueue_.front();
+            inputParamQueue_.pop_front();
+        }
+        auto it = inputHash_.find(name);
+        if (it != inputHash_.end()) rememberSend(client_.enumerateInputEventParams(it->second), "input event params " + name);
     }
 
     // poll the values of watched input events. A handful (the ones bindings use) are all polled twice a second; a long

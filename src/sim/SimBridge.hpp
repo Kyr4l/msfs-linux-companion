@@ -101,6 +101,8 @@ public:
     void toggleInputEvent(const std::string& name, int positions, const std::string& origin = {});
     void watchInputEvents(std::vector<std::string> names);  // polled a few times a second for display
     std::optional<double> inputEventValue(const std::string& name) const;
+    void requestInputParams(const std::vector<std::string>& names);  // asks the sim how it describes each event's parameters
+    std::optional<std::string> inputParams(const std::string& name) const;
     void requestLiveRefresh();      // re-enumerate input events and L: vars of the loaded aircraft now
     void setInitialScanDelayMs(int ms) { initialScanDelayMs_ = ms; }  // wait after an aircraft loads before listing its controls
     LiveSnapshot liveSnapshot() const;
@@ -194,6 +196,8 @@ private:
     std::vector<std::string> inputWatch_;
     size_t inputPollCursor_ = 0;
     std::unordered_map<std::string, double> inputValues_;         // guarded by m_
+    std::unordered_map<std::string, std::string> inputParams_;    // guarded by m_
+    std::deque<std::string> inputParamQueue_;                     // names whose parameters are still to be requested
     std::chrono::steady_clock::time_point nextInputPollAt_{};
     LiveSnapshot live_;                                          // guarded by m_
     std::atomic<uint64_t> liveRevision_{0};

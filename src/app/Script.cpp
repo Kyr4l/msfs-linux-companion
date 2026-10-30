@@ -1,0 +1,166 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (C) 2026 Kyr4l
+#include "app/Script.hpp"
+
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <fstream>
+#include <sstream>
+#include <thread>
+
+namespace lr::app {
+
+namespace {
+using clock = std::chrono::steady_clock;
+
+struct Line {
+    std::string cmd;
+    std::vector<std::string> args;
+    std::string expr;  // calculator code (with its parentheses) for code / expect
+    int number = 0;
+};
+
+std::string trim(const std::string& s) {
+    size_t a = s.find_first_not_of(" \t\r");
+    size_t b = s.find_last_not_of(" \t\r");
+    return a == std::string::npos ? std::string() : s.substr(a, b - a + 1);
+}
+
+// "expect (A:LIGHT NAV, Bool) == 1 800": pulls the parenthesised expression out, splits the rest on spaces
+bool parseLine(const std::string& raw, Line& out, std::string& err) {
+    std::string s = trim(raw);
+    if (s.empty() || s[0] == '#') return false;
+    size_t sp = s.find_first_of(" \t");
+    out.cmd = sp == std::string::npos ? s : s.substr(0, sp);
+    std::string rest = sp == std::string::npos ? std::string() : trim(s.substr(sp));
+    if (out.cmd == "code" || out.cmd == "expect") {
+        if (rest.empty() || rest[0] != '(') { err = "expected calculator code in parentheses"; return false; }
+        int depth = 0;
+        size_t end = std::string::npos;
+        for (size_t i = 0; i < rest.size(); ++i) {
+            if (rest[i] == '(') ++depth;
+            else if (rest[i] == ')' && --depth == 0) { end = i; break; }
+        }
+        if (end == std::string::npos) { err = "unbalanced parentheses"; return false; }
+        out.expr = rest.substr(0, end + 1);
+        rest = trim(rest.substr(end + 1));
+    }
+    std::istringstream ss(rest);
+    std::string tok;
+    while (ss >> tok) out.args.push_back(tok);
+    return true;
+}
+
+bool compare(double v, const std::string& op, double ref) {
+    const double eps = 1e-6 + 1e-9 * std::fabs(ref);
+    if (op == "==") return std::fabs(v - ref) <= std::max(eps, 0.0005);
+    if (op == "!=") return std::fabs(v - ref) > std::max(eps, 0.0005);
+    if (op == ">") return v > ref;
+    if (op == "<") return v < ref;
+    if (op == ">=") return v >= ref - eps;
+    if (op == "<=") return v <= ref + eps;
+    return false;
+}
+
+std::string stripB(std::string n) { return n.rfind("B:", 0) == 0 ? n.substr(2) : n; }
+}  // namespace
+
+ScriptNeeds scanScript(const std::string& path) {
+    ScriptNeeds needs;
+    std::ifstream in(path);
+    if (!in) { needs.error = "cannot open " + path; return needs; }
+    std::string raw;
+    int number = 0;
+    while (std::getline(in, raw)) {
+        ++number;
+        Line l;
+        std::string err;
+        if (!parseLine(raw, l, err)) {
+            if (!err.empty()) { needs.error = "line " + std::to_string(number) + ": " + err; return needs; }
+            continue;
+        }
+        static const char* known[] = {"set", "toggle", "press", "get", "code", "expect", "expectb", "sleep"};
+        if (std::find_if(std::begin(known), std::end(known), [&](const char* k) { return l.cmd == k; }) == std::end(known)) {
+            needs.error = "line " + std::to_string(number) + ": unknown command '" + l.cmd + "'";
+            return needs;
+        }
+        if (l.cmd == "code" || l.cmd == "expect") {
+            needs.calculatorCode = true;
+            if (std::find(needs.codes.begin(), needs.codes.end(), l.expr) == needs.codes.end()) needs.codes.push_back(l.expr);
+        }
+        if (l.cmd == "set" || l.cmd == "toggle" || l.cmd == "press" || l.cmd == "get" || l.cmd == "expectb") {
+            if (l.args.empty()) { needs.error = "line " + std::to_string(number) + ": missing event name"; return needs; }
+            const std::string n = stripB(l.args[0]);
+            if (std::find(needs.inputEvents.begin(), needs.inputEvents.end(), n) == needs.inputEvents.end()) needs.inputEvents.push_back(n);
+        }
+    }
+    needs.ok = true;
+    return needs;
+}
+
+int runScript(sim::SimBridge& bridge, const std::string& path) {
+    const ScriptNeeds needs = scanScript(path);
+    if (!needs.ok) { std::fprintf(stderr, "script: %s\n", needs.error.c_str()); return -1; }
+    bridge.watchLVars(needs.codes);
+    bridge.watchInputEvents(needs.inputEvents);
+    // let the first values arrive so that "get" and the first expectation are not racing the registration
+    for (int i = 0; i < 40; ++i) {
+        bool all = true;
+        for (const auto& c : needs.codes) all &= bridge.lvarValue(c).has_value();
+        for (const auto& n : needs.inputEvents) all &= bridge.inputEventValue(n).has_value();
+        if (all) break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    std::ifstream in(path);
+    std::string raw;
+    int number = 0, failures = 0, checks = 0;
+    while (std::getline(in, raw)) {
+        ++number;
+        Line l;
+        std::string err;
+        if (!parseLine(raw, l, err)) continue;
+        auto arg = [&](size_t i) { return i < l.args.size() ? l.args[i] : std::string(); };
+        auto num = [&](size_t i, double dflt) { return i < l.args.size() ? std::atof(l.args[i].c_str()) : dflt; };
+        if (l.cmd == "set") {
+            bridge.setInputEvent(stripB(arg(0)), num(1, 0), "script");
+        } else if (l.cmd == "toggle") {
+            bridge.toggleInputEvent(stripB(arg(0)), static_cast<int>(num(1, 2)), "script");
+        } else if (l.cmd == "press") {
+            bridge.setInputEvent(stripB(arg(0)), 1, "script");
+        } else if (l.cmd == "sleep") {
+            std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(num(0, 100))));
+        } else if (l.cmd == "get" || l.cmd == "code") {
+            std::this_thread::sleep_for(std::chrono::milliseconds(700));  // the value is refreshed at about 2 Hz
+            const std::string key = l.cmd == "get" ? stripB(arg(0)) : l.expr;
+            auto v = l.cmd == "get" ? bridge.inputEventValue(key) : bridge.lvarValue(key);
+            if (v) std::printf("%s = %g\n", l.cmd == "get" ? ("B:" + key).c_str() : key.c_str(), *v);
+            else std::printf("%s = (no value)\n", l.cmd == "get" ? ("B:" + key).c_str() : key.c_str());
+        } else if (l.cmd == "expect" || l.cmd == "expectb") {
+            const bool isCode = l.cmd == "expect";
+            const std::string key = isCode ? l.expr : stripB(arg(0));
+            const std::string op = arg(isCode ? 0 : 1);
+            const double ref = num(isCode ? 1 : 2, 0);
+            const int timeout = static_cast<int>(num(isCode ? 2 : 3, 1500));
+            const auto deadline = clock::now() + std::chrono::milliseconds(timeout);
+            std::optional<double> v;
+            bool good = false;
+            do {
+                std::this_thread::sleep_for(std::chrono::milliseconds(120));
+                v = isCode ? bridge.lvarValue(key) : bridge.inputEventValue(key);
+                good = v && compare(*v, op, ref);
+            } while (!good && clock::now() < deadline);
+            ++checks;
+            std::string label = isCode ? key : "B:" + key;
+            if (good) std::printf("ok:   %s %s %g (is %g)\n", label.c_str(), op.c_str(), ref, *v);
+            else { ++failures; std::printf("FAIL: %s %s %g (is %s)  [line %d]\n", label.c_str(), op.c_str(), ref, v ? std::to_string(*v).c_str() : "unknown", number); }
+        }
+    }
+    std::printf("%d check(s), %d failed\n", checks, failures);
+    return failures;
+}
+
+}  // namespace lr::app
