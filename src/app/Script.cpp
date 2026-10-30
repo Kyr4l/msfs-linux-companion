@@ -38,15 +38,35 @@ bool parseLine(const std::string& raw, Line& out, std::string& err) {
     std::string rest = sp == std::string::npos ? std::string() : trim(s.substr(sp));
     if (out.cmd == "code" || out.cmd == "expect") {
         if (rest.empty() || rest[0] != '(') { err = "expected calculator code in parentheses"; return false; }
-        int depth = 0;
-        size_t end = std::string::npos;
-        for (size_t i = 0; i < rest.size(); ++i) {
-            if (rest[i] == '(') ++depth;
-            else if (rest[i] == ')' && --depth == 0) { end = i; break; }
+        // the code may be RPN with several groups ("(A:X, Bool) (A:Y, Bool) +"): for expect it ends before the trailing
+        // "OP VALUE [MS]" tokens, for code it is the whole rest of the line
+        std::vector<std::string> tok;
+        {
+            std::istringstream ss(rest);
+            std::string t;
+            while (ss >> t) tok.push_back(t);
         }
-        if (end == std::string::npos) { err = "unbalanced parentheses"; return false; }
-        out.expr = rest.substr(0, end + 1);
-        rest = trim(rest.substr(end + 1));
+        auto isNumber = [](const std::string& t) { char* e = nullptr; std::strtod(t.c_str(), &e); return !t.empty() && e && *e == 0; };
+        auto isOp = [](const std::string& t) { return t == "==" || t == "!=" || t == ">" || t == "<" || t == ">=" || t == "<="; };
+        size_t keep = tok.size();
+        if (out.cmd == "expect") {
+            if (keep >= 4 && isNumber(tok[keep - 1]) && isNumber(tok[keep - 2]) && isOp(tok[keep - 3])) keep -= 3;
+            else if (keep >= 3 && isNumber(tok[keep - 1]) && isOp(tok[keep - 2])) keep -= 2;
+            else { err = "expect needs: CODE OP VALUE [MS]"; return false; }
+            out.args.assign(tok.begin() + static_cast<long>(keep), tok.end());
+        }
+        int depth = 0;
+        for (const char c : rest) {
+            if (c == '(') ++depth;
+            else if (c == ')') --depth;
+        }
+        for (size_t i = 0; i < keep; ++i) out.expr += (i ? " " : "") + tok[i];
+        if (out.expr.empty() || (out.expr.back() != ')' && out.expr.back() != '+' && out.expr.back() != '-' && out.expr.back() != '*' && out.expr.back() != '/' && !std::isalnum(static_cast<unsigned char>(out.expr.back())))) {
+            err = "bad calculator code";
+            return false;
+        }
+        if (depth != 0) { err = "unbalanced parentheses"; return false; }
+        return true;
     }
     if (out.cmd == "rewatch") { out.expr = rest; return true; }  // codes separated by " | "
     std::istringstream ss(rest);

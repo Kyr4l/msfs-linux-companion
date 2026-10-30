@@ -105,7 +105,7 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "press",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "note": "Pressed on a CJ4: (A:KOHLSMAN SETTING MB:1) went from 1013.25 to 1013.24 and back with the second press; no variable showing the STD state was found."
   },
   {
    "panel": "Autopilot and flight instruments",
@@ -155,7 +155,7 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "knob_down",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "note": "Clicked on a CJ4: (A:KOHLSMAN SETTING MB:2) did not change, so what this knob moves is not known."
   },
   {
    "panel": "Autopilot and flight instruments",
@@ -167,7 +167,7 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "knob_up",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "note": "Clicked on a CJ4: (A:KOHLSMAN SETTING MB:2) did not change, so what this knob moves is not known."
   },
   {
    "panel": "Autopilot and flight instruments",
@@ -253,7 +253,7 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "knob_down",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "note": "Clicked on a CJ4: (A:NAV OBS:2) did not change, so what this knob moves is not known."
   },
   {
    "panel": "Autopilot and flight instruments",
@@ -265,7 +265,7 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "knob_up",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "note": "Clicked on a CJ4: (A:NAV OBS:2) did not change, so what this knob moves is not known."
   },
   {
    "panel": "Autopilot and flight instruments",
@@ -290,7 +290,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "press",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "verified": true,
+   "note": "Verified on a CJ4: every event toggles the flight director, whatever its value; FD 1 and FD 2 share one state ((A:AUTOPILOT FLIGHT DIRECTOR ACTIVE) and :2 both follow)."
   },
   {
    "panel": "Autopilot and flight instruments",
@@ -482,26 +483,28 @@
   {
    "panel": "Autopilot and flight instruments",
    "section": "Vertical",
-   "function": "VS wheel: down",
+   "function": "VS wheel: down (-100 fpm)",
    "api": "AUTOPILOT_VerticalSpeed",
    "name": "AUTOPILOT_VerticalSpeed",
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "knob_down",
-   "note": "Did not change the selected vertical speed while VS mode was off; not tried with VS engaged."
+   "verified": true,
+   "note": "Verified on a CJ4 with VS engaged: +1 raises the selected vertical speed by 100 fpm, -1 lowers it by 100 fpm (nothing happens outside VS mode)."
   },
   {
    "panel": "Autopilot and flight instruments",
    "section": "Vertical",
-   "function": "VS wheel: up",
+   "function": "VS wheel: up (+100 fpm)",
    "api": "AUTOPILOT_VerticalSpeed",
    "name": "AUTOPILOT_VerticalSpeed",
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "knob_up",
-   "note": "Did not change the selected vertical speed while VS mode was off; not tried with VS engaged."
+   "verified": true,
+   "note": "Verified on a CJ4 with VS engaged: +1 raises the selected vertical speed by 100 fpm, -1 lowers it by 100 fpm (nothing happens outside VS mode)."
   },
   {
    "panel": "Engines",
@@ -513,7 +516,7 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "note": "The value follows set 0 / 1 (2 reads back as 1); none of the variables tried ((A:TURB ENG IGNITION SWITCH EX1:1), (A:TURB ENG IS IGNITING:1)) followed it, so its effect was not read."
   },
   {
    "panel": "Engines",
@@ -537,7 +540,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Reads 0 once the engine has started (the starter drops out). Setting it was not tried."
+   "verified": true,
+   "note": "Verified on a CJ4: set 1 engages the starter ((A:GENERAL ENG STARTER:1) = 1, N2 rises about 3 % every 0.7 s); it drops out by itself at about 50 % N2 and the value returns to 0."
   },
   {
    "panel": "Engines",
@@ -549,7 +553,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Reads 0 once the engine has started (the starter drops out). Setting it was not tried."
+   "verified": true,
+   "note": "Verified on a CJ4: set 1 engages the starter ((A:GENERAL ENG STARTER:2) = 1, N2 rises about 3 % every 0.7 s); it drops out by itself at about 50 % N2 and the value returns to 0."
   },
   {
    "panel": "Engines",
@@ -584,12 +589,8 @@
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "level",
-   "axis_range": [
-    0,
-    100
-   ],
-   "note": "Reads 0 at idle; scale assumed 0..100, not tried."
+   "behavior": "",
+   "note": "Seen on a CJ4 with the brake set: values up to 10 leave the lever at idle and 11 or more send it to 100 % (not a usable axis). For an axis use the standard THROTTLE1_SET sim events."
   },
   {
    "panel": "Engines",
@@ -600,12 +601,8 @@
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "level",
-   "axis_range": [
-    0,
-    100
-   ],
-   "note": "Reads 0 at idle; scale assumed 0..100, not tried."
+   "behavior": "",
+   "note": "Same event as lever 1; on lever 1 values up to 10 leave the lever at idle and 11 or more send it to 100 % (not a usable axis). For an axis use the standard THROTTLE2_SET sim events."
   },
   {
    "panel": "Fuel",
@@ -618,7 +615,7 @@
    "rw": "R/W",
    "behavior": "latched",
    "positions": 3,
-   "note": "Reads 1 at rest, so probably three positions; not tried."
+   "note": "Seen on a CJ4: the value follows set 0 / 1 / 2 (a three-position, set-value switch, resting at 1); the effect on the fuel system was not read."
   },
   {
    "panel": "Fuel",
@@ -630,7 +627,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "The sim's CJ4 checklist presses the RUN button when N2 reaches 20 %. Reads 1 with the engine running (RUN). Setting it was not tried."
+   "verified": true,
+   "note": "Verified on a CJ4: set 1 with N2 at 20 % or more lights the engine ((A:GENERAL ENG COMBUSTION:1) = 1); the value reads 1 while it runs."
   },
   {
    "panel": "Fuel",
@@ -642,7 +640,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "The sim's CJ4 checklist presses the RUN button when N2 reaches 20 %. Reads 1 with the engine running (RUN). Setting it was not tried."
+   "verified": true,
+   "note": "Verified on a CJ4: set 1 with N2 at 20 % or more lights the engine ((A:GENERAL ENG COMBUSTION:2) = 1), set 0 stops it; the value reads 1 while it runs."
   },
   {
    "panel": "Fuel",
@@ -678,7 +677,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "verified": true,
+   "note": "Verified on a CJ4: toggles the boost pump, read back with (A:GENERAL ENG FUEL PUMP SWITCH:1)."
   },
   {
    "panel": "Fuel",
@@ -690,7 +690,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "verified": true,
+   "note": "Verified on a CJ4: toggles the boost pump, read back with (A:GENERAL ENG FUEL PUMP SWITCH:2)."
   },
   {
    "panel": "Electrical",
@@ -703,7 +704,8 @@
    "rw": "R/W",
    "behavior": "latched",
    "positions": 3,
-   "note": "Three positions. The sim's own CJ4 checklist sets 2 (DISPATCH) before the engine start and 0 (ON) after it; 1 was read in a cold cockpit and 0 with both engines running. Setting it was not tried."
+   "verified": true,
+   "note": "Verified on a CJ4: three positions by set: 1 = OFF (avionics circuit off), 0 = ON, 2 = DISPATCH (both power the avionics); read back with (A:CIRCUIT AVIONICS ON)."
   },
   {
    "panel": "Electrical",
@@ -715,7 +717,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Seen on a running CJ4: the value read 0 while (A:ELECTRICAL MASTER BATTERY) was 1, so 0 is probably the ON position (not 1). Setting it was not tried."
+   "verified": true,
+   "note": "Verified on a CJ4: set 1 = OFF, set 0 = ON (a second set 0 changes nothing), read back with (A:ELECTRICAL MASTER BATTERY)."
   },
   {
    "panel": "Electrical",
@@ -739,7 +742,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Seen on a running CJ4: the value read 0 while (A:GENERAL ENG GENERATOR SWITCH:1) was 1, so 0 is probably the ON position (not 1). Setting it was not tried."
+   "verified": true,
+   "note": "Verified on a CJ4: set 1 = OFF, set 0 = ON, read back with (A:GENERAL ENG MASTER ALTERNATOR:1). (A:GENERAL ENG GENERATOR SWITCH:1) does not follow it."
   },
   {
    "panel": "Electrical",
@@ -751,7 +755,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Seen on a running CJ4: the value read 0 while (A:GENERAL ENG GENERATOR SWITCH:2) was 1, so 0 is probably the ON position (not 1). Setting it was not tried."
+   "verified": true,
+   "note": "Verified on a CJ4: set 1 = OFF, set 0 = ON, read back with (A:GENERAL ENG MASTER ALTERNATOR:2). (A:GENERAL ENG GENERATOR SWITCH:2) does not follow it."
   },
   {
    "panel": "Lights",
@@ -1064,7 +1069,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "verified": true,
+   "note": "Verified on a CJ4: set 1 / set 0 switches engine anti-ice 2, read back with (A:ENG ANTI ICE:2)."
   },
   {
    "panel": "Ice protection",
@@ -1089,19 +1095,36 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "verified": true,
+   "note": "Verified on a CJ4: set 1 / set 0 switches pitot heat 2, read back with (A:PITOT HEAT SWITCH:2)."
   },
   {
    "panel": "Landing gear and brakes",
    "section": "Brakes",
-   "function": "Parking brake",
+   "function": "Parking brake: release",
    "api": "LANDING_GEAR_ParkingBrake",
    "name": "LANDING_GEAR_ParkingBrake",
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "",
-   "note": "Reads 100 when set; deliberately not tried (the brake holds the aircraft while the engines run). Use the standard PARKING_BRAKES sim event."
+   "behavior": "level",
+   "value": 0,
+   "verified": true,
+   "note": "Verified on a CJ4: 100 sets the parking brake and 0 releases it, read back with (A:BRAKE PARKING POSITION); the aircraft did not move during a one-second release at idle."
+  },
+  {
+   "panel": "Landing gear and brakes",
+   "section": "Brakes",
+   "function": "Parking brake: set",
+   "api": "LANDING_GEAR_ParkingBrake",
+   "name": "LANDING_GEAR_ParkingBrake",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "level",
+   "value": 100,
+   "verified": true,
+   "note": "Verified on a CJ4: 100 sets the parking brake and 0 releases it, read back with (A:BRAKE PARKING POSITION); the aircraft did not move during a one-second release at idle."
   },
   {
    "panel": "Landing gear and brakes",
@@ -1118,26 +1141,106 @@
   {
    "panel": "Flaps, spoilers and trim",
    "section": "Flaps",
-   "function": "Flap handle",
+   "function": "Flaps: axis (0 to 16384)",
    "api": "HANDLING_Flaps",
    "name": "HANDLING_Flaps",
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "",
-   "note": "Did not move the flaps with the values 0, 1, 2 or -1 (on the ground). Use the standard FLAPS_INCR / FLAPS_DECR sim events instead."
+   "behavior": "level",
+   "axis_range": [
+    0,
+    16384
+   ],
+   "verified": true,
+   "note": "Verified on a CJ4 (powered, engines running): an axis from 0 to 16384; 0 = flap position 0, 8192 = position 1, 16384 = position 2 ((A:FLAPS HANDLE INDEX) 0 / 1 / 2, (A:FLAPS HANDLE PERCENT) 0 / 50 / 100)."
+  },
+  {
+   "panel": "Flaps, spoilers and trim",
+   "section": "Flaps",
+   "function": "Flaps: position 0 (up)",
+   "api": "HANDLING_Flaps",
+   "name": "HANDLING_Flaps",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "level",
+   "value": 0,
+   "verified": true,
+   "note": "Verified on a CJ4 (powered, engines running): an axis from 0 to 16384; 0 = flap position 0, 8192 = position 1, 16384 = position 2 ((A:FLAPS HANDLE INDEX) 0 / 1 / 2, (A:FLAPS HANDLE PERCENT) 0 / 50 / 100)."
+  },
+  {
+   "panel": "Flaps, spoilers and trim",
+   "section": "Flaps",
+   "function": "Flaps: position 1",
+   "api": "HANDLING_Flaps",
+   "name": "HANDLING_Flaps",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "level",
+   "value": 8192,
+   "verified": true,
+   "note": "Verified on a CJ4 (powered, engines running): an axis from 0 to 16384; 0 = flap position 0, 8192 = position 1, 16384 = position 2 ((A:FLAPS HANDLE INDEX) 0 / 1 / 2, (A:FLAPS HANDLE PERCENT) 0 / 50 / 100)."
+  },
+  {
+   "panel": "Flaps, spoilers and trim",
+   "section": "Flaps",
+   "function": "Flaps: position 2",
+   "api": "HANDLING_Flaps",
+   "name": "HANDLING_Flaps",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "level",
+   "value": 16384,
+   "verified": true,
+   "note": "Verified on a CJ4 (powered, engines running): an axis from 0 to 16384; 0 = flap position 0, 8192 = position 1, 16384 = position 2 ((A:FLAPS HANDLE INDEX) 0 / 1 / 2, (A:FLAPS HANDLE PERCENT) 0 / 50 / 100)."
   },
   {
    "panel": "Flaps, spoilers and trim",
    "section": "Spoilers",
-   "function": "Spoiler handle",
+   "function": "Spoilers: axis (0 to 16384)",
    "api": "HANDLING_Spoilers",
    "name": "HANDLING_Spoilers",
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "",
-   "note": "Moved the handle only 0.3 % per event with 1, 50 or 100; its real behaviour is not known."
+   "behavior": "level",
+   "axis_range": [
+    0,
+    16384
+   ],
+   "verified": true,
+   "note": "Verified on a CJ4: an axis from 0 to 16384; 8192 gave (A:SPOILERS HANDLE POSITION) = 50 %, 16384 gave 100 %, 0 gave 0."
+  },
+  {
+   "panel": "Flaps, spoilers and trim",
+   "section": "Spoilers",
+   "function": "Spoilers: extend fully",
+   "api": "HANDLING_Spoilers",
+   "name": "HANDLING_Spoilers",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "level",
+   "value": 16384,
+   "verified": true,
+   "note": "Verified on a CJ4: an axis from 0 to 16384; 8192 gave (A:SPOILERS HANDLE POSITION) = 50 %, 16384 gave 100 %, 0 gave 0."
+  },
+  {
+   "panel": "Flaps, spoilers and trim",
+   "section": "Spoilers",
+   "function": "Spoilers: retract",
+   "api": "HANDLING_Spoilers",
+   "name": "HANDLING_Spoilers",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "level",
+   "value": 0,
+   "verified": true,
+   "note": "Verified on a CJ4: an axis from 0 to 16384; 8192 gave (A:SPOILERS HANDLE POSITION) = 50 %, 16384 gave 100 %, 0 gave 0."
   },
   {
    "panel": "Flaps, spoilers and trim",
@@ -1400,7 +1503,7 @@
    "rw": "R/W",
    "behavior": "latched",
    "positions": 3,
-   "note": "Reads 2 at rest, so probably three positions; not tried."
+   "note": "Seen on a CJ4: the value follows set 0 / 1 / 2 (-1 reads back as 0), a three-position, set-value switch resting at 2; its effect was not read."
   },
   {
    "panel": "Audio and volumes",
@@ -1620,7 +1723,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "verified": true,
+   "note": "Verified on a CJ4: toggles the passenger safety / no smoking sign, read back with (A:CABIN NO SMOKING ALERT SWITCH); the value is the state."
   },
   {
    "panel": "Warnings and signs",
@@ -1632,7 +1736,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "verified": true,
+   "note": "Verified on a CJ4: toggles the seat belt sign, read back with (A:CABIN SEATBELTS ALERT SWITCH); the value is the state."
   },
   {
    "panel": "FMS CDU 1 (pilot)",

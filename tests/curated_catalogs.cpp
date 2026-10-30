@@ -85,7 +85,7 @@ int main(int argc, char** argv) {
         const auto* nav = find(cj4, "LIGHTING_NAV_1", "latched");
         CHECK(nav && nav->toAction().kind == lr::app::ActionKind::InputEventToggle && nav->toAction().value == 2 && nav->verified);
         const auto* av = find(cj4, "ELECTRICAL_Avionics_Bus_1", "latched");
-        CHECK(av && av->positions == 3 && av->toAction().value == 3 && !av->verified);
+        CHECK(av && av->positions == 3 && av->toAction().value == 3);
     }
     // brightness knobs are levels with a range for axes
     {
@@ -104,12 +104,43 @@ int main(int argc, char** argv) {
         if (e.behavior.empty()) CHECK(!e.note.empty());
     }
     CHECK(perPanel.size() >= 10);
-    // the two controls that did not behave must not be offered as something they are not
+    // controls that did not behave must not be offered as something they are not
     {
-        const auto* flaps = find(cj4, "HANDLING_Flaps", "");
+        const auto* thr = find(cj4, "ENGINE_Throttle_1", "");
         const auto* panel = find(cj4, "LIGHTING_PANEL_1", "");
-        CHECK(flaps && flaps->behavior.empty() && !flaps->verified);
+        CHECK(thr && thr->behavior.empty() && !thr->verified && thr->note.find("THROTTLE1_SET") != std::string::npos);
         CHECK(panel && panel->behavior.empty() && !panel->verified);
+    }
+    // flaps and spoilers are 0..16384 axes: fixed positions are "set to this value", the axis entry carries the range
+    {
+        auto levels = [&](const char* name) {
+            std::map<double, bool> v;
+            bool axis = false;
+            for (const auto& e : cj4.entries)
+                if (e.name == name && e.behavior == "level") {
+                    CHECK(e.verified);
+                    if (e.hasAxisRange) { axis = e.axisMin == 0 && e.axisMax == 16384; }
+                    else v[e.toAction().value] = true;
+                }
+            return std::make_pair(v, axis);
+        };
+        const auto flaps = levels("HANDLING_Flaps");
+        CHECK(flaps.first.size() == 3 && flaps.first.count(0) && flaps.first.count(8192) && flaps.first.count(16384) && flaps.second);
+        const auto spoilers = levels("HANDLING_Spoilers");
+        CHECK(spoilers.first.size() == 2 && spoilers.first.count(0) && spoilers.first.count(16384) && spoilers.second);
+        const auto brake = levels("LANDING_GEAR_ParkingBrake");
+        CHECK(brake.first.size() == 2 && brake.first.count(0) && brake.first.count(100));
+    }
+    // the electrical switches: verified, set-value (0 = ON), cycled by reading the state
+    for (const char* n : {"ELECTRICAL_Battery_1", "ELECTRICAL_Alternator_1", "ELECTRICAL_Alternator_2", "ENGINE_Starter_1", "FUEL_RunStop_2"}) {
+        const auto* e = find(cj4, n, "latched");
+        CHECK(e && e->verified && e->toAction().kind == lr::app::ActionKind::InputEventToggle);
+    }
+    {
+        const auto* av = find(cj4, "ELECTRICAL_Avionics_Bus_1", "latched");
+        CHECK(av && av->verified && av->positions == 3);
+        const auto* alt = find(cj4, "ELECTRICAL_Alternator_1", "latched");
+        CHECK(alt && alt->note.find("MASTER ALTERNATOR") != std::string::npos);  // the variable that really follows the control
     }
 
     std::printf(failures ? "\n%d check(s) FAILED\n" : "all curated catalog checks passed\n", failures);
