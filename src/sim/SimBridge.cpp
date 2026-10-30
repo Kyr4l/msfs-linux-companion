@@ -71,6 +71,7 @@ constexpr uint32_t CD_OUR_RESPONSE = 111;
 constexpr uint32_t CD_OUR_LVARS = 112;
 constexpr uint32_t REQ_OUR_RESPONSE = 111;
 constexpr uint32_t REQ_OUR_LVARS = 112;
+constexpr uint32_t REQ_OUR_LVARS_SNAPSHOT = 113;  // one-shot read of every watched value (see pollWatched)
 constexpr uint32_t DEF_OUR_LVARS = 112;
 constexpr size_t MF_MAX_LVARS = 1000;  // 4096-byte area / 4-byte floats
 
@@ -307,6 +308,9 @@ void SimBridge::handleTelemetry(const RecvClientData& d) {
 }
 
 void SimBridge::rememberSend(uint32_t sendId, std::string desc) {
+    // everything sent to the sim goes to the session log (except the repetitive polling), so that after a crash of the
+    // sim the last commands can be matched to the time in its crash report
+    if (desc.rfind("poll ", 0) != 0 && desc != "MobiFlight dummy") LOG_DEBUG("-> %s", desc.c_str());
     sentLog_.emplace_back(sendId, std::move(desc));
     while (sentLog_.size() > 512) sentLog_.pop_front();
 }
@@ -530,8 +534,9 @@ void SimBridge::sendMobiFlightCommand(const std::string& text, const std::string
     if (!mfSetupDone_) return;
     // Give the module a frame between commands that execute code: the aircraft systems poll their
     // events once per update, and two events for the same system in one frame can lose one.
+    // The same goes for registering watches (Clear / Add): a burst of them in one frame was followed by no values at all.
     static clock::time_point lastExec{};
-    if (text.rfind("MF.SimVars.Set.", 0) == 0) {
+    if (text.rfind("MF.SimVars.Set.", 0) == 0 || text.rfind("MF.SimVars.Add.", 0) == 0 || text == "MF.SimVars.Clear") {
         const auto now = clock::now();
         if (now - lastExec < std::chrono::milliseconds(30)) std::this_thread::sleep_for(std::chrono::milliseconds(30) - (now - lastExec));
         lastExec = clock::now();
@@ -600,6 +605,8 @@ void SimBridge::applyLVarWatch() {
                                                CD_REQUEST_FLAG_CHANGED | CD_REQUEST_FLAG_TAGGED),
                      "request LVars");
     }
+    lvarUpdatesLogged_ = 0;
+    nextLVarSnapshotAt_ = clock::now() + std::chrono::milliseconds(200);  // after the module had a frame to fill the new area
     LOG_INFO("MobiFlight: watching %zu L: var(s)", wanted.size());
 }
 
@@ -610,6 +617,7 @@ void SimBridge::handleLVarData(const RecvClientData& d) {
     std::lock_guard<std::mutex> lock(m_);
     static bool first = true;
     if (first) { LOG_INFO("MobiFlight: L: var values flowing (%u datum(s) in first update)", d.defineCount); first = false; }
+    if (lvarUpdatesLogged_ < 5) { ++lvarUpdatesLogged_; LOG_DEBUG("L: var update: %u datum(s), %zu byte(s), %zu registered", d.defineCount, n, lvarRegistered_.size()); }
     for (uint32_t i = 0; i < d.defineCount && off + 8 <= n; ++i) {
         uint32_t id;
         float v;
@@ -829,7 +837,7 @@ void SimBridge::handleMessage(const RecvMessage& m) {
             if (c.requestId == REQ_MF_RESPONSE || c.requestId == REQ_OUR_RESPONSE) {
                 std::string text(reinterpret_cast<const char*>(c.data.data()), strnlen(reinterpret_cast<const char*>(c.data.data()), c.data.size()));
                 handleMobiFlightResponse(text);
-            } else if (c.requestId == REQ_OUR_LVARS) {
+            } else if (c.requestId == REQ_OUR_LVARS || c.requestId == REQ_OUR_LVARS_SNAPSHOT) {
                 handleLVarData(c);
             }
             break;
@@ -1047,6 +1055,14 @@ void SimBridge::pumpLiveScan() {
         rememberSend(client_.getInputEvent(req, it->second), "poll input event " + n);
     }
     if (pendingWatchGets_.size() > 4096) pendingWatchGets_.clear();  // never let lost replies pile up
+
+    // The L: values arrive by change notifications, and SimConnect compares with what it sent for the previous set of
+    // watches: after the set was swapped, values that happen to equal the old ones at the same positions never came
+    // (a guide's first page went through, the next one stayed blank). So ask for all of them once a second as well.
+    if (mfClientReady_ && !lvarRegistered_.empty() && now >= nextLVarSnapshotAt_) {
+        rememberSend(client_.requestClientData(CD_OUR_LVARS, REQ_OUR_LVARS_SNAPSHOT, DEF_OUR_LVARS, CD_PERIOD_ONCE, CD_REQUEST_FLAG_TAGGED), "poll LVars");
+        nextLVarSnapshotAt_ = now + std::chrono::seconds(1);
+    }
 }
 
 void SimBridge::threadMain() {

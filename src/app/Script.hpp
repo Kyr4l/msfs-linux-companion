@@ -11,6 +11,7 @@
 //   code EXPR                   print the value of calculator code, for example (A:LIGHT NAV, Bool)
 //   expect EXPR OP VALUE [MS]   wait up to MS (default 1500) until the code satisfies OP (== != > < >= <=); prints ok or FAIL
 //   expectb NAME OP VALUE [MS]  the same for an input event value
+//   rewatch CODE [| CODE ...]   replace the whole set of watched codes while connected (the way the guides change pages), report what arrives
 //   sleep MS
 #include <string>
 #include <vector>

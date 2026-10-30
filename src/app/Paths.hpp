@@ -6,6 +6,8 @@
 
 namespace lr::app {
 std::string configDir();                 // $XDG_CONFIG_HOME/msfs-linuxrebind
+std::string stateDir();                 // $XDG_STATE_HOME/msfs-linuxrebind (created)
+std::string newSessionLogPath();         // stateDir()/session-<date>-<time>-<pid>.log; only the 10 newest session logs are kept
 std::string configFile();                // .../config.json
 std::string imguiIniFile();              // .../imgui.ini
 std::string findDataFile(const std::string& name);  // data/<name> next to the exe, in share/, or in the source tree

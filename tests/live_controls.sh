@@ -7,6 +7,7 @@
 set -u
 BIN="$1"; ROOT="$2"
 TMP="$(mktemp -d)"; MOCKPID=""
+export XDG_STATE_HOME="$TMP/state"  # session logs of the test runs stay out of the real state directory
 cleanup() { [ -n "$MOCKPID" ] && kill "$MOCKPID" 2>/dev/null; rm -rf "$TMP"; }
 trap cleanup EXIT
 fail=0

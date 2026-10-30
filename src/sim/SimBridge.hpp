@@ -172,6 +172,8 @@ private:
     std::vector<std::string> lvarWatch_;         // wanted
     std::vector<std::string> lvarRegistered_;    // what the module currently has, index = datum id
     std::unordered_map<std::string, double> lvarValues_;
+    std::chrono::steady_clock::time_point nextLVarSnapshotAt_{};
+    int lvarUpdatesLogged_ = 0;  // debug log of the first updates after each registration
     bool lvarWatchDirty_ = false;
 
     // --- input events (bridge thread owns these; the UI reads copies through liveSnapshot())

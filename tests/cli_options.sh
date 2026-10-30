@@ -7,6 +7,7 @@
 set -u
 BIN="$1"; CFG="$2"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
+export XDG_STATE_HOME="$TMP/state"  # session logs of the test runs stay out of the real state directory
 cp "$CFG" "$TMP/config.json"
 fail=0
 check() {  # description, args...

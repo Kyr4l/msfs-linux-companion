@@ -48,6 +48,7 @@ bool parseLine(const std::string& raw, Line& out, std::string& err) {
         out.expr = rest.substr(0, end + 1);
         rest = trim(rest.substr(end + 1));
     }
+    if (out.cmd == "rewatch") { out.expr = rest; return true; }  // codes separated by " | "
     std::istringstream ss(rest);
     std::string tok;
     while (ss >> tok) out.args.push_back(tok);
@@ -82,7 +83,7 @@ ScriptNeeds scanScript(const std::string& path) {
             if (!err.empty()) { needs.error = "line " + std::to_string(number) + ": " + err; return needs; }
             continue;
         }
-        static const char* known[] = {"set", "toggle", "press", "get", "code", "expect", "expectb", "sleep"};
+        static const char* known[] = {"set", "toggle", "press", "get", "code", "expect", "expectb", "sleep", "rewatch"};
         if (std::find_if(std::begin(known), std::end(known), [&](const char* k) { return l.cmd == k; }) == std::end(known)) {
             needs.error = "line " + std::to_string(number) + ": unknown command '" + l.cmd + "'";
             return needs;
@@ -131,6 +132,31 @@ int runScript(sim::SimBridge& bridge, const std::string& path) {
             bridge.toggleInputEvent(stripB(arg(0)), static_cast<int>(num(1, 2)), "script");
         } else if (l.cmd == "press") {
             bridge.setInputEvent(stripB(arg(0)), 1, "script");
+        } else if (l.cmd == "rewatch") {
+            // swap the whole watch set while connected, the way the guides do when a page changes, and report what arrives
+            std::vector<std::string> codes;
+            for (size_t pos = 0; pos <= l.expr.size();) {
+                size_t bar = l.expr.find(" | ", pos);
+                if (bar == std::string::npos) bar = l.expr.size();
+                const std::string c = trim(l.expr.substr(pos, bar - pos));
+                if (!c.empty()) codes.push_back(c);
+                pos = bar + 3;
+            }
+            const auto t0 = std::chrono::steady_clock::now();
+            bridge.watchLVars(codes);
+            size_t got = 0;
+            for (int i = 0; i < 40; ++i) {
+                got = 0;
+                for (const auto& c : codes) got += bridge.lvarValue(c).has_value();
+                if (got == codes.size()) break;
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+            const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - t0).count();
+            std::printf("rewatch: %zu of %zu value(s) after %lld ms\n", got, codes.size(), static_cast<long long>(ms));
+            for (const auto& c : codes) {
+                const auto v = bridge.lvarValue(c);
+                if (v) std::printf("  %s = %g\n", c.c_str(), *v); else std::printf("  %s = (none)\n", c.c_str());
+            }
         } else if (l.cmd == "sleep") {
             std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(num(0, 100))));
         } else if (l.cmd == "get" || l.cmd == "code") {

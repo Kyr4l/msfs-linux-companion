@@ -11,6 +11,8 @@
 #include <cstdlib>
 #include <thread>
 #include <filesystem>
+#include <vector>
+#include <ctime>
 
 extern char** environ;  // POSIX; must be declared at global scope
 
@@ -25,6 +27,36 @@ std::string configDir() {
     else if (const char* home = std::getenv("HOME"); home && *home) base = fs::path(home) / ".config";
     else base = ".";
     return (base / "msfs-linuxrebind").string();
+}
+
+std::string stateDir() {
+    const char* xdg = std::getenv("XDG_STATE_HOME");
+    fs::path base;
+    if (xdg && *xdg) base = xdg;
+    else if (const char* home = std::getenv("HOME"); home && *home) base = fs::path(home) / ".local" / "state";
+    else base = ".";
+    const fs::path dir = base / "msfs-linuxrebind";
+    std::error_code ec;
+    fs::create_directories(dir, ec);
+    return dir.string();
+}
+
+std::string newSessionLogPath() {
+    const fs::path dir = stateDir();
+    std::vector<fs::path> old;
+    std::error_code ec;
+    for (const auto& e : fs::directory_iterator(dir, ec)) {
+        const std::string n = e.path().filename().string();
+        if (n.rfind("session-", 0) == 0 && n.size() > 4 && n.compare(n.size() - 4, 4, ".log") == 0) old.push_back(e.path());
+    }
+    std::sort(old.begin(), old.end());
+    while (old.size() > 9) { fs::remove(old.front(), ec); old.erase(old.begin()); }
+    char stamp[32];
+    const std::time_t t = std::time(nullptr);
+    std::tm tm{};
+    localtime_r(&t, &tm);
+    std::strftime(stamp, sizeof stamp, "%Y%m%d-%H%M%S", &tm);
+    return (dir / (std::string("session-") + stamp + "-" + std::to_string(getpid()) + ".log")).string();
 }
 
 std::string configFile() { return (fs::path(configDir()) / "config.json").string(); }

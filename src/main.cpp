@@ -113,6 +113,7 @@ int main(int argc, char** argv) {
     }
     std::signal(SIGINT, onSignal);
     std::signal(SIGTERM, onSignal);
+    Log::instance().openFile(app::newSessionLogPath());  // flushed line by line; see README, "When the sim crashes"
 
     if (dumpConfig) {
         Log::instance().echoToStderr = false;
