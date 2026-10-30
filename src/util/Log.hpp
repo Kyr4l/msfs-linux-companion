@@ -23,6 +23,10 @@ struct LogEntry {
 
 class Log {
 public:
+    ~Log() {
+        if (file_) std::fclose(file_);
+    }
+
     static Log& instance() {
         static Log log;
         return log;
@@ -38,7 +42,12 @@ public:
             const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count() % 1000;
             static const char kLevel[] = {'D', 'I', 'W', 'E'};
             std::fprintf(file_, "%02d:%02d:%02d.%03d %c %s\n", tm.tm_hour, tm.tm_min, tm.tm_sec, static_cast<int>(ms), kLevel[static_cast<int>(level)], text.c_str());
-            std::fflush(file_);
+            // Warnings and errors reach the disk at once, everything else within a quarter of a second: a crash of the
+            // sim does not stop this process, so nothing is lost, and the disk is not written on every debug line.
+            if (level >= LogLevel::Warn || now - lastFlush_ > std::chrono::milliseconds(250)) {
+                std::fflush(file_);
+                lastFlush_ = now;
+            }
         }
         entries_.push_back({now, level, std::move(text)});
         while (entries_.size() > capacity_) entries_.pop_front();
@@ -86,6 +95,7 @@ private:
     std::deque<LogEntry> entries_;
     size_t capacity_ = 3000;
     std::FILE* file_ = nullptr;
+    std::chrono::system_clock::time_point lastFlush_{};
     uint64_t serial_ = 0;
 };
 

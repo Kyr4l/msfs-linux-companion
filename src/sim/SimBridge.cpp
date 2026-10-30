@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Kyr4l
 #include "sim/SimBridge.hpp"
+#include "sim/ProbeSelect.hpp"
 
 #include <arpa/inet.h>
 #include <dirent.h>
 #include <netinet/in.h>
 #include <poll.h>
+#include <sys/eventfd.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -101,9 +103,23 @@ std::string stripPrefix(std::string s, const char* prefix) {
 SimBridge::SimBridge() {
     status_.host = "127.0.0.1";
     status_.port = 500;
+    wakeFd_ = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
 }
 
-SimBridge::~SimBridge() { stop(); }
+SimBridge::~SimBridge() {
+    stop();
+    if (wakeFd_ >= 0) ::close(wakeFd_);
+}
+
+// The bridge thread sleeps until the sim sends something or somebody calls this: commands and setting changes are
+// not delayed by a short polling interval, and an idle bridge costs next to nothing.
+void SimBridge::wake() {
+    cv_.notify_all();
+    if (wakeFd_ >= 0) {
+        const uint64_t one = 1;
+        (void)!::write(wakeFd_, &one, sizeof one);
+    }
+}
 
 void SimBridge::setEndpoint(const std::string& host, uint16_t port) {
     std::lock_guard<std::mutex> lock(m_);
@@ -112,27 +128,27 @@ void SimBridge::setEndpoint(const std::string& host, uint16_t port) {
     status_.port = port;
     forceDisconnect_ = true;
     nextConnectAttempt_ = clock::now();
-    cv_.notify_all();
+    wake();
 }
 
 void SimBridge::setAutoConnect(bool on) {
     wantConnect_ = on;
-    cv_.notify_all();
+    wake();
 }
 
 void SimBridge::connectNow() {
     forceConnect_ = true;
-    cv_.notify_all();
+    wake();
 }
 
 void SimBridge::disconnect() {
     forceDisconnect_ = true;
-    cv_.notify_all();
+    wake();
 }
 
 void SimBridge::probeMobiFlight() {
     forceProbe_ = true;
-    cv_.notify_all();
+    wake();
 }
 
 void SimBridge::start() {
@@ -144,7 +160,7 @@ void SimBridge::start() {
 void SimBridge::stop() {
     if (!running_) return;
     running_ = false;
-    cv_.notify_all();
+    wake();
     if (thread_.joinable()) thread_.join();
 }
 
@@ -153,7 +169,7 @@ void SimBridge::enqueue(SimCommand cmd) {
         std::lock_guard<std::mutex> lock(m_);
         queue_.push_back(std::move(cmd));
     }
-    cv_.notify_all();
+    wake();
 }
 
 void SimBridge::sendEvent(const std::string& name, double value, const std::string& origin) {
@@ -203,7 +219,7 @@ LiveSnapshot SimBridge::liveSnapshot() const {
 void SimBridge::requestInputParams(const std::vector<std::string>& names) {
     std::lock_guard<std::mutex> lock(m_);
     for (const auto& n : names) inputParamQueue_.push_back(stripPrefix(n, "B:"));
-    cv_.notify_all();
+    wake();
 }
 
 std::optional<std::string> SimBridge::inputParams(const std::string& name) const {
@@ -219,7 +235,7 @@ void SimBridge::requestLiveRefresh() {
     liveScanTries_ = 0;
     nextLiveScanAt_ = clock::now();
     live_.inputEventsDone = live_.lvarsDone = false;
-    cv_.notify_all();
+    wake();
 }
 
 void SimBridge::toggleLVar(const std::string& name, const std::string& origin) {
@@ -240,7 +256,7 @@ void SimBridge::watchLVars(std::vector<std::string> names) {
     lvarRetries_ = 0;
     lvarWatch_ = std::move(clean);
     lvarWatchDirty_ = true;
-    cv_.notify_all();
+    wake();
 }
 
 std::optional<double> SimBridge::lvarValue(const std::string& name) const {
@@ -267,20 +283,42 @@ Telemetry SimBridge::telemetry() const {
 
 void SimBridge::setTelemetryEnabled(bool on) {
     telemetryWanted_ = on;
-    cv_.notify_all();
+    wake();
 }
 
 void SimBridge::setupTelemetry() {
-    for (size_t i = 0; i < kTelemetryCount; ++i) {
-        rememberSend(client_.addToDataDefinition(DEF_TELEMETRY, kTelemetryVars[i].name, kTelemetryVars[i].units, DATATYPE_FLOAT64, 0,
-                                                 static_cast<uint32_t>(i)),
-                     std::string("define telemetry ") + kTelemetryVars[i].name);
+    if (!telemetryDefined_) {  // the definition is made once per connection; stopping and restarting only touches the request
+        for (size_t i = 0; i < kTelemetryCount; ++i) {
+            rememberSend(client_.addToDataDefinition(DEF_TELEMETRY, kTelemetryVars[i].name, kTelemetryVars[i].units, DATATYPE_FLOAT64, 0,
+                                                     static_cast<uint32_t>(i)),
+                         std::string("define telemetry ") + kTelemetryVars[i].name);
+        }
+        telemetryDefined_ = true;
     }
-    // Tagged format: each datum arrives as (uint32 id, float64 value), so a rejected variable cannot shift the others.
-    rememberSend(client_.requestDataOnSimObject(REQ_TELEMETRY, DEF_TELEMETRY, OBJECT_ID_USER, PERIOD_SIM_FRAME, DATA_REQUEST_FLAG_TAGGED, 0, 2, 0),
-                 "request telemetry");
-    telemetryRequested_ = true;
+    requestTelemetry();
     LOG_INFO("Telemetry subscription sent (%zu variables)", kTelemetryCount);
+}
+
+// Tagged format: each datum arrives as (uint32 id, float64 value), so a rejected variable cannot shift the others.
+void SimBridge::requestTelemetry() {
+    rememberSend(client_.requestDataOnSimObject(REQ_TELEMETRY, DEF_TELEMETRY, OBJECT_ID_USER, PERIOD_SIM_FRAME, DATA_REQUEST_FLAG_TAGGED, 0,
+                                                static_cast<uint32_t>(telemetryInterval_), 0),
+                 "request telemetry (every " + std::to_string(telemetryInterval_ + 1) + ". frame)");
+    telemetryRequested_ = true;
+    telemetryWindowStart_ = clock::now();
+    telemetryWindowCount_ = 0;
+}
+
+// Vibration is off (or no device is plugged in): the sim stops being asked for flight data every few frames.
+void SimBridge::stopTelemetry() {
+    rememberSend(client_.requestDataOnSimObject(REQ_TELEMETRY, DEF_TELEMETRY, OBJECT_ID_USER, PERIOD_NEVER, DATA_REQUEST_FLAG_TAGGED, 0, 0, 0),
+                 "stop telemetry");
+    telemetryRequested_ = false;
+    {
+        std::lock_guard<std::mutex> lock(m_);
+        telemetry_.valid = false;
+    }
+    LOG_INFO("Telemetry subscription stopped");
 }
 
 void SimBridge::handleTelemetry(const RecvClientData& d) {
@@ -304,6 +342,24 @@ void SimBridge::handleTelemetry(const RecvClientData& d) {
     t.valid = true;
     t.time = clock::now();
     t.seq++;
+    // The updates come every Nth sim frame: at 180 fps that is far more often than vibration needs (about 20 a second).
+    // After a few seconds the interval is adjusted once or twice; it is a plain re-request of the same data.
+    ++telemetryWindowCount_;
+    if (t.time - telemetryWindowStart_ >= std::chrono::seconds(3) && telemetryRetunes_ < 3) {
+        const double secs = std::chrono::duration<double>(t.time - telemetryWindowStart_).count();
+        const double fps = telemetryWindowCount_ / secs * (telemetryInterval_ + 1);
+        const int wanted = std::clamp(static_cast<int>(std::lround(fps / 20.0)) - 1, 0, 40);
+        if (std::abs(wanted - telemetryInterval_) >= 2) {
+            LOG_INFO("Telemetry: about %.0f sim frames a second, updates every %d. frame instead of every %d.", fps, wanted + 1, telemetryInterval_ + 1);
+            telemetryInterval_ = wanted;
+            ++telemetryRetunes_;
+            telemetryRetune_ = true;
+        } else {
+            telemetryRetunes_ = 3;  // close enough: leave it
+        }
+        telemetryWindowStart_ = t.time;
+        telemetryWindowCount_ = 0;
+    }
     std::lock_guard<std::mutex> lock(m_);
     telemetry_ = t;
 }
@@ -351,28 +407,37 @@ void SimBridge::dropConnection(const std::string& why) {
         live_.inputEventsDone = live_.lvarsDone = false;
         inputValues_.clear();
     }
+    telemetryRetunes_ = 0;
+    telemetryInterval_ = 2;
+    telemetryDefined_ = false;
     mfSetupDone_ = false;
     mfClientReady_ = false;
     mfClientRequested_ = false;
     lvarRegistered_.clear();
     lvarValues_.clear();
     lvarDefSent_ = false;  // the definition belongs to the connection
+    lvarRebuild_ = true;   // and the module's list is emptied first
     lvarWatchDirty_ = true;
     nextConnectAttempt_ = clock::now() + std::chrono::seconds(3);
 }
 
 namespace {
-// Socket inodes held by wineserver (MSFS under Proton): the SimConnect listener is one of them.
-std::set<unsigned long> wineserverSocketInodes() {
+// The wineserver processes (MSFS under Proton) and the socket inodes they hold: the SimConnect listener is one of them.
+struct WineSockets {
+    bool processFound = false;  // a wineserver is running at all
     std::set<unsigned long> inodes;
+};
+WineSockets wineserverSockets() {
+    WineSockets w;
     DIR* proc = opendir("/proc");
-    if (!proc) return inodes;
+    if (!proc) return w;
     while (dirent* e = readdir(proc)) {
         if (e->d_name[0] < '0' || e->d_name[0] > '9') continue;
         std::ifstream comm(std::string("/proc/") + e->d_name + "/comm");
         std::string name;
         std::getline(comm, name);
         if (name != "wineserver") continue;
+        w.processFound = true;
         const std::string fdDir = std::string("/proc/") + e->d_name + "/fd";
         DIR* fds = opendir(fdDir.c_str());
         if (!fds) continue;
@@ -382,16 +447,16 @@ std::set<unsigned long> wineserverSocketInodes() {
             if (n <= 0) continue;
             link[n] = 0;
             unsigned long ino = 0;
-            if (sscanf(link, "socket:[%lu]", &ino) == 1) inodes.insert(ino);
+            if (sscanf(link, "socket:[%lu]", &ino) == 1) w.inodes.insert(ino);
         }
         closedir(fds);
     }
     closedir(proc);
-    return inodes;
+    return w;
 }
 
 // LISTEN sockets on loopback / any address from /proc/net/tcp{,6}: (host, port, inode).
-struct Listener { std::string host; uint16_t port; unsigned long inode; };
+using Listener = ProbeTarget;
 std::vector<Listener> loopbackListeners() {
     std::vector<Listener> out;
     for (const char* file : {"/proc/net/tcp", "/proc/net/tcp6"}) {
@@ -447,13 +512,10 @@ bool simConnectAnswers(const std::string& host, uint16_t port, int timeoutMs) {
 
 std::vector<SimBridge::Endpoint> SimBridge::scanForSimConnect() {
     std::vector<Endpoint> found;
-    const auto wine = wineserverSocketInodes();
-    auto listeners = loopbackListeners();
-    // Prefer wineserver's sockets; without any (not Proton, or no permission) probe everything on loopback.
-    std::vector<Listener> candidates;
-    for (const auto& l : listeners)
-        if (wine.empty() || wine.count(l.inode)) candidates.push_back(l);
-    LOG_INFO("SimConnect: configured port did not answer, probing %zu loopback listener(s)%s", candidates.size(), wine.empty() ? "" : " owned by wineserver");
+    const WineSockets wine = wineserverSockets();
+    const auto candidates = chooseProbeCandidates(loopbackListeners(), wine.processFound, wine.inodes);
+    if (candidates.empty()) return found;  // the simulator is not running (or has not opened its port yet)
+    LOG_INFO("SimConnect: configured port did not answer, probing %zu loopback listener(s)%s", candidates.size(), wine.inodes.empty() ? "" : " owned by wineserver");
     for (const auto& l : candidates) {
         if (simConnectAnswers(l.host, l.port, 700)) {
             LOG_INFO("SimConnect: found the simulator on %s:%u", l.host.c_str(), l.port);
@@ -493,9 +555,10 @@ bool SimBridge::tryConnect() {
         status_.state = ConnState::Disconnected;
         status_.lastError = port == 0 ? "no SimConnect listener found" : err;
         status_.detectedPort = 0;
-        nextConnectAttempt_ = clock::now() + std::chrono::seconds(3);
+        nextConnectAttempt_ = clock::now() + std::chrono::seconds(++failedConnects_ <= 10 ? 3 : 10);
         return false;
     }
+    failedConnects_ = 0;
     LOG_INFO("SimConnect: TCP connected to %s:%u, sending Open", host.c_str(), port);
     uint32_t id = client_.open("msfs-linuxrebind");
     rememberSend(id, "Open");
@@ -591,7 +654,8 @@ void SimBridge::setupLVarDefinition() {
 }
 
 // Appends the watched codes the module does not have yet. Nothing is removed (the list only grows within a connection);
-// it is emptied and rebuilt from the wanted set when it would not fit, or when values never arrive.
+// it is emptied and rebuilt from the wanted set when it would not fit, or when values never arrive. With nothing to
+// watch nothing is defined or requested: the sim is not asked for anything this tool does not use.
 void SimBridge::applyLVarWatch() {
     std::vector<std::string> wanted;
     {
@@ -600,10 +664,6 @@ void SimBridge::applyLVarWatch() {
         wanted = lvarWatch_;
     }
     if (!mfClientReady_) return;
-    if (!lvarDefSent_) {
-        setupLVarDefinition();
-        lvarRebuild_ = true;  // the module may still hold the list of an earlier run of this tool
-    }
     auto known = [&](const std::string& c) { return std::find(lvarRegistered_.begin(), lvarRegistered_.end(), c) != lvarRegistered_.end(); };
     std::vector<std::string> add;
     for (const auto& w : wanted)
@@ -612,7 +672,7 @@ void SimBridge::applyLVarWatch() {
         LOG_INFO("MobiFlight: the watch list is full (%zu), rebuilding it from what is wanted now", lvarRegistered_.size());
         lvarRebuild_ = true;
     }
-    if (lvarRebuild_) {
+    if (lvarRebuild_) {  // also true once per connection: the module may still hold the list of an earlier run of this tool
         sendMobiFlightCommand("MF.SimVars.Clear", "MobiFlight clear vars");
         lvarRegistered_.clear();
         {
@@ -624,11 +684,13 @@ void SimBridge::applyLVarWatch() {
         lvarRebuild_ = false;
     }
     if (add.empty()) return;
+    if (!lvarDefSent_) setupLVarDefinition();
     for (const auto& c : add) {
         sendMobiFlightCommand("MF.SimVars.Add." + (isRawCode(c) ? c : "(L:" + c + ")"), "watch " + c);
         lvarRegistered_.push_back(c);
     }
     lvarUpdatesLogged_ = 0;
+    lvarChangesLogged_ = 0;
     lvarRegisteredAt_ = clock::now();
     // values that arrive before the module has evaluated the new codes would be the old content of those slots
     lvarAcceptFrom_ = lvarRegisteredAt_ + std::chrono::milliseconds(400);
@@ -652,7 +714,7 @@ void SimBridge::handleLVarData(const RecvClientData& d) {
         off += 8;
         if (id < lvarRegistered_.size()) {
             auto& slot = lvarValues_[lvarRegistered_[id]];
-            if (slot != v) LOG_DEBUG("L:%s = %g", lvarRegistered_[id].c_str(), v);
+            if (slot != v && lvarChangesLogged_ < 60) { ++lvarChangesLogged_; LOG_DEBUG("L:%s = %g", lvarRegistered_[id].c_str(), v); }
             slot = v;
         }
     }
@@ -1133,7 +1195,7 @@ void SimBridge::threadMain() {
 
         msgs.clear();
         std::string err;
-        if (!client_.poll(15, msgs, err)) {
+        if (!client_.poll(100, msgs, err, wakeFd_)) {
             dropConnection(err);
             continue;
         }
@@ -1153,6 +1215,8 @@ void SimBridge::threadMain() {
         if (st == ConnState::Connected) {
             drainQueue();
             if (telemetryWanted_ && !telemetryRequested_) setupTelemetry();
+            else if (!telemetryWanted_ && telemetryRequested_) stopTelemetry();
+            else if (telemetryRetune_ && telemetryRequested_) { telemetryRetune_ = false; requestTelemetry(); }
             pumpLiveScan();
             bool dirty;
             {

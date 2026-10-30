@@ -137,7 +137,8 @@ public:
     uint32_t setClientData(uint32_t clientDataId, uint32_t defineId, uint32_t unitSize, const void* data, size_t len);
 
     // Pumps the socket for up to timeoutMs. Returns false when the connection is gone (err set).
-    bool poll(int timeoutMs, std::vector<RecvMessage>& out, std::string& err);
+    // Waits up to timeoutMs for data; a readable wakeFd (an eventfd) ends the wait early and is drained.
+    bool poll(int timeoutMs, std::vector<RecvMessage>& out, std::string& err, int wakeFd = -1);
 
     static RecvOpen parseOpen(const RecvMessage& m);
     static RecvException parseException(const RecvMessage& m);

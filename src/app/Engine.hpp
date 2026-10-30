@@ -33,7 +33,9 @@ public:
 
     // input-thread entry points
     void onInput(const input::InputEvent& ev);
-    void tick();
+    // Runs what is due (key repeats, axis values held back by their minimum interval). Returns the milliseconds until it
+    // has to run again, or -1 when nothing is waiting: the input thread sleeps exactly that long.
+    int tick();
 
     // UI helpers
     // Pure helpers (also used by the UI and the tests)

@@ -40,6 +40,7 @@ void HapticsEngine::start() {
 void HapticsEngine::stop() {
     if (!running_) return;
     running_ = false;
+    cv_.notify_all();
     if (thread_.joinable()) thread_.join();
     hid_.allOff();
 }
@@ -49,7 +50,7 @@ void HapticsEngine::setConfig(const HapticsConfig& cfg) {
         std::lock_guard<std::mutex> lock(m_);
         cfg_ = cfg;
     }
-    bridge_.setTelemetryEnabled(cfg.enabled);
+    cv_.notify_all();  // the thread decides about the sim's telemetry (enabled and a device present)
     for (const auto& [key, dc] : cfg.devices) {
         if (dc.identity.known()) hid_.setIdentity(key, dc.identity);
     }
@@ -66,8 +67,11 @@ HapticsStatus HapticsEngine::status() const {
 }
 
 void HapticsEngine::pulse(const std::string& deviceKey, float left, float right, int ms) {
-    std::lock_guard<std::mutex> lock(m_);
-    pulses_[deviceKey] = {clock::now() + std::chrono::milliseconds(ms), left, right};
+    {
+        std::lock_guard<std::mutex> lock(m_);
+        pulses_[deviceKey] = {clock::now() + std::chrono::milliseconds(ms), left, right};
+    }
+    cv_.notify_all();
 }
 
 void HapticsEngine::stopAll() {
@@ -165,6 +169,7 @@ void HapticsEngine::threadMain() {
     LOG_INFO("Haptics thread started");
     auto nextScan = clock::now();
     std::map<std::string, std::pair<uint8_t, uint8_t>> lastSent;
+    bool telemetryOn = false;
     while (running_) {
         const auto now = clock::now();
         if (now >= nextScan) {
@@ -177,6 +182,13 @@ void HapticsEngine::threadMain() {
             std::lock_guard<std::mutex> lock(m_);
             cfg = cfg_;
             pulses = pulses_;
+        }
+        // The sim is asked for flight data (every third frame) only while vibration is enabled and a device is plugged in.
+        const bool haveDevice = !hid_.devices().empty();
+        const bool wantTelemetry = cfg.enabled && haveDevice;
+        if (wantTelemetry != telemetryOn) {
+            bridge_.setTelemetryEnabled(wantTelemetry);
+            telemetryOn = wantTelemetry;
         }
         const sim::Telemetry t = bridge_.telemetry();
         const bool fresh = t.valid && (now - t.time) < std::chrono::seconds(2);
@@ -218,7 +230,20 @@ void HapticsEngine::threadMain() {
             status_.telemetryFresh = fresh;
             status_.telemetry = t;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        // 33 ms while something is vibrating or flight data is arriving (it comes about 20 times a second); otherwise a quarter of a second (a new pulse or
+        // configuration wakes the thread at once).
+        bool motorsOn = false;
+        for (const auto& [key, v] : lastSent) motorsOn = motorsOn || v.first || v.second;
+        bool pulsing;
+        {
+            std::lock_guard<std::mutex> lock(m_);
+            pulsing = !pulses_.empty() || !globalPulses_.empty();
+        }
+        const bool busy = (cfg.enabled && fresh) || motorsOn || pulsing;
+        {
+            std::unique_lock<std::mutex> lock(m_);
+            if (running_) cv_.wait_for(lock, std::chrono::milliseconds(busy ? 33 : (haveDevice ? 250 : 500)));
+        }
     }
     hid_.allOff();
     LOG_INFO("Haptics thread stopped");

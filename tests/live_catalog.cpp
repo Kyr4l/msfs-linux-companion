@@ -15,6 +15,7 @@
 #include "app/Profile.hpp"
 #include "sim/AircraftId.hpp"
 #include "sim/ByteBuffer.hpp"
+#include "sim/ProbeSelect.hpp"
 #include "sim/SimConnectClient.hpp"
 
 using namespace lr;
@@ -246,6 +247,21 @@ int main() {
         CHECK(r.onRelease[0].kind == ActionKind::InputEvent && r.onRelease[0].value == 1);
         CHECK(r.onPress[0].describe() == "B:LIGHTING_STROBE_0 cycle 3" && r.onRelease[0].describe() == "B:LIGHTING_LANDING_1 = 1");
         std::filesystem::remove(path);
+    }
+
+    // ---- which local listeners get a SimConnect handshake when the configured port does not answer
+    {
+        using lr::sim::ProbeTarget;
+        const std::vector<ProbeTarget> listeners = {{"127.0.0.1", 1111, 10}, {"::1", 2222, 11}, {"127.0.0.1", 3333, 12}};
+        CHECK(lr::sim::chooseProbeCandidates(listeners, false, {10, 11}).empty());  // no Wine process: the sim is not running
+        CHECK(lr::sim::chooseProbeCandidates(listeners, false, {}).empty());
+        const auto only = lr::sim::chooseProbeCandidates(listeners, true, {11});    // its own sockets only
+        CHECK(only.size() == 1 && only[0].port == 2222);
+        CHECK(lr::sim::chooseProbeCandidates(listeners, true, {99}).empty());       // sockets known, none of them listens
+        CHECK(lr::sim::chooseProbeCandidates(listeners, true, {}).size() == 3);     // sockets unreadable: try the few that exist
+        std::vector<ProbeTarget> many;
+        for (unsigned i = 0; i < 20; ++i) many.push_back({"127.0.0.1", static_cast<unsigned short>(4000 + i), 100 + i});
+        CHECK(lr::sim::chooseProbeCandidates(many, true, {}).size() == 6);          // ... but never twenty
     }
 
     std::printf(failures ? "\n%d check(s) FAILED\n" : "all live catalog checks passed\n", failures);

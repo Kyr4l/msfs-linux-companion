@@ -333,18 +333,23 @@ uint32_t SimConnectClient::setClientData(uint32_t clientDataId, uint32_t defineI
     return send(w);
 }
 
-bool SimConnectClient::poll(int timeoutMs, std::vector<RecvMessage>& out, std::string& err) {
+bool SimConnectClient::poll(int timeoutMs, std::vector<RecvMessage>& out, std::string& err, int wakeFd) {
     if (fd_ < 0) { err = "not connected"; return false; }
     if (!flushTx(err)) { close(); return false; }
 
-    pollfd pfd{fd_, POLLIN, 0};
+    pollfd fds[2] = {{fd_, POLLIN, 0}, {wakeFd, POLLIN, 0}};
+    pollfd& pfd = fds[0];
     if (!tx_.empty()) pfd.events |= POLLOUT;
-    int pr = ::poll(&pfd, 1, timeoutMs);
+    int pr = ::poll(fds, wakeFd >= 0 ? 2 : 1, timeoutMs);
     if (pr < 0) {
         if (errno == EINTR) return true;
         err = strerror(errno);
         close();
         return false;
+    }
+    if (wakeFd >= 0 && (fds[1].revents & POLLIN)) {
+        uint64_t n;
+        while (::read(wakeFd, &n, sizeof n) > 0) {}  // somebody has work for the bridge thread
     }
     if (pr == 0) return true;
     if (pfd.revents & POLLOUT) {

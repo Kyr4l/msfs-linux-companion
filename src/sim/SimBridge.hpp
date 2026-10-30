@@ -9,6 +9,7 @@
 #include <condition_variable>
 #include <deque>
 #include <mutex>
+#include <set>
 #include <string>
 #include <thread>
 #include <optional>
@@ -150,12 +151,24 @@ private:
     std::atomic<bool> forceProbe_{false};
 
     void setupTelemetry();
+    void stopTelemetry();
+    void requestTelemetry();
     void handleTelemetry(const RecvClientData& d);
 
     SimConnectClient client_;
     SimStatus status_;
     Telemetry telemetry_;
     std::atomic<bool> telemetryWanted_{false};
+    int telemetryInterval_ = 2;       // sim frames skipped between two telemetry updates (adapted to about 20 updates a second)
+    int telemetryRetunes_ = 0;        // adaptations made on this connection (a few at most)
+    int telemetryWindowCount_ = 0;
+    std::chrono::steady_clock::time_point telemetryWindowStart_{};
+    bool telemetryRetune_ = false;
+    bool telemetryDefined_ = false;  // the data definition exists on this connection (defined once)
+    int wakeFd_ = -1;                // eventfd: written when another thread has work for the bridge thread
+    int failedConnects_ = 0;         // consecutive failed attempts, for the retry pace
+    void wake();
+
     bool telemetryRequested_ = false;
     std::deque<SimCommand> queue_;
 
@@ -176,9 +189,10 @@ private:
     std::chrono::steady_clock::time_point lvarRegisteredAt_{};
     std::chrono::steady_clock::time_point lvarAcceptFrom_{};  // values before this are the old content of new slots
     bool lvarDefSent_ = false;   // the fixed SimConnect definition and requests exist on this connection
-    bool lvarRebuild_ = false;   // empty the module's list and add everything again
+    bool lvarRebuild_ = true;    // empty the module's list and add everything again (also once at the start of a connection)
     int lvarRetries_ = 0;        // rebuilds because values never arrived
-    int lvarUpdatesLogged_ = 0;  // debug log of the first updates after each registration
+    int lvarUpdatesLogged_ = 0;
+    int lvarChangesLogged_ = 0;  // value changes written to the log since the last registration (bounded)  // debug log of the first updates after each registration
     bool lvarWatchDirty_ = false;
 
     // --- input events (bridge thread owns these; the UI reads copies through liveSnapshot())

@@ -55,7 +55,8 @@ constexpr float kAxisReportStep = 1.0f / 512.0f;     // smallest change reported
 class InputManager {
 public:
     using EventCallback = std::function<void(const InputEvent&)>;
-    using TickCallback = std::function<void()>;
+    // Called after every wake-up; returns the milliseconds until it wants to be called again (-1: only when input arrives).
+    using TickCallback = std::function<int()>;
 
     InputManager();
     ~InputManager();

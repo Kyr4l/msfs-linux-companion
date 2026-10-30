@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 Kyr4l
 cmake_minimum_required(VERSION 3.20)
-project(msfs-linuxrebind VERSION 0.5.0 LANGUAGES CXX)
+project(msfs-linuxrebind VERSION 0.6.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -104,6 +104,7 @@ if(LINUXREBIND_BUILD_TESTS)
   add_test(NAME live_controls COMMAND bash ${CMAKE_SOURCE_DIR}/tests/live_controls.sh $<TARGET_FILE:msfs-linuxrebind> ${CMAKE_SOURCE_DIR})
   # Every documented command-line option must be accepted (exit code 2 = "unknown option"). Regression test for
   # a refactor that once silently dropped --config/--host/--port/--profile/--catalog/--motor-sweep.
+  add_test(NAME idle_cost COMMAND bash ${CMAKE_SOURCE_DIR}/tests/idle_cost.sh $<TARGET_FILE:msfs-linuxrebind> ${CMAKE_SOURCE_DIR})
   add_test(NAME cli_options COMMAND bash ${CMAKE_SOURCE_DIR}/tests/cli_options.sh $<TARGET_FILE:msfs-linuxrebind>
            ${CMAKE_SOURCE_DIR}/tests/fixtures/config_v1.json)
 endif()

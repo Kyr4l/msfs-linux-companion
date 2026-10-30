@@ -2,6 +2,9 @@
 // Copyright (C) 2026 Kyr4l
 // msfs-linuxrebind: bind HOTAS buttons to MSFS 2020 cockpit events from Linux.
 #include <csignal>
+#include <sys/resource.h>
+#include <sys/syscall.h>
+#include <unistd.h>
 #include <fstream>
 #include <cstdio>
 #include <cstring>
@@ -29,6 +32,13 @@
 
 namespace {
 volatile std::sig_atomic_t g_signalled = 0;
+double g_lastActivity = 0;  // GLFW time of the last input event on the window (main thread only)
+// what woke the window loop, per kind of event; written to the session log every 10 s (cursor, button, scroll, key, char, focus, enter)
+unsigned g_eventCount[7] = {};
+void noteActivity(int kind) {
+    g_lastActivity = glfwGetTime();
+    ++g_eventCount[kind];
+}
 void onSignal(int) { g_signalled = 1; }
 
 void usage() {
@@ -233,7 +243,7 @@ int main(int argc, char** argv) {
     ctx.pushProfileToEngine();
     hapticsEngine.setConfig(ctx.settings.haptics);  // Winwing discovery runs on the haptics thread
     hapticsEngine.start();
-    input.start([&engine](const input::InputEvent& ev) { engine.onInput(ev); }, [&engine] { engine.tick(); });
+    input.start([&engine](const input::InputEvent& ev) { engine.onInput(ev); }, [&engine] { return engine.tick(); });
 
     if (!fireSpecs.empty() || !readNames.empty() || !readInputs.empty() || listControls || !paramNames.empty() || !scriptPath.empty()) {
         // One-shot scripting mode: wait for the sim (and the MobiFlight module when needed), act, exit.
@@ -389,7 +399,7 @@ int main(int argc, char** argv) {
 
     if (headless) {
         LOG_INFO("Headless mode: press Ctrl+C to quit");
-        while (!g_signalled) std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        while (!g_signalled) std::this_thread::sleep_for(std::chrono::milliseconds(250));
     } else {
         glfwSetErrorCallback(glfwErrorCallback);
         if (platform != 0) {
@@ -440,16 +450,45 @@ int main(int argc, char** argv) {
 #if IMGUI_VERSION_NUM >= 19200
         ImGui::GetStyle().FontScaleDpi = xs;
 #endif
+        // Note when the user does something: only then (and for a second after) is the window redrawn at full rate. These
+        // callbacks go in first; the ImGui backend installs its own on top and calls ours.
+        glfwSetCursorPosCallback(window, [](GLFWwindow*, double, double) { noteActivity(0); });
+        glfwSetMouseButtonCallback(window, [](GLFWwindow*, int, int, int) { noteActivity(1); });
+        glfwSetScrollCallback(window, [](GLFWwindow*, double, double) { noteActivity(2); });
+        glfwSetKeyCallback(window, [](GLFWwindow*, int, int, int, int) { noteActivity(3); });
+        glfwSetCharCallback(window, [](GLFWwindow*, unsigned) { noteActivity(4); });
+        glfwSetWindowFocusCallback(window, [](GLFWwindow*, int) { noteActivity(5); });
+        glfwSetCursorEnterCallback(window, [](GLFWwindow*, int) { noteActivity(6); });
+        g_lastActivity = glfwGetTime();
+        // The window is the least important thread of this program: input, the bridge and vibration keep their priority, the
+        // UI yields to the simulator when the machine is busy.
+        setpriority(PRIO_PROCESS, static_cast<id_t>(syscall(SYS_gettid)), 10);
         ImGui_ImplGlfw_InitForOpenGL(window, true);
         ImGui_ImplOpenGL3_Init("#version 330");
 
         app::Ui ui(ctx);
         while (!glfwWindowShouldClose(window) && !g_signalled && !ctx.quitRequested) {
-            // The UI only needs to refresh a few times a second when idle; bindings run on their own threads.
-            glfwWaitEventsTimeout(1.0 / 20.0);
+            // Bindings run on their own threads; the window only has to look current. Full rate while the user interacts
+            // (and a second after, for hover and tooltips), four frames a second otherwise, none while minimised.
+            {   // a line in the session log every 10 s: how many frames were drawn and what woke the window
+                static double statStart = glfwGetTime();
+                static unsigned frames = 0;
+                ++frames;
+                const double now = glfwGetTime();
+                if (now - statStart >= 10.0) {
+                    LOG_DEBUG("GUI: %u frames in %.0f s; window events cursor %u, button %u, scroll %u, key %u, char %u, focus %u, enter %u", frames,
+                              now - statStart, g_eventCount[0], g_eventCount[1], g_eventCount[2], g_eventCount[3], g_eventCount[4], g_eventCount[5], g_eventCount[6]);
+                    statStart = now;
+                    frames = 0;
+                    for (auto& c : g_eventCount) c = 0;
+                }
+            }
+            const double idleFor = glfwGetTime() - g_lastActivity;
+            const bool lively = idleFor < 1.0 || glfwGetTime() < 4.0;  // the first seconds include the splash
+            glfwWaitEventsTimeout(lively ? 1.0 / 30.0 : 0.25);
             if (glfwGetWindowAttrib(window, GLFW_ICONIFIED)) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 if (ctx.dirty) ctx.save();
+                glfwWaitEventsTimeout(0.5);
                 continue;
             }
             ImGui_ImplOpenGL3_NewFrame();

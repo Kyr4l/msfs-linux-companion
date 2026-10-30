@@ -6,6 +6,7 @@
 #include <atomic>
 #include <chrono>
 #include <map>
+#include <condition_variable>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -77,6 +78,7 @@ private:
     sim::SimBridge& bridge_;
     WinwingHidManager& hid_;
     mutable std::mutex m_;
+    std::condition_variable cv_;  // wakes the thread early: a new pulse, a changed configuration, stop
     HapticsConfig cfg_;
     HapticsStatus status_;
     std::map<std::string, Pulse> pulses_;

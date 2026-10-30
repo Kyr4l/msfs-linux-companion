@@ -254,18 +254,24 @@ void Engine::onInput(const input::InputEvent& ev) {
     }
 }
 
-void Engine::tick() {
+int Engine::tick() {
     std::vector<std::pair<std::shared_ptr<const Profile>, size_t>> due;
     std::vector<std::pair<std::shared_ptr<const Profile>, std::pair<size_t, double>>> axisDue;
+    int wait = -1;
+    auto soonest = [&wait](std::chrono::steady_clock::duration d) {
+        const int ms = std::max<int>(1, static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(d).count()) + 1);
+        if (wait < 0 || ms < wait) wait = ms;
+    };
     {
         std::lock_guard<std::mutex> lock(m_);
-        if (!profile_ || (held_.empty() && axisState_.empty())) return;
+        if (!profile_ || (held_.empty() && axisState_.empty())) return -1;
         const auto now = clock::now();
         // axis values held back by the minimum interval: send the latest one once it has passed
         for (auto& [idx, st] : axisState_) {
             if (!st.hasPending || idx >= profile_->bindings.size()) continue;
             const AxisConfig& c = profile_->bindings[idx].axis;
-            if (now - st.lastTime < std::chrono::milliseconds(c.minIntervalMs)) continue;
+            const auto interval = std::chrono::milliseconds(c.minIntervalMs);
+            if (now - st.lastTime < interval) { soonest(interval - (now - st.lastTime)); continue; }
             st.hasSent = true;
             st.lastSent = st.pending;
             st.lastTime = now;
@@ -273,15 +279,18 @@ void Engine::tick() {
             axisDue.push_back({profile_, {idx, st.pending}});
         }
         for (auto& h : held_) {
-            if (now < h.nextRepeat) continue;
             if (h.bindingIndex >= profile_->bindings.size()) continue;
+            if (now < h.nextRepeat) { soonest(h.nextRepeat - now); continue; }
             const Binding& b = profile_->bindings[h.bindingIndex];
-            h.nextRepeat = now + std::chrono::milliseconds(b.repeatIntervalMs < 10 ? 10 : b.repeatIntervalMs);
+            const auto interval = std::chrono::milliseconds(b.repeatIntervalMs < 10 ? 10 : b.repeatIntervalMs);
+            h.nextRepeat = now + interval;
+            soonest(interval);
             due.emplace_back(profile_, h.bindingIndex);
         }
     }
     for (const auto& [profile, idx] : due) dispatch(profile->bindings[idx], true, " (repeat)");
     for (const auto& [profile, item] : axisDue) sendAxisValue(profile->bindings[item.first], item.second);
+    return wait;
 }
 
 }  // namespace lr::app

@@ -152,8 +152,13 @@ int main() {
     eng.onInput(axisEvent(dev, 3, 0.50f, 0.60f));
     eng.onInput(axisEvent(dev, 3, 0.60f, 0.70f));
     CHECK(lastFire(eng).find("= 50") != std::string::npos);
+    // the input thread sleeps for what tick() reports: a held-back value is due within the 40 ms interval, nothing waits afterwards
+    {
+        const int wait = eng.tick();
+        CHECK(wait >= 1 && wait <= 41);
+    }
     std::this_thread::sleep_for(std::chrono::milliseconds(60));
-    eng.tick();
+    CHECK(eng.tick() == -1);                                   // the value went out and nothing else is waiting
     CHECK(lastFire(eng).find("Brightness = 70") != std::string::npos);
     // a change too small to change the rounded output sends nothing
     const size_t before = eng.recentFires().size();

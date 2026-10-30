@@ -339,6 +339,7 @@ void InputManager::threadMain() {
 
     auto rescanAt = std::chrono::steady_clock::now();
     bool rescanPending = true;
+    int nextTickMs = -1;
     std::vector<pollfd> pfds;
     while (running_) {
         const auto now = std::chrono::steady_clock::now();
@@ -354,7 +355,15 @@ void InputManager::threadMain() {
         pfds.clear();
         for (const auto& d : devices_) pfds.push_back({d.fd, POLLIN, 0});
         if (inotifyFd_ >= 0) pfds.push_back({inotifyFd_, POLLIN, 0});
-        int rc = ::poll(pfds.data(), pfds.size(), 10);
+        // Sleep until a device has something, the engine needs its next tick, or a re-scan is due (at most 250 ms: the
+        // thread also notices that it should stop). Idle, this is four wake-ups a second instead of a hundred.
+        int timeoutMs = 250;
+        if (rescanPending) {
+            const auto until = std::chrono::duration_cast<std::chrono::milliseconds>(rescanAt - std::chrono::steady_clock::now()).count();
+            timeoutMs = static_cast<int>(std::max<long long>(1, std::min<long long>(timeoutMs, until + 1)));
+        }
+        if (nextTickMs >= 0) timeoutMs = std::min(timeoutMs, std::max(1, nextTickMs));
+        int rc = ::poll(pfds.data(), pfds.size(), timeoutMs);
         if (rc > 0) {
             for (size_t i = 0; i < devices_.size(); ++i) {
                 if (pfds[i].revents & (POLLIN | POLLERR | POLLHUP)) {
@@ -368,7 +377,7 @@ void InputManager::threadMain() {
                 rescanRequested_ = true;
             }
         }
-        if (onTick_) onTick_();
+        nextTickMs = onTick_ ? onTick_() : -1;
     }
     for (auto& d : devices_) ::close(d.fd);
     devices_.clear();
