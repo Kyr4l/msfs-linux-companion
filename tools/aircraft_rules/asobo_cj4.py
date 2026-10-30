@@ -92,41 +92,14 @@ VERIFIED.update({
 for _n in (15, 16, 17, 18):
     VERIFIED["LIGHTING_POTENTIOMETER_%d" % _n] = "Verified on a CJ4: the value 0..100 is the brightness, read back with (A:LIGHT POTENTIOMETER:%d)." % _n
 
-NOT_TRIED = "Behaviour taken from the control's name, not tried on a real aircraft."
-
-
-# --- row builders ------------------------------------------------------------------------------------------------
-def row(panel, section, function, behavior="", **kw):
-    r = {"panel": panel, "section": section, "function": function, "behavior": behavior}
-    r.update(kw)
-    return r
-
-
-def knob(panel, section, function, up="increase", down="decrease", **kw):
-    return [row(panel, section, "%s: %s" % (function, up), "knob_up", **kw),
-            row(panel, section, "%s: %s" % (function, down), "knob_down", **kw)]
+# --- row builders (shared ones live in common.py) ---------------------------------------------------------------
+from common import NOT_TRIED, knob, latched, level, press, row, unknown  # noqa: E402
 
 
 def trim(panel, section, function, **kw):
     # the trim handlers act on a value >= 2 (up) or <= 0 (down); 1 does nothing
     return [row(panel, section, "%s: trim up" % function, "knob_up", value=10, **kw),
             row(panel, section, "%s: trim down" % function, "knob_down", value=0, **kw)]
-
-
-def press(panel, section, function, **kw):
-    return [row(panel, section, function, "press", **kw)]
-
-
-def latched(panel, section, function, positions=2, **kw):
-    return [row(panel, section, function, "latched", positions=positions, **kw)]
-
-
-def level(panel, section, function, rng=(0, 100), **kw):
-    return [row(panel, section, function, "level", axis_range=list(rng), **kw)]
-
-
-def unknown(panel, section, function, note):
-    return [row(panel, section, function, "", note=note)]
 
 
 # --- the table ---------------------------------------------------------------------------------------------------

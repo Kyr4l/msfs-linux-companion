@@ -143,6 +143,54 @@ int main(int argc, char** argv) {
         CHECK(alt && alt->note.find("MASTER ALTERNATOR") != std::string::npos);  // the variable that really follows the control
     }
 
+    // ---- the F/A-18E
+    {
+        Catalog fa;
+        if (!fa.load(root + "/data/asobo_fa18e_catalog.json", err)) { std::printf("cannot load the F/A-18E catalog: %s\n", err.c_str()); return 1; }
+        CHECK(fa.aircraft == "Asobo_FA18E");
+        std::ifstream in(root + "/tools/aircraft_rules/asobo_fa18e_events.json");
+        nlohmann::json j;
+        in >> j;
+        std::set<std::string> have;
+        for (const auto& e : fa.entries) have.insert(e.name);
+        size_t missing = 0;
+        for (const auto& n : j["input_events"]) if (!have.count(n.get<std::string>())) { std::printf("  no entry for %s\n", n.get<std::string>().c_str()); ++missing; }
+        CHECK(missing == 0 && j["input_events"].size() == 142);
+        for (const auto& e : fa.entries) {
+            CHECK(e.kind == "input_event" && !e.function.empty());
+            if (e.verified) CHECK(e.note.rfind("Verified on an F/A-18E", 0) == 0);
+            else CHECK(!e.note.empty());
+        }
+        // the crank switch: 0 = left, 1 = centre, 2 = right
+        std::set<double> crank;
+        for (const auto& e : fa.entries)
+            if (e.name == "ENGINE_Starter_Ignition_1" && e.behavior == "level" && e.verified) crank.insert(e.toAction().value);
+        CHECK(crank == std::set<double>({0, 1, 2}));
+        // the throttle is a fraction, with the idle value that really lights the engine
+        const CatalogEntry* idle = nullptr;
+        for (const auto& e : fa.entries)
+            if (e.name == "ENGINE_Throttle_2" && e.function == "Throttle 2: idle") idle = &e;
+        CHECK(idle && idle->verified && idle->toAction().value > 0 && idle->toAction().value < 0.5);  // 0 would change nothing from lever 0
+        // the polarity differs from the CJ4: strobes, engine anti-ice and windshield de-ice are inverted, the battery is not
+        for (const char* n : {"LIGHTING_STROBE_1", "DEICE_Engine_1", "DEICE_Windshield_1"}) {
+            const auto* e = find(fa, n, "latched");
+            CHECK(e && e->verified && e->note.find("INVERTED") != std::string::npos);
+        }
+        const auto* batt = find(fa, "ELECTRICAL_Battery_1", "latched");
+        CHECK(batt && batt->verified && batt->note.find("set 1 = ON") != std::string::npos);
+        // what could not be understood must not be offered with a behaviour
+        for (const char* n : {"ENGINE_Throttle_1_STOP", "LANDING_GEAR_Parking_Brake", "HANDLING_Spoilers", "LANDING_GEAR_Gear"}) {
+            const auto* e = find(fa, n, "");
+            CHECK(e && !e->verified);
+        }
+        const auto* brake = find(fa, "LANDING_GEAR_Parking_Brake", "");
+        CHECK(brake && brake->behavior.empty());
+        // 20 pushbuttons on each of the three display units
+        size_t push = 0;
+        for (const auto& e : fa.entries) push += e.name.rfind("AS04F_DDI_Push_", 0) == 0;
+        CHECK(push == 60);
+    }
+
     std::printf(failures ? "\n%d check(s) FAILED\n" : "all curated catalog checks passed\n", failures);
     return failures ? 1 : 0;
 }
