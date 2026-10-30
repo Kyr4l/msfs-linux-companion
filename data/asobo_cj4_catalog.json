@@ -537,7 +537,7 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "note": "Reads 0 once the engine has started (the starter drops out). Setting it was not tried."
   },
   {
    "panel": "Engines",
@@ -549,7 +549,7 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "note": "Reads 0 once the engine has started (the starter drops out). Setting it was not tried."
   },
   {
    "panel": "Engines",
@@ -630,7 +630,7 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "The sim's CJ4 checklist presses the RUN button when N2 reaches 20 %; behaviour not tried."
+   "note": "The sim's CJ4 checklist presses the RUN button when N2 reaches 20 %. Reads 1 with the engine running (RUN). Setting it was not tried."
   },
   {
    "panel": "Fuel",
@@ -642,7 +642,7 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "The sim's CJ4 checklist presses the RUN button when N2 reaches 20 %; behaviour not tried."
+   "note": "The sim's CJ4 checklist presses the RUN button when N2 reaches 20 %. Reads 1 with the engine running (RUN). Setting it was not tried."
   },
   {
    "panel": "Fuel",
@@ -703,7 +703,7 @@
    "rw": "R/W",
    "behavior": "latched",
    "positions": 3,
-   "note": "Three positions. The sim's own CJ4 checklist sets 2 (DISPATCH) before the engine start and 0 (ON) after it; 1 was read in a cold cockpit. Not tried here."
+   "note": "Three positions. The sim's own CJ4 checklist sets 2 (DISPATCH) before the engine start and 0 (ON) after it; 1 was read in a cold cockpit and 0 with both engines running. Setting it was not tried."
   },
   {
    "panel": "Electrical",
@@ -715,7 +715,7 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "note": "Seen on a running CJ4: the value read 0 while (A:ELECTRICAL MASTER BATTERY) was 1, so 0 is probably the ON position (not 1). Setting it was not tried."
   },
   {
    "panel": "Electrical",
@@ -739,7 +739,7 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "note": "Seen on a running CJ4: the value read 0 while (A:GENERAL ENG GENERATOR SWITCH:1) was 1, so 0 is probably the ON position (not 1). Setting it was not tried."
   },
   {
    "panel": "Electrical",
@@ -751,7 +751,7 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "note": "Seen on a running CJ4: the value read 0 while (A:GENERAL ENG GENERATOR SWITCH:2) was 1, so 0 is probably the ON position (not 1). Setting it was not tried."
   },
   {
    "panel": "Lights",

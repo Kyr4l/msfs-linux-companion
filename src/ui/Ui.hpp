@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Kyr4l
 #pragma once
+#include <deque>
+#include <optional>
+#include <set>
 // Dear ImGui front-end. Everything here runs on the main (GLFW) thread.
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "app/Catalog.hpp"
+#include "app/Guide.hpp"
 #include "app/Engine.hpp"
 #include "app/Profile.hpp"
 #include "haptics/Haptics.hpp"
@@ -20,6 +24,10 @@ struct AppContext {
     Settings settings;
     std::string configPath;
     CatalogSet catalogs;  // one per aircraft: data/*_catalog.json, what the sim reported, and the standard events
+    std::deque<Guide> guides;               // data/*_guide.json
+    std::vector<GuideProbe> guideProbes;    // what the open guide page wants read from the sim
+    const Guide* guideFor(const std::string& aircraft) const;
+    void refreshWatches();                  // the profile's L: vars / input events plus the open guide page's probes
     sim::SimBridge& bridge;
     Engine& engine;
     input::InputManager& input;
@@ -58,6 +66,10 @@ private:
     void drawBindingsTab();
     void drawDevicesTab();
     void drawCatalogTab();
+    void drawGuidesTab();
+    void drawGuideNode(const Guide& g, const Catalog* cat);
+    void drawGuideCard(const Catalog& cat, const std::vector<int>& targets);
+    std::optional<double> readProbe(const GuideProbe& p) const;
     void drawLogTab();
     void drawSettingsTab();
     void drawVibrationTab();
@@ -126,6 +138,11 @@ private:
     bool splashDone_ = false;
     std::string startTab_;
 
+    // guides
+    GuideRun guideRun_;
+    std::string guideAircraft_;
+    std::set<std::string> guideTicked_;  // steps the user ticked by hand: "node:index"
+    std::string guideWatchSig_;
 
     // log
     int logMinLevel_ = 1;

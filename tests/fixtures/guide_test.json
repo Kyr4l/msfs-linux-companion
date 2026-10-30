@@ -1,0 +1,16 @@
+{
+  "aircraft": "Test", "title": "Test aircraft", "sources": ["test"],
+  "topics": [{"id": "t", "title": "Topic", "summary": "s", "start": "q"}],
+  "nodes": {
+    "q": {"type": "question", "title": "Q", "text": "On the ground?",
+          "auto": {"code": "(A:SIM ON GROUND, Bool)", "rules": [{"op": "==", "value": 1, "choice": "yes"}, {"op": "==", "value": 0, "choice": "no"}]},
+          "choices": [{"id": "yes", "label": "Yes", "next": "s"}, {"id": "no", "label": "No", "next": "air"}]},
+    "air": {"type": "info", "title": "Flying", "text": "land first", "next": ""},
+    "s": {"type": "steps", "title": "Steps", "source": "x", "next": "e",
+          "steps": [{"text": "Brake", "source": "x", "controls": [{"api": "BRAKE"}],
+                     "check": {"code": "(A:BRAKE PARKING POSITION, Bool)", "op": "==", "value": 1},
+                     "readouts": [{"label": "N2", "unit": "%", "code": "(A:TURB ENG CORRECTED N2:1, percent)"}]},
+                    {"text": "Avionics", "source": "x", "check": {"input_event": "AV", "op": ">=", "value": 2}}]},
+    "e": {"type": "end", "title": "Done", "text": "ok"}
+  }
+}

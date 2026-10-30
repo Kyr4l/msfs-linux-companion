@@ -1,0 +1,427 @@
+{
+ "aircraft": "Asobo_CJ4",
+ "title": "Cessna Citation CJ4 (Asobo)",
+ "sources": [
+  "CJ4_Checklist.xml shipped with the aircraft (Official/Steam/asobo-aircraft-cj4/SimObjects/Airplanes/Asobo_CJ4/Checklist), the sim's own interactive checklist",
+  "State variables read from a running CJ4 (MSFS 11.0.282174.999)"
+ ],
+ "topics": [
+  {
+   "id": "engine_start",
+   "title": "Start the engines",
+   "summary": "From cold to both engines running, following the sim's own checklist.",
+   "start": "es_ground"
+  }
+ ],
+ "nodes": {
+  "es_ground": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "help": "The engines are started on the ground. The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, it is on the ground",
+     "next": "es_state"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "es_air"
+    }
+   ]
+  },
+  "es_air": {
+   "type": "info",
+   "title": "Not on the ground",
+   "next": "",
+   "text": "This guide covers the engine start on the ground, which is the only start the sim's own CJ4 checklist describes. Land and park first, then come back.",
+   "source": "CJ4_Checklist.xml: only the PREFLIGHT_GATE step has pages: before starting, starting, after starting"
+  },
+  "es_state": {
+   "type": "question",
+   "title": "Engines",
+   "text": "How many engines are running?",
+   "help": "Both engines running means the start is done; the guide then goes straight to the checks after the start.",
+   "auto": {
+    "code": "(A:GENERAL ENG COMBUSTION:1, Bool) (A:GENERAL ENG COMBUSTION:2, Bool) +",
+    "rules": [
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "none"
+     },
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "one"
+     },
+     {
+      "op": "==",
+      "value": 2,
+      "choice": "both"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "none",
+     "label": "None",
+     "next": "es_before"
+    },
+    {
+     "id": "one",
+     "label": "One",
+     "next": "es_which"
+    },
+    {
+     "id": "both",
+     "label": "Both",
+     "next": "es_after"
+    }
+   ]
+  },
+  "es_which": {
+   "type": "question",
+   "title": "Which engine is running?",
+   "text": "Which engine is already running?",
+   "help": "The sim's checklist starts the right engine first, then repeats the procedure for the left one.",
+   "auto": {
+    "code": "(A:GENERAL ENG COMBUSTION:2, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "right"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "left"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "right",
+     "label": "The right engine (engine 2)",
+     "next": "es_left"
+    },
+    {
+     "id": "left",
+     "label": "The left engine (engine 1)",
+     "next": "es_right"
+    }
+   ]
+  },
+  "es_before": {
+   "type": "steps",
+   "title": "Before starting the engines",
+   "source": "CJ4_Checklist.xml: page TT:GAME.CHECKLIST_BEFORE_STARTING_ENGINE",
+   "next": "es_right",
+   "steps": [
+    {
+     "text": "Set the parking brake.",
+     "where": "The sim's own checklist looks at its camera Instrument04 for this step.",
+     "source": "CJ4_Checklist.xml: Parking_Brake_Set",
+     "controls": [
+      {
+       "api": "LANDING_GEAR_ParkingBrake"
+      }
+     ],
+     "check": {
+      "code": "(A:BRAKE PARKING POSITION, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Put both power levers at IDLE.",
+     "where": "The sim's own checklist looks at its camera Instrument05 for this step.",
+     "source": "CJ4_Checklist.xml: POWER_LEVERS_IDLE_2ENGINES",
+     "controls": [
+      {
+       "api": "ENGINE_Throttle_1"
+      },
+      {
+       "api": "ENGINE_Throttle_2"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG THROTTLE LEVER POSITION:1, percent) (A:GENERAL ENG THROTTLE LEVER POSITION:2, percent) +",
+      "op": "<=",
+      "value": 10
+     },
+     "readouts": [
+      {
+       "label": "Lever 1",
+       "unit": "%",
+       "code": "(A:GENERAL ENG THROTTLE LEVER POSITION:1, percent)"
+      },
+      {
+       "label": "Lever 2",
+       "unit": "%",
+       "code": "(A:GENERAL ENG THROTTLE LEVER POSITION:2, percent)"
+      }
+     ]
+    },
+    {
+     "text": "Turn both generator switches ON.",
+     "source": "CJ4_Checklist.xml: GENERATOR_MAIN_2 (subject: generator switches, expectation: ON)",
+     "controls": [
+      {
+       "api": "ELECTRICAL_Alternator_1"
+      },
+      {
+       "api": "ELECTRICAL_Alternator_2"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG GENERATOR SWITCH:1, Bool) (A:GENERAL ENG GENERATOR SWITCH:2, Bool) +",
+      "op": "==",
+      "value": 2
+     }
+    },
+    {
+     "text": "Turn the battery switch ON.",
+     "source": "CJ4_Checklist.xml: Battery_Switch_On_CJ4",
+     "controls": [
+      {
+       "api": "ELECTRICAL_Battery_1"
+      }
+     ],
+     "check": {
+      "code": "(A:ELECTRICAL MASTER BATTERY, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Set the avionics master switch to DISPATCH.",
+     "why": "The sim's clue for this step is \"avionics master switch: dispatch\". The switch has three positions; the checklist sets position 2 now and position 0 (ON) after the engines are started.",
+     "source": "CJ4_Checklist.xml: Avionics_Bus_Switch_On, clue AVIONICS_MASTER_SWITCH_DISPATCH, value 2 of B:ELECTRICAL_Avionics_Bus_1",
+     "controls": [
+      {
+       "api": "ELECTRICAL_Avionics_Bus_1"
+      }
+     ],
+     "check": {
+      "input_event": "ELECTRICAL_Avionics_Bus_1",
+      "op": "==",
+      "value": 2
+     }
+    }
+   ]
+  },
+  "es_right": {
+   "type": "steps",
+   "title": "Start the right engine",
+   "source": "CJ4_Checklist.xml: page TT:GAME.CHECKLIST_STARTING_ENGINE",
+   "next": "es_left",
+   "steps": [
+    {
+     "text": "Turn the right engine starter ON.",
+     "where": "The sim's own checklist looks at its camera Instrument06 for this step.",
+     "source": "CJ4_Checklist.xml: RIGHT_ENGINE_STARTER_ON",
+     "controls": [
+      {
+       "api": "ENGINE_Starter_2"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "N2 right",
+       "unit": "%",
+       "code": "(A:TURB ENG CORRECTED N2:2, percent)"
+      }
+     ]
+    },
+    {
+     "text": "When N2 reaches 20 %, press the right RUN button.",
+     "where": "The sim's own checklist looks at its camera Instrument05 for this step.",
+     "source": "CJ4_Checklist.xml: RIGHT_ENG_RUN_BUTTON_RUN_WHEN_N2_20",
+     "controls": [
+      {
+       "api": "FUEL_RunStop_2"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG COMBUSTION:2, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "readouts": [
+      {
+       "label": "N2 right",
+       "unit": "%",
+       "code": "(A:TURB ENG CORRECTED N2:2, percent)"
+      }
+     ]
+    },
+    {
+     "text": "Watch ITT and N1 on the MFD during the start.",
+     "where": "The sim's own checklist looks at its camera Instrument01 for this step. They are shown on the MFD.",
+     "source": "CJ4_Checklist.xml: ITT_AND_N1_MONITOR (instruments WT21_MFD_1 N1 and ITT)",
+     "readouts": [
+      {
+       "label": "N1 right",
+       "unit": "%",
+       "code": "(A:TURB ENG CORRECTED N1:2, percent)"
+      },
+      {
+       "label": "ITT right",
+       "unit": "degC",
+       "code": "(A:TURB ENG ITT:2, celsius)"
+      }
+     ]
+    }
+   ]
+  },
+  "es_left": {
+   "type": "steps",
+   "title": "Start the left engine",
+   "source": "CJ4_Checklist.xml: LEFT_ENGINE_START_REPEAT_PROCEDURE_JET: repeat the procedure for the left engine",
+   "next": "es_after",
+   "steps": [
+    {
+     "text": "Turn the left engine starter ON.",
+     "where": "The sim's own checklist looks at its camera Instrument06 for this step.",
+     "source": "CJ4_Checklist.xml: LEFT_ENGINE_START_REPEAT_PROCEDURE_JET, instrument ENGINE_Switch_Starter1",
+     "controls": [
+      {
+       "api": "ENGINE_Starter_1"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "N2 left",
+       "unit": "%",
+       "code": "(A:TURB ENG CORRECTED N2:1, percent)"
+      }
+     ]
+    },
+    {
+     "text": "When N2 reaches 20 %, press the left RUN button.",
+     "source": "CJ4_Checklist.xml: LEFT_ENGINE_START_REPEAT_PROCEDURE_JET (repeat the procedure)",
+     "controls": [
+      {
+       "api": "FUEL_RunStop_1"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG COMBUSTION:1, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "readouts": [
+      {
+       "label": "N2 left",
+       "unit": "%",
+       "code": "(A:TURB ENG CORRECTED N2:1, percent)"
+      }
+     ]
+    },
+    {
+     "text": "Watch ITT and N1 on the MFD during the start.",
+     "where": "The sim's own checklist looks at its camera Instrument01 for this step. They are shown on the MFD.",
+     "source": "CJ4_Checklist.xml: ITT_AND_N1_MONITOR (instruments WT21_MFD_1 N1 and ITT)",
+     "readouts": [
+      {
+       "label": "N1 left",
+       "unit": "%",
+       "code": "(A:TURB ENG CORRECTED N1:1, percent)"
+      },
+      {
+       "label": "ITT left",
+       "unit": "degC",
+       "code": "(A:TURB ENG ITT:1, celsius)"
+      }
+     ]
+    }
+   ]
+  },
+  "es_after": {
+   "type": "steps",
+   "title": "After the start",
+   "source": "CJ4_Checklist.xml: page TT:GAME.CHECKLIST_AFTER_STARTING_ENGINE_1",
+   "next": "es_done",
+   "steps": [
+    {
+     "text": "Set the avionics master switch to ON.",
+     "source": "CJ4_Checklist.xml: Avionics_Bus_Switch_On, value 0 of B:ELECTRICAL_Avionics_Bus_1 after the start",
+     "controls": [
+      {
+       "api": "ELECTRICAL_Avionics_Bus_1"
+      }
+     ],
+     "check": {
+      "input_event": "ELECTRICAL_Avionics_Bus_1",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Turn on the beacon, navigation, strobe and taxi lights.",
+     "where": "The sim's own checklist looks at its camera Instrument03 for this step.",
+     "why": "The sim's checklist considers this step done when these four lights are on.",
+     "source": "CJ4_Checklist.xml: LIGHTS_AS_REQUIRED_CUSTOM",
+     "controls": [
+      {
+       "api": "LIGHTING_BEACON_1"
+      },
+      {
+       "api": "LIGHTING_NAV_1"
+      },
+      {
+       "api": "LIGHTING_STROBE_1"
+      },
+      {
+       "api": "LIGHTING_TAXI_1"
+      }
+     ],
+     "check": {
+      "code": "(A:LIGHT BEACON, Bool) (A:LIGHT NAV, Bool) + (A:LIGHT STROBE, Bool) + (A:LIGHT TAXI, Bool) +",
+      "op": "==",
+      "value": 4
+     }
+    },
+    {
+     "text": "Release the parking brake.",
+     "where": "The sim's own checklist looks at its camera Instrument04 for this step.",
+     "source": "CJ4_Checklist.xml: Parking_Brake_Release",
+     "controls": [
+      {
+       "api": "LANDING_GEAR_ParkingBrake"
+      }
+     ],
+     "check": {
+      "code": "(A:BRAKE PARKING POSITION, Bool)",
+      "op": "==",
+      "value": 0
+     }
+    }
+   ]
+  },
+  "es_done": {
+   "type": "end",
+   "title": "Engines started",
+   "text": "Both engines are running, the avionics master is ON and the parking brake is released: this is the end of the sim's start-up checklist."
+  }
+ }
+}

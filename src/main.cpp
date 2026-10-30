@@ -215,6 +215,13 @@ int main(int argc, char** argv) {
         }
         ctx.catalogs.refreshStandard();
         ctx.loadLiveCaches();
+        for (const auto& path : app::listDataFiles("_guide.json")) {
+            app::Guide g;
+            std::string err;
+            if (!g.load(path, err)) { LOG_WARN("Guide %s not loaded: %s", path.c_str(), err.c_str()); continue; }
+            LOG_INFO("Guide %s: %zu topics from %s", g.aircraft.c_str(), g.topics.size(), path.c_str());
+            ctx.guides.push_back(std::move(g));
+        }
         if (ctx.catalogs.empty()) LOG_WARN("No action catalog found (expected data/*_catalog.json)");
     }
 
