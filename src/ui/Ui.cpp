@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (C) 2026 Kyr4l
 #include "ui/Ui.hpp"
 
 #include <algorithm>
@@ -1612,6 +1614,7 @@ void Ui::drawSettingsTab() {
 
     ImGui::SeparatorText("About");
     ImGui::Text("msfs-linuxrebind %s - native Linux SimConnect client, Dear ImGui %s", LINUXREBIND_VERSION, IMGUI_VERSION);
+    ImGui::TextDisabled("Free software under the GNU GPL v3 (GPL-3.0-only), no warranty. Source and licences: github.com/Kyr4l/msfs2020-linuxrebind");
     ImGui::TextWrapped("K: events (standard and A32NX.* custom events) go straight through SimConnect. H: events, L: vars and RPN code are executed by the MobiFlight WASM module (install it in the Community folder).");
 }
 

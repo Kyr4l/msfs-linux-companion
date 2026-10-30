@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (C) 2026 Kyr4l
 // Per-aircraft live controls: aircraft identification, input event wire format, catalog merging and the on-disk cache.
 #include <arpa/inet.h>
 #include <netinet/in.h>

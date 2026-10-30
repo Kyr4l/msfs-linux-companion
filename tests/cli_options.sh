@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-only
+# Copyright (C) 2026 Kyr4l
 # Usage: cli_options.sh <binary> <config fixture>
 # Runs the binary headless with every value-taking option once. Exit status 2 means the parser rejected an
 # option; a timeout (124) or a normal exit are both fine. Options that exit immediately are checked separately.

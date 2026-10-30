@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (C) 2026 Kyr4l
 #pragma once
 // Direct hidraw access to Winwing (vendor 0x4098) devices for the vibration motors.
 // Frame format (14 bytes, report ID 0x02): [0x02, device, family, 0, 0, len, opcode, args...].

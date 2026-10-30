@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (C) 2026 Kyr4l
 #pragma once
 // Native (no SimConnect.dll) implementation of the SimConnect TCP wire protocol, enough for
 // mapping/transmitting client events, system events/state and client data areas.

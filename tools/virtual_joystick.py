@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only
+# Copyright (C) 2026 Kyr4l
 """A virtual joystick (uinput) for testing axis and button bindings without hardware.
 
     tools/virtual_joystick.py demo        # create "lr-test-pad", wiggle axes forever (Ctrl+C to stop)

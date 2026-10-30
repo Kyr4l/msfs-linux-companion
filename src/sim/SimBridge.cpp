@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (C) 2026 Kyr4l
 #include "sim/SimBridge.hpp"
 
 #include <arpa/inet.h>
@@ -181,6 +183,7 @@ void SimBridge::watchInputEvents(std::vector<std::string> names) {
     std::lock_guard<std::mutex> lock(m_);
     if (clean == inputWatch_) return;
     inputWatch_ = std::move(clean);
+    inputPollCursor_ = 0;
     nextInputPollAt_ = {};
 }
 
@@ -981,23 +984,29 @@ void SimBridge::pumpLiveScan() {
         }
     }
 
-    // poll the values of watched input events (cheap: only the ones used by bindings)
-    std::vector<std::string> watch;
+    // poll the values of watched input events. A handful (the ones bindings use) are all polled twice a second; a long
+    // list (a full dump) goes through in batches so the sim is never flooded.
+    constexpr size_t kPollBatch = 48;
+    std::vector<std::string> batch;
     {
         std::lock_guard<std::mutex> lock(m_);
-        if (now >= nextInputPollAt_) {
-            watch = inputWatch_;
-            nextInputPollAt_ = now + std::chrono::milliseconds(500);
+        if (now >= nextInputPollAt_ && !inputWatch_.empty()) {
+            if (inputPollCursor_ >= inputWatch_.size()) inputPollCursor_ = 0;
+            const size_t end = std::min(inputWatch_.size(), inputPollCursor_ + kPollBatch);
+            batch.assign(inputWatch_.begin() + static_cast<long>(inputPollCursor_), inputWatch_.begin() + static_cast<long>(end));
+            inputPollCursor_ = end >= inputWatch_.size() ? 0 : end;
+            const bool wrapped = inputPollCursor_ == 0;
+            nextInputPollAt_ = now + std::chrono::milliseconds(wrapped ? 500 : 60);
         }
     }
-    for (const auto& n : watch) {
+    for (const auto& n : batch) {
         auto it = inputHash_.find(n);
         if (it == inputHash_.end() || inputIsString_[n]) continue;
         const uint32_t req = nextGetRequest_++;
         pendingWatchGets_[req] = n;
         rememberSend(client_.getInputEvent(req, it->second), "poll input event " + n);
     }
-    if (pendingWatchGets_.size() > 256) pendingWatchGets_.clear();  // never let lost replies pile up
+    if (pendingWatchGets_.size() > 4096) pendingWatchGets_.clear();  // never let lost replies pile up
 }
 
 void SimBridge::threadMain() {

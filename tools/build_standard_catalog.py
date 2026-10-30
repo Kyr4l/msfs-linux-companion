@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only
+# Copyright (C) 2026 Kyr4l
 """Build data/standard_catalog.json: the K: (SimConnect) events that cockpits of MSFS 2020 aircraft actually fire.
 
 Reads an MSFS installation (read-only) and keeps NAMES ONLY, no text or files are copied:

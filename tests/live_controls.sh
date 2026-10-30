@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-only
+# Copyright (C) 2026 Kyr4l
 # Usage: live_controls.sh <binary> <repo root>
 # Runs the real binary against tools/mock_simconnect.py posing as the CJ4 (whose cockpit is "still loading" for the first
 # enumeration): lists the cockpit controls, sets, toggles and cycles input events, and reads them back.

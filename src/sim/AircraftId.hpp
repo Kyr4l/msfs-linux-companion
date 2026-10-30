@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (C) 2026 Kyr4l
 #pragma once
 // Turns the aircraft.cfg path the sim reports ("...\SimObjects\Airplanes\Asobo_CJ4\aircraft.CFG") into the id used to
 // pick a catalog and a profile. Header-only so the sim layer, the UI and the tests share one definition.

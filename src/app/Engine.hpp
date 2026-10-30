@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (C) 2026 Kyr4l
 #pragma once
 // Turns joystick events into simulator commands according to the active profile.
 // Called from the input thread; the UI thread swaps in new profiles and reads status.

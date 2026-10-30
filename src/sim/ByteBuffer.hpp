@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (C) 2026 Kyr4l
 #pragma once
 // Little-endian serialization helpers for the SimConnect wire protocol.
 #include <cstdint>

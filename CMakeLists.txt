@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# Copyright (C) 2026 Kyr4l
 cmake_minimum_required(VERSION 3.20)
 project(msfs-linuxrebind VERSION 0.5.0 LANGUAGES CXX)
 
@@ -65,6 +67,9 @@ endif()
 install(TARGETS msfs-linuxrebind RUNTIME DESTINATION bin)
 install(DIRECTORY data/ DESTINATION share/msfs-linuxrebind/data)
 install(FILES packaging/msfs-linuxrebind.desktop DESTINATION share/applications)
+install(FILES LICENSE THIRD_PARTY_NOTICES.md DESTINATION share/licenses/msfs-linuxrebind)
+install(FILES third_party/imgui/LICENSE.txt DESTINATION share/licenses/msfs-linuxrebind RENAME LICENSE.imgui)
+install(FILES third_party/nlohmann/LICENSE.MIT DESTINATION share/licenses/msfs-linuxrebind RENAME LICENSE.nlohmann-json)
 install(FILES packaging/icons/msfs-linuxrebind.svg DESTINATION share/icons/hicolor/scalable/apps)
 foreach(size 16 32 48 64 128 256 512)
   install(FILES packaging/icons/msfs-linuxrebind-${size}.png DESTINATION share/icons/hicolor/${size}x${size}/apps RENAME msfs-linuxrebind.png)

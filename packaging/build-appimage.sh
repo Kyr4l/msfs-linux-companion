@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-only
+# Copyright (C) 2026 Kyr4l
 # Builds dist/msfs-linuxrebind-x86_64.AppImage.
 # Bundles libglfw (>= 3.4 is rare on older distros) and links libstdc++/libgcc statically; everything
 # else (libGL, X11/Wayland client libs, glibc) comes from the host like any AppImage.
@@ -42,6 +44,7 @@ exec "$HERE/usr/bin/msfs-linuxrebind" "$@"
 RUN
 chmod +x "$APPDIR/AppRun"
 cp "$ROOT/packaging/msfs-linuxrebind.desktop" "$APPDIR/"
+cp "$ROOT/LICENSE" "$APPDIR/LICENSE"  # the install step already placed the licence texts under usr/share/licenses
 cp "$ROOT/packaging/icons/msfs-linuxrebind-256.png" "$APPDIR/msfs-linuxrebind.png"
 cp "$ROOT/packaging/icons/msfs-linuxrebind.svg" "$APPDIR/.DirIcon" 2>/dev/null || cp "$APPDIR/msfs-linuxrebind.png" "$APPDIR/.DirIcon"
 

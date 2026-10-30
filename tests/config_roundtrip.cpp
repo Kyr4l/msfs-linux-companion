@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (C) 2026 Kyr4l
 // Config compatibility test: a schema-1 file (written by 0.1.x) must load without loss, saving it must
 // keep a pristine backup, and the upgraded file must round-trip. Optional argv[1]: a real config to check
 // (it is copied first, never modified).

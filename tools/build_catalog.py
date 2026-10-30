@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only
+# Copyright (C) 2026 Kyr4l
 """Build data/<aircraft>_catalog.json from the FlyByWire documentation.
 
 Sources (fetched from GitHub unless local paths are given):

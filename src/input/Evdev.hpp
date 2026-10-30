@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (C) 2026 Kyr4l
 #pragma once
 // Joystick input straight from the Linux evdev interface (/dev/input/event*), no SDL needed.
 // Runs on its own thread so bindings keep working whatever the UI thread is doing.

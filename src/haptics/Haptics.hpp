@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (C) 2026 Kyr4l
 #pragma once
 // Telemetry-driven vibration ("SimAppPro style"): flight data from SimConnect is turned into
 // motor levels for Winwing devices. Runs on its own thread at ~50 Hz.

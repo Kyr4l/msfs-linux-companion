@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (C) 2026 Kyr4l
 #pragma once
 // The browsable list of aircraft functions (generated from the FlyByWire docs, see tools/build_catalog.py).
 #include <string>

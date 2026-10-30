@@ -249,4 +249,11 @@ format), [MobiFlight WASM module](https://github.com/MobiFlight/MobiFlight-WASM-
 
 ## License
 
-MIT. Dear ImGui (MIT) and nlohmann/json (MIT) are vendored under `third_party/`.
+Copyright (C) 2026 Kyr4l. Free software under the **GNU General Public License v3.0 only** (`GPL-3.0-only`, see
+[LICENSE](LICENSE)): you may use, study, share and modify it, and any version you distribute must stay under the same licence
+with its source available. The source of every release is this repository at the matching tag.
+There is no warranty. Third-party components (Dear ImGui and nlohmann/json under MIT, GLFW under zlib, ...) and the data
+sources are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+Releases up to 0.5.0 were published under the MIT licence; those copies stay MIT for whoever received them. Everything from the
+next release on is GPL-3.0-only.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (C) 2026 Kyr4l
 #pragma once
 // Data model for bindings/profiles plus JSON (de)serialization of the config file.
 #include <string>

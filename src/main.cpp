@@ -1,11 +1,15 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (C) 2026 Kyr4l
 // msfs-linuxrebind: bind HOTAS buttons to MSFS 2020 cockpit events from Linux.
 #include <csignal>
+#include <fstream>
 #include <cstdio>
 #include <cstring>
 #include <string>
 #include <thread>
 
 #include <GLFW/glfw3.h>
+#include <nlohmann/json.hpp>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
@@ -49,6 +53,7 @@ void usage() {
         "  --read NAME            connect, print the value of L:NAME (needs MobiFlight) and exit\n"
         "  --read-input NAME      connect, print the value of the cockpit input event B:NAME of the loaded aircraft and exit\n"
         "  --list-controls        connect, print the aircraft the sim reports and its cockpit input events and L: variables, then exit\n"
+        "  --dump-controls FILE   like --list-controls, but also reads every input event's current value and writes everything to FILE (JSON)\n"
 
         "  --version, --help");
 }
@@ -65,6 +70,7 @@ int main(int argc, char** argv) {
     bool dumpConfig = false;
     std::vector<std::string> fireSpecs, readNames, readInputs;
     bool listControls = false;
+    std::string dumpControlsPath;
     int sweepDevice = -1;
     std::string hostOverride, profileOverride, configPath, catalogPath, startTab;
     int portOverride = 0;
@@ -80,6 +86,7 @@ int main(int argc, char** argv) {
         else if (a == "--read") { std::string v; next(v); readNames.push_back(v); }
         else if (a == "--read-input") { std::string v; next(v); readInputs.push_back(v); }
         else if (a == "--list-controls") listControls = true;
+        else if (a == "--dump-controls") { next(dumpControlsPath); listControls = true; }
         else if (a == "--motor-sweep") {
             motorSweep = true;
             if (i + 1 < argc && argv[i + 1][0] != '-') sweepDevice = static_cast<int>(std::strtol(argv[++i], nullptr, 0));
@@ -91,7 +98,10 @@ int main(int argc, char** argv) {
         else if (a == "--catalog") next(catalogPath);
         else if (a == "--tab") next(startTab);
         else if (a == "--quiet" || a == "-q") Log::instance().echoToStderr = false;
-        else if (a == "--version") { std::printf("msfs-linuxrebind %s\n", LINUXREBIND_VERSION); return 0; }
+        else if (a == "--version") {
+            std::printf("msfs-linuxrebind %s\nLicense GPL-3.0-only: free software, no warranty. Source: https://github.com/Kyr4l/msfs2020-linuxrebind\n", LINUXREBIND_VERSION);
+            return 0;
+        }
         else if (a == "--help" || a == "-h") { usage(); return 0; }
         else { std::fprintf(stderr, "unknown option %s\n", a.c_str()); usage(); return 2; }
     }
@@ -246,7 +256,39 @@ int main(int argc, char** argv) {
             if (std::chrono::steady_clock::now() > deadline || g_signalled) { std::fprintf(stderr, "simulator%s not available\n", needModule ? " / MobiFlight module" : ""); return 1; }
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
-        if (listControls) {
+        if (!dumpControlsPath.empty()) {
+            // read every event's current value (batched polling), then write one JSON document
+            const sim::LiveSnapshot first = bridge.liveSnapshot();
+            std::vector<std::string> names;
+            for (const auto& e : first.inputEvents) if (!e.isString) names.push_back(e.name);
+            bridge.watchInputEvents(names);
+            for (int i = 0; i < 300; ++i) {  // up to 30 s
+                size_t have = 0;
+                for (const auto& n : names) have += bridge.inputEventValue(n).has_value();
+                if (have >= names.size()) break;
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+            for (int i = 0; i < 80 && !bridge.liveSnapshot().lvarsDone; ++i) std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            const sim::LiveSnapshot snap = bridge.liveSnapshot();
+            nlohmann::json doc;
+            doc["aircraft"] = snap.aircraftId;
+            doc["label"] = snap.aircraftLabel;
+            doc["sim"] = bridge.status().simVersion;
+            doc["tool_version"] = LINUXREBIND_VERSION;
+            doc["input_events"] = nlohmann::json::array();
+            for (const auto& e : snap.inputEvents) {
+                nlohmann::json j{{"name", e.name}, {"text", e.isString}};
+                if (auto v = bridge.inputEventValue(e.name)) j["value"] = *v;
+                doc["input_events"].push_back(j);
+            }
+            doc["lvars"] = snap.lvars;
+            doc["lvars_listed"] = snap.lvarsDone;
+            std::ofstream out(dumpControlsPath);
+            out << doc.dump(1) << "\n";
+            std::printf("wrote %zu input events (%zu with a value) and %zu L: variables of %s to %s\n", snap.inputEvents.size(),
+                        static_cast<size_t>(std::count_if(doc["input_events"].begin(), doc["input_events"].end(), [](const nlohmann::json& j) { return j.contains("value"); })),
+                        snap.lvars.size(), snap.aircraftId.c_str(), dumpControlsPath.c_str());
+        } else if (listControls) {
             // L: variables come from the MobiFlight module; give it a few seconds, the list is optional
             for (int i = 0; i < 80 && !bridge.liveSnapshot().lvarsDone; ++i) std::this_thread::sleep_for(std::chrono::milliseconds(100));
             const sim::LiveSnapshot snap = bridge.liveSnapshot();

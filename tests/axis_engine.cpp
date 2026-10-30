@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (C) 2026 Kyr4l
 // Axis binding logic: mapping, value substitution, rate limiting, step counting, capture, config round trip.
 #include <chrono>
 #include <cmath>

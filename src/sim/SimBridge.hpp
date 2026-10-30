@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (C) 2026 Kyr4l
 #pragma once
 // Owns the SimConnect connection on its own thread: reconnects, maps event names to IDs,
 // talks to the MobiFlight WASM module (for H: events, L: vars and calculator code) and
@@ -190,6 +192,7 @@ private:
     std::atomic<int> initialScanDelayMs_{3000};
     std::unordered_map<uint32_t, std::string> pendingWatchGets_;  // request id -> input event name
     std::vector<std::string> inputWatch_;
+    size_t inputPollCursor_ = 0;
     std::unordered_map<std::string, double> inputValues_;         // guarded by m_
     std::chrono::steady_clock::time_point nextInputPollAt_{};
     LiveSnapshot live_;                                          // guarded by m_
