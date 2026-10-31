@@ -178,12 +178,22 @@ Some throttles have mechanical gates on the lever: the Winwing URSA MINOR has a 
 detent and an afterburner gate at the front. The sim's own calibration cannot teach an aircraft those points
 (some aircraft have no throttle calibration at all), so the program does it:
 
-1. **Calibrate the axis once** (Devices tab, *Calibrate...* next to the axis, or from the binding editor). Move the
-   lever to the cut-off stop, the idle detent, the end of the dry range (just before the afterburner gate) and the
-   afterburner end, and press the button of each. The positions are stored in the config and shared by every
-   profile; the bindings are paused while the window is open. A lever that reads the other way round is detected.
+1. **Calibrate the axis once** (Devices tab, *Calibrate...* next to the axis, or from the binding editor).
+   * **Gate buttons**: many throttles have a switch at each gate, which closes while the lever is in it (on the URSA MINOR
+     Combat Throttle, for example, buttons 13 / 18 / 17 / 16 for the cut-off, idle, end of the dry range and afterburner of one lever
+     and 23 / 22 / 21 / 20 for the other; on the unit this was developed with the two levers read as the Rx and Ry axes, and X and Y were something else: the *Devices* tab shows which axis moves). Press *Listen* for a gate and
+     move the lever into it: the program notices which button closed. From then on that button decides, exactly, whether the
+     lever is in the cut-off or the afterburner, and when it is at idle or at the end of the dry range, however close the gates
+     are: a lever with a centimetre between cut-off and idle has gate *positions* that overlap, buttons never do.
+   * **Positions**: move the lever up through its travel once; the program learns where the idle gate ends and where the
+     dry range stops (the position at the moment the idle button opens and the end button closes), or set them by hand.
+     That is all the axis is needed for: the linear part in between.
+   * **A gate without a button** is judged from the position of the lever (set with *Set from the lever*), which only works
+     when the gates are far enough apart.
+   The result is stored in the config and shared by every profile; the bindings are paused while the window is open. A
+   lever that reads the other way round is detected.
 2. **Tick *Lever with gates*** in the binding of that axis and give the values the sim should get: at the cut-off, at
-   idle (the idle detent holds exactly that value, with a small band so it never wobbles) and at the end of the dry
+   idle (exactly that value while the idle gate is closed) and at the end of the dry
    range. Between idle and the end of the dry range the value follows the lever linearly; in the afterburner zone it
    stays at the last value.
 3. **Gate actions**: lists of actions that run once when the lever enters or leaves the cut-off or the afterburner

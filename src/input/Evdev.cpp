@@ -107,6 +107,26 @@ int InputManager::buttonIndex(const std::string& deviceKey, int code) const {
     return -1;
 }
 
+bool InputManager::buttonDown(const std::string& deviceKey, int evdevCode) const {
+    std::lock_guard<std::mutex> lock(m_);
+    for (const auto& d : snapshots_) {
+        if (d.key != deviceKey) continue;
+        const auto it = std::find(d.buttonCodes.begin(), d.buttonCodes.end(), evdevCode);
+        return it != d.buttonCodes.end() && d.buttonState[static_cast<size_t>(it - d.buttonCodes.begin())];
+    }
+    return false;
+}
+
+float InputManager::axisValue(const std::string& deviceKey, int evdevCode) const {
+    std::lock_guard<std::mutex> lock(m_);
+    for (const auto& d : snapshots_) {
+        if (d.key != deviceKey) continue;
+        const auto it = std::find(d.axisCodes.begin(), d.axisCodes.end(), evdevCode);
+        if (it != d.axisCodes.end()) return d.axisValue[static_cast<size_t>(it - d.axisCodes.begin())];
+    }
+    return -1.0f;
+}
+
 std::string InputManager::describe(const InputId& id) const {
     if (id.kind == InputKind::Hat) return "Hat " + std::to_string(id.code + 1) + " " + hatDirName(id.dir);
     if (id.kind == InputKind::Axis) {

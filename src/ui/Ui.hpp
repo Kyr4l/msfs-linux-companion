@@ -87,6 +87,7 @@ private:
     void drawAxisOptions();
     void drawDetentOptions();  // lever with gates: calibration state, values at the gates, presets
     void drawGateBar(const AxisCalibration& cal, float now, float width, const bool* gateSet = nullptr);  // the zones of a calibrated lever with its live position
+    Engine::GateState gateStateNow(const AxisCalibration& cal) const;  // which gate buttons of a calibrated lever are closed right now
     void openCalibration(const input::InputId& axis);
     void drawCalibrationWizard();
     std::vector<Action>& catalogTargetList();  // the draft list the catalog picker adds to
@@ -109,6 +110,9 @@ private:
     input::InputId calAxis_;
     AxisCalibration calDraft_;
     bool calSet_[4] = {false, false, false, false};  // which gates the user has pointed out in this run of the wizard
+    int calListening_ = -1;                          // the gate whose button is being listened for (0 cut-off .. 3 afterburner), or -1
+    int calSig_ = 0;                                 // the gate buttons the engine is learning positions for
+    std::string calMessage_;
 
     // catalog panel view: the catalog regrouped into panels (cards) of controls, rebuilt when the catalog changes
     enum class CatalogView { List, Panels };

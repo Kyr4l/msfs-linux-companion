@@ -68,7 +68,14 @@ void Ui::drawDevicesTab() {
                 if (ImGui::IsItemHovered()) ImGui::SetTooltip("For a lever with gates (the URSA MINOR throttle: cut-off, idle, afterburner): teach the program where they are.");
                 if (cal) {
                     ImGui::SameLine();
-                    if (cal->valid()) ImGui::TextColored(kGreen, "calibrated: cut-off at %.0f%%, idle %.0f%%, end of the dry range %.0f%%, afterburner end %.0f%%", cal->cutoff * 100, cal->idle * 100, cal->mil * 100, cal->ab * 100);
+                    if (cal->valid()) {
+                        std::string gates;
+                        const int codes[4] = {cal->cutoffBtn, cal->idleBtn, cal->milBtn, cal->abBtn};
+                        const char* names[4] = {"cut-off", "idle", "dry end", "afterburner"};
+                        for (int g = 0; g < 4; ++g)
+                            if (codes[g] >= 0) gates += std::string(gates.empty() ? "" : ", ") + names[g] + " " + ctx_.input.describe({d.key, input::InputKind::Button, codes[g], 0});
+                        ImGui::TextColored(kGreen, "calibrated: idle ends at %.0f%%, dry range to %.0f%%%s%s", cal->idle * 100, cal->mil * 100, gates.empty() ? "" : "; gate buttons: ", gates.c_str());
+                    }
                     else ImGui::TextColored(kYellow, "calibration unusable");
                 }
                 ImGui::PopID();

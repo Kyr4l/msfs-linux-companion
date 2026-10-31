@@ -253,6 +253,8 @@ int main(int argc, char** argv) {
     ctx.pushProfileToEngine();
     hapticsEngine.setConfig(ctx.settings.haptics);  // Winwing discovery runs on the haptics thread
     hapticsEngine.start();
+    engine.setProbes([&input](const std::string& dev, int code) { return input.buttonDown(dev, code); },
+                     [&input](const std::string& dev, int code) { return input.axisValue(dev, code); });
     input.start([&engine](const input::InputEvent& ev) { engine.onInput(ev); }, [&engine] { return engine.tick(); });
 
     if (!fireSpecs.empty() || !readNames.empty() || !readInputs.empty() || listControls || !paramNames.empty() || !scriptPath.empty()) {

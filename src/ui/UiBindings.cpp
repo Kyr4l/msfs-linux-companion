@@ -32,7 +32,7 @@ void Ui::drawDetentOptions() {
         const float now = axisNow(draft_.input);
         drawGateBar(*cal, now, 460);
         if (now >= 0) {
-            const auto r = Engine::detentOutput(d, *cal, now, AxisZone::Dry);
+            const auto r = Engine::detentOutput(d, *cal, now, AxisZone::Dry, gateStateNow(*cal));
             ImGui::TextDisabled("The lever is in the %s zone.", r.zone == AxisZone::Cutoff ? "cut-off" : r.zone == AxisZone::Afterburner ? "afterburner" : "dry range (idle to military power)");
         }
     } else {
@@ -94,7 +94,7 @@ void Ui::drawAxisOptions() {
     const AxisCalibration* cal = c.detents.enabled && c.mode == AxisMode::Value ? ctx_.settings.calibrationFor(draft_.input) : nullptr;
     const bool gates = cal && cal->valid();  // the lever's gates decide the output instead of the range below
     double shown = Engine::axisOutput(c, t);
-    if (gates && now >= 0) shown = Engine::detentOutput(c.detents, *cal, now, AxisZone::Dry).value;
+    if (gates && now >= 0) shown = Engine::detentOutput(c.detents, *cal, now, AxisZone::Dry, gateStateNow(*cal)).value;
     char overlay[96];
     if (now < 0) snprintf(overlay, sizeof overlay, "device not connected");
     else if (c.mode == AxisMode::Value) snprintf(overlay, sizeof overlay, "%d%% of travel  ->  %s", static_cast<int>(now * 100 + 0.5f), Engine::formatValue(shown, c.integer && !gates).c_str());

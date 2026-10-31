@@ -6,6 +6,7 @@
 #include <fstream>
 #include <cstdio>
 #include <filesystem>
+#include <map>
 #include <memory>
 #include <thread>
 
@@ -31,6 +32,14 @@ static InputEvent axisEvent(const char* dev, int code, float prev, float now) {
     e.id = {dev, InputKind::Axis, code, 0};
     e.axis = now;
     e.axisPrev = prev;
+    e.time = std::chrono::steady_clock::now();
+    return e;
+}
+
+static InputEvent buttonEvent(const char* dev, int code, bool pressed) {
+    InputEvent e;
+    e.id = {dev, InputKind::Button, code, 0};
+    e.pressed = pressed;
     e.time = std::chrono::steady_clock::now();
     return e;
 }
@@ -379,6 +388,157 @@ int main() {
         CHECK(rb.onAfterburner.size() == 1 && rb.onAfterburnerLeave.size() == 1 && rb.onAfterburnerLeave[0].name == "ENGINE_Throttle_1_Afterburner");
         st.clearCalibration({dev, InputKind::Axis, 1, 0});
         CHECK(st.calibrations.size() == 1 && !st.calibrationFor({dev, InputKind::Axis, 1, 0}));
+        std::filesystem::remove(path);
+    }
+
+    // ---- a lever with a switch at each gate (the URSA MINOR throttle): the buttons decide the zones, the axis only the part between
+    {
+        // the gates sit a centimetre apart: the positions of cut-off and idle overlap, which no zones from the position can separate
+        AxisCalibration cal;
+        cal.device = dev;
+        cal.code = 3;
+        cal.cutoff = 0.03; cal.idle = 0.03; cal.mil = 0.75; cal.ab = 0.90;
+        cal.cutoffBtn = 300; cal.idleBtn = 301; cal.milBtn = 302; cal.abBtn = 303;
+        CHECK(cal.valid());
+        AxisCalibration noButton = cal;
+        noButton.cutoffBtn = -1;
+        CHECK(!noButton.valid());  // judged from the position, cut-off and idle at the same place cannot work
+        noButton = cal;
+        noButton.abBtn = -1;
+        noButton.ab = noButton.mil;
+        CHECK(!noButton.valid());
+        AxisDetents d;
+        d.enabled = true; d.outCutoff = 0.0; d.outIdle = 0.1; d.outMil = 0.8;
+        using G = Engine::GateState;
+        auto at = [&](double raw, G g, AxisZone prev = AxisZone::Dry) { return Engine::detentOutput(d, cal, raw, prev, g); };
+        G none, cut, idle, mil, ab;
+        cut.cutoff = true; idle.idle = true; mil.mil = true; ab.ab = true;
+
+        CHECK(at(0.02, none).zone == AxisZone::Dry && at(0.02, none).value == 0.1);  // below the top of idle, no button: idle
+        CHECK(at(0.03, cut).zone == AxisZone::Cutoff && at(0.03, cut).value == 0.0);  // the button, though the position is the idle one
+        CHECK(at(0.50, cut).zone == AxisZone::Cutoff);                                // and wins over any position
+        CHECK(at(0.04, idle).value == 0.1 && at(0.04, idle).zone == AxisZone::Dry);
+        CHECK(std::fabs(at(0.40, none).value - (0.1 + (0.40 - 0.03) / (0.75 - 0.03) * 0.7)) < 1e-9);  // between the gates the axis decides
+        CHECK(at(0.70, mil).value == 0.8 && at(0.70, mil).zone == AxisZone::Dry);    // the end switch is exact even before the position gets there
+        CHECK(at(0.80, ab).zone == AxisZone::Afterburner && at(0.80, ab).value == 0.8);
+        G both = cut; both.ab = true;
+        CHECK(at(0.5, both).zone == AxisZone::Cutoff);
+        CHECK(at(0.99, none).zone == AxisZone::Dry);  // a gate with a button ignores the position: no button, no afterburner
+
+        // the engine: gate buttons move the zone without any axis event, and give the zone the lever starts in
+        Engine lever(bridge);
+        std::map<int, bool> pressed;
+        float rawNow = -1;
+        lever.setProbes([&](const std::string&, int code) { return pressed[code]; }, [&](const std::string&, int) { return rawNow; });
+        auto lp = std::make_shared<Profile>();
+        Binding t;
+        t.label = "Right throttle";
+        t.input = {dev, InputKind::Axis, 3, 0};
+        t.axis.mode = AxisMode::Value; t.axis.integer = false; t.axis.minIntervalMs = 5; t.axis.detents = d;
+        Action thr, cut1, cut0, burn1, burn0;
+        thr.kind = ActionKind::InputEvent; thr.name = "ENGINE_Throttle_2";
+        cut1.kind = ActionKind::InputEvent; cut1.name = "ENG_CUT"; cut1.value = 1;
+        cut0 = cut1; cut0.value = 0;
+        burn1.kind = ActionKind::InputEvent; burn1.name = "AB"; burn1.value = 1;
+        burn0 = burn1; burn0.value = 0;
+        t.onPress = {thr};
+        t.onCutoff = {cut1}; t.onCutoffLeave = {cut0}; t.onAfterburner = {burn1}; t.onAfterburnerLeave = {burn0};
+        lp->bindings.push_back(t);
+        lever.setProfile(lp);
+        lever.setCalibrations({cal});
+        auto pause = [] { std::this_thread::sleep_for(std::chrono::milliseconds(12)); };
+
+        lever.onInput(axisEvent(dev, 3, 0.0f, 0.40f));  // somewhere in the dry range
+        CHECK(firesNamed(lever, "Right throttle = 0.4") == 1 && firesNamed(lever, "(cut-off)") == 0);
+        pause();
+        lever.onInput(axisEvent(dev, 3, 0.40f, 0.02f));  // pulled back: the position alone says idle, the cut-off switch has not closed
+        CHECK(firesNamed(lever, "(cut-off)") == 0 && firesNamed(lever, "Right throttle = 0.1") == 1);
+        pause();
+        pressed[300] = true;
+        lever.onInput(buttonEvent(dev, 300, true));  // over the gate: the switch closes, the axis does not move
+        CHECK(firesNamed(lever, "Right throttle (cut-off): ") == 1 && firesNamed(lever, "Right throttle = 0") >= 1);
+        pause();
+        lever.onInput(axisEvent(dev, 3, 0.02f, 0.01f));  // still in the cut-off: nothing new
+        CHECK(firesNamed(lever, "(cut-off)") == 1 && firesNamed(lever, "(leaves the cut-off)") == 0);
+        pause();
+        pressed[300] = false;
+        lever.onInput(buttonEvent(dev, 300, false));
+        CHECK(firesNamed(lever, "(leaves the cut-off)") == 1);
+        pause();
+        pressed[303] = true;
+        lever.onInput(buttonEvent(dev, 303, true));  // the afterburner switch closes
+        CHECK(firesNamed(lever, "Right throttle (afterburner): ") == 1 && firesNamed(lever, "Right throttle = 0.8") >= 1);
+        pause();
+        pressed[303] = false;
+        lever.onInput(buttonEvent(dev, 303, false));
+        CHECK(firesNamed(lever, "(leaves the afterburner)") == 1);
+        pause();
+        lever.onInput(buttonEvent(dev, 304, true));  // some other button of the device: nothing happens
+        const size_t before = lever.recentFires().size();
+        lever.onInput(buttonEvent(dev, 304, false));
+        CHECK(lever.recentFires().size() == before);
+
+        // started with the lever already in the cut-off gate: the first position seen finds it there
+        Engine resting(bridge);
+        std::map<int, bool> held{{300, true}};
+        resting.setProbes([&](const std::string&, int code) { return held[code]; }, nullptr);
+        resting.setProfile(lp);
+        resting.setCalibrations({cal});
+        resting.onInput(axisEvent(dev, 3, 0.01f, 0.02f));
+        CHECK(firesNamed(resting, "(cut-off)") == 1);
+
+        // a calibration open: the position at each gate switch is remembered, the idle one when it opens
+        Engine learning(bridge);
+        learning.setProfile(lp);
+        learning.beginGateLearning(cal);
+        learning.onInput(axisEvent(dev, 3, 0.0f, 0.01f));
+        learning.onInput(buttonEvent(dev, 300, true));
+        learning.onInput(buttonEvent(dev, 300, false));
+        learning.onInput(axisEvent(dev, 3, 0.01f, 0.025f));
+        learning.onInput(buttonEvent(dev, 301, true));    // idle closes: not what is wanted
+        learning.onInput(axisEvent(dev, 3, 0.025f, 0.04f));
+        learning.onInput(buttonEvent(dev, 301, false));   // idle opens: the lever leaves it here
+        learning.onInput(axisEvent(dev, 3, 0.04f, 0.74f));
+        learning.onInput(buttonEvent(dev, 302, true));
+        learning.onInput(axisEvent(dev, 3, 0.74f, 0.88f));
+        learning.onInput(buttonEvent(dev, 303, true));
+        const auto got = learning.takeGateLearned();
+        CHECK(got[0] && std::fabs(*got[0] - 0.01) < 1e-6 && got[1] && std::fabs(*got[1] - 0.04) < 1e-6 &&
+              got[2] && std::fabs(*got[2] - 0.74) < 1e-6 && got[3] && std::fabs(*got[3] - 0.88) < 1e-6);
+        const auto again = learning.takeGateLearned();
+        CHECK(!again[0] && !again[1] && !again[2] && !again[3]);  // each reading is handed over once
+        learning.onInput(buttonEvent(dev, 303, false));
+        learning.onInput(buttonEvent(dev, 303, true));
+        CHECK(learning.takeGateLearned()[3]);  // and the next pass is recorded afresh
+        learning.endGateLearning();
+        learning.onInput(buttonEvent(dev, 303, false));
+        learning.onInput(buttonEvent(dev, 303, true));
+        CHECK(!learning.takeGateLearned()[3]);  // nothing is recorded once the calibration is closed
+
+        // listening for a gate button ignores the axis the lever moves
+        Engine listening(bridge);
+        listening.beginCapture(true);
+        listening.onInput(axisEvent(dev, 3, 0.0f, 0.9f));
+        CHECK(!listening.takeCaptured() && listening.capturing());
+        listening.onInput(buttonEvent(dev, 301, true));
+        const auto cap = listening.takeCaptured();
+        CHECK(cap && cap->kind == InputKind::Button && cap->code == 301 && !listening.capturing());
+
+        // saved with the config; an older calibration without buttons reads as before
+        Settings st;
+        st.setCalibration(cal);
+        AxisCalibration plain;
+        plain.device = dev; plain.code = 4;
+        st.setCalibration(plain);
+        const auto path = (std::filesystem::temp_directory_path() / "msfs-linux-companion-gatebtn-test.json").string();
+        std::string err;
+        CHECK(saveSettings(path, st, err));
+        Settings back;
+        CHECK(loadSettings(path, back, err));
+        const AxisCalibration* c3 = back.calibrationFor({dev, InputKind::Axis, 3, 0});
+        const AxisCalibration* c4 = back.calibrationFor({dev, InputKind::Axis, 4, 0});
+        CHECK(c3 && c3->cutoffBtn == 300 && c3->idleBtn == 301 && c3->milBtn == 302 && c3->abBtn == 303 && c3->valid());
+        CHECK(c4 && c4->cutoffBtn == -1 && c4->idleBtn == -1 && c4->milBtn == -1 && c4->abBtn == -1);
         std::filesystem::remove(path);
     }
 

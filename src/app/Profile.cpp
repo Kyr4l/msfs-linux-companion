@@ -71,10 +71,15 @@ std::string Action::describe() const {
 }
 
 bool AxisCalibration::valid() const {
-    const bool rev = cutoff > ab;
+    const bool rev = idle > mil;  // the direction of the dry range; a lever mounted the other way round reads descending
     auto n = [rev](double x) { return rev ? 1.0 - x : x; };
     const double c = n(cutoff), i = n(idle), m = n(mil), a = n(ab);
-    return c >= 0.0 && a <= 1.0 && i - c >= 0.01 && m - i >= 0.1 && a - m >= 0.01 && snap >= 0.0 && snap < (m - i) / 2;
+    if (i < 0.0 || m > 1.0 || snap < 0.0) return false;
+    if (m - i < (idleBtn >= 0 ? 0.05 : 0.1)) return false;       // the dry range must exist
+    if (idleBtn < 0 && snap >= (m - i) / 2) return false;         // an idle band that swallows it
+    if (cutoffBtn < 0 && (c < 0.0 || i - c < 0.01)) return false;  // cut-off judged from the position: before idle
+    if (abBtn < 0 && (a > 1.0 || a - m < 0.01)) return false;      // afterburner judged from the position: after the dry range
+    return true;
 }
 
 const AxisCalibration* Settings::calibrationFor(const input::InputId& axis) const {
@@ -254,6 +259,10 @@ bool loadSettings(const std::string& path, Settings& out, std::string& err) {
             c.mil = cj.value("mil", c.mil);
             c.ab = cj.value("ab", c.ab);
             c.snap = cj.value("snap", c.snap);
+            c.cutoffBtn = cj.value("cutoff_btn", -1);
+            c.idleBtn = cj.value("idle_btn", -1);
+            c.milBtn = cj.value("mil_btn", -1);
+            c.abBtn = cj.value("ab_btn", -1);
             if (!c.device.empty()) s.calibrations.push_back(c);
         }
         if (j.contains("haptics")) {
@@ -309,8 +318,14 @@ bool saveSettings(const std::string& path, const Settings& s, std::string& err) 
                             {"left_device", dc.identity.left.device}, {"left_index", dc.identity.left.index},
                             {"right_device", dc.identity.right.device}, {"right_index", dc.identity.right.index}};
     json calibrations = json::array();
-    for (const auto& c : s.calibrations)
-        calibrations.push_back(json{{"device", c.device}, {"code", c.code}, {"cutoff", c.cutoff}, {"idle", c.idle}, {"mil", c.mil}, {"ab", c.ab}, {"snap", c.snap}});
+    for (const auto& c : s.calibrations) {
+        json cj{{"device", c.device}, {"code", c.code}, {"cutoff", c.cutoff}, {"idle", c.idle}, {"mil", c.mil}, {"ab", c.ab}, {"snap", c.snap}};
+        if (c.cutoffBtn >= 0) cj["cutoff_btn"] = c.cutoffBtn;  // omitted without a button: files stay as before
+        if (c.idleBtn >= 0) cj["idle_btn"] = c.idleBtn;
+        if (c.milBtn >= 0) cj["mil_btn"] = c.milBtn;
+        if (c.abBtn >= 0) cj["ab_btn"] = c.abBtn;
+        calibrations.push_back(cj);
+    }
     json j{{"version", kConfigVersion}, {"host", s.host}, {"port", s.port}, {"auto_connect", s.autoConnect}, {"guide_autodetect", s.guideAutodetect},
            {"active_profile", s.activeProfile}, {"profiles", profiles}, {"calibrations", calibrations},
            {"bindings_view", {{"group_by", s.bindingsGroupBy == BindingsGroupBy::Device ? "device" : s.bindingsGroupBy == BindingsGroupBy::InputType ? "type" : s.bindingsGroupBy == BindingsGroupBy::Custom ? "custom" : "none"}, {"auto_sort", s.bindingsAutoSort}}},

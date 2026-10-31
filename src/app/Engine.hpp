@@ -3,8 +3,10 @@
 #pragma once
 // Turns joystick events into simulator commands according to the active profile.
 // Called from the input thread; the UI thread swaps in new profiles and reads status.
+#include <array>
 #include <chrono>
 #include <deque>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -29,6 +31,13 @@ public:
 
     void setProfile(std::shared_ptr<const Profile> profile);
     void setCalibrations(std::vector<AxisCalibration> calibrations);  // the gates of the calibrated levers (Settings::calibrations)
+    // How to ask the input manager for the state of a button or axis the engine has not seen move yet (a lever resting in its cut-off
+    // gate when the program starts). Without them such a gate counts as open.
+    void setProbes(std::function<bool(const std::string&, int)> buttonDown, std::function<float(const std::string&, int)> axisValue);
+    // While a calibration is open: remember the lever's position at the moment each gate button closes or opens (read by takeGateLearned()).
+    void beginGateLearning(const AxisCalibration& cal);
+    void endGateLearning();
+    std::array<std::optional<double>, 4> takeGateLearned();  // cut-off closes, idle opens, end of the dry range closes, afterburner closes; each is returned once
     void setEnabled(bool on);
     bool enabled() const { return enabled_; }
 
@@ -44,12 +53,15 @@ public:
     static double axisOutput(const AxisConfig& c, double position01);        // rescaled (and rounded if integer)
     // A lever with gates: where it is (raw 0..1 of the device travel) -> the value to send and the zone it is in. `previous` gives the
     // zone a little hysteresis, so a lever resting at a zone boundary does not chatter.
+    // Which gate buttons are closed (only meaningful for the gates of the calibration that have a button).
+    struct GateState { bool cutoff = false, idle = false, mil = false, ab = false; };
     struct DetentResult { double value; AxisZone zone; };
-    static DetentResult detentOutput(const AxisDetents& d, const AxisCalibration& cal, double raw01, AxisZone previous);
+    static DetentResult detentOutput(const AxisDetents& d, const AxisCalibration& cal, double raw01, AxisZone previous, const GateState& gates);
+    static DetentResult detentOutput(const AxisDetents& d, const AxisCalibration& cal, double raw01, AxisZone previous);  // no gate button closed
     static std::vector<Action> withValue(const std::vector<Action>& actions, double v, bool integer);  // substitute the axis value
     static std::string formatValue(double v, bool integer);
 
-    void beginCapture();
+    void beginCapture(bool buttonsOnly = false);  // buttonsOnly: ignore axes and hats (learning the gate buttons of a lever)
     void cancelCapture();
     bool capturing() const;
     std::optional<input::InputId> takeCaptured();
@@ -69,6 +81,10 @@ private:
     void onAxis(const input::InputEvent& ev);
     void sendAxisValue(const Binding& b, double out);
     void dispatchZone(const Binding& b, const std::vector<Action>& actions, const char* what);  // runs and records the actions of a gate zone
+    void applyLever(const Binding& b, size_t index, const AxisCalibration& cal, double raw);  // value and gate actions of a lever with gates
+    bool buttonIsDown(const std::string& device, int code);
+    GateState gatesOf(const AxisCalibration& cal);
+    double axisRawOf(const AxisCalibration& cal);
 
     struct AxisState {
         bool hasSent = false;
@@ -83,6 +99,18 @@ private:
     };
     std::unordered_map<size_t, AxisState> axisState_;           // by binding index in the current profile
     std::unordered_map<std::string, float> captureBase_;        // axis resting values seen since beginCapture()
+    std::unordered_map<std::string, float> axisRaw_;            // last position seen of every axis ("device#code"), also while bindings are paused
+    std::unordered_map<std::string, bool> buttonState_;         // last state seen of every button ("device#code")
+    std::function<bool(const std::string&, int)> buttonProbe_;
+    std::function<float(const std::string&, int)> axisProbe_;
+    struct GateLearning {
+        bool active = false;
+        std::string device;
+        int axisCode = 0;
+        int button[4] = {-1, -1, -1, -1};
+        std::array<std::optional<double>, 4> raw;
+    } learn_;
+    bool captureButtonsOnly_ = false;
 
     sim::SimBridge& bridge_;
     mutable std::mutex m_;

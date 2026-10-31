@@ -70,6 +70,8 @@ public:
     // "Btn 12" / "Hat 1 Up"; falls back to the raw code when the device is unknown.
     std::string describe(const InputId& id) const;
     int buttonIndex(const std::string& deviceKey, int code) const;
+    bool buttonDown(const std::string& deviceKey, int evdevCode) const;  // false when the device or the button is unknown
+    float axisValue(const std::string& deviceKey, int evdevCode) const;  // 0..1, or -1 when the device or the axis is unknown
 
 private:
     struct Device;

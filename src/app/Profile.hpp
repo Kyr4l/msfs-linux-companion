@@ -70,8 +70,14 @@ struct Binding {
 struct AxisCalibration {
     std::string device;                       // device key "vvvv:pppp:Name"
     int code = 0;                             // ABS_* code of the axis
+    // Where the gates are on the axis. `idle` is where the lever leaves the idle gate and `mil` where it reaches the end of the
+    // dry range; they matter for the linear part in between. `cutoff` and `ab` only decide the zones of a gate without a button.
     double cutoff = 0.0, idle = 0.12, mil = 0.80, ab = 0.95;
-    double snap = 0.015;                      // half width of the idle band: the lever reads exactly idle inside it
+    double snap = 0.015;                      // half width of the idle band of an idle gate without a button
+    // Some levers have a switch at each gate (the URSA MINOR throttle): the evdev code of the button of this device that is
+    // closed while the lever is in the cut-off, idle, end-of-dry-range or afterburner gate. A gate with a button is decided by
+    // the button, which is exact and cannot overlap the next gate however close the gates are; -1 = judged from the position.
+    int cutoffBtn = -1, idleBtn = -1, milBtn = -1, abBtn = -1;
     bool valid() const;                       // the gates in order, far enough apart
 };
 

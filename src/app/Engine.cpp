@@ -27,15 +27,82 @@ void Engine::setCalibrations(std::vector<AxisCalibration> calibrations) {
     for (auto& [idx, st] : axisState_) st.zoneKnown = false;  // the gates moved: the zone is looked at afresh
 }
 
+void Engine::setProbes(std::function<bool(const std::string&, int)> buttonDown, std::function<float(const std::string&, int)> axisValue) {
+    std::lock_guard<std::mutex> lock(m_);
+    buttonProbe_ = std::move(buttonDown);
+    axisProbe_ = std::move(axisValue);
+}
+
+void Engine::beginGateLearning(const AxisCalibration& cal) {
+    std::lock_guard<std::mutex> lock(m_);
+    learn_ = GateLearning{};
+    learn_.active = true;
+    learn_.device = cal.device;
+    learn_.axisCode = cal.code;
+    learn_.button[0] = cal.cutoffBtn;
+    learn_.button[1] = cal.idleBtn;
+    learn_.button[2] = cal.milBtn;
+    learn_.button[3] = cal.abBtn;
+}
+
+void Engine::endGateLearning() {
+    std::lock_guard<std::mutex> lock(m_);
+    learn_ = GateLearning{};
+}
+
+std::array<std::optional<double>, 4> Engine::takeGateLearned() {
+    std::lock_guard<std::mutex> lock(m_);
+    const auto raw = learn_.raw;
+    learn_.raw = {};
+    return raw;
+}
+
+bool Engine::buttonIsDown(const std::string& device, int code) {
+    const std::string key = device + "#" + std::to_string(code);
+    std::function<bool(const std::string&, int)> probe;
+    {
+        std::lock_guard<std::mutex> lock(m_);
+        auto it = buttonState_.find(key);
+        if (it != buttonState_.end()) return it->second;
+        probe = buttonProbe_;
+    }
+    const bool down = probe ? probe(device, code) : false;  // not seen move yet: ask the input manager once
+    std::lock_guard<std::mutex> lock(m_);
+    return buttonState_.emplace(key, down).first->second;
+}
+
+Engine::GateState Engine::gatesOf(const AxisCalibration& cal) {
+    GateState g;
+    if (cal.cutoffBtn >= 0) g.cutoff = buttonIsDown(cal.device, cal.cutoffBtn);
+    if (cal.idleBtn >= 0) g.idle = buttonIsDown(cal.device, cal.idleBtn);
+    if (cal.milBtn >= 0) g.mil = buttonIsDown(cal.device, cal.milBtn);
+    if (cal.abBtn >= 0) g.ab = buttonIsDown(cal.device, cal.abBtn);
+    return g;
+}
+
+double Engine::axisRawOf(const AxisCalibration& cal) {
+    const std::string key = cal.device + "#" + std::to_string(cal.code);
+    std::function<float(const std::string&, int)> probe;
+    {
+        std::lock_guard<std::mutex> lock(m_);
+        auto it = axisRaw_.find(key);
+        if (it != axisRaw_.end()) return it->second;
+        probe = axisProbe_;
+    }
+    const float v = probe ? probe(cal.device, cal.code) : -1.0f;
+    return v >= 0 ? v : cal.idle;  // never moved and unknown: where the lever rests at idle
+}
+
 void Engine::setEnabled(bool on) {
     std::lock_guard<std::mutex> lock(m_);
     enabled_ = on;
     if (!on) held_.clear();
 }
 
-void Engine::beginCapture() {
+void Engine::beginCapture(bool buttonsOnly) {
     std::lock_guard<std::mutex> lock(m_);
     capturing_ = true;
+    captureButtonsOnly_ = buttonsOnly;
     captured_.reset();
     captureBase_.clear();
 }
@@ -43,6 +110,7 @@ void Engine::beginCapture() {
 void Engine::cancelCapture() {
     std::lock_guard<std::mutex> lock(m_);
     capturing_ = false;
+    captureButtonsOnly_ = false;
     captured_.reset();
 }
 
@@ -93,22 +161,31 @@ double Engine::axisOutput(const AxisConfig& c, double t) {
     return c.integer ? std::round(v) : v;
 }
 
-Engine::DetentResult Engine::detentOutput(const AxisDetents& d, const AxisCalibration& cal, double raw01, AxisZone previous) {
+Engine::DetentResult Engine::detentOutput(const AxisDetents& d, const AxisCalibration& cal, double raw01, AxisZone previous, const GateState& gates) {
     // mirrored so that the cut-off is always the low end
-    const bool reversed = cal.cutoff > cal.ab;
+    const bool reversed = cal.idle > cal.mil;
     auto n = [reversed](double x) { return reversed ? 1.0 - x : x; };
     const double r = n(raw01), cutoff = n(cal.cutoff), idle = n(cal.idle), mil = n(cal.mil), ab = n(cal.ab);
     const double cutLimit = (cutoff + idle) / 2, abLimit = (mil + ab) / 2, hysteresis = 0.01;
+    // A gate with a button is decided by the button; one without by the position, with a little hysteresis.
     AxisZone zone = AxisZone::Dry;
-    if (previous == AxisZone::Cutoff ? r < cutLimit + hysteresis : r < cutLimit - hysteresis) zone = AxisZone::Cutoff;
-    else if (previous == AxisZone::Afterburner ? r > abLimit - hysteresis : r > abLimit + hysteresis) zone = AxisZone::Afterburner;
-    const double dryStart = idle + cal.snap;  // above the idle band the output leaves outIdle
+    const bool inCutoff = cal.cutoffBtn >= 0 ? gates.cutoff : (previous == AxisZone::Cutoff ? r < cutLimit + hysteresis : r < cutLimit - hysteresis);
+    const bool inAfterburner = cal.abBtn >= 0 ? gates.ab : (previous == AxisZone::Afterburner ? r > abLimit - hysteresis : r > abLimit + hysteresis);
+    if (inCutoff) zone = AxisZone::Cutoff;
+    else if (inAfterburner) zone = AxisZone::Afterburner;
+    const double dryStart = cal.idleBtn >= 0 ? idle : idle + cal.snap;  // above this the output leaves outIdle
     double value;
     if (zone == AxisZone::Cutoff) value = d.outCutoff;
+    else if (cal.idleBtn >= 0 && gates.idle) value = d.outIdle;
+    else if (zone == AxisZone::Afterburner || (cal.milBtn >= 0 && gates.mil)) value = d.outMil;
     else if (r <= dryStart) value = d.outIdle;
     else if (r >= mil) value = d.outMil;
     else value = d.outIdle + (r - dryStart) / (mil - dryStart) * (d.outMil - d.outIdle);
     return {value, zone};
+}
+
+Engine::DetentResult Engine::detentOutput(const AxisDetents& d, const AxisCalibration& cal, double raw01, AxisZone previous) {
+    return detentOutput(d, cal, raw01, previous, GateState{});
 }
 
 std::string Engine::formatValue(double v, bool integer) {
@@ -152,6 +229,7 @@ void Engine::onAxis(const input::InputEvent& ev) {
     {
         std::lock_guard<std::mutex> lock(m_);
         lastInput_ = ev;
+        axisRaw_[ev.id.device + "#" + std::to_string(ev.id.code)] = ev.axis;  // also while bindings are paused: a gate button needs it
         if (!enabled_) return;
         profile = profile_;
         calibrations = calibrations_;
@@ -169,37 +247,17 @@ void Engine::onAxis(const input::InputEvent& ev) {
             if (c.detents.enabled)
                 for (const auto& k : *calibrations)
                     if (k.device == ev.id.device && k.code == ev.id.code && k.valid()) cal = &k;
-            double out = axisOutput(c, t);
-            AxisZone zoneBefore = AxisZone::Dry, zoneNow = AxisZone::Dry;
-            bool zoneKnown = false;
             if (cal) {
-                {
-                    std::lock_guard<std::mutex> lock(m_);
-                    const AxisState& st = axisState_[i];
-                    zoneKnown = st.zoneKnown;
-                    zoneBefore = st.zone;
-                }
-                const DetentResult r = detentOutput(c.detents, *cal, ev.axis, zoneBefore);
-                out = c.integer ? std::round(r.value) : r.value;
-                zoneNow = r.zone;
-                if (!zoneKnown || zoneNow != zoneBefore) {
-                    {
-                        std::lock_guard<std::mutex> lock(m_);
-                        axisState_[i].zone = zoneNow;
-                        axisState_[i].zoneKnown = true;
-                    }
-                    // leaving a gate zone first, then the value, then entering the next one
-                    if (zoneKnown && zoneBefore == AxisZone::Cutoff) dispatchZone(b, b.onCutoffLeave, " (leaves the cut-off)");
-                    if (zoneKnown && zoneBefore == AxisZone::Afterburner) dispatchZone(b, b.onAfterburnerLeave, " (leaves the afterburner)");
-                }
+                applyLever(b, i, *cal, ev.axis);
+                continue;
             }
+            const double out = axisOutput(c, t);
             bool sendNow = false;
             {
                 std::lock_guard<std::mutex> lock(m_);
                 AxisState& st = axisState_[i];
-                const double scale = cal ? std::fabs(c.detents.outMil - c.detents.outCutoff) : std::fabs(c.outMax - c.outMin);
                 const bool changed = !st.hasSent || (c.integer ? std::llround(out) != std::llround(st.lastSent)
-                                                                : std::fabs(out - st.lastSent) > 1e-6 * (scale + 1));
+                                                                : std::fabs(out - st.lastSent) > 1e-6 * (std::fabs(c.outMax - c.outMin) + 1));
                 if (!changed) st.hasPending = false;
                 else if (st.hasSent && now - st.lastTime < std::chrono::milliseconds(c.minIntervalMs)) {
                     st.pending = out;
@@ -213,10 +271,6 @@ void Engine::onAxis(const input::InputEvent& ev) {
                 }
             }
             if (sendNow) sendAxisValue(b, out);
-            if (cal && (!zoneKnown || zoneNow != zoneBefore)) {
-                if (zoneNow == AxisZone::Cutoff) dispatchZone(b, b.onCutoff, " (cut-off)");
-                if (zoneNow == AxisZone::Afterburner) dispatchZone(b, b.onAfterburner, " (afterburner)");
-            }
         } else {
             int steps = 0, dir = 0;
             const double step = std::max(0.005, c.stepPercent / 100.0);
@@ -262,6 +316,57 @@ void Engine::dispatch(const Binding& b, bool press, const char* why) {
     record(text);
 }
 
+// The value and the gate actions of a lever with gates, for a new position or a gate button that closed or opened.
+void Engine::applyLever(const Binding& b, size_t i, const AxisCalibration& cal, double raw) {
+    const AxisConfig& c = b.axis;
+    const GateState gates = gatesOf(cal);
+    AxisZone zoneBefore = AxisZone::Dry;
+    bool zoneKnown = false;
+    {
+        std::lock_guard<std::mutex> lock(m_);
+        const AxisState& st = axisState_[i];
+        zoneKnown = st.zoneKnown;
+        zoneBefore = st.zone;
+    }
+    const DetentResult r = detentOutput(c.detents, cal, raw, zoneBefore, gates);
+    const double out = c.integer ? std::round(r.value) : r.value;
+    const bool zoneChanged = !zoneKnown || r.zone != zoneBefore;
+    if (zoneChanged) {
+        {
+            std::lock_guard<std::mutex> lock(m_);
+            axisState_[i].zone = r.zone;
+            axisState_[i].zoneKnown = true;
+        }
+        // leaving a gate zone first, then the value, then entering the next one
+        if (zoneKnown && zoneBefore == AxisZone::Cutoff) dispatchZone(b, b.onCutoffLeave, " (leaves the cut-off)");
+        if (zoneKnown && zoneBefore == AxisZone::Afterburner) dispatchZone(b, b.onAfterburnerLeave, " (leaves the afterburner)");
+    }
+    const auto now = clock::now();
+    bool sendNow = false;
+    {
+        std::lock_guard<std::mutex> lock(m_);
+        AxisState& st = axisState_[i];
+        const double scale = std::fabs(c.detents.outMil - c.detents.outCutoff);
+        const bool changed = !st.hasSent || (c.integer ? std::llround(out) != std::llround(st.lastSent) : std::fabs(out - st.lastSent) > 1e-6 * (scale + 1));
+        if (!changed) st.hasPending = false;
+        else if (st.hasSent && !zoneChanged && now - st.lastTime < std::chrono::milliseconds(c.minIntervalMs)) {
+            st.pending = out;
+            st.hasPending = true;  // tick() sends the latest value once the interval has passed
+        } else {
+            st.hasSent = true;  // a change of zone is never held back: the gate and its value go together
+            st.lastSent = out;
+            st.lastTime = now;
+            st.hasPending = false;
+            sendNow = true;
+        }
+    }
+    if (sendNow) sendAxisValue(b, out);
+    if (zoneChanged) {
+        if (r.zone == AxisZone::Cutoff) dispatchZone(b, b.onCutoff, " (cut-off)");
+        if (r.zone == AxisZone::Afterburner) dispatchZone(b, b.onAfterburner, " (afterburner)");
+    }
+}
+
 void Engine::dispatchZone(const Binding& b, const std::vector<Action>& actions, const char* what) {
     std::string origin = b.label.empty() ? std::string("axis") : b.label;
     origin += what;
@@ -279,17 +384,30 @@ void Engine::onInput(const input::InputEvent& ev) {
         {
             std::lock_guard<std::mutex> lock(m_);
             capturing = capturing_;
+            if (capturing) axisRaw_[ev.id.device + "#" + std::to_string(ev.id.code)] = ev.axis;  // onAxis records it otherwise
         }
         if (!capturing) {
             onAxis(ev);
             return;
         }
     }
+    if (ev.id.kind == input::InputKind::Button) {  // the state of every button, before anything below can return
+        std::lock_guard<std::mutex> lock(m_);
+        buttonState_[ev.id.device + "#" + std::to_string(ev.id.code)] = ev.pressed;
+        if (learn_.active && learn_.device == ev.id.device) {
+            // a calibration is open: where was the lever when a gate button closed (or, for idle, opened)?
+            const auto at = axisRaw_.find(ev.id.device + "#" + std::to_string(learn_.axisCode));
+            for (int g = 0; g < 4 && at != axisRaw_.end(); ++g)
+                if (learn_.button[g] == ev.id.code && ev.pressed == (g != 1)) learn_.raw[static_cast<size_t>(g)] = at->second;
+        }
+    }
     std::shared_ptr<const Profile> profile;
+    std::shared_ptr<const std::vector<AxisCalibration>> calibrations;
     {
         std::lock_guard<std::mutex> lock(m_);
         if (capturing_) {
             lastInput_ = ev;
+            if (captureButtonsOnly_ && ev.id.kind != input::InputKind::Button) return;
             if (ev.id.kind == input::InputKind::Axis) {
                 // An axis counts when it is moved a good part of its travel from where it rested, so a noisy or
                 // slowly drifting axis is never picked up by accident.
@@ -309,6 +427,7 @@ void Engine::onInput(const input::InputEvent& ev) {
         lastInput_ = ev;
         if (!enabled_) return;
         profile = profile_;
+        calibrations = calibrations_;
         if (!ev.pressed) {
             held_.erase(std::remove_if(held_.begin(), held_.end(), [&](const Held& h) { return h.id == ev.id; }), held_.end());
         }
@@ -322,6 +441,16 @@ void Engine::onInput(const input::InputEvent& ev) {
             std::lock_guard<std::mutex> lock(m_);
             held_.push_back({ev.id, i, ev.time + std::chrono::milliseconds(b.repeatDelayMs)});
         }
+    }
+    if (ev.id.kind != input::InputKind::Button) return;
+    // a gate button of a lever with gates closed or opened: the lever is judged again, whether or not its axis moved
+    for (size_t i = 0; i < profile->bindings.size(); ++i) {
+        const Binding& b = profile->bindings[i];
+        if (!b.enabled || b.input.kind != input::InputKind::Axis || b.axis.mode != AxisMode::Value || !b.axis.detents.enabled) continue;
+        for (const auto& cal : *calibrations)
+            if (cal.device == b.input.device && cal.code == b.input.code && cal.device == ev.id.device && cal.valid() &&
+                (cal.cutoffBtn == ev.id.code || cal.idleBtn == ev.id.code || cal.milBtn == ev.id.code || cal.abBtn == ev.id.code))
+                applyLever(b, i, cal, axisRawOf(cal));
     }
 }
 
