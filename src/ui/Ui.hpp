@@ -84,6 +84,7 @@ private:
     std::string deviceDisplayName(const std::string& key) const;
     bool inputIsPressed(const input::InputId& id) const;
     float axisNow(const input::InputId& id) const;  // live position 0..1 of an axis input, or -1 when the device is absent
+    std::string editionCaveat(const std::string& aircraftId, bool guide) const;  // shown when connected to MSFS 2024 and the data was made on MSFS 2020
     void drawAxisOptions();
     void drawAxisTargetPicker();  // quick setup: one of the flight controls every aircraft has, with its range
     void drawDetentOptions();  // lever with gates: calibration state, values at the gates, presets

@@ -106,7 +106,8 @@ old file name keeps working, it only matches devices. The `msfs-linuxrebind` bin
 MSFS listens where its `SimConnect.xml` says. Under Steam/Proton that file is
 
 ```
-<steam library>/steamapps/compatdata/1250410/pfx/drive_c/users/steamuser/AppData/Roaming/Microsoft Flight Simulator/SimConnect.xml
+<steam library>/steamapps/compatdata/1250410/pfx/drive_c/users/steamuser/AppData/Roaming/Microsoft Flight Simulator/SimConnect.xml        (MSFS 2020)
+<steam library>/steamapps/compatdata/2537590/pfx/drive_c/users/steamuser/AppData/Roaming/Microsoft Flight Simulator 2024/SimConnect.xml  (MSFS 2024)
 ```
 
 and must contain an IPv4 block with a fixed port (the default file shipped by MSFS already has

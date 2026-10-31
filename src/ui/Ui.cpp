@@ -145,7 +145,8 @@ void Ui::drawStatusBar() {
     else if (status_.state != sim::ConnState::Disconnected) c = kYellow;
     dot(c);
     if (status_.state == sim::ConnState::Connected) {
-        ImGui::Text("MSFS: connected (%s %s)%s", status_.simName.c_str(), status_.simVersion.c_str(), status_.paused ? " [paused]" : "");
+        ImGui::Text("MSFS%s: connected (%s %s)%s", status_.edition ? (status_.edition == 2024 ? " 2024" : " 2020") : "", status_.simName.c_str(),
+                    status_.simVersion.c_str(), status_.paused ? " [paused]" : "");
         if (status_.detectedPort) {
             ImGui::SameLine();
             ImGui::TextDisabled("via auto-detected %s:%u", status_.detectedHost.c_str(), status_.detectedPort);

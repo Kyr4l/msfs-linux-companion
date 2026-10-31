@@ -22,6 +22,7 @@
 
 #include "util/Log.hpp"
 #include "util/Isolated.hpp"
+#include "sim/AircraftId.hpp"
 
 namespace lr::sim {
 
@@ -226,7 +227,7 @@ void SimBridge::requestInputParams(const std::vector<std::string>& names) {
 
 std::optional<std::string> SimBridge::inputParams(const std::string& name) const {
     std::lock_guard<std::mutex> lock(m_);
-    auto it = inputParams_.find(stripPrefix(name, "B:"));
+    auto it = inputParams_.find(lowerAscii(stripPrefix(name, "B:")));  // keyed by the lower-case name: 2020 and 2024 spell the events differently
     if (it == inputParams_.end()) return std::nullopt;
     return it->second;
 }
@@ -394,6 +395,7 @@ void SimBridge::dropConnection(const std::string& why) {
     eventIds_.clear();
     sentLog_.clear();
     inputHash_.clear();
+    inputByLower_.clear();
     inputIsString_.clear();
     inputEventsPending_.clear();
     inputParamQueue_.clear();
@@ -765,7 +767,7 @@ void SimBridge::execute(const SimCommand& cmd) {
         }
         case SimCommand::Type::InputEventSet: {
             const std::string name = stripPrefix(cmd.name, "B:");
-            auto it = inputHash_.find(name);
+            auto it = findInput(name);
             if (it == inputHash_.end()) {
                 LOG_WARN("B:%s is not an input event of the loaded aircraft (%zu known)%s", name.c_str(), inputHash_.size(), where.c_str());
                 if (!liveScanPending_) requestLiveRefresh();
@@ -777,7 +779,7 @@ void SimBridge::execute(const SimCommand& cmd) {
         }
         case SimCommand::Type::InputEventToggle: {
             const std::string name = stripPrefix(cmd.name, "B:");
-            auto it = inputHash_.find(name);
+            auto it = findInput(name);
             if (it == inputHash_.end()) {
                 LOG_WARN("B:%s is not an input event of the loaded aircraft (%zu known)%s", name.c_str(), inputHash_.size(), where.c_str());
                 if (!liveScanPending_) requestLiveRefresh();
@@ -844,6 +846,7 @@ void SimBridge::handleMessage(const RecvMessage& m) {
                 status_.state = ConnState::Connected;
                 status_.simName = o.applicationName;
                 status_.simVersion = ver;
+                status_.edition = o.applicationName == "SunRise" || o.appVersionMajor >= 12 ? 2024 : (o.applicationName == "KittyHawk" || o.appVersionMajor == 11 ? 2020 : 0);
                 status_.lastError.clear();
             }
             onConnected();
@@ -910,7 +913,7 @@ void SimBridge::handleMessage(const RecvMessage& m) {
             for (const auto& [name, hash] : inputHash_)
                 if (hash == p.hash) {
                     std::lock_guard<std::mutex> lock(m_);
-                    inputParams_[name] = p.text;
+                    inputParams_[lowerAscii(name)] = p.text;
                     break;
                 }
             break;
@@ -985,12 +988,20 @@ void SimBridge::onAircraftPath(const std::string& cfgPath) {
         }
     }
     inputHash_.clear();
+    inputByLower_.clear();
     inputIsString_.clear();
     lvarListRequested_ = false;
     if (changed) LOG_INFO("Aircraft id: %s", id.id.empty() ? "(unknown)" : id.id.c_str());
     // the cockpit registers its input events while it loads: ask after a short delay and retry while the list is empty
     scheduleLiveScan(initialScanDelayMs_);
     publishLive();
+}
+
+std::unordered_map<std::string, uint64_t>::const_iterator SimBridge::findInput(const std::string& name) const {
+    auto it = inputHash_.find(name);
+    if (it != inputHash_.end()) return it;
+    auto lower = inputByLower_.find(lowerAscii(name));
+    return lower == inputByLower_.end() ? inputHash_.end() : inputHash_.find(lower->second);
 }
 
 void SimBridge::scheduleLiveScan(int delayMs) {
@@ -1008,6 +1019,7 @@ void SimBridge::handleInputEventList(const RecvInputEventList& l) {
     for (const auto& d : l.events) {
         if (d.name.empty()) continue;
         inputHash_[d.name] = d.hash;
+        inputByLower_[lowerAscii(d.name)] = d.name;
         inputIsString_[d.name] = d.type == 1;
         inputEventsPending_.push_back({d.name, d.type == 1});
     }
@@ -1119,7 +1131,7 @@ void SimBridge::pumpLiveScan() {
             name = inputParamQueue_.front();
             inputParamQueue_.pop_front();
         }
-        auto it = inputHash_.find(name);
+        auto it = findInput(name);
         if (it != inputHash_.end()) rememberSend(client_.enumerateInputEventParams(it->second), "input event params " + name);
     }
 
@@ -1139,8 +1151,8 @@ void SimBridge::pumpLiveScan() {
         }
     }
     for (const auto& n : batch) {
-        auto it = inputHash_.find(n);
-        if (it == inputHash_.end() || inputIsString_[n]) continue;
+        auto it = findInput(n);
+        if (it == inputHash_.end() || inputIsString_[it->first]) continue;
         const uint32_t req = nextGetRequest_++;
         pendingWatchGets_[req] = n;
         rememberSend(client_.getInputEvent(req, it->second), "poll input event " + n);

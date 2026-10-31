@@ -237,6 +237,12 @@ void Ui::drawGuidesTab() {
         ImGui::SetWindowFontScale(1.25f);
         ImGui::TextUnformatted(g->title.c_str());
         ImGui::SetWindowFontScale(1.0f);
+        if (const std::string caveat = editionCaveat(g->aircraft, true); !caveat.empty()) {
+            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + std::min(ImGui::GetContentRegionAvail().x, ImGui::GetFontSize() * 60));
+            ImGui::TextColored(kRed, "%s", caveat.c_str());
+            ImGui::PopTextWrapPos();
+            ImGui::Spacing();
+        }
         if (!g->notice.empty()) {
             ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + std::min(ImGui::GetContentRegionAvail().x, ImGui::GetFontSize() * 60));
             ImGui::TextColored(kYellow, "%s", g->notice.c_str());

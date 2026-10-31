@@ -205,6 +205,13 @@ CatalogEntry makeLiveLVarEntry(const std::string& name) {
     return c;
 }
 
+// Two entries are one when kind and name agree; the names of cockpit input events are compared ignoring the case, because MSFS 2024 spells
+// them in upper case (ENGINE_THROTTLE_1) where MSFS 2020 mixes the case (ENGINE_Throttle_1).
+static std::string entryKey(const CatalogEntry& e) {
+    const std::string& n = e.name.empty() ? e.api : e.name;
+    return e.kind + ":" + (e.kind == "input_event" ? lower(n) : n);
+}
+
 std::vector<CatalogEntry> axisTargetEntries() {
     std::vector<CatalogEntry> out;
     for (const auto& t : axisTargets()) {
@@ -233,10 +240,10 @@ bool Catalog::setLiveEntries(std::vector<CatalogEntry> fresh) {
     // names the curated part already lists stay out of the live part (no duplicates in the panels)
     std::unordered_set<std::string> have;
     for (const auto& e : entries)
-        if (!e.live) have.insert(e.kind + ":" + e.name);
+        if (!e.live) have.insert(entryKey(e));
     std::vector<CatalogEntry> wanted;
     for (auto& e : fresh)
-        if (have.insert(e.kind + ":" + e.name).second) wanted.push_back(std::move(e));
+        if (have.insert(entryKey(e)).second) wanted.push_back(std::move(e));
 
     std::vector<std::string> before, after;
     for (const auto& e : entries) if (e.live) before.push_back(e.api);
@@ -253,9 +260,9 @@ bool Catalog::setLiveEntries(std::vector<CatalogEntry> fresh) {
 void Catalog::addStandardEntries(const std::vector<CatalogEntry>& standard) {
     removeStandardEntries();
     std::unordered_set<std::string> have;
-    for (const auto& e : entries) have.insert(e.kind + ":" + e.name);
+    for (const auto& e : entries) have.insert(entryKey(e));
     for (const auto& e : standard)
-        if (have.insert(e.kind + ":" + e.name).second) entries.push_back(e);
+        if (have.insert(entryKey(e)).second) entries.push_back(e);
     ++revision;
 }
 
@@ -400,9 +407,9 @@ bool CatalogSet::applyLive(const std::string& id, const std::string& title, cons
     // union with what an earlier session cached: lists grow as more of the cockpit gets exercised (L: vars appear lazily)
     std::vector<CatalogEntry> merged = fresh;
     std::unordered_set<std::string> have;
-    for (const auto& e : merged) have.insert(e.kind + ":" + e.api);
+    for (const auto& e : merged) have.insert(entryKey(e));
     for (const auto& e : cat.entries)
-        if (e.live && have.insert(e.kind + ":" + e.api).second) merged.push_back(e);
+        if (e.live && have.insert(entryKey(e)).second) merged.push_back(e);
     const bool changed = cat.setLiveEntries(std::move(merged));
     if (changed && !cat.curated) {
         cat.addStandardEntries(standardEntries());
@@ -420,10 +427,10 @@ bool CatalogSet::forgetLive(const std::string& id) {
 std::vector<CatalogEntry> CatalogSet::standardEntries() const {
     std::vector<CatalogEntry> out = axisTargetEntries();
     std::unordered_set<std::string> have;
-    for (const auto& e : out) have.insert(e.kind + ":" + e.name);
+    for (const auto& e : out) have.insert(entryKey(e));
     if (const Catalog* s = standard())
         for (const auto& e : s->entries)
-            if (have.insert(e.kind + ":" + e.name).second) out.push_back(e);
+            if (have.insert(entryKey(e)).second) out.push_back(e);
     return out;
 }
 

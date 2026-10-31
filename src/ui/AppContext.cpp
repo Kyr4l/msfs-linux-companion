@@ -14,6 +14,7 @@
 #include <imgui_stdlib.h>
 
 #include "app/Paths.hpp"
+#include "sim/AircraftId.hpp"
 #include "util/Log.hpp"
 
 namespace lr::app {
@@ -120,6 +121,11 @@ void AppContext::loadLiveCaches() {
         Catalog cached;
         std::string err;
         if (!Catalog::loadLive(f.path().string(), cached, err)) { LOG_WARN("Ignoring %s: %s", f.path().string().c_str(), err.c_str()); continue; }
+        if (sim::genericFolderName(cached.aircraft)) {
+            // MSFS 2024 reports a path that older versions turned into the aircraft "config"; the file can be deleted
+            LOG_WARN("Ignoring %s: \"%s\" is not an aircraft (written by an older version on MSFS 2024)", f.path().string().c_str(), cached.aircraft.c_str());
+            continue;
+        }
         catalogs.applyLive(cached.aircraft, cached.title, cached.entries);
         LOG_INFO("Cached controls for %s: %zu entries", cached.aircraft.c_str(), cached.entries.size());
     }

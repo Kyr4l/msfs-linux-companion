@@ -80,7 +80,8 @@ void Ui::drawSettingsTab() {
                        "silently uses a random port instead; when the configured port does not answer, the tool scans wineserver's loopback "
                        "listeners for the SimConnect handshake and uses what it finds (shown in the status bar). Port 0 = scan only. "
                        "To avoid the scan, set a <Port> above 1024 in\n"
-                       "steamapps/compatdata/1250410/pfx/drive_c/users/steamuser/AppData/Roaming/Microsoft Flight Simulator/SimConnect.xml");
+                       "steamapps/compatdata/1250410/pfx/drive_c/users/steamuser/AppData/Roaming/Microsoft Flight Simulator/SimConnect.xml  (MSFS 2020)\n"
+                       "steamapps/compatdata/2537590/pfx/drive_c/users/steamuser/AppData/Roaming/Microsoft Flight Simulator 2024/SimConnect.xml  (MSFS 2024)");
 
     ImGui::SeparatorText("Files");
     ImGui::Text("Config:  %s", ctx_.configPath.c_str());

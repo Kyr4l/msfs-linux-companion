@@ -33,6 +33,7 @@ struct SimStatus {
     std::string detectedHost;
     std::string simName;         // from RECV_OPEN
     std::string simVersion;      // "11.0.282174.999"
+    int edition = 0;             // 2020 or 2024 (from the name and version in RECV_OPEN: "KittyHawk" 11.x / "SunRise" 12.x), 0 = not known yet
     std::string aircraft;        // path of the loaded aircraft .cfg (AircraftLoaded)
     bool simRunning = false;     // "Sim" system event
     bool paused = false;
@@ -197,6 +198,8 @@ private:
 
     // --- input events (bridge thread owns these; the UI reads copies through liveSnapshot())
     std::unordered_map<std::string, uint64_t> inputHash_;      // name -> hash for the loaded aircraft
+    std::unordered_map<std::string, std::string> inputByLower_;  // lower-case name -> the name as the sim spells it (MSFS 2024 upper-cases them, 2020 does not)
+    std::unordered_map<std::string, uint64_t>::const_iterator findInput(const std::string& name) const;  // exact, else ignoring the case
     std::unordered_map<std::string, bool> inputIsString_;
     std::vector<LiveInputEvent> inputEventsPending_;           // collected until the replies stop arriving
     bool inputEnumInFlight_ = false;

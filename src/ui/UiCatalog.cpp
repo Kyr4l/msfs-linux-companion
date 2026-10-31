@@ -53,6 +53,18 @@ std::string Ui::uniqueProfileName(const std::string& wanted) const {
     }
 }
 
+// The curated catalogs and the guides of Asobo's and Microsoft's aircraft were made and checked on MSFS 2020. The 2024 version of an aircraft
+// may differ (controls, polarity, the names of its variables), so say so instead of letting the "verified" marks pass for 2024.
+// The FlyByWire aircraft are one add-on for both and are left out.
+std::string Ui::editionCaveat(const std::string& aircraftId, bool guide) const {
+    if (status_.edition != 2024) return {};
+    if (aircraftId == "A32NX" || aircraftId == "A380X" || aircraftId == kStandardCatalogId) return {};
+    const Catalog* c = ctx_.catalogs.find(aircraftId);
+    if (!c || !c->curated) return {};
+    return std::string("Connected to MSFS 2024: this ") + (guide ? "guide and its catalog were" : "catalog was") +
+           " made and checked on MSFS 2020. The 2024 version of the aircraft may differ, so a control marked verified is verified on 2020 only.";
+}
+
 std::vector<Action> Ui::catalogActions(const CatalogEntry& e) const {
     std::vector<Action> out = e.toActions();
     if (catalogBothSides_ && e.isCaptainSide()) {
@@ -509,6 +521,7 @@ void Ui::drawCatalogTab() {
             }
             ImGui::EndCombo();
         }
+        if (const std::string caveat = editionCaveat(shown, false); !caveat.empty()) ImGui::TextColored(kYellow, "%s", caveat.c_str());
         if (active && shown != active->aircraft) {
             ImGui::SameLine();
             ImGui::TextColored(kYellow, "browsing only: the active profile is for %s", active->aircraft.c_str());

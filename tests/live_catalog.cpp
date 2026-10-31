@@ -55,6 +55,13 @@ int main() {
         CHECK(id("C:\\p\\Asobo_A320_NEO\\aircraft.CFG") == "Asobo_A320_NEO");
         CHECK(id("C:\\p\\Asobo_CJ4_LIVERY_01\\aircraft.CFG") == "Asobo_CJ4");
         CHECK(id("aircraft.CFG").empty());
+        // MSFS 2024 reports a path that goes deeper than the aircraft folder: the aircraft is the one below "airplanes"
+        CHECK(id("C:\\x\\simobjects\\airplanes\\asobo_c172sp_as1000\\common\\config\\flight_performance.cfg") == "asobo_c172sp_as1000");
+        CHECK(id("SimObjects/Airplanes/Asobo_C152/presets/asobo/cessna_c152/config/cockpit.cfg") == "Asobo_C152");
+        CHECK(id("simobjects/airplanes/asobo_cj4") == "asobo_cj4");
+        CHECK(id("asobo_c172sp_as1000/common/config/x.cfg") == "asobo_c172sp_as1000");  // no "airplanes": walk up past the sub-folders
+        CHECK(id("common/config/x.cfg").empty());
+        CHECK(sameAircraft(id("simobjects/airplanes/asobo_c172sp_as1000/x/aircraft.cfg"), "Asobo_C172sp_AS1000"));
         CHECK(id("").empty());
     }
 

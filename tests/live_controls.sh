@@ -31,6 +31,9 @@ echo "$out" | grep -q 'L: variables: 5'                       && ok "L: variable
 
 [ "$(run --read-input LIGHTING_LANDING_1 | tail -1)" = "B:LIGHTING_LANDING_1 = 0" ] && ok "initial value read" || bad "initial read"
 [ "$(run --fire input_event:LIGHTING_LANDING_1=1 --read-input LIGHTING_LANDING_1 | tail -1)" = "B:LIGHTING_LANDING_1 = 1" ] && ok "set"      || bad "set"
+# MSFS 2024 spells the input events in upper case where 2020 mixes the case: a name written either way finds the control
+[ "$(run --fire input_event:Lighting_Landing_1=0 --read-input lighting_landing_1 | tail -1)" = "B:lighting_landing_1 = 0" ] && ok "event names are found ignoring the case" || bad "case-insensitive names"
+[ "$(run --fire input_event:lighting_landing_1=1 --read-input LIGHTING_LANDING_1 | tail -1)" = "B:LIGHTING_LANDING_1 = 1" ] && ok "a lower-case name sets the control" || bad "lower-case set"
 [ "$(run --fire input_event_toggle:LIGHTING_LANDING_1 --read-input LIGHTING_LANDING_1 | tail -1)" = "B:LIGHTING_LANDING_1 = 0" ] && ok "toggle 1 -> 0" || bad "toggle off"
 [ "$(run --fire input_event_toggle:LIGHTING_LANDING_1 --read-input LIGHTING_LANDING_1 | tail -1)" = "B:LIGHTING_LANDING_1 = 1" ] && ok "toggle 0 -> 1" || bad "toggle on"
 [ "$(run --fire input_event:ELECTRICAL_BATTERY_1=2 --fire input_event_toggle:ELECTRICAL_BATTERY_1=3 --read-input ELECTRICAL_BATTERY_1 | tail -1)" = "B:ELECTRICAL_BATTERY_1 = 0" ] && ok "3-position cycle wraps 2 -> 0" || bad "cycle"
