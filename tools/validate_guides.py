@@ -29,6 +29,15 @@ def load_catalogs():
     return cats
 
 
+def load_keypads():
+    pads = {}
+    for p in glob.glob(os.path.join(ROOT, "data", "*_keypads.json")):
+        with open(p) as f:
+            for pad in json.load(f).get("pads", []):
+                pads[pad["id"]] = {k["id"] for k in pad["keys"]}
+    return pads
+
+
 def probe_ok(obj, where, errs):
     code, ev = obj.get("code", ""), obj.get("input_event", "")
     if bool(code) == bool(ev):
@@ -40,11 +49,14 @@ def probe_ok(obj, where, errs):
         errs.append("%s: bad input event name %r" % (where, ev))
 
 
-def validate(path, cats):
+def validate(path, cats, pads):
     errs, warns = [], []
     with open(path) as f:
         g = json.load(f)
     ac = g.get("aircraft", "")
+    pad_keys = pads.get(g.get("keypad", ""))
+    if g.get("keypad") and pad_keys is None:
+        errs.append("keypad %r is not in any data/*_keypads.json" % g["keypad"])
     entries = cats.get(ac)
     if entries is None:
         return ["%s: no catalog for aircraft %r" % (path, ac)], []
@@ -116,6 +128,13 @@ def validate(path, cats):
                         e = hits[0]
                         if e.get("kind") == "input_event" and not e.get("verified"):
                             warns.append("%s: %s is not verified on the real simulator" % (ws, e["api"]))
+                if s.get("keys"):
+                    if pad_keys is None:
+                        errs.append("%s: has keys but the guide names no keypad" % ws)
+                    for entry in s["keys"]:
+                        for k in entry.split("/"):
+                            if pad_keys is not None and k not in pad_keys:
+                                errs.append("%s: key %r is not on the keypad %s" % (ws, k, g.get("keypad")))
                 for r in s.get("readouts", []):
                     probe_ok(r, ws + " readout", errs)
                     if not r.get("label"):
@@ -149,9 +168,10 @@ def validate(path, cats):
 def main():
     paths = sys.argv[1:] or sorted(glob.glob(os.path.join(ROOT, "data", "*_guide.json")))
     cats = load_catalogs()
+    pads = load_keypads()
     bad = 0
     for p in paths:
-        errs, warns = validate(p, cats)
+        errs, warns = validate(p, cats, pads)
         for w in warns:
             print("warning:", w)
         for e in errs:

@@ -48,6 +48,7 @@ add_executable(msfs-linux-companion
   src/app/Profile.cpp
   src/app/Catalog.cpp
   src/app/Guide.cpp
+  src/app/Keypad.cpp
   src/app/Engine.cpp
   src/app/Script.cpp
   src/app/Paths.cpp
@@ -104,7 +105,7 @@ if(COMPANION_BUILD_TESTS)
   add_executable(curated_catalogs tests/curated_catalogs.cpp src/app/Catalog.cpp src/app/Profile.cpp src/input/Evdev.cpp)
   target_include_directories(curated_catalogs PRIVATE src third_party)
   add_test(NAME curated_catalogs COMMAND curated_catalogs ${CMAKE_SOURCE_DIR})
-  add_executable(guide_flow tests/guide_flow.cpp src/app/Guide.cpp)
+  add_executable(guide_flow tests/guide_flow.cpp src/app/Guide.cpp src/app/Keypad.cpp)
   target_include_directories(guide_flow PRIVATE src third_party)
   add_test(NAME guide_flow COMMAND guide_flow ${CMAKE_SOURCE_DIR})
   # end to end through the real binary against the mock simulator posing as the CJ4

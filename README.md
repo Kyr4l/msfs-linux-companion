@@ -216,6 +216,11 @@ flowchart: pick a topic ("Start the engines"), answer a few questions, follow th
 * **Each step shows where the control is**: the panel section of the control from the aircraft's catalog, with the
   control lit. It is a schematic of the catalog's sections, not a photo of the cockpit; where a source says where to look
   (for example the camera the sim's own checklist jumps to) the step says so.
+* **MCDU key presses are drawn on a keypad** (A32NX): a step that says "press INIT, then LSK2R" shows the MCDU keyboard with
+  those keys lit and numbered in the order to press them. The layout is not hand-drawn: `tools/build_keypad_layout.py`
+  reads the key positions and the key list from the aircraft's own 3D model and behaviour files
+  (`data/a32nx_keypads.json`; hover a key to see the H event it sends). Steps that only say "the LSK next to the waypoint"
+  show no keys, since which one depends on the page.
 * **Steps tick themselves** when the simulator confirms them (parking brake set, generators on ...) and can be ticked by
   hand; some show live readouts (N2, ITT) for "wait until ..." steps.
 * **Sources**: every step names the document it comes from. Procedures are not written from memory; a step that is
@@ -322,7 +327,8 @@ then `sudo udevadm control --reload && sudo udevadm trigger` and re-plug the dev
 * `tools/build_catalog.py --all` regenerates `data/a32nx_catalog.json` and `data/a380x_catalog.json` from the FlyByWire docs.
 * `tools/build_aircraft_catalog.py asobo_cj4` regenerates `data/asobo_cj4_catalog.json` from the event list stored in `tools/aircraft_rules/` and the rules module next to it; it refuses to run when an event has no rule. New aircraft are added by dumping their events with `--dump-controls FILE` and writing a rules module.
 * `--script FILE` checks controls on a running aircraft (`set`, `toggle`, `press`, `get`, `code`, `expect`, `expectb`, `sleep`; see `src/app/Script.hpp`). It prints `ok` / `FAIL` lines and a count, and exits non-zero on failures. Restore what you changed: it does not.
-* `ctest --test-dir build` runs the config compatibility, command-line option, axis, live-catalog and curated-catalog tests.
+* `tools/build_keypad_layout.py <flybywire-aircraft-a320-neo package> --preview FILE.png` regenerates `data/a32nx_keypads.json` (the MCDU key positions, read from the aircraft's 3D model) and writes a picture of it.
+* `ctest --test-dir build` runs the config compatibility, command-line option, axis, live-catalog, curated-catalog, guide, idle-cost and live-control tests. The scripts set `MSFS_LINUX_COMPANION_ISOLATED=1`, which makes the program skip the search for a running simulator's port and the opening of joysticks and Winwing devices: a test run next to a real simulator (or with a stick in your hand) can neither reach the sim nor be disturbed by your input.
 * `tools/virtual_joystick.py` is a uinput joystick for exercising bindings without hardware.
 * `_cpr/` is git-ignored: put copies of files from the (read-only) MSFS install there if you need
   to edit them.

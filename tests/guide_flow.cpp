@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Kyr4l
 // Guides: loading, the flow (questions, steps, back, finishing), answers taken from the simulator, step checks, and
-// that every shipped guide file loads.
+// that every shipped guide file loads, and the keypad drawings the guides' `keys` point at.
+#include <cmath>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <map>
 
 #include "app/Guide.hpp"
+#include "app/Keypad.hpp"
 
 using namespace lr::app;
 
@@ -112,6 +114,41 @@ int main(int argc, char** argv) {
             r.start(shipped, t.id);
             CHECK(r.active());
         }
+    }
+
+    // keypads: the A32NX MCDU, and every key a shipped guide names exists on the keypad the guide points at
+    {
+        CHECK(splitKeyChoices("L1").size() == 1 && splitKeyChoices("LARROW/RARROW").size() == 2 && splitKeyChoices("A/B/C")[2] == "C" && splitKeyChoices("").empty());
+        KeypadSet pads;
+        CHECK(pads.load(root + "/data/a32nx_keypads.json", err));
+        const Keypad* mcdu = pads.find("a32nx_mcdu");
+        CHECK(mcdu && mcdu->keys.size() == 70 && mcdu->width > 100 && mcdu->height > 100 && !mcdu->hEventPrefix.empty());
+        if (mcdu) {
+            // the line select keys run down both sides of the screen, the page keys sit under it, the digits under the page keys
+            const KeypadKey *l1 = mcdu->key("L1"), *l6 = mcdu->key("L6"), *r1 = mcdu->key("R1"), *dir = mcdu->key("DIR"), *init = mcdu->key("INIT"), *n5 = mcdu->key("5");
+            CHECK(l1 && l6 && r1 && dir && init && n5);
+            if (l1 && l6 && r1 && dir && init && n5) {
+                CHECK(l1->y < l6->y && l1->x < r1->x && std::fabs(l1->y - r1->y) < 1.0f);
+                CHECK(dir->x < init->x && l6->y < dir->y && dir->y < n5->y);
+            }
+            CHECK(!mcdu->key("NOT_A_KEY"));
+            for (const auto& k : mcdu->keys) CHECK(k.w > 5 && k.h > 3 && k.x >= 0 && k.y >= 0 && k.x + k.w <= mcdu->width + 0.2f && k.y + k.h <= mcdu->height + 0.2f);
+        }
+        Guide a32;
+        CHECK(a32.load(root + "/data/a32nx_guide.json", err) && a32.keypad == "a32nx_mcdu" && pads.find(a32.keypad));
+        const GuideNode* init = a32.node("fp_init");
+        CHECK(init && init->steps.size() > 1 && init->steps[0].keys.size() == 1 && init->steps[0].keys[0] == "INIT" && init->steps[1].keys[0] == "R1");
+        size_t tagged = 0;
+        for (const auto& [id, node] : a32.nodes)
+            for (const auto& st : node.steps)
+                for (const auto& entry : st.keys) {
+                    ++tagged;
+                    for (const auto& id2 : splitKeyChoices(entry))
+                        if (!mcdu || !mcdu->key(id2)) { std::printf("  %s: key %s is not on the keypad\n", id.c_str(), id2.c_str()); ++failures; }
+                }
+        CHECK(tagged > 50);
+        KeypadSet bad;
+        CHECK(!bad.load(root + "/data/does_not_exist_keypads.json", err));
     }
 
     std::printf(failures ? "\n%d check(s) FAILED\n" : "all guide checks passed\n", failures);

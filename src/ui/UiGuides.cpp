@@ -101,6 +101,101 @@ void Ui::drawGuideCard(const Catalog& cat, const std::vector<int>& targets) {
     ImGui::Dummy(ImVec2(cardW, height));
 }
 
+// The keys of a unit (the MCDU keyboard) drawn where they are on the panel, the keys of the step lit and numbered in the order
+// they are pressed. An entry like "LARROW/RARROW" lights either of the two.
+void Ui::drawKeypad(const Keypad& pad, const std::vector<std::string>& sequence) {
+    std::vector<std::vector<int>> presses(pad.keys.size());  // key -> the numbers of the presses it takes part in
+    std::string caption;
+    for (size_t n = 0; n < sequence.size(); ++n) {
+        std::string names;
+        for (const auto& id : splitKeyChoices(sequence[n]))
+            for (size_t k = 0; k < pad.keys.size(); ++k)
+                if (pad.keys[k].id == id) {
+                    presses[k].push_back(static_cast<int>(n) + 1);
+                    names += (names.empty() ? "" : " or ") + pad.keys[k].label;
+                }
+        if (!names.empty()) caption += (caption.empty() ? "" : "  >  ") + names;
+    }
+    if (caption.empty()) return;
+    ImGui::TextColored(ImVec4(1.0f, 0.82f, 0.30f, 1.0f), "Keys: %s", caption.c_str());
+
+    const float fs = ImGui::GetFontSize();
+    const float s = fs * 0.19f, margin = fs * 0.5f;  // pixels per millimetre
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    const ImVec2 p0 = ImGui::GetCursorScreenPos();
+    const ImVec2 size(pad.width * s + 2 * margin, pad.height * s + 2 * margin);
+    dl->AddRectFilled(p0, ImVec2(p0.x + size.x, p0.y + size.y), ImGui::GetColorU32(ImVec4(0.13f, 0.14f, 0.17f, 1.0f)), fs * 0.5f);
+    dl->AddRect(p0, ImVec2(p0.x + size.x, p0.y + size.y), ImGui::GetColorU32(ImVec4(0.30f, 0.32f, 0.38f, 1.0f)), fs * 0.5f);
+    const ImVec2 o(p0.x + margin, p0.y + margin);
+
+    {   // the screen sits between the two columns of line select keys
+        float left = 0, right = pad.width, top = pad.height, bottom = 0;
+        for (const auto& k : pad.keys) {
+            if (k.group != "line select") continue;
+            if (k.x + k.w * 0.5f < pad.width * 0.5f) left = std::max(left, k.x + k.w); else right = std::min(right, k.x);
+            top = std::min(top, k.y);
+            bottom = std::max(bottom, k.y + k.h);
+        }
+        if (right > left && bottom > top) {
+            dl->AddRectFilled(ImVec2(o.x + (left + 2) * s, o.y + top * s), ImVec2(o.x + (right - 2) * s, o.y + bottom * s), ImGui::GetColorU32(ImVec4(0.06f, 0.07f, 0.08f, 1.0f)), fs * 0.2f);
+            const char* t = "screen";
+            dl->AddText(ImVec2(o.x + (left + right) * 0.5f * s - ImGui::CalcTextSize(t).x * 0.5f, o.y + (top + bottom) * 0.5f * s - fs * 0.5f), ImGui::GetColorU32(ImGuiCol_TextDisabled), t);
+        }
+    }
+
+    auto fill = [](const std::string& group) {
+        if (group == "line select") return ImVec4(0.22f, 0.30f, 0.45f, 1.0f);
+        if (group == "page") return ImVec4(0.22f, 0.36f, 0.26f, 1.0f);
+        if (group == "slew") return ImVec4(0.38f, 0.32f, 0.18f, 1.0f);
+        if (group == "digit") return ImVec4(0.32f, 0.32f, 0.36f, 1.0f);
+        return ImVec4(0.21f, 0.22f, 0.26f, 1.0f);
+    };
+    const ImU32 gold = ImGui::GetColorU32(ImVec4(1.0f, 0.78f, 0.15f, 1.0f));
+    ImFont* font = ImGui::GetFont();
+    for (size_t k = 0; k < pad.keys.size(); ++k) {
+        const KeypadKey& key = pad.keys[k];
+        const bool hot = !presses[k].empty();
+        const ImVec2 a(o.x + key.x * s, o.y + key.y * s), b(a.x + key.w * s, a.y + key.h * s);
+        dl->AddRectFilled(a, b, hot ? ImGui::GetColorU32(ImVec4(0.55f, 0.42f, 0.08f, 1.0f)) : ImGui::GetColorU32(fill(key.group)), fs * 0.2f);
+        if (hot) dl->AddRect(a, b, gold, fs * 0.2f, 0, 2.5f);
+        const ImU32 ink = hot ? ImGui::GetColorU32(ImVec4(1, 1, 1, 1)) : ImGui::GetColorU32(ImVec4(0.72f, 0.72f, 0.76f, 1.0f));
+        const ImVec2 c((a.x + b.x) * 0.5f, (a.y + b.y) * 0.5f);
+        if (key.id.size() > 5 && key.id.compare(key.id.size() - 5, 5, "ARROW") == 0) {  // the four slew keys are drawn as arrows
+            const float r = std::min(b.x - a.x, b.y - a.y) * 0.28f;
+            const char dir = key.id[0];  // L, R, U or D
+            const float sx = dir == 'L' ? -1.0f : dir == 'R' ? 1.0f : 0.0f, sy = dir == 'U' ? -1.0f : dir == 'D' ? 1.0f : 0.0f;  // where the tip points
+            const ImVec2 tip(c.x + sx * r, c.y + sy * r);
+            const ImVec2 base(c.x - sx * r * 0.6f, c.y - sy * r * 0.6f);
+            const ImVec2 side(sy != 0.0f ? r : 0.0f, sx != 0.0f ? r : 0.0f);  // half the width of the base, across the arrow
+            dl->AddTriangleFilled(tip, ImVec2(base.x + side.x, base.y + side.y), ImVec2(base.x - side.x, base.y - side.y), ink);
+        } else {  // two lines when the label has a space (FUEL PRED), small when it is long
+            const size_t sp = key.label.find(' ');
+            const std::string l1 = key.label.substr(0, sp), l2 = sp == std::string::npos ? "" : key.label.substr(sp + 1);
+            const float fsz = key.label.size() <= 2 ? fs * 0.95f : fs * 0.66f;
+            const float lh = fsz * 1.05f, y0 = c.y - (l2.empty() ? lh : 2 * lh) * 0.5f;
+            const std::string* lines[] = {&l1, &l2};
+            for (int i = 0; i < (l2.empty() ? 1 : 2); ++i) {
+                const ImVec2 ts = font->CalcTextSizeA(fsz, 1e6f, 0.0f, lines[i]->c_str());
+                dl->AddText(font, fsz, ImVec2(c.x - ts.x * 0.5f, y0 + i * lh), ink, lines[i]->c_str());
+            }
+        }
+        if (hot && sequence.size() > 1) {  // the order of the presses
+            std::string n;
+            for (int v : presses[k]) n += (n.empty() ? "" : ",") + std::to_string(v);
+            const ImVec2 ts = ImGui::CalcTextSize(n.c_str());
+            const float r = std::max(fs * 0.55f, ts.x * 0.5f + 2.0f);
+            const ImVec2 bc(b.x - r * 0.35f, a.y + r * 0.35f);
+            dl->AddCircleFilled(bc, r, gold);
+            dl->AddText(ImVec2(bc.x - ts.x * 0.5f, bc.y - ts.y * 0.5f), ImGui::GetColorU32(ImVec4(0.1f, 0.1f, 0.1f, 1.0f)), n.c_str());
+        }
+        if (ImGui::IsMouseHoveringRect(a, b)) {
+            if (pad.hEventPrefix.empty()) ImGui::SetTooltip("%s", key.label.c_str());
+            else ImGui::SetTooltip("%s\nsends H:%s%s", key.label.c_str(), pad.hEventPrefix.c_str(), key.id.c_str());
+        }
+    }
+    ImGui::Dummy(size);
+}
+
 void Ui::drawGuidesTab() {
     if (ctx_.guides.empty()) {
         ImGui::TextDisabled("No guide found (expected data/<aircraft>_guide.json).");
@@ -343,6 +438,11 @@ void Ui::drawGuideNode(const Guide& g, const Catalog* cat) {
                         ImGui::EndGroup();
                     }
                 }
+                if (!s.keys.empty())
+                    if (const Keypad* pad = ctx_.keypads.find(g.keypad)) {
+                        ImGui::Spacing();
+                        drawKeypad(*pad, s.keys);
+                    }
                 ImGui::Unindent(ImGui::GetFontSize() * 1.6f);
             }
             ImGui::PopID();

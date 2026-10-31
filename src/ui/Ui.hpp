@@ -11,6 +11,7 @@
 
 #include "app/Catalog.hpp"
 #include "app/Guide.hpp"
+#include "app/Keypad.hpp"
 #include "app/Engine.hpp"
 #include "app/Profile.hpp"
 #include "haptics/Haptics.hpp"
@@ -25,6 +26,7 @@ struct AppContext {
     std::string configPath;
     CatalogSet catalogs;  // one per aircraft: data/*_catalog.json, what the sim reported, and the standard events
     std::deque<Guide> guides;               // data/*_guide.json
+    KeypadSet keypads;                      // data/*_keypads.json: the keyboards the guides point at
     std::vector<GuideProbe> guideProbes;    // what the open guide page wants read from the sim
     const Guide* guideFor(const std::string& aircraft) const;
     void refreshWatches();                  // the profile's L: vars / input events plus the open guide page's probes
@@ -69,6 +71,7 @@ private:
     void drawGuidesTab();
     void drawGuideNode(const Guide& g, const Catalog* cat);
     void drawGuideCard(const Catalog& cat, const std::vector<int>& targets);
+    void drawKeypad(const Keypad& pad, const std::vector<std::string>& sequence);
     std::optional<double> readProbe(const GuideProbe& p) const;
     void drawLogTab();
     void drawSettingsTab();

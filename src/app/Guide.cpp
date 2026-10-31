@@ -53,6 +53,7 @@ GuideStep stepFrom(const json& j) {
     s.warn = j.value("warn", "");
     s.source = j.value("source", "");
     for (const auto& c : j.value("controls", json::array())) s.controls.push_back({c.value("api", ""), c.value("function", "")});
+    for (const auto& k : j.value("keys", json::array())) s.keys.push_back(k.get<std::string>());
     if (j.contains("check") && j["check"].is_object()) {
         const auto& c = j["check"];
         s.check.probe = probeFrom(c);
@@ -98,6 +99,7 @@ bool Guide::load(const std::string& path, std::string& err) {
         in >> j;
         aircraft = j.value("aircraft", "");
         title = j.value("title", "");
+        keypad = j.value("keypad", "");
         notice = j.value("notice", "");
         sources.clear();
         for (const auto& s : j.value("sources", json::array())) sources.push_back(s.get<std::string>());

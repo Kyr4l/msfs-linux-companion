@@ -52,6 +52,7 @@ struct GuideStep {
     std::string warn;      // a caution
     std::string source;    // where this step comes from
     std::vector<GuideRef> controls;  // the controls to show (the first one is highlighted in its panel)
+    std::vector<std::string> keys;   // keys to press on the guide's keypad, in order ("A/B" = either); see app/Keypad.hpp
     GuideCondition check;  // the simulator state that shows the step is done
     std::vector<GuideReadout> readouts;
 };
@@ -84,6 +85,7 @@ struct GuideTopic {
 
 struct Guide {
     std::string aircraft, title;
+    std::string keypad;  // id of the keypad drawing (data/*_keypads.json) the steps' `keys` refer to
     std::string notice;  // what was checked against the real aircraft and what was not, shown on the topics page
     std::vector<std::string> sources;
     std::vector<GuideTopic> topics;

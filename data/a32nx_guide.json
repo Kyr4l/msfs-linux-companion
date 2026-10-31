@@ -1,6 +1,7 @@
 {
  "aircraft": "A32NX",
  "title": "FlyByWire A32NX",
+ "keypad": "a32nx_mcdu",
  "notice": "Written from the FlyByWire documentation: every step names its page. The ticks and the answers taken from the simulator have not been run against the real aircraft yet: if a tick never appears, tick the step by hand.",
  "sources": [
   "FlyByWire documentation, A32NX Beginner Guide: https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/overview/",
@@ -1109,7 +1110,11 @@
    "steps": [
     {
      "text": "On the MCDU press the MCDU MENU key, then select ATSU.",
-     "source": "https://docs.flybywiresim.com/aircraft/a32nx/feature-guides/simbrief/ (Request Data from SimBrief)"
+     "source": "https://docs.flybywiresim.com/aircraft/a32nx/feature-guides/simbrief/ (Request Data from SimBrief)",
+     "keys": [
+      "MENU",
+      "L2"
+     ]
     },
     {
      "text": "Select AOC MENU, then INIT/PRESS, then INIT DATA REQ.",
@@ -1119,12 +1124,19 @@
     {
      "text": "Open the INIT A page and press INIT REQUEST (LSK2R).",
      "source": "https://docs.flybywiresim.com/aircraft/a32nx/feature-guides/simbrief/ (Initialize Flight Plan); https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/init/ (INIT REQUEST)",
+     "keys": [
+      "R2"
+     ],
      "why": "This loads the route from SimBrief. If INIT REQUEST is missing, an arrival airport was selected in the MSFS world map; see Troubleshooting.",
      "warn": "Departure runway, SID, STAR and approach are NOT imported. You add them in the next steps."
     },
     {
      "text": "Optional: on INIT A select WIND/TEMP (LSK4R), then WIND REQUEST (LSK3R) to load the winds from SimBrief.",
      "source": "https://docs.flybywiresim.com/aircraft/a32nx/feature-guides/simbrief/ (Wind Request)",
+     "keys": [
+      "R4",
+      "R3"
+     ],
      "why": "Press LSK5R to go to the next phase page (CRZ WIND). No need to request the winds again there."
     }
    ],
@@ -1137,25 +1149,40 @@
    "steps": [
     {
      "text": "Press the INIT key on the MCDU.",
-     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (INIT A); https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/init/"
+     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (INIT A); https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/init/",
+     "keys": [
+      "INIT"
+     ]
     },
     {
      "text": "Type the departure and arrival airport codes as DEP/ARR (for example EDDM/EDDF) and press LSK1R.",
      "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (INIT A, FROM/TO Field)",
+     "keys": [
+      "R1"
+     ],
      "why": "If you have no stored company routes, the next screen shows company routes; select Return with LSK6L."
     },
     {
      "text": "Type your flight number and press LSK3L.",
-     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (INIT A, FLT NBR)"
+     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (INIT A, FLT NBR)",
+     "keys": [
+      "L3"
+     ]
     },
     {
      "text": "Type the cost index from your flight plan and press LSK5L.",
      "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (INIT A, COST INDEX)",
+     "keys": [
+      "L5"
+     ],
      "why": "The sample flight plan of the guide uses 10. Take the value from your own flight plan (OFP)."
     },
     {
      "text": "Type the cruise flight level (for example 240) and press LSK6L.",
      "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (INIT A, CRZ FL/TEMP)",
+     "keys": [
+      "L6"
+     ],
      "why": "This enters the flight level and the temperature at that level."
     }
    ],
@@ -1182,6 +1209,9 @@
     {
      "text": "Press INSERT* (LSK6R).",
      "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (Inputting a SID)",
+     "keys": [
+      "R6"
+     ],
      "why": "The waypoints of the SID appear in the flight plan. Use the vertical slew keys to scroll. If the SID has an ILS, its frequency is filled in on the RAD NAV page when it is in the database."
     }
    ],
@@ -1216,11 +1246,18 @@
     {
      "text": "Type the airway and press LSK1L, then type the waypoint where you leave it and press LSK1R.",
      "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (Enroute Flight Plan)",
+     "keys": [
+      "L1",
+      "R1"
+     ],
      "why": "Airways go on the left, waypoints on the right. Repeat for each airway of your route. You can string up to five airways on the AIRWAYS page."
     },
     {
      "text": "Press INSERT* (LSK6R).",
-     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (Enroute Flight Plan)"
+     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (Enroute Flight Plan)",
+     "keys": [
+      "R6"
+     ]
     },
     {
      "text": "For a leg with DCT (direct) instead of an airway: press the LSK of the starting waypoint, type the next waypoint and press LSK3R.",
@@ -1254,7 +1291,10 @@
     },
     {
      "text": "Press INSERT* (LSK6R).",
-     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (Planning the Arrival)"
+     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (Planning the Arrival)",
+     "keys": [
+      "R6"
+     ]
     }
    ],
    "next": "fp_check"
@@ -1274,11 +1314,17 @@
     {
      "text": "Press the RAD NAV key and check the VOR and ILS frequencies.",
      "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (RAD NAV)",
+     "keys": [
+      "RAD"
+     ],
      "why": "The aircraft tunes a VOR automatically near the airport, and the departure ILS if the SID has one. Check they make sense for your departure."
     },
     {
      "text": "If the departure ILS is empty, type its frequency (for example 109.50) or its identifier into the ILS field with LSK3L.",
      "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (RAD NAV, Departure ILS)",
+     "keys": [
+      "L3"
+     ],
      "why": "Type the ident OR the frequency, not both: both gives a FORMAT ERROR. Without a valid localizer the RWY mode will not engage on take-off."
     },
     {
@@ -1314,16 +1360,27 @@
    "steps": [
     {
      "text": "Press INIT, then the horizontal slew key to reach the INIT B / INIT FUEL PRED page.",
-     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (INIT FUEL PRED)"
+     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (INIT FUEL PRED)",
+     "keys": [
+      "INIT",
+      "LARROW/RARROW"
+     ]
     },
     {
      "text": "Press LSK1R once to load the calculated ZFW/ZFWCG into the scratchpad, and again to enter it.",
      "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (INIT FUEL PRED)",
+     "keys": [
+      "R1",
+      "R1"
+     ],
      "why": "This works after boarding has started in the flyPad. The empty orange boxes fill. Without ZFW the aircraft shows INITIALIZE WEIGHT/CG on the MCDU after engine start."
     },
     {
      "text": "Type the block fuel in tonnes (for example 4.7 for 4631 kg) and press LSK2R.",
      "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (INIT FUEL PRED)",
+     "keys": [
+      "R2"
+     ],
      "why": "Take it from the ECAM fuel on board, the SimBrief flight plan, or press LSK3R twice to let the MCDU compute it. The MCDU computation is only a reference, and it is not yet accurate."
     }
    ],
@@ -1336,26 +1393,43 @@
    "steps": [
     {
      "text": "Press the PERF key. In preflight it opens the TAKE OFF page.",
-     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/perf/ (Description)"
+     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/perf/ (Description)",
+     "keys": [
+      "PERF"
+     ]
     },
     {
      "text": "Get V1, VR and V2 from the flyPad Performance page (take-off calculator) and type them into LSK1L, LSK2L, LSK3L.",
      "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (V-Speeds); https://docs.flybywiresim.com/aircraft/common/flypados3/performance/ (Takeoff Performance Calculator)",
+     "keys": [
+      "L1",
+      "L2",
+      "L3"
+     ],
      "why": "Without V2 the SRS mode will not be available on take-off. In the Stable version without the calculator, press LSK1L twice (then the same for VR and V2) to get a simplified calculation from the MCDU."
     },
     {
      "text": "Type the flaps setting (for example 1) and press LSK3R.",
      "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (PERF)",
+     "keys": [
+      "R3"
+     ],
      "why": "1 means CONF 1+F. In the FLAPS/THS field you can also enter the trim as /0.4DN or /1.5UP (nose down / nose up). Entering the trim is subject to airline SOP and is optional."
     },
     {
      "text": "If you use reduced thrust, type the FLEX temperature in degrees C and press LSK4R.",
      "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (PERF, Flex Temp)",
+     "keys": [
+      "R4"
+     ],
      "why": "Flex lets the engines run at less than TOGA thrust, using a temperature higher than the real one. Use the flyPad Performance page to calculate it; the guide's 60 is only an example. Without a FLEX temperature use TOGA."
     },
     {
      "text": "Type the transition altitude from your departure chart and press LSK4L.",
      "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (PERF)",
+     "keys": [
+      "L4"
+     ],
      "why": "The guide's sample SID has 5000 ft. The thrust reduction and acceleration altitude default to 1500 ft above the runway, minimum 400 ft."
     }
    ],
@@ -3474,7 +3548,10 @@
    "steps": [
     {
      "text": "Press the DIR key on the MCDU.",
-     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-advanced-guides/flight-planning/direct/ (DIR TO)"
+     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-advanced-guides/flight-planning/direct/ (DIR TO)",
+     "keys": [
+      "DIR"
+     ]
     },
     {
      "text": "Select the waypoint with the left LSK next to it. If it is not in the flight plan, type it and press LSK1L.",
@@ -3880,6 +3957,9 @@
     {
      "text": "Activate the APPR phase on the MCDU PERF page: press ACTIVATE APPR PHASE (LSK6L) and confirm.",
      "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/landing/ (1. Intercepting the ILS Localizer); https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/perf/ (ACTIVATE APPR PHASE)",
+     "keys": [
+      "L6"
+     ],
      "why": "It is normally done automatically, but do it now at the latest. In APPR phase the managed speed follows the flap setting: S-speed after flaps 1, F-speed after flaps 2, VAPP after the landing flaps.",
      "check": {
       "code": "(L:A32NX_FMGC_FLIGHT_PHASE, number)",
@@ -5298,11 +5378,17 @@
     {
      "text": "Type the new waypoint and press LSK3R (NEXT WPT).",
      "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/f-pln/ (NEXT WPT); https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (DCT Before a Waypoint)",
+     "keys": [
+      "R3"
+     ],
      "why": "If the waypoint is already later in the flight plan, all the waypoints in between are removed. If it is a new waypoint, a discontinuity is created after it."
     },
     {
      "text": "If the F-PLN page shows TMPY (temporary flight plan), press INSERT* (LSK6R) to activate it.",
-     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/f-pln/ (F-PLN Page Elements, Lateral Revision Pages); https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (Enroute Flight Plan)"
+     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/f-pln/ (F-PLN Page Elements, Lateral Revision Pages); https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (Enroute Flight Plan)",
+     "keys": [
+      "R6"
+     ]
     }
    ],
    "next": "cf_done"
@@ -5335,6 +5421,9 @@
     {
      "text": "Press INSERT (LSK6R).",
      "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-advanced-guides/flight-planning/holds/ (MCDU Setup 6)",
+     "keys": [
+      "R6"
+     ],
      "why": "The hold shows on the ND with a white curved arrow. The A320 flies the right entry pattern by itself. If the speed is selected, SET HOLD SPEED asks you to set the hold speed or engage managed speed."
     },
     {
@@ -5368,6 +5457,9 @@
     {
      "text": "Press INSERT* (LSK6R) and scroll through the flight plan to check it.",
      "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (Planning the Arrival)",
+     "keys": [
+      "R6"
+     ],
      "why": "A discontinuity between the STAR and the approach is normal. Check it against the chart and the restrictions."
     },
     {
@@ -5399,6 +5491,9 @@
     {
      "text": "To use the planned alternate instead, select ENABLE ALTN (LSK4L) on a LAT REV page.",
      "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/f-pln/ (ENABLE ALTN)",
+     "keys": [
+      "L4"
+     ],
      "why": "It creates a temporary flight plan. The list of alternates (ALTN, LSK5L) does not work in the A32NX."
     }
    ],
@@ -5412,6 +5507,9 @@
     {
      "text": "Press SEC F-PLN on the MCDU and select COPY ACTIVE to copy the active flight plan.",
      "source": "https://docs.flybywiresim.com/aircraft/a32nx/feature-guides/sec-fpln/ (Preparation)",
+     "keys": [
+      "SEC"
+     ],
      "warn": "The page says this feature is available on the Development version, and that predictions for the secondary flight plan are not yet computed. The briefing page for SEC F-PLN says it was not implemented."
     },
     {
@@ -6808,19 +6906,31 @@
     },
     {
      "text": "Use the CLR key to correct: press it once to remove the last character; hold it to clear the whole scratchpad.",
-     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/interface/ (Clear Key)"
+     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/interface/ (Clear Key)",
+     "keys": [
+      "CLR"
+     ]
     },
     {
      "text": "To erase a data field: press CLR on an empty scratchpad (CLR appears in the scratchpad), then press the LSK next to the field.",
-     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/interface/ (Clear Key)"
+     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/interface/ (Clear Key)",
+     "keys": [
+      "CLR"
+     ]
     },
     {
      "text": "The Overfly key makes the aircraft overfly a selected waypoint.",
-     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/interface/ (Overfly Key)"
+     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/interface/ (Overfly Key)",
+     "keys": [
+      "OVFY"
+     ]
     },
     {
      "text": "The AIRPORT key shows the flight plan page with the next airport. Pushing it again shows the destination, the alternate (if in the flight plan), the origin (before take-off) and the destination again.",
-     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/interface/ (Airport Key)"
+     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/interface/ (Airport Key)",
+     "keys": [
+      "AIRPORT"
+     ]
     },
     {
      "text": "Read the font and colours: large font = your entries and modifiable data; small font = defaulted, computed or non-modifiable data. Blue = modifiable or selectable data and brackets. Green = non-modifiable or active data. Amber = mandatory data (boxes), crew action required, important messages. Magenta = constraints and max altitude. White = titles, comments, arrows, dashes, advisory messages.",
@@ -6833,6 +6943,9 @@
     {
      "text": "Messages in the scratchpad are amber (important) or white (advisory). Clear them with CLR. Type 2 messages wait in a queue of at most 5 and show only when nothing else is in the scratchpad.",
      "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/interface/ (Messages on Scratchpad); https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/messages/",
+     "keys": [
+      "CLR"
+     ],
      "why": "The BRT and DIM keys control the light of the MCDU. The annunciators (FM, IND, RDY, FAIL, MCDU MENU) are not available in the A32NX."
     }
    ],
@@ -6845,11 +6958,17 @@
    "steps": [
     {
      "text": "Airports: type the four-letter ICAO code, departure and arrival as DEP/ARR (for example EDDM/EDDF), then press LSK1R on INIT A.",
-     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (INIT A, FROM/TO Field)"
+     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (INIT A, FROM/TO Field)",
+     "keys": [
+      "R1"
+     ]
     },
     {
      "text": "Cruise flight level: type the number (for example 240 for FL240) and press LSK6L on INIT A. This also enters the temperature.",
-     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (INIT A, CRZ FL/TEMP)"
+     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (INIT A, CRZ FL/TEMP)",
+     "keys": [
+      "L6"
+     ]
     },
     {
      "text": "Block fuel and weights: block fuel is typed in tonnes (4631 kg is typed 4.7, rounded to the nearest tenth).",
@@ -6906,7 +7025,11 @@
    "steps": [
     {
      "text": "Press the INIT key to open INIT A. The horizontal slew keys switch between INIT A and INIT FUEL PRED.",
-     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (INIT FUEL PRED); https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/init/"
+     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (INIT FUEL PRED); https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/init/",
+     "keys": [
+      "INIT",
+      "LARROW/RARROW"
+     ]
     },
     {
      "text": "FROM/TO (1R): the departure and arrival airports as DEP/ARR. Entering them deletes any previous route and calls up the route selection page. If one airport is missing from the database, the NEW RWY page would show, but it does not work in the A32NX.",
@@ -6938,11 +7061,18 @@
    "steps": [
     {
      "text": "INIT B is for the gross weight and centre of gravity before the engine start. It becomes the FUEL PRED page after the first engine starts. Open FUEL PRED with the FUEL PRED key, or with the right arrow on INIT A.",
-     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/init/ (INIT B); https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/fuel-pred/ (Description)"
+     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/init/ (INIT B); https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/fuel-pred/ (Description)",
+     "keys": [
+      "FUEL/RARROW"
+     ]
     },
     {
      "text": "ZFW/ZFWCG (1R, INIT B; 3R, FUEL PRED): must be entered to get a speed profile and predictions. Press LSK1R once to get the computed values into the scratchpad and again to store them. 'ENTRY OUT OF RANGE' shows for a value outside the range.",
-     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/init/ (ZFW/ZFWCG)"
+     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/init/ (ZFW/ZFWCG)",
+     "keys": [
+      "R1",
+      "R1"
+     ]
     },
     {
      "text": "BLOCK (2R): block fuel is mandatory. When entered the title changes to INIT FUEL PREDICTION. FUEL PLANNING (3R) lets the FMGC compute it (BLOCK CONFIRM* then confirms); it is not accurate yet in the A32NX.",
@@ -6971,6 +7101,9 @@
     {
      "text": "Press the F-PLN key. The page lists the waypoints in order with time, speed and altitude predictions. The FROM waypoint (last overflown) is at the top, the TO waypoint second, in white.",
      "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/f-pln/ (General)",
+     "keys": [
+      "FPLN"
+     ],
      "why": "Scroll with the vertical slew keys. Press F-PLN to go back to the beginning."
     },
     {
@@ -6992,7 +7125,10 @@
     },
     {
      "text": "In NAV mode the TO waypoint can only be cleared with the DIR key.",
-     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/f-pln/ (General)"
+     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/f-pln/ (General)",
+     "keys": [
+      "DIR"
+     ]
     },
     {
      "text": "The last line gives the distance (DIST) and EFOB at the destination; EFOB is amber when below MIN DEST FOB. F-PLN B is not available in the A32NX.",
@@ -7033,7 +7169,10 @@
     },
     {
      "text": "When the page shows TMPY, press INSERT* (LSK6R) to put the temporary plan into the active flight plan.",
-     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (Inputting a SID, Enroute Flight Plan)"
+     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-beginner-guide/preparing-mcdu/ (Inputting a SID, Enroute Flight Plan)",
+     "keys": [
+      "R6"
+     ]
     }
    ],
    "next": "mc_done"
@@ -7080,6 +7219,9 @@
     {
      "text": "Press the PERF key: it opens the page of the current flight phase. In PREFLIGHT and DONE it opens TAKE OFF. Pages of finished phases are no longer available.",
      "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/perf/ (Description)",
+     "keys": [
+      "PERF"
+     ],
      "why": "The phases are PREFLIGHT, TAKEOFF, CLIMB, CRUISE, DESCENT, APPROACH, GO-AROUND, DONE. PREV PHASE (6L) and NEXT PHASE (6R) show the neighbouring pages."
     },
     {
@@ -7120,7 +7262,10 @@
    "steps": [
     {
      "text": "Press the PROG key. The title changes with the flight phase.",
-     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/prog/ (Description)"
+     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/prog/ (Description)",
+     "keys": [
+      "PROG"
+     ]
     },
     {
      "text": "CRZ (1L): the cruise flight level. You can change it here. It cannot be lower than the altitude on the FCU, and it follows a higher FCU altitude. In descent and approach it shows dashes.",
@@ -7152,7 +7297,10 @@
    "steps": [
     {
      "text": "Press the RAD NAV key. The page is for the radio navaids tuned for display: VOR, VOR/DME, TAC, VORTAC, ILS and ADF.",
-     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/rad-nav/ (Description)"
+     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/rad-nav/ (Description)",
+     "keys": [
+      "RAD"
+     ]
     },
     {
      "text": "VOR1 / FREQ (1L) and FREQ / VOR2 (1R): the ident and frequency of VOR 1 and 2, auto-tuned or manual. To tune one by hand type the ident or the frequency. CLR returns to the auto-tuned navaid. CRS (2L, 2R): the courses.",
@@ -7176,7 +7324,11 @@
    "steps": [
     {
      "text": "Press the DIR key. Type a waypoint into 1L, or press an LSK from 3L to 6L next to a waypoint of the flight plan.",
-     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/dir/ (DIR TO (1L), LSK 3L to 6L)"
+     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/dir/ (DIR TO (1L), LSK 3L to 6L)",
+     "keys": [
+      "DIR",
+      "L1/L3/L4/L5/L6"
+     ]
     },
     {
      "text": "An amber ERASE (6L) and DIRECT (6R) appear. ERASE clears the waypoint in 1L. DIRECT puts the direct leg into the flight plan as the active leg, and the aircraft starts turning at once.",
@@ -7197,7 +7349,10 @@
    "steps": [
     {
      "text": "Press the SEC F-PLN key to open the secondary flight plan index. The secondary plan is used to prepare a diversion, a runway change or the next flight.",
-     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/sec-f-plan/"
+     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/sec-f-plan/",
+     "keys": [
+      "SEC"
+     ]
     },
     {
      "text": "COPY ACTIVE copies the active flight plan. You can change the copy; it creates no temporary plan. ACTIVATE SEC makes it the active plan, SWAP ACTIVE swaps the two.",
@@ -7214,7 +7369,10 @@
    "steps": [
     {
      "text": "Press the DATA key. The A/C STATUS page shows at power-up: aircraft type, engine type, active database (validity period) and, in small font, the second database. Changing the database, the IDLE/PERF factor and STATUS/XLOAD do not work in the A32NX.",
-     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/data/ (A/C STATUS)"
+     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/data/ (A/C STATUS)",
+     "keys": [
+      "DATA"
+     ]
     },
     {
      "text": "DATA INDEX page 1 (navigation systems): POSITION MONITOR (FMS 1, FMS 2, radio/GPS, MIX IRS, IRS 1 to 3 with their mode INVAL, ALIGN, NAV or ATT; FREEZE/UNFREEZE in 6L), IRS MONITOR, GPS MONITOR, CLOSEST AIRPORTS.",
@@ -7226,11 +7384,17 @@
     },
     {
      "text": "Page 2 (use the horizontal slew key): WAYPOINTS (1L), NAVAIDS (2L), RUNWAYS (3L), ROUTES (4L) and the stored data (1R to 4R). Up to 99 stored waypoints exist; they are not kept after the flight.",
-     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/data/ (DATA INDEX Page 2); https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-advanced-guides/data-management/ (Stored Waypoints)"
+     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/data/ (DATA INDEX Page 2); https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-advanced-guides/data-management/ (Stored Waypoints)",
+     "keys": [
+      "LARROW/RARROW"
+     ]
     },
     {
      "text": "To delete a stored waypoint: open its page and use CLR on the ident. Delete all: DELETE ALL on a stored waypoint page, or on the A/C STATUS page. A waypoint in use stays and F-PLN ELEMENT RETAINED shows.",
-     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-advanced-guides/data-management/ (How to Delete Stored Waypoints)"
+     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-advanced-guides/data-management/ (How to Delete Stored Waypoints)",
+     "keys": [
+      "CLR"
+     ]
     }
    ],
    "next": "mc_done"
@@ -7242,7 +7406,10 @@
    "steps": [
     {
      "text": "Press the MCDU MENU key. The page lists the systems: FMGC (1L, opens DATA A/C STATUS), ATSU (2L). AIDS, CFDS and NAV B/UP do not work in the A32NX.",
-     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/mcdu-menu/ (Usage)"
+     "source": "https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-briefing/mcdu/mcdu-menu/ (Usage)",
+     "keys": [
+      "MENU"
+     ]
     },
     {
      "text": "Select ATSU, then AOC MENU: INIT/PRES (1L), WX REQUEST (2L), ATIS (3L), FREE TEXT (1R), RECEIVED MESSAGES (3R), SENT MESSAGES (4R). DIVERSION and MISC do not work.",

@@ -238,6 +238,11 @@ int main(int argc, char** argv) {
             LOG_INFO("Guide %s: %zu topics from %s", g.aircraft.c_str(), g.topics.size(), path.c_str());
             ctx.guides.push_back(std::move(g));
         }
+        for (const auto& path : app::listDataFiles("_keypads.json")) {
+            std::string err;
+            if (!ctx.keypads.load(path, err)) LOG_WARN("Keypads %s not loaded: %s", path.c_str(), err.c_str());
+            else LOG_INFO("Keypads: %zu in total after %s", ctx.keypads.pads.size(), path.c_str());
+        }
         if (ctx.catalogs.empty()) LOG_WARN("No action catalog found (expected data/*_catalog.json)");
     }
 

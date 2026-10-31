@@ -1,0 +1,650 @@
+{
+ "pads": [
+  {
+   "id": "a32nx_mcdu",
+   "aircraft": "A32NX",
+   "title": "MCDU keys (A32NX)",
+   "unit": "mm",
+   "width": 156.2,
+   "height": 214.7,
+   "h_event_prefix": "A320_Neo_CDU_1_BTN_",
+   "sources": [
+    "flybywire-aircraft-a320-neo/SimObjects/AirPlanes/FlyByWire_A320_NEO/model/A320_NEO_INTERIOR_LOD00.gltf: position and size of the nodes PUSH_MCDUL_<key>",
+    "flybywire-aircraft-a320-neo/ModelBehaviorDefs/A32NX/generated/A32NX_Interior_MCDU.xml: the key list and the H events (A320_Neo_CDU_1_BTN_<key>)",
+    "tools/build_keypad_layout.py: projection onto the plane of the keys"
+   ],
+   "keys": [
+    {
+     "id": "L1",
+     "label": "1L",
+     "group": "line select",
+     "x": 0.0,
+     "y": 0.0,
+     "w": 10.1,
+     "h": 6.5
+    },
+    {
+     "id": "R1",
+     "label": "1R",
+     "group": "line select",
+     "x": 146.1,
+     "y": 0.0,
+     "w": 10.1,
+     "h": 6.5
+    },
+    {
+     "id": "L2",
+     "label": "2L",
+     "group": "line select",
+     "x": 0.0,
+     "y": 12.6,
+     "w": 10.1,
+     "h": 6.5
+    },
+    {
+     "id": "R2",
+     "label": "2R",
+     "group": "line select",
+     "x": 146.1,
+     "y": 12.6,
+     "w": 10.1,
+     "h": 6.5
+    },
+    {
+     "id": "L3",
+     "label": "3L",
+     "group": "line select",
+     "x": 0.0,
+     "y": 25.9,
+     "w": 10.1,
+     "h": 6.5
+    },
+    {
+     "id": "R3",
+     "label": "3R",
+     "group": "line select",
+     "x": 146.1,
+     "y": 25.9,
+     "w": 10.1,
+     "h": 6.5
+    },
+    {
+     "id": "L4",
+     "label": "4L",
+     "group": "line select",
+     "x": 0.0,
+     "y": 39.2,
+     "w": 10.1,
+     "h": 6.5
+    },
+    {
+     "id": "R4",
+     "label": "4R",
+     "group": "line select",
+     "x": 146.1,
+     "y": 39.2,
+     "w": 10.1,
+     "h": 6.5
+    },
+    {
+     "id": "L5",
+     "label": "5L",
+     "group": "line select",
+     "x": 0.0,
+     "y": 52.4,
+     "w": 10.1,
+     "h": 6.5
+    },
+    {
+     "id": "R5",
+     "label": "5R",
+     "group": "line select",
+     "x": 146.1,
+     "y": 52.4,
+     "w": 10.1,
+     "h": 6.5
+    },
+    {
+     "id": "L6",
+     "label": "6L",
+     "group": "line select",
+     "x": 0.0,
+     "y": 66.5,
+     "w": 10.1,
+     "h": 6.5
+    },
+    {
+     "id": "R6",
+     "label": "6R",
+     "group": "line select",
+     "x": 146.1,
+     "y": 66.5,
+     "w": 10.1,
+     "h": 6.5
+    },
+    {
+     "id": "DIR",
+     "label": "DIR",
+     "group": "page",
+     "x": 15.1,
+     "y": 92.3,
+     "w": 17.3,
+     "h": 8.9
+    },
+    {
+     "id": "PROG",
+     "label": "PROG",
+     "group": "page",
+     "x": 34.2,
+     "y": 92.3,
+     "w": 17.3,
+     "h": 8.9
+    },
+    {
+     "id": "PERF",
+     "label": "PERF",
+     "group": "page",
+     "x": 53.4,
+     "y": 92.3,
+     "w": 17.3,
+     "h": 8.9
+    },
+    {
+     "id": "INIT",
+     "label": "INIT",
+     "group": "page",
+     "x": 72.5,
+     "y": 92.3,
+     "w": 17.3,
+     "h": 8.9
+    },
+    {
+     "id": "DATA",
+     "label": "DATA",
+     "group": "page",
+     "x": 91.7,
+     "y": 92.3,
+     "w": 17.3,
+     "h": 8.9
+    },
+    {
+     "id": "FPLN",
+     "label": "F-PLN",
+     "group": "page",
+     "x": 15.1,
+     "y": 105.5,
+     "w": 17.3,
+     "h": 8.9
+    },
+    {
+     "id": "RAD",
+     "label": "RAD NAV",
+     "group": "page",
+     "x": 34.2,
+     "y": 105.5,
+     "w": 17.3,
+     "h": 8.9
+    },
+    {
+     "id": "FUEL",
+     "label": "FUEL PRED",
+     "group": "page",
+     "x": 53.4,
+     "y": 105.5,
+     "w": 17.3,
+     "h": 8.9
+    },
+    {
+     "id": "SEC",
+     "label": "SEC F-PLN",
+     "group": "page",
+     "x": 72.5,
+     "y": 105.5,
+     "w": 17.3,
+     "h": 8.9
+    },
+    {
+     "id": "ATC",
+     "label": "ATC COMM",
+     "group": "page",
+     "x": 91.7,
+     "y": 105.5,
+     "w": 17.3,
+     "h": 8.9
+    },
+    {
+     "id": "MENU",
+     "label": "MCDU MENU",
+     "group": "page",
+     "x": 110.8,
+     "y": 105.5,
+     "w": 17.3,
+     "h": 8.9
+    },
+    {
+     "id": "AIRPORT",
+     "label": "AIRPORT",
+     "group": "page",
+     "x": 15.1,
+     "y": 118.4,
+     "w": 17.3,
+     "h": 8.9
+    },
+    {
+     "id": "A",
+     "label": "A",
+     "group": "alpha",
+     "x": 65.9,
+     "y": 124.2,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "B",
+     "label": "B",
+     "group": "alpha",
+     "x": 81.9,
+     "y": 124.2,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "C",
+     "label": "C",
+     "group": "alpha",
+     "x": 97.9,
+     "y": 124.2,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "D",
+     "label": "D",
+     "group": "alpha",
+     "x": 113.8,
+     "y": 124.2,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "E",
+     "label": "E",
+     "group": "alpha",
+     "x": 129.7,
+     "y": 124.2,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "UARROW",
+     "label": "UP",
+     "group": "slew",
+     "x": 34.2,
+     "y": 131.9,
+     "w": 17.3,
+     "h": 8.9
+    },
+    {
+     "id": "LARROW",
+     "label": "LEFT",
+     "group": "slew",
+     "x": 15.1,
+     "y": 132.0,
+     "w": 17.3,
+     "h": 8.9
+    },
+    {
+     "id": "F",
+     "label": "F",
+     "group": "alpha",
+     "x": 65.9,
+     "y": 138.9,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "G",
+     "label": "G",
+     "group": "alpha",
+     "x": 81.9,
+     "y": 138.9,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "H",
+     "label": "H",
+     "group": "alpha",
+     "x": 97.9,
+     "y": 138.9,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "I",
+     "label": "I",
+     "group": "alpha",
+     "x": 113.8,
+     "y": 138.9,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "J",
+     "label": "J",
+     "group": "alpha",
+     "x": 129.7,
+     "y": 138.9,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "RARROW",
+     "label": "RIGHT",
+     "group": "slew",
+     "x": 15.1,
+     "y": 144.9,
+     "w": 17.3,
+     "h": 8.9
+    },
+    {
+     "id": "DARROW",
+     "label": "DOWN",
+     "group": "slew",
+     "x": 34.2,
+     "y": 144.9,
+     "w": 17.3,
+     "h": 8.9
+    },
+    {
+     "id": "K",
+     "label": "K",
+     "group": "alpha",
+     "x": 65.9,
+     "y": 155.5,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "L",
+     "label": "L",
+     "group": "alpha",
+     "x": 81.9,
+     "y": 155.5,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "M",
+     "label": "M",
+     "group": "alpha",
+     "x": 97.9,
+     "y": 155.5,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "N",
+     "label": "N",
+     "group": "alpha",
+     "x": 113.8,
+     "y": 155.5,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "O",
+     "label": "O",
+     "group": "alpha",
+     "x": 129.7,
+     "y": 155.5,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "1",
+     "label": "1",
+     "group": "digit",
+     "x": 17.9,
+     "y": 161.7,
+     "w": 10.4,
+     "h": 10.4
+    },
+    {
+     "id": "2",
+     "label": "2",
+     "group": "digit",
+     "x": 33.8,
+     "y": 161.7,
+     "w": 10.4,
+     "h": 10.4
+    },
+    {
+     "id": "3",
+     "label": "3",
+     "group": "digit",
+     "x": 49.8,
+     "y": 161.7,
+     "w": 10.4,
+     "h": 10.4
+    },
+    {
+     "id": "P",
+     "label": "P",
+     "group": "alpha",
+     "x": 65.9,
+     "y": 171.6,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "Q",
+     "label": "Q",
+     "group": "alpha",
+     "x": 81.9,
+     "y": 171.6,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "R",
+     "label": "R",
+     "group": "alpha",
+     "x": 97.9,
+     "y": 171.6,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "S",
+     "label": "S",
+     "group": "alpha",
+     "x": 113.8,
+     "y": 171.6,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "T",
+     "label": "T",
+     "group": "alpha",
+     "x": 129.7,
+     "y": 171.6,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "4",
+     "label": "4",
+     "group": "digit",
+     "x": 17.9,
+     "y": 175.9,
+     "w": 10.4,
+     "h": 10.4
+    },
+    {
+     "id": "5",
+     "label": "5",
+     "group": "digit",
+     "x": 33.8,
+     "y": 175.9,
+     "w": 10.4,
+     "h": 10.4
+    },
+    {
+     "id": "6",
+     "label": "6",
+     "group": "digit",
+     "x": 49.8,
+     "y": 175.9,
+     "w": 10.4,
+     "h": 10.4
+    },
+    {
+     "id": "U",
+     "label": "U",
+     "group": "alpha",
+     "x": 65.9,
+     "y": 187.7,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "V",
+     "label": "V",
+     "group": "alpha",
+     "x": 81.9,
+     "y": 187.7,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "W",
+     "label": "W",
+     "group": "alpha",
+     "x": 97.9,
+     "y": 187.7,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "X",
+     "label": "X",
+     "group": "alpha",
+     "x": 113.8,
+     "y": 187.7,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "Y",
+     "label": "Y",
+     "group": "alpha",
+     "x": 129.7,
+     "y": 187.7,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "7",
+     "label": "7",
+     "group": "digit",
+     "x": 17.9,
+     "y": 190.2,
+     "w": 10.4,
+     "h": 10.4
+    },
+    {
+     "id": "8",
+     "label": "8",
+     "group": "digit",
+     "x": 33.8,
+     "y": 190.2,
+     "w": 10.4,
+     "h": 10.4
+    },
+    {
+     "id": "9",
+     "label": "9",
+     "group": "digit",
+     "x": 49.8,
+     "y": 190.2,
+     "w": 10.4,
+     "h": 10.4
+    },
+    {
+     "id": "DOT",
+     "label": ".",
+     "group": "alpha",
+     "x": 17.9,
+     "y": 204.0,
+     "w": 10.4,
+     "h": 10.4
+    },
+    {
+     "id": "0",
+     "label": "0",
+     "group": "digit",
+     "x": 33.8,
+     "y": 204.0,
+     "w": 10.4,
+     "h": 10.4
+    },
+    {
+     "id": "PLUSMINUS",
+     "label": "+/-",
+     "group": "alpha",
+     "x": 49.8,
+     "y": 204.0,
+     "w": 10.4,
+     "h": 10.4
+    },
+    {
+     "id": "Z",
+     "label": "Z",
+     "group": "alpha",
+     "x": 65.9,
+     "y": 203.8,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "SLASH",
+     "label": "/",
+     "group": "alpha",
+     "x": 81.9,
+     "y": 203.8,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "SP",
+     "label": "SP",
+     "group": "alpha",
+     "x": 97.9,
+     "y": 203.8,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "OVFY",
+     "label": "OVFY",
+     "group": "alpha",
+     "x": 113.8,
+     "y": 203.8,
+     "w": 11.3,
+     "h": 10.9
+    },
+    {
+     "id": "CLR",
+     "label": "CLR",
+     "group": "alpha",
+     "x": 129.7,
+     "y": 203.8,
+     "w": 11.3,
+     "h": 10.9
+    }
+   ]
+  }
+ ]
+}
