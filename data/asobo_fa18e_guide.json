@@ -1,0 +1,4225 @@
+{
+ "aircraft": "Asobo_FA18E",
+ "title": "Boeing F/A-18E Super Hornet (Asobo)",
+ "notice": "No official Asobo or Microsoft manual for this aircraft was found, so the procedures come from the sim's own checklist shipped with the aircraft, the sim's cockpit and instrument files, and three community guides on the MSFS forum (marked as community, not official; every step names its source). This guide itself has not been run on the aircraft. What was checked on a real F/A-18E when the catalog was built: a full engine start through the app and the controls it uses (battery, APU, generators, crank switch, throttles at idle), the flaps lever, anti-skid, the landing light, the strobes (inverted), cabin light 1, the tail hook, the wing fold and the altimeter setting; steps that use only those controls carry checks read back from the sim. Not understood on the real aircraft: the engine cut-off (throttle OFF stop), releasing the parking brake, the speed brake and the navigation light knob; steps that need them have no check and say so. Everything else (gear lever, nosewheel steering, bleed air, display brightness, exterior lights master switch, UFCD, DDIs, the pilot relief modes and the autothrottle, TACAN, afterburner) was written from the sources and has not been run on the aircraft: tick by hand if a tick never appears.",
+ "sources": [
+  "FA18E_Checklist.xml and Library.xml shipped with the aircraft (Official/Steam/asobo-aircraft-fa18e/SimObjects/Airplanes/Asobo_FA18E/Checklist), the sim's own interactive checklist; English clue texts from Official/Steam/fs-base/en-US.locPak",
+  "Asobo_DefaultCheckpointLibrary.xml (Official/Steam/fs-base-aircraft-common/CheckpointsLibrary), the shared checklist items FA18E_Checklist.xml refers to",
+  "Files of the installed game: asobo-aircraft-fa18e (model/FA18E_cockpit.xml, systems.cfg) and asobo-vcockpits-instruments-fa18 (html_ui/Pages/VCockpit/Instruments/FA18: UFCD, DDI and EFD JavaScript)",
+  "State variables and control behaviour read from a running F/A-18E (MSFS 11.0.282174.999), recorded in data/asobo_fa18e_catalog.json",
+  "Raynen, F/A-18E Startup + Basic TACAN Navigation, 19 Nov 2021 (community guide on the MSFS forum, not official): https://forums.flightsimulator.com/t/f-a-18e-startup-basic-tacan-navigation/472861",
+  "Raynen, [HOW-TO] F/A-18E Pilot Relief Modes (Autopilot), 20 Nov 2021 (community guide, not official): https://forums.flightsimulator.com/t/how-to-f-a-18e-pilot-relief-modes-autopilot/473600",
+  "Raynen, [HOW-TO] F/A-18E Landing Guide, 21 Nov 2021 (community guide, not official): https://forums.flightsimulator.com/t/how-to-f-a-18e-landing-guide/474259",
+  "Simvol, F-18 Hornet startup and shutdown (community tutorial, not official): https://www.simvol.org/en/articles/tutorials/f18-hornet-startup-shutdown",
+  "FLIGHT Checklist, F/A-18E Super Hornet (third-party site, not official, simulation use only), only used to cross-check the 350 knot climb speed: https://flightchecklist.app/msfs/fa-18e-super-hornet",
+  "MSFS forum bug report, FA/18 cannot start both engines cold and dark under low temperature (community thread, MSFS 2024): https://forums.flightsimulator.com/t/fa-18-cant-start-both-engines-cold-dark-under-low-temperature/710072"
+ ],
+ "topics": [
+  {
+   "id": "engine_start",
+   "title": "Start the engines",
+   "summary": "From cold and dark to both engines running, following the sim's own checklist.",
+   "start": "es_ground"
+  },
+  {
+   "id": "power_up",
+   "title": "Power up the cockpit",
+   "summary": "Battery, APU, generators, UFCD and displays, from cold and dark.",
+   "start": "pu_ground"
+  },
+  {
+   "id": "before_taxi",
+   "title": "Before taxi and taxi",
+   "summary": "The checks after the engine start, flaps, nosewheel steering, parking brake and the taxi.",
+   "start": "bt_ground"
+  },
+  {
+   "id": "takeoff",
+   "title": "Take off",
+   "summary": "Checks before take-off, line-up, take-off roll, rotation, gear and flaps up.",
+   "start": "to_ground"
+  },
+  {
+   "id": "climb_cruise",
+   "title": "Climb and cruise",
+   "summary": "Gear and flaps up, climb speed, then level off and hold the altitude.",
+   "start": "cc_air"
+  },
+  {
+   "id": "autopilot",
+   "title": "Autopilot and pilot relief modes",
+   "summary": "A/P menu on the UFCD: BALT, RALT, FPAH, ROLL, HDG, GTRK, CPL and the autothrottle.",
+   "start": "ap_intro"
+  },
+  {
+   "id": "radios",
+   "title": "Radios, TACAN and altimeter",
+   "summary": "COM frequencies and volume, TACAN, ILS, IFF code and altimeter setting on the UFCD.",
+   "start": "rv_menu"
+  },
+  {
+   "id": "descent_approach",
+   "title": "Descent and approach",
+   "summary": "Altimeter and navaids, gear and flaps, then slow down on the angle of attack.",
+   "start": "da_air"
+  },
+  {
+   "id": "landing",
+   "title": "Landing",
+   "summary": "Gear and flaps, the final on the angle of attack, touchdown and braking.",
+   "start": "ld_air"
+  },
+  {
+   "id": "shutdown",
+   "title": "After landing and shutdown",
+   "summary": "Park, then lights, bleed air, throttles, radios, displays and battery.",
+   "start": "sd_ground"
+  },
+  {
+   "id": "wings_hook",
+   "title": "Wings, hook and launch bar",
+   "summary": "Spread or fold the wings, and check the tail hook and the launch bar.",
+   "start": "wh_menu"
+  },
+  {
+   "id": "lights",
+   "title": "Lights",
+   "summary": "Exterior lights, the lights master switch and the interior lights.",
+   "start": "li_menu"
+  },
+  {
+   "id": "fuel",
+   "title": "Check the fuel",
+   "summary": "Total and tank fuel on the EFD and the DDI, and the bingo fuel.",
+   "start": "fu_check"
+  },
+  {
+   "id": "displays_ref",
+   "title": "How to use the UFCD, DDIs and EFD",
+   "summary": "A reference for the UFCD menus, the DDI pages, the HSI and the engine and fuel display.",
+   "start": "dr_menu"
+  },
+  {
+   "id": "troubleshooting",
+   "title": "Troubleshooting",
+   "summary": "An engine will not start, no power, the aircraft will not move, configuration, autopilot, radios and other controls.",
+   "start": "ts_menu"
+  }
+ ],
+ "nodes": {
+  "es_ground": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "help": "The engines are started on the ground. The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, on the ground",
+     "next": "es_state"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "es_air"
+    }
+   ]
+  },
+  "es_air": {
+   "type": "info",
+   "title": "Not on the ground",
+   "text": "This guide covers the engine start on the ground, which is the only start the sim's own F/A-18E checklist describes. Land and park first, then come back.",
+   "next": ""
+  },
+  "es_state": {
+   "type": "question",
+   "title": "Engines",
+   "text": "How many engines are running?",
+   "help": "Both engines running means the start is done; the guide then goes straight to the checks after the start.",
+   "auto": {
+    "code": "(A:GENERAL ENG COMBUSTION:1, Bool) (A:GENERAL ENG COMBUSTION:2, Bool) +",
+    "rules": [
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "none"
+     },
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "one"
+     },
+     {
+      "op": "==",
+      "value": 2,
+      "choice": "both"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "none",
+     "label": "None",
+     "next": "es_before"
+    },
+    {
+     "id": "one",
+     "label": "One",
+     "next": "es_which"
+    },
+    {
+     "id": "both",
+     "label": "Both",
+     "next": "es_after"
+    }
+   ]
+  },
+  "es_which": {
+   "type": "question",
+   "title": "Which engine is running?",
+   "text": "Which engine is already running?",
+   "help": "The sim's checklist starts the right engine first, then the left one.",
+   "auto": {
+    "code": "(A:GENERAL ENG COMBUSTION:2, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "right"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "left"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "right",
+     "label": "The right engine (engine 2)",
+     "next": "es_bleed_r"
+    },
+    {
+     "id": "left",
+     "label": "The left engine (engine 1)",
+     "next": "es_right_b"
+    }
+   ]
+  },
+  "es_before": {
+   "type": "steps",
+   "title": "Before starting the engines",
+   "source": "FA18E_Checklist.xml: page Before starting engine (the whole page)",
+   "steps": [
+    {
+     "text": "Turn the APU switch OFF.",
+     "where": "Left console (Simvol).",
+     "source": "FA18E_Checklist.xml: page Before starting engine, APU_STARTER_OFF_TEMPLATE (clue \"APU must be Off\")",
+     "controls": [
+      {
+       "api": "ELECTRICAL_APU_Starter"
+      }
+     ],
+     "check": {
+      "code": "(A:APU SWITCH, Bool)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Set the exterior lights as required.",
+     "where": "Left console (strobe lights, Raynen's startup guide).",
+     "why": "Strobes are inverted on the real aircraft (set 0 = ON). The navigation and recognition knobs were not read back there.",
+     "source": "FA18E_Checklist.xml: page Before starting engine, EXT_LIGHTS_AS_REQUIRED_FA18E (clue \"Switch exterior lights on, if required\"; instruments strobe switch, navigation switch, recognition knob, landing light)",
+     "controls": [
+      {
+       "api": "LIGHTING_STROBE_1"
+      },
+      {
+       "api": "LIGHTING_Navigation_Light_Knob"
+      },
+      {
+       "api": "LIGHTING_Recognition_Light_Knob"
+      },
+      {
+       "api": "LIGHTING_LANDING_1"
+      }
+     ]
+    },
+    {
+     "text": "Put both throttles on the OFF stop.",
+     "warn": "Not verified: on the real aircraft the STOP control always read 0 and the engine cut-off was not found. The sim's checklist reads the engine fuel valves (FUELSYSTEM VALVE SWITCH 7 and 8) to know the throttles are OFF. Tick by hand.",
+     "source": "FA18E_Checklist.xml: page Before starting engine, Throttles_cut_off_FA18E (clue \"Set throttles on \"Off\" position\")",
+     "controls": [
+      {
+       "api": "ENGINE_Throttle_1_STOP"
+      },
+      {
+       "api": "ENGINE_Throttle_2_STOP"
+      }
+     ]
+    },
+    {
+     "text": "Set the exterior lights master switch FORWARD.",
+     "why": "Not verified on the real aircraft: the value follows 0 / 1 / 2 but it was not read what it controls. The checklist sends LIGHTING_EXT_Lights_Mode_Norm for FORWARD.",
+     "source": "FA18E_Checklist.xml: page Before starting engine, EXT_LIGHTS_MASTER_FORWARD (Library.xml; clue \"Exterior lights master switch must be forward\")",
+     "controls": [
+      {
+       "api": "LIGHTING_EXT_Lights_Mode"
+      }
+     ]
+    },
+    {
+     "text": "Set the parking brake.",
+     "why": "Not verified on the real aircraft: it reads 1 (set); releasing it was not found.",
+     "source": "FA18E_Checklist.xml: page Before starting engine, Parking_Brake_Set",
+     "controls": [
+      {
+       "api": "LANDING_GEAR_Parking_Brake"
+      }
+     ]
+    },
+    {
+     "text": "Turn the landing / taxi light OFF.",
+     "source": "FA18E_Checklist.xml: page Before starting engine, Landing_Light_Off (subject \"LDG/TAXI LIGHT\", expectation \"Off\")",
+     "controls": [
+      {
+       "api": "LIGHTING_LANDING_1"
+      }
+     ],
+     "check": {
+      "code": "(A:LIGHT LANDING, Bool)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Turn the anti-skid ON.",
+     "source": "FA18E_Checklist.xml: page Before starting engine, ANTI_SKID_ON_TEMPLATE (clue \"Switch anti skid on\")",
+     "controls": [
+      {
+       "api": "HANDLING_Anti_Skid"
+      }
+     ],
+     "check": {
+      "code": "(A:ANTISKID BRAKES ACTIVE, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Set the flaps lever to AUTO.",
+     "source": "FA18E_Checklist.xml: page Before starting engine, Flaps_0 (clue \"Set flaps lever to \"Auto\"\")",
+     "controls": [
+      {
+       "api": "HANDLING_Flaps",
+       "function": "Flaps: position 0 (up)"
+      }
+     ],
+     "check": {
+      "code": "(A:FLAPS HANDLE INDEX, number)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Set the landing gear lever to DN.",
+     "why": "Not verified: the gear lever was deliberately not tried on the real aircraft. It reads 1 (down) on the ground.",
+     "source": "FA18E_Checklist.xml: page Before starting engine, Landing_Gear_Down (clue \"Set landing gear lever to \"DN\"\")",
+     "controls": [
+      {
+       "api": "LANDING_GEAR_Gear"
+      }
+     ]
+    },
+    {
+     "text": "Turn the left DDI, the right DDI, the HUD and the MCPD OFF.",
+     "why": "The checklist drives display unit 1 as the left DDI, unit 2 as the right DDI and unit 3 as the MCPD. Not verified on the real aircraft.",
+     "source": "FA18E_Checklist.xml: page Before starting engine, DDI_HUD_MCPD_OFF_FA18E (Library.xml; sets the brightness knobs to 0)",
+     "controls": [
+      {
+       "api": "AS04F_DDI_Knob_Brightness_MFD_1"
+      },
+      {
+       "api": "AS04F_DDI_Knob_Brightness_MFD_2"
+      },
+      {
+       "api": "AS04F_DDI_Knob_Brightness_MFD_3"
+      },
+      {
+       "api": "AS04F_HUD_Knob_Brightness_1"
+      }
+     ]
+    },
+    {
+     "text": "Turn the COMM 1 and COMM 2 volume knobs OFF.",
+     "why": "Not verified on the real aircraft (range assumed 0 to 100).",
+     "source": "FA18E_Checklist.xml: page Before starting engine, Radios_COMM_1_2_Off_TEMPLATE (clue \"COMM 1 and COMM 2 must be turned off\")",
+     "controls": [
+      {
+       "api": "AS04F_UFCD_Knob_COM1_Volume_1"
+      },
+      {
+       "api": "AS04F_UFCD_Knob_COM2_Volume_1"
+      }
+     ]
+    },
+    {
+     "text": "Check the tail hook is UP.",
+     "source": "FA18E_Checklist.xml: page Before starting engine, Hook_Up_FA18E (Library.xml; clue \"Hook must be retracted and hook caution light must be off\")",
+     "controls": [
+      {
+       "api": "HANDLING_Lever_TailHook"
+      }
+     ],
+     "check": {
+      "code": "(A:TAILHOOK POSITION, percent)",
+      "op": "<=",
+      "value": 1
+     }
+    },
+    {
+     "text": "Check the wing fold switch matches the wings: wings spread.",
+     "why": "Set 0 = wings spread. The sim shows \"Wings are spreading, please wait\" while they move.",
+     "source": "FA18E_Checklist.xml: page Before starting engine, FA18E_WINGS_SPREAD (clue \"Check that wingfold switch position matches actual wing position\")",
+     "controls": [
+      {
+       "api": "HANDLING_Lever_WingFold"
+      }
+     ],
+     "check": {
+      "code": "(A:FOLDING WING LEFT PERCENT, percent) (A:FOLDING WING RIGHT PERCENT, percent) +",
+      "op": "<=",
+      "value": 2
+     }
+    },
+    {
+     "text": "Set both generator switches to NORM.",
+     "where": "Right console (Simvol).",
+     "source": "FA18E_Checklist.xml: page Before starting engine, GENERATOR_MAIN_2 (clue \"Switch generators to \"NORM\"\")",
+     "controls": [
+      {
+       "api": "ELECTRICAL_Alternator_1"
+      },
+      {
+       "api": "ELECTRICAL_Alternator_2"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG MASTER ALTERNATOR:1, Bool) (A:GENERAL ENG MASTER ALTERNATOR:2, Bool) +",
+      "op": "==",
+      "value": 2
+     }
+    },
+    {
+     "text": "Turn the battery switch OFF.",
+     "source": "FA18E_Checklist.xml: page Before starting engine, Battery_Switch_Off (clue \"Battery must be Off\")",
+     "controls": [
+      {
+       "api": "ELECTRICAL_Battery_1"
+      }
+     ],
+     "check": {
+      "code": "(A:ELECTRICAL MASTER BATTERY, Bool)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Set the interior lights as required.",
+     "why": "Only cabin light 1 was verified on the real aircraft; which panel each brightness knob dims is not known.",
+     "source": "FA18E_Checklist.xml: page Before starting engine, INTR_LIGHTS_AS_REQUIRED_FA18E (clue \"Set interior lights as required\")",
+     "controls": [
+      {
+       "api": "LIGHTING_CABIN_1"
+      },
+      {
+       "api": "LIGHTING_CABIN_2"
+      },
+      {
+       "api": "LIGHTING_POTENTIOMETER_2"
+      },
+      {
+       "api": "LIGHTING_POTENTIOMETER_3"
+      },
+      {
+       "api": "LIGHTING_POTENTIOMETER_6"
+      }
+     ]
+    }
+   ],
+   "next": "es_power"
+  },
+  "es_power": {
+   "type": "steps",
+   "title": "Battery and APU",
+   "source": "FA18E_Checklist.xml: page Starting engine (Battery_Switch_On, APU_STARTER_ON_TEMPLATE, APU_START_AVAIL_LIT_NO_HIGHLIGHT)",
+   "steps": [
+    {
+     "text": "Turn the battery switch ON.",
+     "where": "Lower right console (Raynen's startup guide).",
+     "source": "FA18E_Checklist.xml: page Starting engine, Battery_Switch_On (clue \"Switch battery on\")",
+     "controls": [
+      {
+       "api": "ELECTRICAL_Battery_1"
+      }
+     ],
+     "check": {
+      "code": "(A:ELECTRICAL MASTER BATTERY, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Turn the APU switch ON.",
+     "where": "Left console (Simvol).",
+     "source": "FA18E_Checklist.xml: page Starting engine, APU_STARTER_ON_TEMPLATE (clue \"Switch APU on\")",
+     "controls": [
+      {
+       "api": "ELECTRICAL_APU_Starter"
+      }
+     ],
+     "check": {
+      "code": "(A:APU SWITCH, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Wait for the APU READY light: it comes on within 30 seconds.",
+     "why": "The sim shows the APU speed while you wait. On the real aircraft the APU reached 99.7 %.",
+     "source": "FA18E_Checklist.xml: page Starting engine, APU_START_AVAIL_LIT_NO_HIGHLIGHT (clue \"APU \"Ready\" light must be on within 30 seconds\")",
+     "controls": [
+      {
+       "api": "ELECTRICAL_APU_Starter"
+      }
+     ],
+     "check": {
+      "code": "(A:APU PCT RPM, percent)",
+      "op": ">=",
+      "value": 95
+     },
+     "readouts": [
+      {
+       "label": "APU",
+       "unit": "%",
+       "code": "(A:APU PCT RPM, percent)"
+      }
+     ]
+    }
+   ],
+   "next": "es_right"
+  },
+  "es_right": {
+   "type": "steps",
+   "title": "Start the right engine",
+   "source": "FA18E_Checklist.xml: page Starting engine (RIGHT_ENGINE_STARTER_ON, FA18E_THROTTLE_IDLE_WHEN_N2_10_PCT, oil, EGT, right engine EFD check)",
+   "steps": [
+    {
+     "text": "Set the ENG CRANK switch to R.",
+     "where": "Left console (Simvol).",
+     "why": "Crank switch: 0 = left, 1 = centre, 2 = right (verified on the real aircraft). N2 rises about 4 % a second.",
+     "source": "FA18E_Checklist.xml: page Starting engine, RIGHT_ENGINE_STARTER_ON (clue \"Switch engine crank to \"R\"\")",
+     "controls": [
+      {
+       "api": "ENGINE_Starter_Ignition_1",
+       "function": "Crank: right engine"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG STARTER:2, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "readouts": [
+      {
+       "label": "N2 right",
+       "unit": "%",
+       "code": "(A:TURB ENG N2:2, percent)"
+      }
+     ]
+    },
+    {
+     "text": "When N2 reaches 10 %, put the right throttle at IDLE.",
+     "where": "Left console (Simvol).",
+     "why": "From the OFF stop, setting 0.1 puts the lever at the idle stop (10 %). Light-off needs the lever at idle (verified on the real aircraft).",
+     "source": "FA18E_Checklist.xml: page Starting engine, FA18E_THROTTLE_IDLE_WHEN_N2_10_PCT (Library.xml; clue \"Set throttle lever to idle, when N2 reaches 10%\")",
+     "controls": [
+      {
+       "api": "ENGINE_Throttle_2",
+       "function": "Throttle 2: idle"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG COMBUSTION:2, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "readouts": [
+      {
+       "label": "N2 right",
+       "unit": "%",
+       "code": "(A:TURB ENG N2:2, percent)"
+      },
+      {
+       "label": "Lever right",
+       "unit": "%",
+       "code": "(A:GENERAL ENG THROTTLE LEVER POSITION:2, percent)"
+      }
+     ]
+    },
+    {
+     "text": "Check the oil pressure reaches 10 psi within 30 seconds.",
+     "source": "FA18E_Checklist.xml: page Starting engine, Oil_Pressure_Check_NO_HIGHLIGHT (clue \"Oil pressure must reach 10 psi before 30 seconds\")",
+     "check": {
+      "code": "(A:ENG OIL PRESSURE:2, psi)",
+      "op": ">=",
+      "value": 10
+     },
+     "readouts": [
+      {
+       "label": "Oil right",
+       "unit": "psi",
+       "code": "(A:ENG OIL PRESSURE:2, psi)"
+      }
+     ]
+    },
+    {
+     "text": "Check the EGT does not go above 871 degrees C after the start.",
+     "where": "Engine and fuel display (EFD).",
+     "source": "FA18E_Checklist.xml: page Starting engine, Exhaust_Gas_Temperature_Maximum_After_Start_NO_HIGHLIGHT_Template (clue \"EGT must not go above 871°C after start\")",
+     "readouts": [
+      {
+       "label": "EGT right",
+       "unit": "degC",
+       "code": "(A:GENERAL ENG EXHAUST GAS TEMPERATURE:2, celsius)"
+      }
+     ]
+    },
+    {
+     "text": "Turn the left DDI, the right DDI, the HUD and the MCPD ON.",
+     "why": "The checklist sets the four brightness knobs to 50 when they are near 0. Not verified on the real aircraft.",
+     "source": "FA18E_Checklist.xml: page Starting engine, DDI_HUD_MCPD_ON_FA18E (Library.xml; clue \"Turn on avionics devices\")",
+     "controls": [
+      {
+       "api": "AS04F_DDI_Knob_Brightness_MFD_1"
+      },
+      {
+       "api": "AS04F_DDI_Knob_Brightness_MFD_2"
+      },
+      {
+       "api": "AS04F_DDI_Knob_Brightness_MFD_3"
+      },
+      {
+       "api": "AS04F_HUD_Knob_Brightness_1"
+      }
+     ]
+    },
+    {
+     "text": "Check the right engine on the EFD: RPM 61 % minimum, temperature 250 to 500 degrees C, oil 42 to 90 psi, nozzle 77 to 83 %.",
+     "where": "Engine and fuel display (EFD).",
+     "source": "FA18E_Checklist.xml: page Starting engine, Right engine EFD check block (RPM_CHECKED_TEMPLATE_NO_HIGHLIGHT, Exhaust_Gas_Temperature_Check_NO_HIGHLIGHT, Oil_Pressure_Check_NO_HIGHLIGHT, Nozzle_Position_Check_NO_HIGHLIGHT)",
+     "readouts": [
+      {
+       "label": "RPM right",
+       "unit": "%",
+       "code": "(A:ENG N2 RPM:2, percent)"
+      },
+      {
+       "label": "EGT right",
+       "unit": "degC",
+       "code": "(A:GENERAL ENG EXHAUST GAS TEMPERATURE:2, celsius)"
+      },
+      {
+       "label": "Oil right",
+       "unit": "psi",
+       "code": "(A:ENG OIL PRESSURE:2, psi)"
+      },
+      {
+       "label": "Nozzle right",
+       "unit": "%",
+       "code": "(A:TURB ENG PRIMARY NOZZLE PERCENT:2, percent)"
+      }
+     ]
+    }
+   ],
+   "next": "es_bleed"
+  },
+  "es_bleed": {
+   "type": "steps",
+   "title": "Bleed air",
+   "source": "FA18E_Checklist.xml: page Starting engine, FA18E_BLEED_AIR_ENGINE_NORM (Library.xml)",
+   "steps": [
+    {
+     "text": "Set BLEED AIR to NORM.",
+     "where": "Right console (Simvol).",
+     "why": "The checklist also switches the APU bleed off (PRESSURIZATION_Bleed_Air_Source_APU_Off) and sends Bleed_Air_Source_Engine_Both. Not verified on the real aircraft: the knob reads 2 at rest.",
+     "source": "FA18E_Checklist.xml: page Starting engine, FA18E_BLEED_AIR_ENGINE_NORM (clue \"\"Bleed Air\" must be set to NORM\")",
+     "controls": [
+      {
+       "api": "PRESSURIZATION_Bleed_Air_Source"
+      }
+     ]
+    }
+   ],
+   "next": "es_left"
+  },
+  "es_bleed_r": {
+   "type": "steps",
+   "title": "Bleed air",
+   "source": "FA18E_Checklist.xml: page Starting engine, FA18E_BLEED_AIR_ENGINE_NORM (Library.xml)",
+   "steps": [
+    {
+     "text": "Set BLEED AIR to NORM.",
+     "where": "Right console (Simvol).",
+     "why": "The checklist also switches the APU bleed off (PRESSURIZATION_Bleed_Air_Source_APU_Off) and sends Bleed_Air_Source_Engine_Both. Not verified on the real aircraft: the knob reads 2 at rest.",
+     "source": "FA18E_Checklist.xml: page Starting engine, FA18E_BLEED_AIR_ENGINE_NORM (clue \"\"Bleed Air\" must be set to NORM\")",
+     "controls": [
+      {
+       "api": "PRESSURIZATION_Bleed_Air_Source"
+      }
+     ]
+    }
+   ],
+   "next": "es_left_r"
+  },
+  "es_left": {
+   "type": "steps",
+   "title": "Start the left engine",
+   "source": "FA18E_Checklist.xml: page Starting engine (Engine_1_Start_Switch_Pull, FA18E_THROTTLE_IDLE_WHEN_N2_10_PCT, left engine EFD check, ANNUNCIATIONS_STARTER_CHECK_OFF)",
+   "steps": [
+    {
+     "text": "Set the ENG CRANK switch to L.",
+     "source": "FA18E_Checklist.xml: page Starting engine, Engine_1_Start_Switch_Pull (clue \"Switch engine crank to \"L\"\")",
+     "controls": [
+      {
+       "api": "ENGINE_Starter_Ignition_1",
+       "function": "Crank: left engine"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG STARTER:1, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "readouts": [
+      {
+       "label": "N2 left",
+       "unit": "%",
+       "code": "(A:TURB ENG N2:1, percent)"
+      }
+     ]
+    },
+    {
+     "text": "When N2 reaches 10 %, put the left throttle at IDLE.",
+     "why": "Same as the right engine: from the OFF stop, 0.1 puts the lever at idle.",
+     "source": "FA18E_Checklist.xml: page Starting engine, FA18E_THROTTLE_IDLE_WHEN_N2_10_PCT (left throttle; clue \"Set throttle lever to idle, when N2 reaches 10%\")",
+     "controls": [
+      {
+       "api": "ENGINE_Throttle_1",
+       "function": "Throttle 1: idle"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG COMBUSTION:1, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "readouts": [
+      {
+       "label": "N2 left",
+       "unit": "%",
+       "code": "(A:TURB ENG N2:1, percent)"
+      },
+      {
+       "label": "Lever left",
+       "unit": "%",
+       "code": "(A:GENERAL ENG THROTTLE LEVER POSITION:1, percent)"
+      }
+     ]
+    },
+    {
+     "text": "Check the left engine on the EFD: RPM 61 % minimum, temperature 250 to 500 degrees C, oil 42 to 90 psi, nozzle 77 to 83 %.",
+     "where": "Engine and fuel display (EFD).",
+     "source": "FA18E_Checklist.xml: page Starting engine, Left engine EFD check block (RPM_CHECKED_TEMPLATE_NO_HIGHLIGHT, Exhaust_Gas_Temperature_Check_NO_HIGHLIGHT, Oil_Pressure_Check_NO_HIGHLIGHT, Nozzle_Position_Check_NO_HIGHLIGHT)",
+     "readouts": [
+      {
+       "label": "RPM left",
+       "unit": "%",
+       "code": "(A:ENG N2 RPM:1, percent)"
+      },
+      {
+       "label": "EGT left",
+       "unit": "degC",
+       "code": "(A:GENERAL ENG EXHAUST GAS TEMPERATURE:1, celsius)"
+      },
+      {
+       "label": "Oil left",
+       "unit": "psi",
+       "code": "(A:ENG OIL PRESSURE:1, psi)"
+      },
+      {
+       "label": "Nozzle left",
+       "unit": "%",
+       "code": "(A:TURB ENG PRIMARY NOZZLE PERCENT:1, percent)"
+      }
+     ]
+    },
+    {
+     "text": "Set the ENG CRANK switch to OFF (centre).",
+     "why": "Raynen's guide: the generators come online above 25 % RPM and the APU shuts off 60 seconds after that.",
+     "source": "FA18E_Checklist.xml: page Starting engine, ANNUNCIATIONS_STARTER_CHECK_OFF (clue \"\"ENG Crank\" switch must be set to \"OFF\"\")",
+     "controls": [
+      {
+       "api": "ENGINE_Starter_Ignition_1",
+       "function": "Crank: off (centre)"
+      }
+     ],
+     "check": {
+      "input_event": "ENGINE_Starter_Ignition_1",
+      "op": "==",
+      "value": 1
+     }
+    }
+   ],
+   "next": "es_done"
+  },
+  "es_left_r": {
+   "type": "steps",
+   "title": "Start the left engine",
+   "source": "FA18E_Checklist.xml: page Starting engine (Engine_1_Start_Switch_Pull, FA18E_THROTTLE_IDLE_WHEN_N2_10_PCT, left engine EFD check, ANNUNCIATIONS_STARTER_CHECK_OFF)",
+   "steps": [
+    {
+     "text": "Set the ENG CRANK switch to L.",
+     "source": "FA18E_Checklist.xml: page Starting engine, Engine_1_Start_Switch_Pull (clue \"Switch engine crank to \"L\"\")",
+     "controls": [
+      {
+       "api": "ENGINE_Starter_Ignition_1",
+       "function": "Crank: left engine"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG STARTER:1, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "readouts": [
+      {
+       "label": "N2 left",
+       "unit": "%",
+       "code": "(A:TURB ENG N2:1, percent)"
+      }
+     ]
+    },
+    {
+     "text": "When N2 reaches 10 %, put the left throttle at IDLE.",
+     "why": "Same as the right engine: from the OFF stop, 0.1 puts the lever at idle.",
+     "source": "FA18E_Checklist.xml: page Starting engine, FA18E_THROTTLE_IDLE_WHEN_N2_10_PCT (left throttle; clue \"Set throttle lever to idle, when N2 reaches 10%\")",
+     "controls": [
+      {
+       "api": "ENGINE_Throttle_1",
+       "function": "Throttle 1: idle"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG COMBUSTION:1, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "readouts": [
+      {
+       "label": "N2 left",
+       "unit": "%",
+       "code": "(A:TURB ENG N2:1, percent)"
+      },
+      {
+       "label": "Lever left",
+       "unit": "%",
+       "code": "(A:GENERAL ENG THROTTLE LEVER POSITION:1, percent)"
+      }
+     ]
+    },
+    {
+     "text": "Check the left engine on the EFD: RPM 61 % minimum, temperature 250 to 500 degrees C, oil 42 to 90 psi, nozzle 77 to 83 %.",
+     "where": "Engine and fuel display (EFD).",
+     "source": "FA18E_Checklist.xml: page Starting engine, Left engine EFD check block (RPM_CHECKED_TEMPLATE_NO_HIGHLIGHT, Exhaust_Gas_Temperature_Check_NO_HIGHLIGHT, Oil_Pressure_Check_NO_HIGHLIGHT, Nozzle_Position_Check_NO_HIGHLIGHT)",
+     "readouts": [
+      {
+       "label": "RPM left",
+       "unit": "%",
+       "code": "(A:ENG N2 RPM:1, percent)"
+      },
+      {
+       "label": "EGT left",
+       "unit": "degC",
+       "code": "(A:GENERAL ENG EXHAUST GAS TEMPERATURE:1, celsius)"
+      },
+      {
+       "label": "Oil left",
+       "unit": "psi",
+       "code": "(A:ENG OIL PRESSURE:1, psi)"
+      },
+      {
+       "label": "Nozzle left",
+       "unit": "%",
+       "code": "(A:TURB ENG PRIMARY NOZZLE PERCENT:1, percent)"
+      }
+     ]
+    },
+    {
+     "text": "Set the ENG CRANK switch to OFF (centre).",
+     "why": "Raynen's guide: the generators come online above 25 % RPM and the APU shuts off 60 seconds after that.",
+     "source": "FA18E_Checklist.xml: page Starting engine, ANNUNCIATIONS_STARTER_CHECK_OFF (clue \"\"ENG Crank\" switch must be set to \"OFF\"\")",
+     "controls": [
+      {
+       "api": "ENGINE_Starter_Ignition_1",
+       "function": "Crank: off (centre)"
+      }
+     ],
+     "check": {
+      "input_event": "ENGINE_Starter_Ignition_1",
+      "op": "==",
+      "value": 1
+     }
+    }
+   ],
+   "next": "es_done"
+  },
+  "es_right_b": {
+   "type": "steps",
+   "title": "Start the right engine",
+   "source": "FA18E_Checklist.xml: page Starting engine (RIGHT_ENGINE_STARTER_ON, FA18E_THROTTLE_IDLE_WHEN_N2_10_PCT, oil, EGT, right engine EFD check)",
+   "steps": [
+    {
+     "text": "Set the ENG CRANK switch to R.",
+     "where": "Left console (Simvol).",
+     "why": "Crank switch: 0 = left, 1 = centre, 2 = right (verified on the real aircraft). N2 rises about 4 % a second.",
+     "source": "FA18E_Checklist.xml: page Starting engine, RIGHT_ENGINE_STARTER_ON (clue \"Switch engine crank to \"R\"\")",
+     "controls": [
+      {
+       "api": "ENGINE_Starter_Ignition_1",
+       "function": "Crank: right engine"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG STARTER:2, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "readouts": [
+      {
+       "label": "N2 right",
+       "unit": "%",
+       "code": "(A:TURB ENG N2:2, percent)"
+      }
+     ]
+    },
+    {
+     "text": "When N2 reaches 10 %, put the right throttle at IDLE.",
+     "where": "Left console (Simvol).",
+     "why": "From the OFF stop, setting 0.1 puts the lever at the idle stop (10 %). Light-off needs the lever at idle (verified on the real aircraft).",
+     "source": "FA18E_Checklist.xml: page Starting engine, FA18E_THROTTLE_IDLE_WHEN_N2_10_PCT (Library.xml; clue \"Set throttle lever to idle, when N2 reaches 10%\")",
+     "controls": [
+      {
+       "api": "ENGINE_Throttle_2",
+       "function": "Throttle 2: idle"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG COMBUSTION:2, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "readouts": [
+      {
+       "label": "N2 right",
+       "unit": "%",
+       "code": "(A:TURB ENG N2:2, percent)"
+      },
+      {
+       "label": "Lever right",
+       "unit": "%",
+       "code": "(A:GENERAL ENG THROTTLE LEVER POSITION:2, percent)"
+      }
+     ]
+    },
+    {
+     "text": "Check the oil pressure reaches 10 psi within 30 seconds.",
+     "source": "FA18E_Checklist.xml: page Starting engine, Oil_Pressure_Check_NO_HIGHLIGHT (clue \"Oil pressure must reach 10 psi before 30 seconds\")",
+     "check": {
+      "code": "(A:ENG OIL PRESSURE:2, psi)",
+      "op": ">=",
+      "value": 10
+     },
+     "readouts": [
+      {
+       "label": "Oil right",
+       "unit": "psi",
+       "code": "(A:ENG OIL PRESSURE:2, psi)"
+      }
+     ]
+    },
+    {
+     "text": "Check the EGT does not go above 871 degrees C after the start.",
+     "where": "Engine and fuel display (EFD).",
+     "source": "FA18E_Checklist.xml: page Starting engine, Exhaust_Gas_Temperature_Maximum_After_Start_NO_HIGHLIGHT_Template (clue \"EGT must not go above 871°C after start\")",
+     "readouts": [
+      {
+       "label": "EGT right",
+       "unit": "degC",
+       "code": "(A:GENERAL ENG EXHAUST GAS TEMPERATURE:2, celsius)"
+      }
+     ]
+    },
+    {
+     "text": "Turn the left DDI, the right DDI, the HUD and the MCPD ON.",
+     "why": "The checklist sets the four brightness knobs to 50 when they are near 0. Not verified on the real aircraft.",
+     "source": "FA18E_Checklist.xml: page Starting engine, DDI_HUD_MCPD_ON_FA18E (Library.xml; clue \"Turn on avionics devices\")",
+     "controls": [
+      {
+       "api": "AS04F_DDI_Knob_Brightness_MFD_1"
+      },
+      {
+       "api": "AS04F_DDI_Knob_Brightness_MFD_2"
+      },
+      {
+       "api": "AS04F_DDI_Knob_Brightness_MFD_3"
+      },
+      {
+       "api": "AS04F_HUD_Knob_Brightness_1"
+      }
+     ]
+    },
+    {
+     "text": "Check the right engine on the EFD: RPM 61 % minimum, temperature 250 to 500 degrees C, oil 42 to 90 psi, nozzle 77 to 83 %.",
+     "where": "Engine and fuel display (EFD).",
+     "source": "FA18E_Checklist.xml: page Starting engine, Right engine EFD check block (RPM_CHECKED_TEMPLATE_NO_HIGHLIGHT, Exhaust_Gas_Temperature_Check_NO_HIGHLIGHT, Oil_Pressure_Check_NO_HIGHLIGHT, Nozzle_Position_Check_NO_HIGHLIGHT)",
+     "readouts": [
+      {
+       "label": "RPM right",
+       "unit": "%",
+       "code": "(A:ENG N2 RPM:2, percent)"
+      },
+      {
+       "label": "EGT right",
+       "unit": "degC",
+       "code": "(A:GENERAL ENG EXHAUST GAS TEMPERATURE:2, celsius)"
+      },
+      {
+       "label": "Oil right",
+       "unit": "psi",
+       "code": "(A:ENG OIL PRESSURE:2, psi)"
+      },
+      {
+       "label": "Nozzle right",
+       "unit": "%",
+       "code": "(A:TURB ENG PRIMARY NOZZLE PERCENT:2, percent)"
+      }
+     ]
+    }
+   ],
+   "next": "es_bleed_b"
+  },
+  "es_bleed_b": {
+   "type": "steps",
+   "title": "Bleed air",
+   "source": "FA18E_Checklist.xml: page Starting engine, FA18E_BLEED_AIR_ENGINE_NORM (Library.xml)",
+   "steps": [
+    {
+     "text": "Set BLEED AIR to NORM.",
+     "where": "Right console (Simvol).",
+     "why": "The checklist also switches the APU bleed off (PRESSURIZATION_Bleed_Air_Source_APU_Off) and sends Bleed_Air_Source_Engine_Both. Not verified on the real aircraft: the knob reads 2 at rest.",
+     "source": "FA18E_Checklist.xml: page Starting engine, FA18E_BLEED_AIR_ENGINE_NORM (clue \"\"Bleed Air\" must be set to NORM\")",
+     "controls": [
+      {
+       "api": "PRESSURIZATION_Bleed_Air_Source"
+      }
+     ]
+    }
+   ],
+   "next": "es_after"
+  },
+  "es_after": {
+   "type": "steps",
+   "title": "After the start",
+   "source": "FA18E_Checklist.xml: page Starting engine, ANNUNCIATIONS_STARTER_CHECK_OFF and the EFD check blocks",
+   "steps": [
+    {
+     "text": "Set the ENG CRANK switch to OFF (centre).",
+     "source": "FA18E_Checklist.xml: page Starting engine, ANNUNCIATIONS_STARTER_CHECK_OFF (clue \"\"ENG Crank\" switch must be set to \"OFF\"\")",
+     "controls": [
+      {
+       "api": "ENGINE_Starter_Ignition_1",
+       "function": "Crank: off (centre)"
+      }
+     ],
+     "check": {
+      "input_event": "ENGINE_Starter_Ignition_1",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Check both engines on the EFD.",
+     "where": "Engine and fuel display (EFD).",
+     "source": "FA18E_Checklist.xml: page Starting engine, EFD check blocks (RPM 61 % minimum, temperature 250 to 500 degrees C, oil 42 to 90 psi, nozzle 77 to 83 %)",
+     "readouts": [
+      {
+       "label": "RPM left",
+       "unit": "%",
+       "code": "(A:ENG N2 RPM:1, percent)"
+      },
+      {
+       "label": "RPM right",
+       "unit": "%",
+       "code": "(A:ENG N2 RPM:2, percent)"
+      },
+      {
+       "label": "Oil left",
+       "unit": "psi",
+       "code": "(A:ENG OIL PRESSURE:1, psi)"
+      },
+      {
+       "label": "Oil right",
+       "unit": "psi",
+       "code": "(A:ENG OIL PRESSURE:2, psi)"
+      }
+     ]
+    }
+   ],
+   "next": "es_done"
+  },
+  "es_done": {
+   "type": "end",
+   "title": "Engines started",
+   "text": "Both engines are running and the crank switch is OFF: this is the end of the sim's start-up checklist. Continue with Before taxi and taxi."
+  },
+  "pu_ground": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "help": "The power-up is a ground procedure. The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, on the ground",
+     "next": "pu_batt_q"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "pu_air"
+    }
+   ]
+  },
+  "pu_air": {
+   "type": "info",
+   "title": "Not on the ground",
+   "text": "The power-up is for the ground. Land and park first, then come back.",
+   "next": ""
+  },
+  "pu_batt_q": {
+   "type": "question",
+   "title": "Battery",
+   "text": "Is the battery switch ON?",
+   "auto": {
+    "code": "(A:ELECTRICAL MASTER BATTERY, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes",
+     "next": "pu_apu_q"
+    },
+    {
+     "id": "no",
+     "label": "No",
+     "next": "pu_batt"
+    }
+   ]
+  },
+  "pu_batt": {
+   "type": "steps",
+   "title": "Battery",
+   "source": "FA18E_Checklist.xml: page Starting engine, Battery_Switch_On",
+   "steps": [
+    {
+     "text": "Turn the battery switch ON.",
+     "where": "Lower right console (Raynen's startup guide).",
+     "why": "The F/A-18E switch is the opposite of the CJ4: set 1 = ON (verified on the real aircraft).",
+     "source": "FA18E_Checklist.xml: page Starting engine, Battery_Switch_On (clue \"Switch battery on\")",
+     "controls": [
+      {
+       "api": "ELECTRICAL_Battery_1"
+      }
+     ],
+     "check": {
+      "code": "(A:ELECTRICAL MASTER BATTERY, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    }
+   ],
+   "next": "pu_apu_q"
+  },
+  "pu_apu_q": {
+   "type": "question",
+   "title": "APU",
+   "text": "Is the APU running (READY light on)?",
+   "help": "The APU gives power and bleed air for the engine start.",
+   "auto": {
+    "code": "(A:APU PCT RPM, percent)",
+    "rules": [
+     {
+      "op": ">=",
+      "value": 95,
+      "choice": "yes"
+     },
+     {
+      "op": "<",
+      "value": 95,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes",
+     "next": "pu_main"
+    },
+    {
+     "id": "no",
+     "label": "No",
+     "next": "pu_apu"
+    }
+   ]
+  },
+  "pu_apu": {
+   "type": "steps",
+   "title": "Start the APU",
+   "source": "FA18E_Checklist.xml: page Starting engine, APU_STARTER_ON_TEMPLATE and APU_START_AVAIL_LIT_NO_HIGHLIGHT",
+   "steps": [
+    {
+     "text": "Turn the APU switch ON.",
+     "where": "Left console (Simvol).",
+     "source": "FA18E_Checklist.xml: page Starting engine, APU_STARTER_ON_TEMPLATE (clue \"Switch APU on\")",
+     "controls": [
+      {
+       "api": "ELECTRICAL_APU_Starter"
+      }
+     ],
+     "check": {
+      "code": "(A:APU SWITCH, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Wait for the APU READY light: it comes on within 30 seconds.",
+     "source": "FA18E_Checklist.xml: page Starting engine, APU_START_AVAIL_LIT_NO_HIGHLIGHT (clue \"APU \"Ready\" light must be on within 30 seconds\")",
+     "check": {
+      "code": "(A:APU PCT RPM, percent)",
+      "op": ">=",
+      "value": 95
+     },
+     "readouts": [
+      {
+       "label": "APU",
+       "unit": "%",
+       "code": "(A:APU PCT RPM, percent)"
+      }
+     ]
+    }
+   ],
+   "next": "pu_main"
+  },
+  "pu_main": {
+   "type": "steps",
+   "title": "Generators, UFCD and displays",
+   "source": "FA18E_Checklist.xml: pages Before starting engine (GENERATOR_MAIN_2, INTR_LIGHTS_AS_REQUIRED_FA18E) and Starting engine (DDI_HUD_MCPD_ON_FA18E); Library.xml (next to FA18E_Checklist.xml), FA18E_UFCD_ON",
+   "steps": [
+    {
+     "text": "Set both generator switches to NORM.",
+     "where": "Right console (Simvol).",
+     "source": "FA18E_Checklist.xml: page Before starting engine, GENERATOR_MAIN_2 (clue \"Switch generators to \"NORM\"\")",
+     "controls": [
+      {
+       "api": "ELECTRICAL_Alternator_1"
+      },
+      {
+       "api": "ELECTRICAL_Alternator_2"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG MASTER ALTERNATOR:1, Bool) (A:GENERAL ENG MASTER ALTERNATOR:2, Bool) +",
+      "op": "==",
+      "value": 2
+     }
+    },
+    {
+     "text": "Switch the UFCD on: turn its brightness knob up.",
+     "why": "Not verified on the real aircraft (range assumed 0 to 100).",
+     "source": "Library.xml (next to FA18E_Checklist.xml), FA18E_UFCD_ON (clue \"Switch UFCD on\"; the checklist sets the knob to 50 when it is near 0)",
+     "controls": [
+      {
+       "api": "AS04F_UFCD_Knob_Brightness_1"
+      }
+     ]
+    },
+    {
+     "text": "Turn the left DDI, the right DDI, the HUD and the MCPD ON.",
+     "why": "Display unit 1 is the left DDI, 2 the right DDI and 3 the MCPD in the sim's checklist. Not verified on the real aircraft.",
+     "source": "FA18E_Checklist.xml: page Starting engine, DDI_HUD_MCPD_ON_FA18E (clue \"Turn on avionics devices\")",
+     "controls": [
+      {
+       "api": "AS04F_DDI_Knob_Brightness_MFD_1"
+      },
+      {
+       "api": "AS04F_DDI_Knob_Brightness_MFD_2"
+      },
+      {
+       "api": "AS04F_DDI_Knob_Brightness_MFD_3"
+      },
+      {
+       "api": "AS04F_HUD_Knob_Brightness_1"
+      }
+     ]
+    },
+    {
+     "text": "Set the interior lights as required.",
+     "why": "Only cabin light 1 was verified on the real aircraft.",
+     "source": "FA18E_Checklist.xml: page Before starting engine, INTR_LIGHTS_AS_REQUIRED_FA18E (clue \"Set interior lights as required\")",
+     "controls": [
+      {
+       "api": "LIGHTING_CABIN_1"
+      },
+      {
+       "api": "LIGHTING_CABIN_2"
+      },
+      {
+       "api": "LIGHTING_POTENTIOMETER_2"
+      },
+      {
+       "api": "LIGHTING_POTENTIOMETER_3"
+      },
+      {
+       "api": "LIGHTING_POTENTIOMETER_6"
+      }
+     ]
+    }
+   ],
+   "next": "pu_done"
+  },
+  "pu_done": {
+   "type": "end",
+   "title": "Cockpit powered",
+   "text": "The battery is on, the APU is running, the generators are NORM and the displays are lit. Open Start the engines to go on."
+  },
+  "bt_ground": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, on the ground",
+     "next": "bt_eng"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "bt_air"
+    }
+   ]
+  },
+  "bt_air": {
+   "type": "info",
+   "title": "Not on the ground",
+   "text": "This topic is for the ground. In the air, open Climb and cruise or Descent and approach.",
+   "next": ""
+  },
+  "bt_eng": {
+   "type": "question",
+   "title": "Engines",
+   "text": "Are both engines running?",
+   "auto": {
+    "code": "(A:GENERAL ENG COMBUSTION:1, Bool) (A:GENERAL ENG COMBUSTION:2, Bool) +",
+    "rules": [
+     {
+      "op": "==",
+      "value": 2,
+      "choice": "yes"
+     },
+     {
+      "op": "<",
+      "value": 2,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes",
+     "next": "bt_chk"
+    },
+    {
+     "id": "no",
+     "label": "No",
+     "next": "bt_noeng"
+    }
+   ]
+  },
+  "bt_noeng": {
+   "type": "info",
+   "title": "Start the engines first",
+   "text": "Open the topic Start the engines, then come back here.",
+   "next": ""
+  },
+  "bt_chk": {
+   "type": "steps",
+   "title": "Before taxi",
+   "source": "FA18E_Checklist.xml: page Before taxi (the whole page)",
+   "steps": [
+    {
+     "text": "Check the UFCD is on.",
+     "why": "Not verified on the real aircraft.",
+     "source": "Library.xml (next to FA18E_Checklist.xml), FA18E_UFCD_ON (clue \"Switch UFCD on\")",
+     "controls": [
+      {
+       "api": "AS04F_UFCD_Knob_Brightness_1"
+      }
+     ]
+    },
+    {
+     "text": "Check the wings are spread.",
+     "source": "FA18E_Checklist.xml: page Before taxi, FA18E_WINGS_SPREAD",
+     "controls": [
+      {
+       "api": "HANDLING_Lever_WingFold"
+      }
+     ],
+     "check": {
+      "code": "(A:FOLDING WING LEFT PERCENT, percent) (A:FOLDING WING RIGHT PERCENT, percent) +",
+      "op": "<=",
+      "value": 2
+     },
+     "readouts": [
+      {
+       "label": "Wing left",
+       "unit": "%",
+       "code": "(A:FOLDING WING LEFT PERCENT, percent)"
+      },
+      {
+       "label": "Wing right",
+       "unit": "%",
+       "code": "(A:FOLDING WING RIGHT PERCENT, percent)"
+      }
+     ]
+    },
+    {
+     "text": "Move the stick and the rudder: free movement, correct sense.",
+     "why": "The sim tests the stick and the rudder pedals each way past 10 % (Asobo_DefaultCheckpointLibrary.xml).",
+     "source": "FA18E_Checklist.xml: page Before taxi, Flight_Control_Free_And_Correct (clue \"Move flight controls to check correct functioning (free movement, correct sense) : push, pull, turn left and right\")"
+    },
+    {
+     "text": "Set the flaps lever to HALF.",
+     "source": "FA18E_Checklist.xml: page Before taxi, FLAPS_TAKEOFF (clue \"Set flaps lever to \"Half\"\")",
+     "controls": [
+      {
+       "api": "HANDLING_Flaps",
+       "function": "Flaps: position 1"
+      }
+     ],
+     "check": {
+      "code": "(A:FLAPS HANDLE INDEX, number)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Check the APU switch is OFF.",
+     "why": "Raynen's guide: the APU shuts off by itself 60 seconds after the generators come online.",
+     "source": "FA18E_Checklist.xml: page Before taxi, APU_STARTER_OFF_TEMPLATE (clue \"APU switch must be set on Off\")",
+     "controls": [
+      {
+       "api": "ELECTRICAL_APU_Starter"
+      }
+     ],
+     "check": {
+      "code": "(A:APU SWITCH, Bool)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Engage the nosewheel steering.",
+     "why": "The button is on the stick. The checklist reads (A:NOSEWHEEL MAX STEERING ANGLE) to see it engaged. Not verified on the real aircraft.",
+     "source": "FA18E_Checklist.xml: page Before taxi, NOSE_WHEEL_STEERING_ON (Library.xml; clue \"Engage nose wheel steering\")",
+     "controls": [
+      {
+       "api": "AS04F_Push_NWS"
+      }
+     ]
+    },
+    {
+     "text": "Release the parking brake.",
+     "warn": "Not verified: on the real aircraft the values 0, 0.5, 2, -1 and 100 all left the parking brake set with the engines running, so releasing it was not found. Tick by hand.",
+     "source": "FA18E_Checklist.xml: page Before taxi, Parking_Brake_Release (clue \"Release parking brake\")",
+     "controls": [
+      {
+       "api": "LANDING_GEAR_Parking_Brake"
+      }
+     ]
+    }
+   ],
+   "next": "bt_taxi"
+  },
+  "bt_taxi": {
+   "type": "steps",
+   "title": "Taxi",
+   "source": "Raynen, F/A-18E Startup + Basic TACAN Navigation (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/f-a-18e-startup-basic-tacan-navigation/472861), section Taxi and takeoff, items 1 and 2",
+   "steps": [
+    {
+     "text": "Check the anti-skid is ON.",
+     "source": "Raynen, F/A-18E Startup + Basic TACAN Navigation (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/f-a-18e-startup-basic-tacan-navigation/472861), Taxi and takeoff item 1 (\"Turn on anti-skid\")",
+     "controls": [
+      {
+       "api": "HANDLING_Anti_Skid"
+      }
+     ],
+     "check": {
+      "code": "(A:ANTISKID BRAKES ACTIVE, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Turn the LDG/TAXI light ON.",
+     "source": "Raynen, F/A-18E Startup + Basic TACAN Navigation (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/f-a-18e-startup-basic-tacan-navigation/472861), Taxi and takeoff item 1 (\"the LDG/TAXI light\")",
+     "controls": [
+      {
+       "api": "LIGHTING_LANDING_1"
+      }
+     ],
+     "check": {
+      "code": "(A:LIGHT LANDING, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Give a brief burst of power to start rolling, then return the throttles to idle.",
+     "why": "Technique from a community guide; the sim's checklist has no taxi item.",
+     "source": "Raynen, F/A-18E Startup + Basic TACAN Navigation (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/f-a-18e-startup-basic-tacan-navigation/472861), Taxi and takeoff item 2",
+     "controls": [
+      {
+       "api": "ENGINE_Throttle_1",
+       "function": "Throttle 1: axis (0 to 1)"
+      },
+      {
+       "api": "ENGINE_Throttle_2",
+       "function": "Throttle 2: axis (0 to 1)"
+      }
+     ]
+    },
+    {
+     "text": "Taxi at roughly 10 to 12 knots.",
+     "source": "Raynen, F/A-18E Startup + Basic TACAN Navigation (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/f-a-18e-startup-basic-tacan-navigation/472861), Taxi and takeoff item 2 (\"taxi at roughly 10-12 knots\")",
+     "readouts": [
+      {
+       "label": "Ground speed",
+       "unit": "kt",
+       "code": "(A:GROUND VELOCITY, knots)"
+      }
+     ]
+    }
+   ],
+   "next": "bt_done"
+  },
+  "bt_done": {
+   "type": "end",
+   "title": "Ready to taxi",
+   "text": "Taxi to the runway, then open Take off."
+  },
+  "to_ground": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, on the ground",
+     "next": "to_pre"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "to_air"
+    }
+   ]
+  },
+  "to_air": {
+   "type": "info",
+   "title": "Not on the ground",
+   "text": "This topic is for the take-off roll. In the air, open Climb and cruise.",
+   "next": ""
+  },
+  "to_pre": {
+   "type": "steps",
+   "title": "Before take-off",
+   "source": "FA18E_Checklist.xml: page Before take off (the whole page)",
+   "steps": [
+    {
+     "text": "Move the stick and the rudder: free movement, correct sense.",
+     "why": "Push, pull, turn left and right (sim clue).",
+     "source": "FA18E_Checklist.xml: page Before take off, Flight_Control_Free_And_Correct"
+    },
+    {
+     "text": "Check the wings are spread and locked, looking outside.",
+     "source": "FA18E_Checklist.xml: page Before take off, FA18E_WINGS_SPREAD (clue \"Check outside that the wings are correctly spread and locked\")",
+     "controls": [
+      {
+       "api": "HANDLING_Lever_WingFold"
+      }
+     ],
+     "check": {
+      "code": "(A:FOLDING WING LEFT PERCENT, percent) (A:FOLDING WING RIGHT PERCENT, percent) +",
+      "op": "<=",
+      "value": 2
+     }
+    },
+    {
+     "text": "Set the flaps lever to HALF.",
+     "source": "FA18E_Checklist.xml: page Before take off, FLAPS_TAKEOFF (clue \"Flaps must be set on \"Half\"\")",
+     "controls": [
+      {
+       "api": "HANDLING_Flaps",
+       "function": "Flaps: position 1"
+      }
+     ],
+     "check": {
+      "code": "(A:FLAPS HANDLE INDEX, number)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Check the tail hook is UP and the hook caution light is out.",
+     "source": "FA18E_Checklist.xml: page Before take off, Hook_Up_FA18E (clue \"Hook must be retracted and hook caution light must be off\")",
+     "controls": [
+      {
+       "api": "HANDLING_Lever_TailHook"
+      }
+     ],
+     "check": {
+      "code": "(A:TAILHOOK POSITION, percent)",
+      "op": "<=",
+      "value": 1
+     }
+    }
+   ],
+   "next": "to_roll"
+  },
+  "to_roll": {
+   "type": "steps",
+   "title": "Take-off roll",
+   "source": "Raynen, F/A-18E Startup + Basic TACAN Navigation (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/f-a-18e-startup-basic-tacan-navigation/472861), section Taxi and takeoff, items 3 to 5; FA18E_Checklist.xml has no take-off roll item",
+   "steps": [
+    {
+     "text": "Line up on the runway and hold the brakes.",
+     "why": "Technique from a community guide, not a checklist item.",
+     "source": "Raynen, F/A-18E Startup + Basic TACAN Navigation (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/f-a-18e-startup-basic-tacan-navigation/472861), Taxi and takeoff item 3 (\"line up, and brake\")"
+    },
+    {
+     "text": "Advance the throttles until both engines show 80 % RPM.",
+     "why": "Technique, not a checklist item. This is engine RPM, not the lever position.",
+     "source": "Raynen, F/A-18E Startup + Basic TACAN Navigation (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/f-a-18e-startup-basic-tacan-navigation/472861), Taxi and takeoff item 4 (\"set 80% RPM\")",
+     "controls": [
+      {
+       "api": "ENGINE_Throttle_1",
+       "function": "Throttle 1: axis (0 to 1)"
+      },
+      {
+       "api": "ENGINE_Throttle_2",
+       "function": "Throttle 2: axis (0 to 1)"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "RPM left",
+       "unit": "%",
+       "code": "(A:ENG N2 RPM:1, percent)"
+      },
+      {
+       "label": "RPM right",
+       "unit": "%",
+       "code": "(A:ENG N2 RPM:2, percent)"
+      }
+     ]
+    },
+    {
+     "text": "Release the brakes and advance the throttles to full.",
+     "why": "In the sim 1 or more puts the lever at 80 %, the military-power stop; the afterburner is a separate event (verified on the real aircraft).",
+     "source": "Raynen, F/A-18E Startup + Basic TACAN Navigation (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/f-a-18e-startup-basic-tacan-navigation/472861), Taxi and takeoff item 4 (\"Release the brakes and advance to full throttle\")",
+     "controls": [
+      {
+       "api": "ENGINE_Throttle_1",
+       "function": "Throttle 1: military power (80 %)"
+      },
+      {
+       "api": "ENGINE_Throttle_2",
+       "function": "Throttle 2: military power (80 %)"
+      }
+     ]
+    },
+    {
+     "text": "Engage the afterburner once rolling, if you want it.",
+     "warn": "Not verified: the afterburner events read 0 at rest and were not tried on the real aircraft.",
+     "source": "Raynen, F/A-18E Startup + Basic TACAN Navigation (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/f-a-18e-startup-basic-tacan-navigation/472861), Taxi and takeoff item 5",
+     "controls": [
+      {
+       "api": "ENGINE_Throttle_1_Afterburner"
+      },
+      {
+       "api": "ENGINE_Throttle_2_Afterburner"
+      }
+     ]
+    },
+    {
+     "text": "Rotate at about 135 knots indicated.",
+     "why": "The speed is the community guide's figure; the sim's own files give no rotation speed.",
+     "source": "Raynen, F/A-18E Startup + Basic TACAN Navigation (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/f-a-18e-startup-basic-tacan-navigation/472861), Taxi and takeoff item 5 (\"Rotate around 135 KIAS\")",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      }
+     ]
+    }
+   ],
+   "next": "to_after"
+  },
+  "to_after": {
+   "type": "steps",
+   "title": "After take-off",
+   "source": "FA18E_Checklist.xml: page After take off (the whole page)",
+   "steps": [
+    {
+     "text": "After a positive climb, raise the landing gear.",
+     "why": "Not verified: the gear lever was deliberately not tried on the real aircraft. 1 = down, 0 = up.",
+     "source": "FA18E_Checklist.xml: page After take off, LANDING_GEAR_UP (clue \"Retract landing gear\"); Raynen's startup guide, Taxi and takeoff item 6 (\"After a positive climb\")",
+     "controls": [
+      {
+       "api": "LANDING_GEAR_Gear"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Gear handle",
+       "unit": "",
+       "code": "(A:GEAR HANDLE POSITION, Bool)"
+      }
+     ]
+    },
+    {
+     "text": "Set the flaps lever to AUTO.",
+     "source": "FA18E_Checklist.xml: page After take off, Flaps_0 (clue \"Set flaps lever to \"Auto\"\")",
+     "controls": [
+      {
+       "api": "HANDLING_Flaps",
+       "function": "Flaps: position 0 (up)"
+      }
+     ],
+     "check": {
+      "code": "(A:FLAPS HANDLE INDEX, number)",
+      "op": "==",
+      "value": 0
+     }
+    }
+   ],
+   "next": "to_done"
+  },
+  "to_done": {
+   "type": "end",
+   "title": "Airborne",
+   "text": "Gear and flaps are up. Open Climb and cruise."
+  },
+  "cc_air": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft in the air?",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, it is flying",
+     "next": "cc_gear"
+    },
+    {
+     "id": "no",
+     "label": "No, it is on the ground",
+     "next": "cc_ground"
+    }
+   ]
+  },
+  "cc_ground": {
+   "type": "info",
+   "title": "Not in the air",
+   "text": "This topic is for the climb and the cruise. On the ground, open Take off.",
+   "next": ""
+  },
+  "cc_gear": {
+   "type": "question",
+   "title": "Gear",
+   "text": "Is the gear lever still down?",
+   "auto": {
+    "code": "(A:GEAR HANDLE POSITION, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "down"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "up"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "down",
+     "label": "Yes, down",
+     "next": "cc_conf"
+    },
+    {
+     "id": "up",
+     "label": "No, it is up",
+     "next": "cc_climb"
+    }
+   ]
+  },
+  "cc_conf": {
+   "type": "steps",
+   "title": "Clean up",
+   "source": "FA18E_Checklist.xml: page After take off (the whole page)",
+   "steps": [
+    {
+     "text": "Raise the landing gear.",
+     "why": "Not verified: the gear lever was deliberately not tried on the real aircraft.",
+     "source": "FA18E_Checklist.xml: page After take off, LANDING_GEAR_UP (clue \"Retract landing gear\")",
+     "controls": [
+      {
+       "api": "LANDING_GEAR_Gear"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Gear handle",
+       "unit": "",
+       "code": "(A:GEAR HANDLE POSITION, Bool)"
+      }
+     ]
+    },
+    {
+     "text": "Set the flaps lever to AUTO.",
+     "source": "FA18E_Checklist.xml: page After take off, Flaps_0 (clue \"Set flaps lever to \"Auto\"\")",
+     "controls": [
+      {
+       "api": "HANDLING_Flaps",
+       "function": "Flaps: position 0 (up)"
+      }
+     ],
+     "check": {
+      "code": "(A:FLAPS HANDLE INDEX, number)",
+      "op": "==",
+      "value": 0
+     }
+    }
+   ],
+   "next": "cc_climb"
+  },
+  "cc_climb": {
+   "type": "steps",
+   "title": "Climb",
+   "source": "Raynen, F/A-18E Startup + Basic TACAN Navigation (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/f-a-18e-startup-basic-tacan-navigation/472861), section Taxi and takeoff items 7 and 8 and section Climb and cruise; FLIGHT Checklist (flightchecklist.app/msfs/fa-18e-super-hornet, third-party site, not official), Phase 10 Airborne Checks (\"Climb at up to 350 KCAS below 10,000 feet\")",
+   "steps": [
+    {
+     "text": "Accelerate to 350 knots indicated; come out of the afterburner past 300 knots.",
+     "why": "Figures from a community guide's example flight, not limits from the sim's files.",
+     "source": "Raynen, F/A-18E Startup + Basic TACAN Navigation (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/f-a-18e-startup-basic-tacan-navigation/472861), Taxi and takeoff item 7 (\"Accelerate to 350 KIAS, reducing from afterburner past 300 KIAS\")",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      },
+      {
+       "label": "Altitude",
+       "unit": "ft",
+       "code": "(A:INDICATED ALTITUDE, feet)"
+      }
+     ]
+    },
+    {
+     "text": "Climb at 350 knots indicated.",
+     "why": "The example flight climbs to 15,000 ft; choose your own cruise altitude.",
+     "source": "Raynen, F/A-18E Startup + Basic TACAN Navigation (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/f-a-18e-startup-basic-tacan-navigation/472861), Climb and cruise (\"Climb to 15,000 ft MSL at 350 KIAS\"); cross-check: FLIGHT Checklist Phase 10 (\"Climb at up to 350 KCAS below 10,000 feet\", third-party)",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      },
+      {
+       "label": "Altitude",
+       "unit": "ft",
+       "code": "(A:INDICATED ALTITUDE, feet)"
+      }
+     ]
+    },
+    {
+     "text": "At the cruise altitude, level off and hold it with BALT, or fly it by hand.",
+     "why": "BALT holds the barometric altitude at the moment you press it. See the topic Autopilot and pilot relief modes.",
+     "source": "Raynen, F/A-18E Startup + Basic TACAN Navigation (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/f-a-18e-startup-basic-tacan-navigation/472861), Climb and cruise (\"use BALT hold and manage airspeed manually\")"
+    }
+   ],
+   "next": "cc_done"
+  },
+  "cc_done": {
+   "type": "end",
+   "title": "Cruise",
+   "text": "You are level at the cruise altitude. For the radios, TACAN and ILS open Radios, TACAN and altimeter; for the pilot relief modes open Autopilot and pilot relief modes."
+  },
+  "ap_intro": {
+   "type": "info",
+   "title": "Pilot relief modes",
+   "text": "The F/A-18E has no traditional autopilot: the A/P menu on the UFCD offers pilot relief modes. Pitch modes (BALT, RALT, FPAH) are on the left of the menu, roll modes (ROLL, HDG, GTRK) on the right, and CPL steers to a waypoint or a TACAN. Engaging a pitch mode also engages HDG (unless a roll mode is already on), and engaging a roll mode also engages FPAH (unless BALT or RALT is on). Source: Raynen's pilot relief guide (community, not official) and the sim's UFCD code (FA18ACC_UFCD.js, FA18_UFCD_Base.js).",
+   "next": "ap_menu"
+  },
+  "ap_menu": {
+   "type": "question",
+   "title": "What do you want?",
+   "text": "What do you want to hold?",
+   "choices": [
+    {
+     "id": "pitch",
+     "label": "Altitude or flight path (BALT, RALT, FPAH)",
+     "next": "ap_pitch"
+    },
+    {
+     "id": "roll",
+     "label": "Bank, heading or ground track (ROLL, HDG, GTRK)",
+     "next": "ap_roll"
+    },
+    {
+     "id": "cpl",
+     "label": "Steer to a waypoint or a TACAN (CPL)",
+     "next": "ap_cpl"
+    },
+    {
+     "id": "atc",
+     "label": "Speed (autothrottle)",
+     "next": "ap_atc"
+    },
+    {
+     "id": "off",
+     "label": "Switch a mode off",
+     "next": "ap_off"
+    }
+   ]
+  },
+  "ap_pitch": {
+   "type": "steps",
+   "title": "Pitch modes",
+   "source": "Raynen, [HOW-TO] F/A-18E Pilot Relief Modes (Autopilot) (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/how-to-f-a-18e-pilot-relief-modes-autopilot/473600), Pitch Relief modes (BALT, RALT, FPAH); sim file asobo-vcockpits-instruments-fa18, FA18ACC/UFCD/FA18ACC_UFCD.js, class FA18ACC_UFCD_APSubMenu and FA18ACC_AP_Manager",
+   "steps": [
+    {
+     "text": "Press A/P on the UFCD.",
+     "where": "Below the HUD. There is no catalog control for the UFCD keypad and buttons.",
+     "source": "sim file asobo-vcockpits-instruments-fa18, FA18ACC/UFCD/FA18ACC_UFCD.js, class FA18ACC_UFCD (root menu button A/P); Raynen, [HOW-TO] F/A-18E Pilot Relief Modes (Autopilot) (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/how-to-f-a-18e-pilot-relief-modes-autopilot/473600), section Engagement rules (\"Pressing A/P on the UFCD opens the menu\")"
+    },
+    {
+     "text": "BALT: fly to the altitude you want, then press BALT.",
+     "why": "The target cannot be changed while BALT is engaged: switch it off, fly to the new altitude and press BALT again. A pitch input on the stick switches BALT off (FA18ACC_UFCD.js, updateLongitudinal).",
+     "source": "Raynen, [HOW-TO] F/A-18E Pilot Relief Modes (Autopilot) (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/how-to-f-a-18e-pilot-relief-modes-autopilot/473600), BALT (\"Holds the current barometric altitude, entered automatically on engagement\")",
+     "check": {
+      "code": "(A:AUTOPILOT ALTITUDE LOCK, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "readouts": [
+      {
+       "label": "Altitude",
+       "unit": "ft",
+       "code": "(A:INDICATED ALTITUDE, feet)"
+      }
+     ]
+    },
+    {
+     "text": "RALT: below 5,000 ft above the ground, press RALT to hold the radar altitude.",
+     "why": "The sim's code also switches RALT off on a stick pitch input, above 60 degrees of bank, or above 5,000 ft (FA18ACC_UFCD.js, updateLongitudinal).",
+     "source": "Raynen, [HOW-TO] F/A-18E Pilot Relief Modes (Autopilot) (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/how-to-f-a-18e-pilot-relief-modes-autopilot/473600), RALT (\"can only be engaged below 5,000 ft AGL\")",
+     "readouts": [
+      {
+       "label": "Radar altitude",
+       "unit": "ft",
+       "code": "(A:RADIO HEIGHT, feet)"
+      }
+     ]
+    },
+    {
+     "text": "FPAH: put the velocity vector on the flight path angle you want, then press FPAH.",
+     "why": "Stick inputs hand control back; when you stop, the new flight path becomes the target.",
+     "source": "Raynen, [HOW-TO] F/A-18E Pilot Relief Modes (Autopilot) (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/how-to-f-a-18e-pilot-relief-modes-autopilot/473600), FPAH (\"Holds the velocity vector pitch angle at the moment of engagement\")"
+    }
+   ],
+   "next": "ap_menu"
+  },
+  "ap_roll": {
+   "type": "steps",
+   "title": "Roll modes",
+   "source": "Raynen, [HOW-TO] F/A-18E Pilot Relief Modes (Autopilot) (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/how-to-f-a-18e-pilot-relief-modes-autopilot/473600), Roll Relief modes (ROLL, HDG, HSEL, GTRK, GSEL); sim file asobo-vcockpits-instruments-fa18, Shared/UFCD/FA18_UFCD_Base.js, class FA18_UFCD_APSubMenu and FA18ACC_UFCD_APSubMenu",
+   "steps": [
+    {
+     "text": "Press A/P on the UFCD.",
+     "where": "Below the HUD. There is no catalog control for the UFCD keypad and buttons.",
+     "source": "sim file asobo-vcockpits-instruments-fa18, FA18ACC/UFCD/FA18ACC_UFCD.js, class FA18ACC_UFCD (root menu button A/P); Raynen, [HOW-TO] F/A-18E Pilot Relief Modes (Autopilot) (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/how-to-f-a-18e-pilot-relief-modes-autopilot/473600), section Engagement rules (\"Pressing A/P on the UFCD opens the menu\")"
+    },
+    {
+     "text": "ROLL: press ROLL to hold the current bank angle.",
+     "why": "Rolling with the stick sets a new bank angle, captured when you release the stick.",
+     "source": "Raynen, [HOW-TO] F/A-18E Pilot Relief Modes (Autopilot) (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/how-to-f-a-18e-pilot-relief-modes-autopilot/473600), ROLL (\"Holds the current bank angle\")",
+     "check": {
+      "code": "(A:AUTOPILOT MASTER, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "HDG: press HDG to hold the heading. With 5 degrees of bank or less it levels the wings first.",
+     "source": "Raynen, [HOW-TO] F/A-18E Pilot Relief Modes (Autopilot) (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/how-to-f-a-18e-pilot-relief-modes-autopilot/473600), HDG (\"If bank is 5° or less, the AFCS levels the wings and holds the current heading\")",
+     "check": {
+      "code": "(A:AUTOPILOT MASTER, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "HSEL: press HDG a second time, then set the heading with the HDG/TK switch.",
+     "why": "The jet turns to the magnetic heading shown by two rectangles on the HSI ring and does not correct for wind. Not verified: the switch positions are not known.",
+     "source": "Raynen, [HOW-TO] F/A-18E Pilot Relief Modes (Autopilot) (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/how-to-f-a-18e-pilot-relief-modes-autopilot/473600), HSEL (\"Pressing HDG a second time switches to HSEL\"; \"HDG/TK switch below the Engine Fuel Display\")",
+     "controls": [
+      {
+       "api": "AS04F_EFD_Switch_HDG_TK"
+      }
+     ]
+    },
+    {
+     "text": "GTRK / GSEL: press GTRK to hold the ground track; press it again for GSEL, the selected track.",
+     "source": "Raynen, [HOW-TO] F/A-18E Pilot Relief Modes (Autopilot) (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/how-to-f-a-18e-pilot-relief-modes-autopilot/473600), GTRK/GSEL (\"Works like HDG/HSEL but holds a ground track and corrects for wind\")"
+    }
+   ],
+   "next": "ap_menu"
+  },
+  "ap_cpl": {
+   "type": "steps",
+   "title": "Coupled steering",
+   "source": "Raynen, [HOW-TO] F/A-18E Pilot Relief Modes (Autopilot) (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/how-to-f-a-18e-pilot-relief-modes-autopilot/473600), CPL WYPT and CPL SEQ; sim file asobo-vcockpits-instruments-fa18, FA18ACC/UFCD/FA18ACC_UFCD.js, class FA18ACC_UFCD_APSubMenu (CPL shows WYPT, SEQ or TCN); sim file asobo-vcockpits-instruments-fa18, Shared/DDI/FA18_DDI_HSI.js, class FA18_DDI_HSI",
+   "steps": [
+    {
+     "text": "On the HSI page, select the waypoint with the arrows, then press WYPT.",
+     "where": "A DDI showing the HSI page. The HSI page is the start page of display unit 3.",
+     "why": "SEQ1 draws the flight plan as a broken line (guide). No catalog control is certain for these buttons.",
+     "source": "Raynen, [HOW-TO] F/A-18E Pilot Relief Modes (Autopilot) (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/how-to-f-a-18e-pilot-relief-modes-autopilot/473600), CPL WYPT, Setup (\"select a waypoint ... Then press WYPT, which boxes the selection\")"
+    },
+    {
+     "text": "Press A/P on the UFCD, then CPL: the jet turns to point at the waypoint.",
+     "why": "It does not follow the sequence and does not correct for wind drift. After the waypoint, press the up arrow on the right of the HSI, then CPL again.",
+     "source": "Raynen, [HOW-TO] F/A-18E Pilot Relief Modes (Autopilot) (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/how-to-f-a-18e-pilot-relief-modes-autopilot/473600), CPL WYPT, Behavior (\"turns to point directly at the waypoint\")"
+    },
+    {
+     "text": "For a sequence, box SEQ1, SEQ2 or SEQ3, then box AUTO at the bottom right, then press CPL.",
+     "why": "The autopilot intercepts the flight plan and, within about 2 NM of a waypoint, steps to the next one.",
+     "source": "Raynen, [HOW-TO] F/A-18E Pilot Relief Modes (Autopilot) (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/how-to-f-a-18e-pilot-relief-modes-autopilot/473600), CPL SEQ (\"box AUTO at the bottom right to get CPL SEQ\")"
+    },
+    {
+     "text": "For a TACAN, box TCN on the HSI page, then press CPL (it shows TCN).",
+     "why": "Only when a TACAN is tuned, switched on and received. The sim's code ends CPL TCN within 2 NM of the station.",
+     "source": "sim file asobo-vcockpits-instruments-fa18, Shared/DDI/FA18_DDI_HSI.js (TCN button toggles the TACAN steering source when TACAN is available); sim file asobo-vcockpits-instruments-fa18, FA18ACC/UFCD/FA18ACC_UFCD.js, class FA18ACC_UFCD_APSubMenu"
+    }
+   ],
+   "next": "ap_menu"
+  },
+  "ap_atc": {
+   "type": "steps",
+   "title": "Autothrottle",
+   "source": "Raynen, [HOW-TO] F/A-18E Pilot Relief Modes (Autopilot) (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/how-to-f-a-18e-pilot-relief-modes-autopilot/473600), replies by Raynen (speed cannot be dialled in); sim file asobo-aircraft-fa18e, model/FA18E_cockpit.xml, ASOBO_AUTOPILOT_Push_Speed_Template (AUTOPILOT_PUSH_AUTOTHROTTLE) and ASOBO_HANDLING_Lever_Flaps_Template",
+   "steps": [
+    {
+     "text": "Fly to the speed you want first.",
+     "why": "The guide does not cover the autothrottle itself; this comes from the author's replies.",
+     "source": "Raynen, [HOW-TO] F/A-18E Pilot Relief Modes (Autopilot) (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/how-to-f-a-18e-pilot-relief-modes-autopilot/473600), replies by Raynen (\"speed can't be dialed in, so the jet must be accelerated or decelerated to the desired speed before engaging ATC\")",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      }
+     ]
+    },
+    {
+     "text": "Press the autothrottle (speed) button.",
+     "why": "Not verified: the behaviour is taken from the control's name. Replies in the same thread say it can also be toggled by binding AUTOPILOT AIRSPEED HOLD.",
+     "source": "sim file asobo-aircraft-fa18e, model/FA18E_cockpit.xml, button AUTOPILOT_PUSH_AUTOTHROTTLE",
+     "controls": [
+      {
+       "api": "AUTOPILOT_Speed_Mode"
+      }
+     ]
+    },
+    {
+     "text": "Do not touch the flaps lever while you want the autothrottle.",
+     "why": "Moving the flaps lever switches the autothrottle off.",
+     "source": "sim file asobo-aircraft-fa18e, model/FA18E_cockpit.xml, ASOBO_HANDLING_Lever_Flaps_Template, ON_AFTER_SET (sends K:AP_AIRSPEED_OFF when the lever moves)",
+     "controls": [
+      {
+       "api": "HANDLING_Flaps",
+       "function": "Flaps: position 0 (up)"
+      }
+     ]
+    }
+   ],
+   "next": "ap_menu"
+  },
+  "ap_off": {
+   "type": "info",
+   "title": "Switch a mode off",
+   "text": "Press the lit mode button again to switch it off. HDG and FPAH are the default modes: while the autopilot is on, pressing them does nothing (FA18_UFCD_Base.js, disengageMode). BALT and RALT also switch off on a pitch input on the stick, and HDG re-captures after a roll input (FA18ACC_UFCD.js, FA18_UFCD_Base.js). A question on the MSFS forum about how to disable the autopilot as a whole got no answer, and the catalog has no control for it; the sim's code reads the standard AUTOPILOT MASTER variable, so the sim's own autopilot master key should also switch it off (not tried).",
+   "next": "ap_menu"
+  },
+  "rv_menu": {
+   "type": "question",
+   "title": "What do you need?",
+   "text": "What do you want to set?",
+   "help": "The UFCD sits below the HUD: a keypad (0-9, N S E W, CLR, ENT) and option buttons on its right. The catalog has no controls for them, so these steps have no highlight.",
+   "choices": [
+    {
+     "id": "com",
+     "label": "COM 1 / COM 2 frequency and volume",
+     "next": "rv_com"
+    },
+    {
+     "id": "tcn",
+     "label": "TACAN",
+     "next": "rv_tcn"
+    },
+    {
+     "id": "ils",
+     "label": "ILS (not documented)",
+     "next": "rv_ils"
+    },
+    {
+     "id": "iff",
+     "label": "IFF / transponder code",
+     "next": "rv_iff"
+    },
+    {
+     "id": "alt",
+     "label": "Altimeter",
+     "next": "rv_alt"
+    }
+   ]
+  },
+  "rv_com": {
+   "type": "steps",
+   "title": "COM radios",
+   "source": "sim file asobo-vcockpits-instruments-fa18, Shared/UFCD/FA18_UFCD_Base.js, classes FA18_UFCD_ComButtonContent and FA18ACC_UFCD (fixed COM 1 and COM 2 buttons); FA18E_Checklist.xml: page Before starting engine, Radios_COMM_1_2_Off_TEMPLATE",
+   "steps": [
+    {
+     "text": "Turn the COMM 1 and COMM 2 volume knobs up.",
+     "why": "Technique: the sim's checklist only turns the volumes OFF. Not verified on the real aircraft (range assumed 0 to 100).",
+     "source": "FA18E_Checklist.xml: page Before starting engine, Radios_COMM_1_2_Off_TEMPLATE (the checklist turns them OFF; knobs AS04F_UFCD_Knob_COM1_Volume_1 and COM2_Volume_1)",
+     "controls": [
+      {
+       "api": "AS04F_UFCD_Knob_COM1_Volume_1"
+      },
+      {
+       "api": "AS04F_UFCD_Knob_COM2_Volume_1"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "COM 1 volume",
+       "unit": "%",
+       "code": "(A:COM VOLUME:1, percent)"
+      },
+      {
+       "label": "COM 2 volume",
+       "unit": "%",
+       "code": "(A:COM VOLUME:2, percent)"
+      }
+     ]
+    },
+    {
+     "text": "On the UFCD keypad, type the frequency without the point, for example 12535 for 125.35.",
+     "why": "The sim accepts 118.000 to 136.995 MHz in steps of 5 kHz. Anything else shows ERROR.",
+     "source": "sim file asobo-vcockpits-instruments-fa18, Shared/UFCD/FA18_UFCD_Base.js, class FA18_UFCD_ComButtonContent, readInput() (digits after the third are the decimals)"
+    },
+    {
+     "text": "Press the COM 1 or COM 2 button next to its frequency: that sets the active frequency.",
+     "source": "sim file asobo-vcockpits-instruments-fa18, Shared/UFCD/FA18_UFCD_Base.js, class FA18_UFCD_ComButtonContent, comButtonPress() / setFrequency() (K:COM_RADIO_SET_HZ)",
+     "readouts": [
+      {
+       "label": "COM 1",
+       "unit": "MHz",
+       "code": "(A:COM ACTIVE FREQUENCY:1, MHz)"
+      },
+      {
+       "label": "COM 2",
+       "unit": "MHz",
+       "code": "(A:COM ACTIVE FREQUENCY:2, MHz)"
+      }
+     ]
+    }
+   ],
+   "next": "rv_menu"
+  },
+  "rv_tcn": {
+   "type": "steps",
+   "title": "TACAN",
+   "source": "sim file asobo-vcockpits-instruments-fa18, FA18ACC/UFCD/FA18ACC_UFCD.js, class FA18ACC_UFCD_TacanSubMenu; Raynen, F/A-18E Startup + Basic TACAN Navigation (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/f-a-18e-startup-basic-tacan-navigation/472861), section TACAN setup",
+   "steps": [
+    {
+     "text": "On the UFCD, press TCN.",
+     "source": "Raynen, F/A-18E Startup + Basic TACAN Navigation (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/f-a-18e-startup-basic-tacan-navigation/472861), TACAN setup item 1 (\"press the TCN box to open the TACAN menu\"); sim file asobo-vcockpits-instruments-fa18, FA18ACC/UFCD/FA18ACC_UFCD.js, rootMenu button TCN"
+    },
+    {
+     "text": "Type the channel on the keypad (1 to 126), then press the channel button.",
+     "why": "The channel button shows the channel and its band, for example 87X. Pressed with nothing typed it switches between X and Y (the guide says: enter 87, then X gives 87X).",
+     "source": "sim file asobo-vcockpits-instruments-fa18, FA18ACC/UFCD/FA18ACC_UFCD.js, FA18ACC_UFCD_TacanSubMenu.setTacanChannel() (accepts 1 to 126)"
+    },
+    {
+     "text": "Press the ON / OFF button until it shows ON, and select T/R or RCV.",
+     "source": "sim file asobo-vcockpits-instruments-fa18, FA18ACC/UFCD/FA18ACC_UFCD.js, FA18ACC_UFCD_TacanSubMenu.switchTacanOnOff() / setTacanMode() (L:Glasscockpit_TACAN_Mode 0 off, 1 T/R, 2 RCV)",
+     "readouts": [
+      {
+       "label": "TACAN channel",
+       "unit": "",
+       "code": "(A:TACAN ACTIVE CHANNEL:1, number)"
+      }
+     ]
+    },
+    {
+     "text": "Read the station on the HSI page: identifier, bearing TO, DME and ETE appear at the top left once it is tuned and in range.",
+     "why": "Press the TCN button on the left of the DDI to box TCN and repeat the identifier and the distance on the HUD (guide, item 5).",
+     "source": "Raynen, F/A-18E Startup + Basic TACAN Navigation (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/f-a-18e-startup-basic-tacan-navigation/472861), TACAN setup item 4"
+    }
+   ],
+   "next": "rv_menu"
+  },
+  "rv_ils": {
+   "type": "info",
+   "title": "ILS",
+   "text": "No sourced procedure: the sim's UFCD file defines an ILS page (FA18_UFCD_ILSSubMenu, which would take a frequency from 108 to 117 MHz) but the UFCD button marked D/L BCN ILS has no action (FA18ACC_UFCD.js, createMenus) and nothing opens that page; the ILS button on the HSI page opens a NOT IMPLEMENTED page (FA18_DDI_HSI.js). The catalog has no NAV radio control. Tune the ILS the way you do in other aircraft, with the simulator's own radio tools.",
+   "next": "rv_menu"
+  },
+  "rv_iff": {
+   "type": "steps",
+   "title": "IFF / transponder",
+   "source": "sim file asobo-vcockpits-instruments-fa18, Shared/UFCD/FA18_UFCD_Base.js, class FA18_UFCD_IFFSubMenu (root menu button IFF)",
+   "steps": [
+    {
+     "text": "On the UFCD, press IFF.",
+     "source": "sim file asobo-vcockpits-instruments-fa18, FA18ACC/UFCD/FA18ACC_UFCD.js, rootMenu button IFF"
+    },
+    {
+     "text": "Type four digits (each 0 to 7), then press the button that shows 3-xxxx.",
+     "why": "Any other input shows ERROR.",
+     "source": "sim file asobo-vcockpits-instruments-fa18, Shared/UFCD/FA18_UFCD_Base.js, FA18_UFCD_IFFSubMenu.setIffMode3Code() (K:XPNDR_SET)",
+     "readouts": [
+      {
+       "label": "Squawk",
+       "unit": "",
+       "code": "(A:TRANSPONDER CODE:1, number)"
+      }
+     ]
+    },
+    {
+     "text": "Press XPOND ON / OFF to switch the transponder on; press C for altitude reporting.",
+     "source": "sim file asobo-vcockpits-instruments-fa18, Shared/UFCD/FA18_UFCD_Base.js, FA18_UFCD_IFFSubMenu.switchIffOnOff() / switchIffModeC()",
+     "readouts": [
+      {
+       "label": "Transponder state",
+       "unit": "",
+       "code": "(A:TRANSPONDER STATE:1, number)"
+      }
+     ]
+    }
+   ],
+   "next": "rv_menu"
+  },
+  "rv_alt": {
+   "type": "steps",
+   "title": "Altimeter",
+   "source": "data/asobo_fa18e_catalog.json, entry INSTRUMENT_Altimeter_1 (verified on the real aircraft)",
+   "steps": [
+    {
+     "text": "Set the altimeter to the pressure you need, in hPa; 1013.25 is standard.",
+     "why": "Technique, not a checklist item: the sim's files give no altimeter procedure and the location of the knob is not documented.",
+     "source": "data/asobo_fa18e_catalog.json, INSTRUMENT_Altimeter_1 (set 1000 and 1013.25 followed on (A:KOHLSMAN SETTING MB:1))",
+     "controls": [
+      {
+       "api": "INSTRUMENT_Altimeter_1",
+       "function": "Altimeter: 1013.25 hPa (standard)"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Setting",
+       "unit": "hPa",
+       "code": "(A:KOHLSMAN SETTING MB:1, millibars)"
+      }
+     ]
+    }
+   ],
+   "next": "rv_menu"
+  },
+  "da_air": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft in the air?",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, it is flying",
+     "next": "da_prep"
+    },
+    {
+     "id": "no",
+     "label": "No, it is on the ground",
+     "next": "da_ground"
+    }
+   ]
+  },
+  "da_ground": {
+   "type": "info",
+   "title": "Not in the air",
+   "text": "This topic is for the approach. On the ground, open Before taxi and taxi or After landing and shutdown.",
+   "next": ""
+  },
+  "da_prep": {
+   "type": "steps",
+   "title": "Prepare the approach",
+   "source": "data/asobo_fa18e_catalog.json, INSTRUMENT_Altimeter_1; this guide's topic Radios, TACAN and altimeter",
+   "steps": [
+    {
+     "text": "Set the altimeter to the local pressure.",
+     "why": "Technique, not a checklist item.",
+     "source": "data/asobo_fa18e_catalog.json, INSTRUMENT_Altimeter_1 (verified on the real aircraft)",
+     "controls": [
+      {
+       "api": "INSTRUMENT_Altimeter_1",
+       "function": "Altimeter: setting axis (950 to 1050 hPa)"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Setting",
+       "unit": "hPa",
+       "code": "(A:KOHLSMAN SETTING MB:1, millibars)"
+      }
+     ]
+    },
+    {
+     "text": "Tune the TACAN for the approach on the UFCD.",
+     "why": "Technique: see the topic Radios, TACAN and altimeter. The sim's UFCD cannot tune an ILS.",
+     "source": "this guide's topic Radios, TACAN and altimeter (UFCD TCN sub menu)"
+    },
+    {
+     "text": "If you want a low altitude warning, press RALT on the UFCD, choose BARO or RADAR, type the altitude, press ENT and set the warning ON.",
+     "why": "Technique, not a checklist item. The warning triggers when the indicated altitude (BARO) or the radar altitude (RADAR) falls below the value.",
+     "source": "sim file asobo-vcockpits-instruments-fa18, Shared/UFCD/FA18_UFCD_Base.js, class FA18_UFCD_LAWSubMenu (BARO up to 25,000 ft, RADAR up to 5,000 ft, steps of 100 ft, ON / OFF button); FA18_UFCD_Base.js updateAltitudeTrigger()"
+    }
+   ],
+   "next": "da_cfg"
+  },
+  "da_cfg": {
+   "type": "steps",
+   "title": "Before landing",
+   "source": "FA18E_Checklist.xml: page Before landing (the whole page)",
+   "steps": [
+    {
+     "text": "Lower the landing gear: lever DN.",
+     "why": "Not verified: the gear lever was deliberately not tried on the real aircraft. 1 = down.",
+     "source": "FA18E_Checklist.xml: page Before landing, Landing_Gear_Down (clue \"Extend landing gears\")",
+     "controls": [
+      {
+       "api": "LANDING_GEAR_Gear"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Gear handle",
+       "unit": "",
+       "code": "(A:GEAR HANDLE POSITION, Bool)"
+      }
+     ]
+    },
+    {
+     "text": "Set the flaps lever to FULL.",
+     "source": "FA18E_Checklist.xml: page Before landing, Flaps_Down (clue \"Set flaps lever to \"Full\"\")",
+     "controls": [
+      {
+       "api": "HANDLING_Flaps",
+       "function": "Flaps: position 2"
+      }
+     ],
+     "check": {
+      "code": "(A:FLAPS HANDLE INDEX, number)",
+      "op": "==",
+      "value": 2
+     }
+    }
+   ],
+   "next": "da_slow"
+  },
+  "da_slow": {
+   "type": "steps",
+   "title": "Slow down on the angle of attack",
+   "source": "Raynen, [HOW-TO] F/A-18E Landing Guide (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/how-to-f-a-18e-landing-guide/474259), section Practice sequence and section Setup and mode",
+   "steps": [
+    {
+     "text": "Bring the throttles to idle to slow down.",
+     "why": "With the gear down and the flaps at HALF or FULL the flight control system goes to Powered Approach (PA): it trims the pitch to hold the target angle of attack, and the pitch trim changes that target (guide).",
+     "source": "Raynen, [HOW-TO] F/A-18E Landing Guide (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/how-to-f-a-18e-landing-guide/474259), Practice sequence item 2 (\"lower the gear, set flaps to Full, and bring the throttle to idle\")",
+     "controls": [
+      {
+       "api": "ENGINE_Throttle_1",
+       "function": "Throttle 1: idle"
+      },
+      {
+       "api": "ENGINE_Throttle_2",
+       "function": "Throttle 2: idle"
+      }
+     ]
+    },
+    {
+     "text": "When the E-bracket appears, add nose-up trim in small inputs to keep the velocity vector on the horizon.",
+     "where": "On the HUD: the E-bracket is left of the velocity vector, the angle of attack indexer on the left of the HUD.",
+     "source": "Raynen, [HOW-TO] F/A-18E Landing Guide (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/how-to-f-a-18e-landing-guide/474259), Practice sequence item 3"
+    },
+    {
+     "text": "Add throttle before 160 knots: the engines lag.",
+     "source": "Raynen, [HOW-TO] F/A-18E Landing Guide (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/how-to-f-a-18e-landing-guide/474259), Practice sequence item 4 (\"Begin adding throttle before reaching 160 knots\")",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      }
+     ]
+    },
+    {
+     "text": "Keep adding trim and throttle until you are level at the on-speed angle of attack, about 7.5 degrees.",
+     "why": "On speed: amber circle on the indexer and the velocity vector centred in the E-bracket. Red up arrow: AoA low, increase it. Green down arrow: AoA high, decrease it.",
+     "source": "Raynen, [HOW-TO] F/A-18E Landing Guide (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/how-to-f-a-18e-landing-guide/474259), Core concept and Practice sequence item 5 (\"On-speed AoA is approximately 7.5°\")"
+    }
+   ],
+   "next": "da_done"
+  },
+  "da_done": {
+   "type": "end",
+   "title": "On the approach",
+   "text": "You are configured and on speed. Open Landing."
+  },
+  "ld_air": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft in the air?",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, it is flying",
+     "next": "ld_cfgq"
+    },
+    {
+     "id": "no",
+     "label": "No, it is on the ground",
+     "next": "ld_ground"
+    }
+   ]
+  },
+  "ld_ground": {
+   "type": "info",
+   "title": "Not in the air",
+   "text": "This topic is for the final approach and the landing. On the ground, open After landing and shutdown.",
+   "next": ""
+  },
+  "ld_cfgq": {
+   "type": "question",
+   "title": "Configuration",
+   "text": "Are the gear down and the flaps FULL?",
+   "auto": {
+    "code": "(A:GEAR HANDLE POSITION, Bool) (A:FLAPS HANDLE INDEX, number) +",
+    "rules": [
+     {
+      "op": "==",
+      "value": 3,
+      "choice": "yes"
+     },
+     {
+      "op": "<",
+      "value": 3,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes",
+     "next": "ld_final"
+    },
+    {
+     "id": "no",
+     "label": "No",
+     "next": "ld_cfg"
+    }
+   ]
+  },
+  "ld_cfg": {
+   "type": "steps",
+   "title": "Before landing",
+   "source": "FA18E_Checklist.xml: page Before landing (the whole page)",
+   "steps": [
+    {
+     "text": "Lower the landing gear: lever DN.",
+     "why": "Not verified: the gear lever was deliberately not tried on the real aircraft. 1 = down.",
+     "source": "FA18E_Checklist.xml: page Before landing, Landing_Gear_Down (clue \"Extend landing gears\")",
+     "controls": [
+      {
+       "api": "LANDING_GEAR_Gear"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Gear handle",
+       "unit": "",
+       "code": "(A:GEAR HANDLE POSITION, Bool)"
+      }
+     ]
+    },
+    {
+     "text": "Set the flaps lever to FULL.",
+     "source": "FA18E_Checklist.xml: page Before landing, Flaps_Down (clue \"Set flaps lever to \"Full\"\")",
+     "controls": [
+      {
+       "api": "HANDLING_Flaps",
+       "function": "Flaps: position 2"
+      }
+     ],
+     "check": {
+      "code": "(A:FLAPS HANDLE INDEX, number)",
+      "op": "==",
+      "value": 2
+     }
+    }
+   ],
+   "next": "ld_final"
+  },
+  "ld_final": {
+   "type": "steps",
+   "title": "Final and touchdown",
+   "source": "Raynen, [HOW-TO] F/A-18E Landing Guide (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/how-to-f-a-18e-landing-guide/474259), sections Approach and Landing (Navy-style method)",
+   "steps": [
+    {
+     "text": "Plan a long straight-in approach and aim for a 2.5 to 3 degree glidepath.",
+     "why": "Put the runway threshold about halfway between the horizon line and the 5 degree nose-down reference lines of the HUD.",
+     "source": "Raynen, [HOW-TO] F/A-18E Landing Guide (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/how-to-f-a-18e-landing-guide/474259), Approach (\"Target a 2.5–3° glidepath\")"
+    },
+    {
+     "text": "Hold the sight picture with the throttle, all the way down. The stick is for roll only.",
+     "why": "Add throttle to climb, reduce it to descend; the jet holds the angle of attack. In a turn add power.",
+     "source": "Raynen, [HOW-TO] F/A-18E Landing Guide (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/how-to-f-a-18e-landing-guide/474259), Throttle and pitch control (\"Throttle controls pitch through the AFCS\") and Approach",
+     "controls": [
+      {
+       "api": "ENGINE_Throttle_1",
+       "function": "Throttle 1: axis (0 to 1)"
+      },
+      {
+       "api": "ENGINE_Throttle_2",
+       "function": "Throttle 2: axis (0 to 1)"
+      }
+     ]
+    },
+    {
+     "text": "Do not flare. Entering ground effect, pull the throttles to idle.",
+     "why": "The author says the idle step is specific to the simulated jet, where the ground effect is exaggerated.",
+     "source": "Raynen, [HOW-TO] F/A-18E Landing Guide (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/how-to-f-a-18e-landing-guide/474259), Landing (\"Do not flare\"; \"Entering ground effect, pull throttles to idle to prevent floating\")",
+     "controls": [
+      {
+       "api": "ENGINE_Throttle_1",
+       "function": "Throttle 1: idle"
+      },
+      {
+       "api": "ENGINE_Throttle_2",
+       "function": "Throttle 2: idle"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Vertical speed",
+       "unit": "fpm",
+       "code": "(A:VERTICAL SPEED, feet per minute)"
+      }
+     ]
+    },
+    {
+     "text": "Touch down at roughly 400 to 500 feet per minute.",
+     "why": "A reply in the same thread says real Navy technique is 600 to 700 fpm; the guide's figure is for the simulated jet.",
+     "source": "Raynen, [HOW-TO] F/A-18E Landing Guide (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/how-to-f-a-18e-landing-guide/474259), Landing (\"Touch down at roughly 400–500 fpm\")",
+     "readouts": [
+      {
+       "label": "Vertical speed",
+       "unit": "fpm",
+       "code": "(A:VERTICAL SPEED, feet per minute)"
+      }
+     ]
+    },
+    {
+     "text": "Use the speed brakes and the toe brakes to slow down.",
+     "warn": "Not verified: on the real aircraft the speed brake control reads 1 at rest and setting 0 or 1 left the spoiler handle at 0. Use your own binding or the cockpit switch.",
+     "source": "Raynen, [HOW-TO] F/A-18E Landing Guide (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/how-to-f-a-18e-landing-guide/474259), Landing (\"Use speed brakes and toe brakes to slow down\")",
+     "controls": [
+      {
+       "api": "HANDLING_Spoilers"
+      }
+     ]
+    }
+   ],
+   "next": "ld_done"
+  },
+  "ld_done": {
+   "type": "end",
+   "title": "Landed",
+   "text": "Open After landing and shutdown to park and stop the engines."
+  },
+  "sd_ground": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, on the ground",
+     "next": "sd_taxi"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "sd_air"
+    }
+   ]
+  },
+  "sd_air": {
+   "type": "info",
+   "title": "Still flying",
+   "text": "The shutdown is for the ground. Open Descent and approach and Landing first.",
+   "next": ""
+  },
+  "sd_taxi": {
+   "type": "info",
+   "title": "Taxi to the parking position",
+   "text": "The sim's checklist has no item between the landing and the Shutdown page (the steps LANDING_TOUCHDOWN, LANDING_GROUNDROLL and LANDING_TAXI_IN of FA18E_Checklist.xml are empty). Taxi to the parking position, then go on.",
+   "next": "sd_page"
+  },
+  "sd_page": {
+   "type": "steps",
+   "title": "Shutdown",
+   "source": "FA18E_Checklist.xml: page Shutdown (the whole page)",
+   "steps": [
+    {
+     "text": "Set the parking brake.",
+     "why": "Not verified on the real aircraft: it reads 1 (set).",
+     "source": "FA18E_Checklist.xml: page Shutdown, Parking_Brake_Set",
+     "controls": [
+      {
+       "api": "LANDING_GEAR_Parking_Brake"
+      }
+     ]
+    },
+    {
+     "text": "Set the exterior lights master switch to OFF.",
+     "why": "Not verified on the real aircraft. In the checklist's code, 0 is FORWARD (NORM) and 2 is OFF.",
+     "source": "FA18E_Checklist.xml: page Shutdown, ALL_LIGHTS_OFF_FA18E (Library.xml; tests (L:XMLVAR_EXT_Lights_Mode) = 2 and sends LIGHTING_EXT_Lights_Mode_Off; clue \"Switch all lights off\")",
+     "controls": [
+      {
+       "api": "LIGHTING_EXT_Lights_Mode"
+      }
+     ]
+    },
+    {
+     "text": "Turn the landing / taxi light OFF.",
+     "source": "FA18E_Checklist.xml: page Shutdown, ALL_LIGHTS_OFF_FA18E (landing light)",
+     "controls": [
+      {
+       "api": "LIGHTING_LANDING_1"
+      }
+     ],
+     "check": {
+      "code": "(A:LIGHT LANDING, Bool)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Turn cabin light 1 OFF.",
+     "source": "FA18E_Checklist.xml: page Shutdown, ALL_LIGHTS_OFF_FA18E (LIGHTING_CABIN_1 set to 0)",
+     "controls": [
+      {
+       "api": "LIGHTING_CABIN_1"
+      }
+     ],
+     "check": {
+      "code": "(A:LIGHT CABIN:1, Bool)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Turn cabin light 2 OFF.",
+     "why": "Not tried on the real aircraft.",
+     "source": "FA18E_Checklist.xml: page Shutdown, ALL_LIGHTS_OFF_FA18E (LIGHTING_CABIN_2 set to 0)",
+     "controls": [
+      {
+       "api": "LIGHTING_CABIN_2"
+      }
+     ]
+    },
+    {
+     "text": "Turn the three interior brightness knobs (potentiometers 2, 3 and 6) to 0.",
+     "why": "Not tried on the real aircraft; which panel each one dims is not known.",
+     "source": "FA18E_Checklist.xml: page Shutdown, ALL_LIGHTS_OFF_FA18E (LIGHTING_POTENTIOMETER_2, 3 and 6 set to 0)",
+     "controls": [
+      {
+       "api": "LIGHTING_POTENTIOMETER_2"
+      },
+      {
+       "api": "LIGHTING_POTENTIOMETER_3"
+      },
+      {
+       "api": "LIGHTING_POTENTIOMETER_6"
+      }
+     ]
+    },
+    {
+     "text": "Set BLEED AIR to OFF.",
+     "where": "Right console (Simvol).",
+     "why": "The checklist sets both the engine bleed source and the APU bleed source to OFF. Not verified on the real aircraft.",
+     "source": "FA18E_Checklist.xml: page Shutdown, Bleed_Air_Off (clue \"Switch bleed air off\"; Asobo_DefaultCheckpointLibrary.xml)",
+     "controls": [
+      {
+       "api": "PRESSURIZATION_Bleed_Air_Source"
+      },
+      {
+       "api": "PRESSURIZATION_Bleed_Air_Source_APU"
+      }
+     ]
+    },
+    {
+     "text": "Put the throttles on the OFF stop: the left one first, then the right one.",
+     "warn": "Not verified: on the real aircraft the STOP control always read 0 and the engine kept running, so the engine cut-off was not found. Simvol's tutorial moves the throttles to the rear OFF stop. Tick by hand.",
+     "source": "FA18E_Checklist.xml: page Shutdown, Throttles_cut_off_FA18E (clue \"Left throttle must be set to \"Off\" first, then the right one\")",
+     "controls": [
+      {
+       "api": "ENGINE_Throttle_1_STOP"
+      },
+      {
+       "api": "ENGINE_Throttle_2_STOP"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Engines running",
+       "unit": "",
+       "code": "(A:GENERAL ENG COMBUSTION:1, Bool) (A:GENERAL ENG COMBUSTION:2, Bool) +"
+      }
+     ]
+    },
+    {
+     "text": "Turn the COMM 1 and COMM 2 volume knobs OFF.",
+     "why": "Not verified on the real aircraft.",
+     "source": "FA18E_Checklist.xml: page Shutdown, Radios_COMM_1_2_Off_TEMPLATE",
+     "controls": [
+      {
+       "api": "AS04F_UFCD_Knob_COM1_Volume_1"
+      },
+      {
+       "api": "AS04F_UFCD_Knob_COM2_Volume_1"
+      }
+     ]
+    },
+    {
+     "text": "Turn the left DDI, the right DDI, the HUD and the MCPD OFF.",
+     "why": "Not verified on the real aircraft.",
+     "source": "FA18E_Checklist.xml: page Shutdown, DDI_HUD_MCPD_OFF_FA18E (clue \"Turn off avionics devices\")",
+     "controls": [
+      {
+       "api": "AS04F_DDI_Knob_Brightness_MFD_1"
+      },
+      {
+       "api": "AS04F_DDI_Knob_Brightness_MFD_2"
+      },
+      {
+       "api": "AS04F_DDI_Knob_Brightness_MFD_3"
+      },
+      {
+       "api": "AS04F_HUD_Knob_Brightness_1"
+      }
+     ]
+    },
+    {
+     "text": "Turn the battery switch OFF when the amber FLAPS lights come on.",
+     "where": "Lower right console (Raynen's startup guide).",
+     "source": "FA18E_Checklist.xml: page Shutdown, Battery_Switch_Off (clue \"Switch battery off when amber flaps lights illuminate\")",
+     "controls": [
+      {
+       "api": "ELECTRICAL_Battery_1"
+      }
+     ],
+     "check": {
+      "code": "(A:ELECTRICAL MASTER BATTERY, Bool)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Turn both generator switches OFF.",
+     "why": "Not in the sim's checklist; the next start-up page sets them back to NORM.",
+     "source": "Simvol, F-18 Hornet startup and shutdown (community tutorial, not official; simvol.org/en/articles/tutorials/f18-hornet-startup-shutdown), Shutdown item 3 (battery and both generators OFF)",
+     "controls": [
+      {
+       "api": "ELECTRICAL_Alternator_1"
+      },
+      {
+       "api": "ELECTRICAL_Alternator_2"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG MASTER ALTERNATOR:1, Bool) (A:GENERAL ENG MASTER ALTERNATOR:2, Bool) +",
+      "op": "==",
+      "value": 0
+     }
+    }
+   ],
+   "next": "sd_done"
+  },
+  "sd_done": {
+   "type": "end",
+   "title": "Shut down",
+   "text": "The engines are stopped and the electrical power is off."
+  },
+  "wh_menu": {
+   "type": "question",
+   "title": "What do you need?",
+   "text": "What do you want to do?",
+   "choices": [
+    {
+     "id": "spread",
+     "label": "Spread the wings",
+     "next": "wh_spread"
+    },
+    {
+     "id": "fold",
+     "label": "Fold the wings",
+     "next": "wh_fold"
+    },
+    {
+     "id": "hook",
+     "label": "Tail hook",
+     "next": "wh_hook"
+    },
+    {
+     "id": "lbar",
+     "label": "Launch bar",
+     "next": "wh_lbar"
+    }
+   ]
+  },
+  "wh_spread": {
+   "type": "steps",
+   "title": "Spread the wings",
+   "source": "FA18E_Checklist.xml, Library.xml: FA18E_WINGS_SPREAD; FA18E_Checklist.xml: Before take off, FA18E_WINGS_SPREAD",
+   "steps": [
+    {
+     "text": "Set the wing fold lever to SPREAD.",
+     "why": "Set 0 spreads the wings, set 1 folds them (verified on the real aircraft with the engines running; they were back to 0 within 5 seconds). The sim shows \"Wings are spreading, please wait\".",
+     "source": "Library.xml, FA18E_WINGS_SPREAD (clue \"Spread wings\"; the checklist sends HANDLING_Lever_Wingfold_Off)",
+     "controls": [
+      {
+       "api": "HANDLING_Lever_WingFold"
+      }
+     ],
+     "check": {
+      "code": "(A:FOLDING WING LEFT PERCENT, percent) (A:FOLDING WING RIGHT PERCENT, percent) +",
+      "op": "<=",
+      "value": 2
+     },
+     "readouts": [
+      {
+       "label": "Wing left",
+       "unit": "%",
+       "code": "(A:FOLDING WING LEFT PERCENT, percent)"
+      },
+      {
+       "label": "Wing right",
+       "unit": "%",
+       "code": "(A:FOLDING WING RIGHT PERCENT, percent)"
+      }
+     ]
+    },
+    {
+     "text": "Check outside that the wings are spread and locked.",
+     "source": "FA18E_Checklist.xml: page Before take off, FA18E_WINGS_SPREAD (clue \"Check outside that the wings are correctly spread and locked\")"
+    }
+   ],
+   "next": "wh_menu"
+  },
+  "wh_fold": {
+   "type": "steps",
+   "title": "Fold the wings",
+   "source": "data/asobo_fa18e_catalog.json, entry HANDLING_Lever_WingFold (verified on the real aircraft); FA18E_Checklist.xml: Before starting engine, FA18E_WINGS_SPREAD",
+   "steps": [
+    {
+     "text": "Set the wing fold lever to FOLD.",
+     "why": "Technique, not a checklist item: the sim's checklist only spreads the wings. Spread them again before taxi.",
+     "source": "data/asobo_fa18e_catalog.json, HANDLING_Lever_WingFold (set 1 folds the wings: (A:FOLDING WING LEFT PERCENT) and RIGHT moved to 47 % and 64 % within 4 s)",
+     "controls": [
+      {
+       "api": "HANDLING_Lever_WingFold"
+      }
+     ],
+     "check": {
+      "code": "(A:FOLDING WING LEFT PERCENT, percent) (A:FOLDING WING RIGHT PERCENT, percent) +",
+      "op": ">=",
+      "value": 50
+     },
+     "readouts": [
+      {
+       "label": "Wing left",
+       "unit": "%",
+       "code": "(A:FOLDING WING LEFT PERCENT, percent)"
+      },
+      {
+       "label": "Wing right",
+       "unit": "%",
+       "code": "(A:FOLDING WING RIGHT PERCENT, percent)"
+      }
+     ]
+    }
+   ],
+   "next": "wh_menu"
+  },
+  "wh_hook": {
+   "type": "steps",
+   "title": "Tail hook",
+   "source": "FA18E_Checklist.xml / Library.xml: Hook_Up_FA18E; data/asobo_fa18e_catalog.json, entry HANDLING_Lever_TailHook (verified on the real aircraft)",
+   "steps": [
+    {
+     "text": "Raise the tail hook: lever UP. The hook caution light goes out.",
+     "source": "Library.xml, Hook_Up_FA18E (clue \"Hook must be retracted and hook caution light must be off\"); asked on the pages Before starting engine and Before take off",
+     "controls": [
+      {
+       "api": "HANDLING_Lever_TailHook"
+      }
+     ],
+     "check": {
+      "code": "(A:TAILHOOK POSITION, percent)",
+      "op": "<=",
+      "value": 1
+     },
+     "readouts": [
+      {
+       "label": "Hook",
+       "unit": "%",
+       "code": "(A:TAILHOOK POSITION, percent)"
+      }
+     ]
+    },
+    {
+     "text": "To lower the hook, set the lever DOWN.",
+     "why": "Technique, not a checklist item: no sourced procedure says when to lower it.",
+     "source": "data/asobo_fa18e_catalog.json, HANDLING_Lever_TailHook (set 1 lowers the hook: (A:TAILHOOK POSITION) 97.9 %, (A:TAILHOOK HANDLE) = 1)",
+     "controls": [
+      {
+       "api": "HANDLING_Lever_TailHook"
+      }
+     ],
+     "check": {
+      "code": "(A:TAILHOOK HANDLE, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    }
+   ],
+   "next": "wh_menu"
+  },
+  "wh_lbar": {
+   "type": "steps",
+   "title": "Launch bar",
+   "source": "Library.xml: LAUNCHBAR_RETRACT (defined in the library, not used by FA18E_Checklist.xml); data/asobo_fa18e_catalog.json, entry HANDLING_Lever_LaunchBar",
+   "steps": [
+    {
+     "text": "Check the launch bar is retracted.",
+     "why": "Not verified on the real aircraft. The library's action sends HANDLING_Lever_LaunchBar_On to retract it.",
+     "source": "Library.xml, LAUNCHBAR_RETRACT (clue \"The launch bar must be retracted\"; reads (A:LAUNCHBAR POSITION, position))",
+     "controls": [
+      {
+       "api": "HANDLING_Lever_LaunchBar"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Launch bar",
+       "unit": "",
+       "code": "(A:LAUNCHBAR POSITION, position)"
+      }
+     ]
+    }
+   ],
+   "next": "wh_menu"
+  },
+  "li_menu": {
+   "type": "question",
+   "title": "What do you need?",
+   "text": "What do you want to set?",
+   "choices": [
+    {
+     "id": "ext",
+     "label": "Exterior lights",
+     "next": "li_ext"
+    },
+    {
+     "id": "int",
+     "label": "Interior lights",
+     "next": "li_int"
+    }
+   ]
+  },
+  "li_ext": {
+   "type": "steps",
+   "title": "Exterior lights",
+   "source": "FA18E_Checklist.xml: Before starting engine, EXT_LIGHTS_AS_REQUIRED_FA18E and EXT_LIGHTS_MASTER_FORWARD; Raynen, F/A-18E Startup + Basic TACAN Navigation (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/f-a-18e-startup-basic-tacan-navigation/472861)",
+   "steps": [
+    {
+     "text": "Set the exterior lights master switch FORWARD.",
+     "why": "Not verified: it was not read what this switch controls on the real aircraft.",
+     "source": "FA18E_Checklist.xml: page Before starting engine, EXT_LIGHTS_MASTER_FORWARD (clue \"Exterior lights master switch must be forward\")",
+     "controls": [
+      {
+       "api": "LIGHTING_EXT_Lights_Mode"
+      }
+     ]
+    },
+    {
+     "text": "Turn the strobe lights ON.",
+     "where": "Left console.",
+     "why": "Inverted on the real aircraft: set 0 = ON, set 1 = OFF.",
+     "source": "Raynen, F/A-18E Startup + Basic TACAN Navigation (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/f-a-18e-startup-basic-tacan-navigation/472861), Startup item 2 (\"Turn on the position/anti-collision and strobe lights\"); FA18E_Checklist.xml: page Before starting engine, EXT_LIGHTS_AS_REQUIRED_FA18E",
+     "controls": [
+      {
+       "api": "LIGHTING_STROBE_1"
+      }
+     ],
+     "check": {
+      "code": "(A:LIGHT STROBE, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Set the navigation lights as required.",
+     "why": "Not verified: the knob reads 100 at rest and setting 0 or 100 left (A:LIGHT NAV) at 0 on the real aircraft.",
+     "source": "FA18E_Checklist.xml: page Before starting engine, EXT_LIGHTS_AS_REQUIRED_FA18E (instrument navigation switch)",
+     "controls": [
+      {
+       "api": "LIGHTING_Navigation_Light_Knob"
+      }
+     ]
+    },
+    {
+     "text": "Set the recognition light as required.",
+     "why": "Not tried on the real aircraft.",
+     "source": "FA18E_Checklist.xml: page Before starting engine, EXT_LIGHTS_AS_REQUIRED_FA18E (instrument recognition knob)",
+     "controls": [
+      {
+       "api": "LIGHTING_Recognition_Light_Knob"
+      }
+     ]
+    },
+    {
+     "text": "Turn the LDG/TAXI light ON or OFF as required.",
+     "why": "The check wants it ON. The sim's checklist wants it OFF before the start and after landing.",
+     "source": "FA18E_Checklist.xml: page Before starting engine, EXT_LIGHTS_AS_REQUIRED_FA18E (landing light); Landing_Light_Off",
+     "controls": [
+      {
+       "api": "LIGHTING_LANDING_1"
+      }
+     ],
+     "check": {
+      "code": "(A:LIGHT LANDING, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    }
+   ],
+   "next": "li_menu"
+  },
+  "li_int": {
+   "type": "steps",
+   "title": "Interior lights",
+   "source": "FA18E_Checklist.xml: page Before starting engine, INTR_LIGHTS_AS_REQUIRED_FA18E (clue \"Set interior lights as required\")",
+   "steps": [
+    {
+     "text": "Set cabin light 1 as required.",
+     "why": "The check wants it ON.",
+     "source": "FA18E_Checklist.xml: page Before starting engine, INTR_LIGHTS_AS_REQUIRED_FA18E (instrument LIGHTING_KNOB_LIGHT_CABIN)",
+     "controls": [
+      {
+       "api": "LIGHTING_CABIN_1"
+      }
+     ],
+     "check": {
+      "code": "(A:LIGHT CABIN:1, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Set cabin light 2 as required.",
+     "why": "Not tried on the real aircraft.",
+     "source": "FA18E_Checklist.xml: page Before starting engine, INTR_LIGHTS_AS_REQUIRED_FA18E",
+     "controls": [
+      {
+       "api": "LIGHTING_CABIN_2"
+      }
+     ]
+    },
+    {
+     "text": "Set the brightness knobs (potentiometers 2, 3 and 6) as required.",
+     "why": "Not tried on the real aircraft; which panel each one dims is not known.",
+     "source": "FA18E_Checklist.xml: page Before starting engine, INTR_LIGHTS_AS_REQUIRED_FA18E (instruments LIGHTING_KNOB_LIGHT_POTENTIOMETER2, 3 and 6)",
+     "controls": [
+      {
+       "api": "LIGHTING_POTENTIOMETER_2"
+      },
+      {
+       "api": "LIGHTING_POTENTIOMETER_3"
+      },
+      {
+       "api": "LIGHTING_POTENTIOMETER_6"
+      }
+     ]
+    }
+   ],
+   "next": "li_menu"
+  },
+  "fu_check": {
+   "type": "steps",
+   "title": "Fuel on the displays",
+   "source": "sim file asobo-vcockpits-instruments-fa18, Shared/EFD/FA18_EFD_Common.js (class FA18_EFD_FuelSystemDisplay) and Shared/DDI/FA18_DDI_Fuel.js; Library.xml: Fuel_Flow_Check_NO_HIGHLIGHT",
+   "steps": [
+    {
+     "text": "Read the total and the internal fuel on the EFD, in thousands of pounds.",
+     "where": "Engine and fuel display (EFD).",
+     "source": "sim file FA18_EFD_Common.js, FA18_EFD_FuelSystemDisplay (TotalFuel, INT value; six tanks: four fuselage, one in each wing)",
+     "readouts": [
+      {
+       "label": "Fuel",
+       "unit": "lb",
+       "code": "(A:FUEL TOTAL QUANTITY, gallons) (A:FUEL WEIGHT PER GALLON, pounds) *"
+      }
+     ]
+    },
+    {
+     "text": "For each tank, open the FUEL page of a DDI: button 18 (menu), then button 20.",
+     "why": "Display units are numbered 1 to 3 in the catalog; a DDI that already shows another page starts from that page's button 18.",
+     "source": "sim file FA18_DDI_MenuTactical.js (button 18 opens the support menu) and FA18_DDI_MenuSupport.js (button 20 = Fuel page); FA18_DDI_Fuel.js (pounds per tank)"
+    },
+    {
+     "text": "Set the bingo fuel with the bingo knob on the EFD; the default is 4.5 (4,500 lb).",
+     "why": "Not tried on the real aircraft. The sim's code raises a bingo warning when the fuel falls below the bingo value and repeats it every 30 seconds (FA18_DDI.js, isBingoTriggered).",
+     "source": "sim file FA18_EFD_Common.js (bingo 4.5 by default, +/-0.1 per click; AS04F_EFD_KNOB_BINGO_INC and DEC)",
+     "controls": [
+      {
+       "api": "AS04F_EFD_Knob_Bingo"
+      }
+     ]
+    },
+    {
+     "text": "At ground idle, check the fuel flow: 700 to 800 pounds per hour.",
+     "why": "The library item is not used by the checklist, so treat the range as a hint.",
+     "source": "Library.xml, Fuel_Flow_Check_NO_HIGHLIGHT (clue \"Fuel flow must be between 700 and 800 pounds per hour\"; present in the library, commented out in FA18E_Checklist.xml)",
+     "readouts": [
+      {
+       "label": "Fuel flow left",
+       "unit": "pph",
+       "code": "(A:ENG FUEL FLOW PPH:1, pounds per hour)"
+      },
+      {
+       "label": "Fuel flow right",
+       "unit": "pph",
+       "code": "(A:ENG FUEL FLOW PPH:2, pounds per hour)"
+      }
+     ]
+    }
+   ],
+   "next": "fu_load"
+  },
+  "fu_load": {
+   "type": "info",
+   "title": "Loading fuel",
+   "text": "The fuel quantity is set outside the cockpit, in the simulator's fuel and payload settings; this guide has no sourced procedure for loading it.",
+   "next": ""
+  },
+  "dr_menu": {
+   "type": "question",
+   "title": "What do you want to know about?",
+   "text": "Which display?",
+   "choices": [
+    {
+     "id": "ufcd",
+     "label": "UFCD (keypad and menus)",
+     "next": "dr_ufcd"
+    },
+    {
+     "id": "ddi",
+     "label": "DDIs and MCPD (pages and buttons)",
+     "next": "dr_ddi"
+    },
+    {
+     "id": "hsi",
+     "label": "HSI page",
+     "next": "dr_hsi"
+    },
+    {
+     "id": "efd",
+     "label": "Engine and fuel display (EFD)",
+     "next": "dr_efd"
+    }
+   ]
+  },
+  "dr_ufcd": {
+   "type": "info",
+   "title": "UFCD",
+   "text": "The UFCD is below the HUD. It has a keypad (0 to 9, the letters N S E W on four keys, CLR and ENT) and ten option buttons. The root menu offers D/L BCN ILS, A/P, RALT (low altitude warning), TCN, EW, IFF, FLR, DDI and the two COM buttons that show the COM 1 and COM 2 frequencies. Every sub menu has a CNI button to go back to the root menu. CLR removes the last digit; a second press clears the line. D/L BCN ILS, EW, FLR and DDI have no action in the sim's code. Source: sim files FA18ACC_UFCD.js (createMenus) and FA18_UFCD_GUI.js; the catalog has no controls for the keypad and these buttons.",
+   "next": "dr_menu"
+  },
+  "dr_ddi": {
+   "type": "info",
+   "title": "DDIs and MCPD",
+   "text": "Display unit 1 (left DDI) starts on the ADI page, unit 2 (right DDI) on the tactical menu and unit 3 (the MCPD) on the HSI page. The buttons around the screen are numbered 1 to 20. Tactical menu: button 3 = HUD repeater, button 18 = support menu. Support menu: 1 = ADI, 2 = HSI, 3 = HMD, 11 = CHKLST, 12 = ENG, 15 = FCS, 19 = FPAS, 20 = FUEL, 18 = back to the tactical menu. Any other button shows a NOT IMPLEMENTED page. Raynen's guide: left DDI, press MENU then HUD; right DDI, press MENU then HSI. Source: sim files FA18_DDI.js (Init), FA18_DDI_MenuTactical.js, FA18_DDI_MenuSupport.js, FA18ACC_DDI_MenuSupport.js; Raynen's startup guide, Display setup.",
+   "next": "dr_menu"
+  },
+  "dr_hsi": {
+   "type": "info",
+   "title": "HSI page",
+   "text": "On the HSI page, the top buttons are labelled ACL, VEC, MODE, ILS and TCN. ACL, VEC and ILS open a NOT IMPLEMENTED page. MODE (button 3) opens a menu for 10 seconds: MAP shows or hides the map, NUP is north up, TUP is track up. TCN (button 5) steers to the TACAN when one is received. Button 8 changes the scale; button 11 steers to the selected waypoint (WYPT); 12 and 13 select the next and previous waypoint; 15 switches the sequence (SEQ1 to SEQ3) and 16 the automatic sequencing. The heading select switch is below the fuel indicator (Raynen's guide). Source: sim file FA18_DDI_HSI.js; Raynen's startup guide, Display setup.",
+   "next": "dr_menu"
+  },
+  "dr_efd": {
+   "type": "info",
+   "title": "Engine and fuel display",
+   "text": "The EFD shows the engine RPM, temperature, fuel flow, oil pressure and nozzle position of each engine, and the fuel in thousands of pounds with the bingo value. The sim's checklist reads it during the engine start (RPM, EGT, oil, nozzle). Source: sim files FA18ACC_EFD.js and FA18_EFD_Common.js; FA18E_Checklist.xml, Starting engine page.",
+   "next": "dr_menu"
+  },
+  "ts_menu": {
+   "type": "question",
+   "title": "What is the problem?",
+   "text": "What is the problem?",
+   "help": "Each branch asks a few questions. Where the simulator can tell, the answer is filled in for you.",
+   "choices": [
+    {
+     "id": "eng",
+     "label": "An engine will not start or will not keep running",
+     "next": "ts_eng_q1"
+    },
+    {
+     "id": "pwr",
+     "label": "No power, or a display is dark",
+     "next": "ts_pwr_q1"
+    },
+    {
+     "id": "mv",
+     "label": "The aircraft will not move or will not steer",
+     "next": "ts_mv_q1"
+    },
+    {
+     "id": "cfg",
+     "label": "Flaps, gear, wings or hook",
+     "next": "ts_cfg_q"
+    },
+    {
+     "id": "ap",
+     "label": "A pilot relief mode or the autothrottle does not work",
+     "next": "ts_ap_q"
+    },
+    {
+     "id": "rad",
+     "label": "Radio, TACAN or ILS",
+     "next": "ts_rad_q"
+    },
+    {
+     "id": "ctl",
+     "label": "Afterburner, speed brake or another control",
+     "next": "ts_ctl_q"
+    }
+   ]
+  },
+  "ts_eng_q1": {
+   "type": "question",
+   "title": "Battery",
+   "text": "Is the battery switch ON?",
+   "auto": {
+    "code": "(A:ELECTRICAL MASTER BATTERY, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes",
+     "next": "ts_eng_q2"
+    },
+    {
+     "id": "no",
+     "label": "No",
+     "next": "ts_eng_batt"
+    }
+   ]
+  },
+  "ts_eng_batt": {
+   "type": "steps",
+   "title": "Battery",
+   "source": "FA18E_Checklist.xml: page Starting engine, Battery_Switch_On",
+   "steps": [
+    {
+     "text": "Turn the battery switch ON.",
+     "why": "On the F/A-18E, set 1 = ON (verified on the real aircraft).",
+     "source": "FA18E_Checklist.xml: page Starting engine, Battery_Switch_On (clue \"Switch battery on\")",
+     "controls": [
+      {
+       "api": "ELECTRICAL_Battery_1"
+      }
+     ],
+     "check": {
+      "code": "(A:ELECTRICAL MASTER BATTERY, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    }
+   ],
+   "next": "ts_eng_q2"
+  },
+  "ts_eng_q2": {
+   "type": "question",
+   "title": "APU",
+   "text": "Is the APU running (READY light on)?",
+   "help": "The starters are bleed air starters fed by the APU (systems.cfg: Starter_1 and Starter_2, \"Bleed Air Starter\"); the sim's checklist starts the APU first.",
+   "auto": {
+    "code": "(A:APU PCT RPM, percent)",
+    "rules": [
+     {
+      "op": ">=",
+      "value": 95,
+      "choice": "yes"
+     },
+     {
+      "op": "<",
+      "value": 95,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes",
+     "next": "ts_eng_q3"
+    },
+    {
+     "id": "no",
+     "label": "No",
+     "next": "ts_eng_apu"
+    }
+   ]
+  },
+  "ts_eng_apu": {
+   "type": "steps",
+   "title": "APU",
+   "source": "FA18E_Checklist.xml: page Starting engine, APU_STARTER_ON_TEMPLATE and APU_START_AVAIL_LIT_NO_HIGHLIGHT",
+   "steps": [
+    {
+     "text": "Turn the APU switch ON.",
+     "source": "FA18E_Checklist.xml: page Starting engine, APU_STARTER_ON_TEMPLATE (clue \"Switch APU on\")",
+     "controls": [
+      {
+       "api": "ELECTRICAL_APU_Starter"
+      }
+     ],
+     "check": {
+      "code": "(A:APU SWITCH, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Wait for the APU READY light: it comes on within 30 seconds.",
+     "source": "FA18E_Checklist.xml: page Starting engine, APU_START_AVAIL_LIT_NO_HIGHLIGHT",
+     "check": {
+      "code": "(A:APU PCT RPM, percent)",
+      "op": ">=",
+      "value": 95
+     },
+     "readouts": [
+      {
+       "label": "APU",
+       "unit": "%",
+       "code": "(A:APU PCT RPM, percent)"
+      }
+     ]
+    }
+   ],
+   "next": "ts_eng_q3"
+  },
+  "ts_eng_q3": {
+   "type": "question",
+   "title": "Symptom",
+   "text": "What happens when you try to start?",
+   "choices": [
+    {
+     "id": "nospin",
+     "label": "N2 does not rise",
+     "next": "ts_eng_nospin"
+    },
+    {
+     "id": "nolight",
+     "label": "N2 rises but the engine does not light",
+     "next": "ts_eng_nolight"
+    },
+    {
+     "id": "second",
+     "label": "The first engine starts, the other one does not",
+     "next": "ts_eng_second"
+    },
+    {
+     "id": "stops",
+     "label": "It starts, then stops by itself",
+     "next": "ts_eng_stops"
+    }
+   ]
+  },
+  "ts_eng_nospin": {
+   "type": "steps",
+   "title": "N2 does not rise",
+   "source": "FA18E_Checklist.xml: page Starting engine, RIGHT_ENGINE_STARTER_ON and Engine_1_Start_Switch_Pull",
+   "steps": [
+    {
+     "text": "Set the ENG CRANK switch to R (right engine) or L (left engine) and watch N2.",
+     "why": "Crank switch: 0 = left, 1 = centre, 2 = right. On the real aircraft N2 rose about 4 % a second. If it still does not rise, this guide has no further sourced cause.",
+     "source": "FA18E_Checklist.xml: page Starting engine, RIGHT_ENGINE_STARTER_ON (clue \"Switch engine crank to \"R\"\") and Engine_1_Start_Switch_Pull (clue \"Switch engine crank to \"L\"\")",
+     "controls": [
+      {
+       "api": "ENGINE_Starter_Ignition_1",
+       "function": "Crank: right engine"
+      },
+      {
+       "api": "ENGINE_Starter_Ignition_1",
+       "function": "Crank: left engine"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "N2 left",
+       "unit": "%",
+       "code": "(A:TURB ENG N2:1, percent)"
+      },
+      {
+       "label": "N2 right",
+       "unit": "%",
+       "code": "(A:TURB ENG N2:2, percent)"
+      }
+     ]
+    }
+   ],
+   "next": ""
+  },
+  "ts_eng_nolight": {
+   "type": "steps",
+   "title": "No light-off",
+   "source": "FA18E_Checklist.xml: page Starting engine, FA18E_THROTTLE_IDLE_WHEN_N2_10_PCT",
+   "steps": [
+    {
+     "text": "When N2 is at 10 % or more, put that engine's throttle at IDLE.",
+     "why": "On the real aircraft the light-off at 12 % N2 needed the lever at idle (10 %). A value of 0 does not move a lever that is already at the stop: send 0.1 from the stop.",
+     "source": "FA18E_Checklist.xml: page Starting engine, FA18E_THROTTLE_IDLE_WHEN_N2_10_PCT (clue \"Set throttle lever to idle, when N2 reaches 10%\")",
+     "controls": [
+      {
+       "api": "ENGINE_Throttle_1",
+       "function": "Throttle 1: idle"
+      },
+      {
+       "api": "ENGINE_Throttle_2",
+       "function": "Throttle 2: idle"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG COMBUSTION:1, Bool) (A:GENERAL ENG COMBUSTION:2, Bool) +",
+      "op": ">=",
+      "value": 1
+     },
+     "readouts": [
+      {
+       "label": "N2 left",
+       "unit": "%",
+       "code": "(A:TURB ENG N2:1, percent)"
+      },
+      {
+       "label": "N2 right",
+       "unit": "%",
+       "code": "(A:TURB ENG N2:2, percent)"
+      },
+      {
+       "label": "Lever left",
+       "unit": "%",
+       "code": "(A:GENERAL ENG THROTTLE LEVER POSITION:1, percent)"
+      },
+      {
+       "label": "Lever right",
+       "unit": "%",
+       "code": "(A:GENERAL ENG THROTTLE LEVER POSITION:2, percent)"
+      }
+     ]
+    },
+    {
+     "text": "Set BLEED AIR to NORM.",
+     "why": "The checklist does this after the first engine; it is not verified on the real aircraft.",
+     "source": "FA18E_Checklist.xml: page Starting engine, FA18E_BLEED_AIR_ENGINE_NORM",
+     "controls": [
+      {
+       "api": "PRESSURIZATION_Bleed_Air_Source"
+      }
+     ]
+    }
+   ],
+   "next": ""
+  },
+  "ts_eng_second": {
+   "type": "info",
+   "title": "The second engine does not start",
+   "text": "The sim's checklist sets BLEED AIR to NORM after the right engine is running and before the left crank, and starts the left engine only then. A bug report on the MSFS forum (community, MSFS 2024) says that in freezing air the second engine stays at about 22 % and does not light, and that setting a higher temperature in custom weather let both engines start. Source: MSFS forum bug report \"FA/18 Can't start both engines cold & dark under low temperature\" (community thread, MSFS 2024; forums.flightsimulator.com/t/fa-18-cant-start-both-engines-cold-dark-under-low-temperature/710072); FA18E_Checklist.xml, Starting engine page, FA18E_BLEED_AIR_ENGINE_NORM.",
+   "next": ""
+  },
+  "ts_eng_stops": {
+   "type": "info",
+   "title": "The engine stops by itself",
+   "text": "No sourced cause. What the files say: the sim's checklist reads the engine fuel valves (FUELSYSTEM VALVE SWITCH 7 and 8) to know a throttle is OFF, and the lever has an OFF gate at 10 % (FA18E_cockpit.xml, OFF_GATE_POS 0.1). On the real aircraft, setting the throttle to 0 from a higher position only went to the idle stop, and the engine cut-off was not found. If an engine stops, start it again with the topic Start the engines.",
+   "next": ""
+  },
+  "ts_pwr_q1": {
+   "type": "question",
+   "title": "Battery",
+   "text": "Is the battery switch ON?",
+   "auto": {
+    "code": "(A:ELECTRICAL MASTER BATTERY, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes",
+     "next": "ts_pwr_q2"
+    },
+    {
+     "id": "no",
+     "label": "No",
+     "next": "ts_pwr_batt"
+    }
+   ]
+  },
+  "ts_pwr_batt": {
+   "type": "steps",
+   "title": "Battery",
+   "source": "FA18E_Checklist.xml: page Starting engine, Battery_Switch_On",
+   "steps": [
+    {
+     "text": "Turn the battery switch ON.",
+     "source": "FA18E_Checklist.xml: page Starting engine, Battery_Switch_On (clue \"Switch battery on\")",
+     "controls": [
+      {
+       "api": "ELECTRICAL_Battery_1"
+      }
+     ],
+     "check": {
+      "code": "(A:ELECTRICAL MASTER BATTERY, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    }
+   ],
+   "next": "ts_pwr_q2"
+  },
+  "ts_pwr_q2": {
+   "type": "question",
+   "title": "Generators",
+   "text": "Are both generator switches ON (NORM)?",
+   "auto": {
+    "code": "(A:GENERAL ENG MASTER ALTERNATOR:1, Bool) (A:GENERAL ENG MASTER ALTERNATOR:2, Bool) +",
+    "rules": [
+     {
+      "op": "==",
+      "value": 2,
+      "choice": "yes"
+     },
+     {
+      "op": "<",
+      "value": 2,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes",
+     "next": "ts_pwr_q3"
+    },
+    {
+     "id": "no",
+     "label": "No",
+     "next": "ts_pwr_gen"
+    }
+   ]
+  },
+  "ts_pwr_gen": {
+   "type": "steps",
+   "title": "Generators",
+   "source": "FA18E_Checklist.xml: page Before starting engine, GENERATOR_MAIN_2",
+   "steps": [
+    {
+     "text": "Set both generator switches to NORM.",
+     "source": "FA18E_Checklist.xml: page Before starting engine, GENERATOR_MAIN_2 (clue \"Switch generators to \"NORM\"\")",
+     "controls": [
+      {
+       "api": "ELECTRICAL_Alternator_1"
+      },
+      {
+       "api": "ELECTRICAL_Alternator_2"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG MASTER ALTERNATOR:1, Bool) (A:GENERAL ENG MASTER ALTERNATOR:2, Bool) +",
+      "op": "==",
+      "value": 2
+     }
+    }
+   ],
+   "next": "ts_pwr_q3"
+  },
+  "ts_pwr_q3": {
+   "type": "question",
+   "title": "Which display is dark?",
+   "text": "What is dark?",
+   "choices": [
+    {
+     "id": "ufcd",
+     "label": "The UFCD",
+     "next": "ts_pwr_ufcd"
+    },
+    {
+     "id": "ddi",
+     "label": "A DDI, the HUD or the MCPD",
+     "next": "ts_pwr_ddi"
+    }
+   ]
+  },
+  "ts_pwr_ufcd": {
+   "type": "steps",
+   "title": "UFCD",
+   "source": "Library.xml, FA18E_UFCD_ON",
+   "steps": [
+    {
+     "text": "Turn the UFCD brightness knob up.",
+     "why": "Not verified on the real aircraft.",
+     "source": "Library.xml, FA18E_UFCD_ON (clue \"Switch UFCD on\"; the checklist sets 50 when the knob is below 2)",
+     "controls": [
+      {
+       "api": "AS04F_UFCD_Knob_Brightness_1"
+      }
+     ]
+    }
+   ],
+   "next": ""
+  },
+  "ts_pwr_ddi": {
+   "type": "steps",
+   "title": "DDIs, HUD and MCPD",
+   "source": "FA18E_Checklist.xml: page Starting engine, DDI_HUD_MCPD_ON_FA18E",
+   "steps": [
+    {
+     "text": "Turn the brightness knob of the dark display up: display unit 1 (left DDI), 2 (right DDI), 3 (MCPD), or the HUD knob.",
+     "why": "Not verified on the real aircraft.",
+     "source": "Library.xml, DDI_HUD_MCPD_ON_FA18E (clue \"Turn on avionics devices\"; the checklist sets 50 when a knob is below 0.02, or 2 for the MCPD and the HUD)",
+     "controls": [
+      {
+       "api": "AS04F_DDI_Knob_Brightness_MFD_1"
+      },
+      {
+       "api": "AS04F_DDI_Knob_Brightness_MFD_2"
+      },
+      {
+       "api": "AS04F_DDI_Knob_Brightness_MFD_3"
+      },
+      {
+       "api": "AS04F_HUD_Knob_Brightness_1"
+      }
+     ]
+    }
+   ],
+   "next": ""
+  },
+  "ts_mv_q1": {
+   "type": "question",
+   "title": "Parking brake",
+   "text": "Is the parking brake set?",
+   "help": "On the real aircraft the parking brake could not be released through the app; see the warning on the next page.",
+   "auto": {
+    "code": "(A:BRAKE PARKING POSITION, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes",
+     "next": "ts_mv_brake"
+    },
+    {
+     "id": "no",
+     "label": "No",
+     "next": "ts_mv_q2"
+    }
+   ]
+  },
+  "ts_mv_brake": {
+   "type": "steps",
+   "title": "Parking brake",
+   "source": "FA18E_Checklist.xml: page Before taxi, Parking_Brake_Release",
+   "steps": [
+    {
+     "text": "Release the parking brake.",
+     "warn": "Not verified: on the real aircraft the values 0, 0.5, 2, -1 and 100 all left the parking brake set with the engines running. Use the cockpit control. Tick by hand.",
+     "source": "FA18E_Checklist.xml: page Before taxi, Parking_Brake_Release (clue \"Release parking brake\")",
+     "controls": [
+      {
+       "api": "LANDING_GEAR_Parking_Brake"
+      }
+     ]
+    }
+   ],
+   "next": "ts_mv_q2"
+  },
+  "ts_mv_q2": {
+   "type": "question",
+   "title": "Nosewheel steering",
+   "text": "Does the nosewheel steer?",
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, but the aircraft does not move",
+     "next": "ts_mv_thr"
+    },
+    {
+     "id": "no",
+     "label": "No",
+     "next": "ts_mv_nws"
+    }
+   ]
+  },
+  "ts_mv_nws": {
+   "type": "steps",
+   "title": "Nosewheel steering",
+   "source": "FA18E_Checklist.xml: page Before taxi, NOSE_WHEEL_STEERING_ON",
+   "steps": [
+    {
+     "text": "Engage the nosewheel steering.",
+     "why": "The button is on the stick. Not verified on the real aircraft.",
+     "source": "FA18E_Checklist.xml: page Before taxi, NOSE_WHEEL_STEERING_ON (Library.xml; clue \"Engage nose wheel steering\"; reads (A:NOSEWHEEL MAX STEERING ANGLE, degree))",
+     "controls": [
+      {
+       "api": "AS04F_Push_NWS"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Steering angle",
+       "unit": "deg",
+       "code": "(A:NOSEWHEEL MAX STEERING ANGLE, degree)"
+      }
+     ]
+    }
+   ],
+   "next": ""
+  },
+  "ts_mv_thr": {
+   "type": "steps",
+   "title": "Power",
+   "source": "Raynen, F/A-18E Startup + Basic TACAN Navigation (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/f-a-18e-startup-basic-tacan-navigation/472861), Taxi and takeoff item 2",
+   "steps": [
+    {
+     "text": "Give a brief burst of power to start rolling, then return to idle.",
+     "why": "Technique from a community guide. Also check that both engines run (the topic Start the engines).",
+     "source": "Raynen, F/A-18E Startup + Basic TACAN Navigation (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/f-a-18e-startup-basic-tacan-navigation/472861), Taxi and takeoff item 2",
+     "controls": [
+      {
+       "api": "ENGINE_Throttle_1",
+       "function": "Throttle 1: axis (0 to 1)"
+      },
+      {
+       "api": "ENGINE_Throttle_2",
+       "function": "Throttle 2: axis (0 to 1)"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Ground speed",
+       "unit": "kt",
+       "code": "(A:GROUND VELOCITY, knots)"
+      }
+     ]
+    }
+   ],
+   "next": ""
+  },
+  "ts_cfg_q": {
+   "type": "question",
+   "title": "Which one?",
+   "text": "What is the problem?",
+   "choices": [
+    {
+     "id": "flaps",
+     "label": "Flaps",
+     "next": "ts_cfg_flaps"
+    },
+    {
+     "id": "gear",
+     "label": "Gear",
+     "next": "ts_cfg_gear"
+    },
+    {
+     "id": "wings",
+     "label": "Wings",
+     "next": "ts_cfg_wings"
+    },
+    {
+     "id": "hook",
+     "label": "Hook",
+     "next": "ts_cfg_hook"
+    }
+   ]
+  },
+  "ts_cfg_flaps": {
+   "type": "info",
+   "title": "Flaps",
+   "text": "The flaps lever has three positions: AUTO, HALF and FULL. In the app it is an axis from 0 to 16384: 0 = AUTO, 8192 = HALF, 16384 = FULL; other small values such as 0.5, 1 or 2 do nothing (catalog, verified on the real aircraft). Moving the lever also switches the autothrottle off (FA18E_cockpit.xml). The sim's checklist asks AUTO before the start, HALF before taxi and before take-off, AUTO after take-off, FULL before landing.",
+   "next": ""
+  },
+  "ts_cfg_gear": {
+   "type": "info",
+   "title": "Gear",
+   "text": "The gear lever was deliberately not tried on the real aircraft. The sim's checklist asks DN before the start and before landing, and UP after take-off. The sim's DDI code raises a landing gear warning when the gear is up, the true airspeed is below 175 knots, the altitude is below 7,500 ft and the vertical speed is below -250 fpm (FA18_DDI.js, warningLandingGear).",
+   "next": ""
+  },
+  "ts_cfg_wings": {
+   "type": "steps",
+   "title": "Wings",
+   "source": "FA18E_Checklist.xml / Library.xml: FA18E_WINGS_SPREAD",
+   "steps": [
+    {
+     "text": "Set the wing fold lever to SPREAD and wait: the sim shows \"Wings are spreading, please wait\".",
+     "source": "Library.xml, FA18E_WINGS_SPREAD (clue \"Spread wings\")",
+     "controls": [
+      {
+       "api": "HANDLING_Lever_WingFold"
+      }
+     ],
+     "check": {
+      "code": "(A:FOLDING WING LEFT PERCENT, percent) (A:FOLDING WING RIGHT PERCENT, percent) +",
+      "op": "<=",
+      "value": 2
+     },
+     "readouts": [
+      {
+       "label": "Wing left",
+       "unit": "%",
+       "code": "(A:FOLDING WING LEFT PERCENT, percent)"
+      },
+      {
+       "label": "Wing right",
+       "unit": "%",
+       "code": "(A:FOLDING WING RIGHT PERCENT, percent)"
+      }
+     ]
+    }
+   ],
+   "next": ""
+  },
+  "ts_cfg_hook": {
+   "type": "steps",
+   "title": "Hook",
+   "source": "Library.xml, Hook_Up_FA18E",
+   "steps": [
+    {
+     "text": "Raise the tail hook: the hook caution light must be out.",
+     "source": "Library.xml, Hook_Up_FA18E (clue \"Hook must be retracted and hook caution light must be off\")",
+     "controls": [
+      {
+       "api": "HANDLING_Lever_TailHook"
+      }
+     ],
+     "check": {
+      "code": "(A:TAILHOOK POSITION, percent)",
+      "op": "<=",
+      "value": 1
+     }
+    }
+   ],
+   "next": ""
+  },
+  "ts_ap_q": {
+   "type": "question",
+   "title": "What is wrong?",
+   "text": "What is wrong?",
+   "choices": [
+    {
+     "id": "mode",
+     "label": "A pitch or roll mode will not engage or switches off",
+     "next": "ts_ap_mode"
+    },
+    {
+     "id": "atc",
+     "label": "The autothrottle will not engage or switches off",
+     "next": "ts_ap_atc"
+    },
+    {
+     "id": "cpl",
+     "label": "CPL shows nothing or does not steer",
+     "next": "ts_ap_cpl"
+    }
+   ]
+  },
+  "ts_ap_mode": {
+   "type": "info",
+   "title": "A mode will not hold",
+   "text": "BALT and RALT switch off when you move the stick in pitch; RALT also switches off above 60 degrees of bank and above 5,000 ft above the ground, and cannot be engaged above 5,000 ft (FA18ACC_UFCD.js). BALT keeps the altitude of the moment you press it and cannot be retargeted while engaged. HDG and FPAH are the default modes and cannot be switched off from the menu while the autopilot is on. Source: sim file FA18ACC_UFCD.js and FA18_UFCD_Base.js; Raynen's pilot relief guide.",
+   "next": ""
+  },
+  "ts_ap_atc": {
+   "type": "info",
+   "title": "The autothrottle",
+   "text": "Moving the flaps lever switches the autothrottle off (FA18E_cockpit.xml, K:AP_AIRSPEED_OFF). The guide's author says the speed cannot be dialled in: get the speed first, then engage it. The catalog's speed mode button is not verified on the real aircraft.",
+   "next": ""
+  },
+  "ts_ap_cpl": {
+   "type": "info",
+   "title": "CPL",
+   "text": "The CPL button shows WYPT, SEQ or TCN only when a steering source is selected on the HSI page: select a waypoint and press WYPT, box a sequence and AUTO, or box TCN with a TACAN received (FA18ACC_UFCD_APSubMenu.Update, L:FA18_DDI_STEERING_SOURCE). CPL TCN ends within 2 NM of the station, and the steering falls back to none if the TACAN is lost (FA18_DDI.js, steeringControlLoop).",
+   "next": ""
+  },
+  "ts_rad_q": {
+   "type": "question",
+   "title": "What is wrong?",
+   "text": "What is wrong?",
+   "choices": [
+    {
+     "id": "audio",
+     "label": "No audio on COM 1 or COM 2",
+     "next": "ts_rad_audio"
+    },
+    {
+     "id": "tcn",
+     "label": "The TACAN shows nothing",
+     "next": "ts_rad_tcn"
+    },
+    {
+     "id": "ils",
+     "label": "I cannot tune an ILS",
+     "next": "rv_ils"
+    }
+   ]
+  },
+  "ts_rad_audio": {
+   "type": "steps",
+   "title": "COM volume and frequency",
+   "source": "FA18E_Checklist.xml: page Before starting engine, Radios_COMM_1_2_Off_TEMPLATE; sim file asobo-vcockpits-instruments-fa18, Shared/UFCD/FA18_UFCD_Base.js, FA18_UFCD_ComButtonContent",
+   "steps": [
+    {
+     "text": "Turn the COMM 1 and COMM 2 volume knobs up.",
+     "why": "Not verified on the real aircraft.",
+     "source": "FA18E_Checklist.xml: page Before starting engine, Radios_COMM_1_2_Off_TEMPLATE (the checklist turns them OFF)",
+     "controls": [
+      {
+       "api": "AS04F_UFCD_Knob_COM1_Volume_1"
+      },
+      {
+       "api": "AS04F_UFCD_Knob_COM2_Volume_1"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "COM 1 volume",
+       "unit": "%",
+       "code": "(A:COM VOLUME:1, percent)"
+      },
+      {
+       "label": "COM 2 volume",
+       "unit": "%",
+       "code": "(A:COM VOLUME:2, percent)"
+      }
+     ]
+    },
+    {
+     "text": "Check the frequency: 118.000 to 136.995 MHz in steps of 5 kHz; type 12535 for 125.35, then press COM 1 or COM 2.",
+     "source": "sim file asobo-vcockpits-instruments-fa18, Shared/UFCD/FA18_UFCD_Base.js, FA18_UFCD_ComButtonContent.isFrequencyValid() and readInput()",
+     "readouts": [
+      {
+       "label": "COM 1",
+       "unit": "MHz",
+       "code": "(A:COM ACTIVE FREQUENCY:1, MHz)"
+      },
+      {
+       "label": "COM 2",
+       "unit": "MHz",
+       "code": "(A:COM ACTIVE FREQUENCY:2, MHz)"
+      }
+     ]
+    }
+   ],
+   "next": ""
+  },
+  "ts_rad_tcn": {
+   "type": "info",
+   "title": "The TACAN shows nothing",
+   "text": "The TACAN must be on (ON / OFF button on the UFCD TCN page) and the channel and band (X or Y) must be right. Raynen's guide adds that some TACAN stations outside the continental US do not work in the sim, or only work beyond 28 NM. Source: sim file FA18ACC_UFCD.js, FA18ACC_UFCD_TacanSubMenu; Raynen's startup guide, closing notes.",
+   "next": ""
+  },
+  "ts_ctl_q": {
+   "type": "question",
+   "title": "Which control?",
+   "text": "Which control?",
+   "choices": [
+    {
+     "id": "ab",
+     "label": "Afterburner",
+     "next": "ts_ctl_ab"
+    },
+    {
+     "id": "spd",
+     "label": "Speed brake",
+     "next": "ts_ctl_spd"
+    },
+    {
+     "id": "stick",
+     "label": "Switch states",
+     "next": "ts_ctl_sw"
+    }
+   ]
+  },
+  "ts_ctl_ab": {
+   "type": "info",
+   "title": "Afterburner",
+   "text": "In the sim the lever has its afterburner gate at 80 % (FA18E_cockpit.xml, AFTERBURNER_GATE_POS 0.8); a throttle value of 1 or more puts the lever at 80 % and the afterburner is a separate event (catalog, verified for the lever, not tried for the afterburner events). Forum replies say it needs its own key or button binding. These replies are community opinions, not confirmed by the sim's files.",
+   "next": ""
+  },
+  "ts_ctl_spd": {
+   "type": "info",
+   "title": "Speed brake",
+   "text": "The cockpit has a push switch for the speed brake (FA18E_cockpit.xml, Push_Spoiler). On the real aircraft the catalog control read 1 at rest and setting 0 or 1 left (A:SPOILERS HANDLE POSITION) at 0, so the control was not understood. Use your own binding or the cockpit switch.",
+   "next": ""
+  },
+  "ts_ctl_sw": {
+   "type": "info",
+   "title": "Switch states",
+   "text": "Several switches are inverted on the real F/A-18E: the strobes (set 0 = ON), the engine anti-ice (set 0 = ON) and the windshield de-ice (set 0 = ON). The battery is set 1 = ON, the generators set 1 = ON, the pitot heat set 1 = ON. If a tick never appears, tick the step by hand.",
+   "next": ""
+  }
+ }
+}
