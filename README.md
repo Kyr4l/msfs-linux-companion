@@ -140,6 +140,14 @@ automatically whenever the sim is (re)started.
    *from catalog* → *Save binding*. *Test* fires the press actions immediately.
 4. Leave the same buttons **unassigned in the MSFS controls menu**, otherwise both fire.
 
+**Arranging the list of bindings.** *Group by* above the table arranges it: *Device* (one group per stick or throttle),
+*Input type* (axes, buttons, hats) or *My groups*, where each binding has its own group name (the *Group* field of the
+editor; *Fill in the empty groups* gives every ungrouped binding one: Throttle for throttle levers and events, otherwise the
+panel section of its control in the catalog). Rows are in the order you made: **drag a row** onto another to put it in
+its place (in *My groups* also onto a group's header to move it into that group), or use *Up* / *Down*. *Sort automatically*
+sorts the groups by name and the rows by device and input instead; dragging then only changes a binding's group. Groups
+fold with their arrow. The choices are saved with the config.
+
 ### Axes
 
 Move an axis while *Listen for input* is on (about a quarter of its travel; small drift is ignored) and

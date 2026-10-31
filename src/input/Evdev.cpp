@@ -228,7 +228,7 @@ static bool sysfsLooksLikeJoystick(const std::string& eventName) {
 }
 
 void InputManager::scanDevices() {
-    if (isolatedRun()) return;  // tests never open the real devices
+    if (isolatedRun()) { scans_++; return; }  // tests never open the real devices (the scan still counts as done)
     DIR* dir = opendir("/dev/input");
     if (!dir) return;
     std::vector<std::string> paths;

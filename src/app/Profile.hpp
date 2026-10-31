@@ -58,6 +58,7 @@ struct Binding {
     std::vector<Action> onRelease;
     // Lever with gates (axis.detents.enabled): run when the lever enters or leaves the cut-off or the afterburner zone.
     std::vector<Action> onCutoff, onCutoffLeave, onAfterburner, onAfterburnerLeave;
+    std::string group;          // the user's own group of this binding in the Bindings tab ("Throttle"); empty = ungrouped
     bool repeat = false;        // re-fire onPress while held (knob turning)
     int repeatDelayMs = 400;
     int repeatIntervalMs = 100;
@@ -89,6 +90,9 @@ struct Profile {
 // builds (unknown fields are ignored); loading a file older than kConfigVersion never loses data.
 constexpr int kConfigVersion = 4;
 
+// How the Bindings tab arranges the bindings of a profile (see BindingView.hpp).
+enum class BindingsGroupBy { None, Device, InputType, Custom };
+
 struct Settings {
     int loadedVersion = kConfigVersion;  // schema version of the file this was read from
     std::string host = "127.0.0.1";
@@ -99,6 +103,8 @@ struct Settings {
     std::vector<Profile> profiles;
     haptics::HapticsConfig haptics;
     std::vector<AxisCalibration> calibrations;  // one per calibrated axis, shared by every profile
+    BindingsGroupBy bindingsGroupBy = BindingsGroupBy::None;
+    bool bindingsAutoSort = false;  // sorted by group and input instead of in the order of the file (which is the manual, dragged order)
 
     const AxisCalibration* calibrationFor(const input::InputId& axis) const;
     void setCalibration(const AxisCalibration& c);  // replaces the one of the same axis

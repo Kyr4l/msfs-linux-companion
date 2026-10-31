@@ -49,6 +49,7 @@ add_executable(msfs-linux-companion
   src/app/Catalog.cpp
   src/app/Guide.cpp
   src/app/Keypad.cpp
+  src/app/BindingView.cpp
   src/app/Engine.cpp
   src/app/Script.cpp
   src/app/Paths.cpp
@@ -106,6 +107,9 @@ if(COMPANION_BUILD_TESTS)
   add_executable(curated_catalogs tests/curated_catalogs.cpp src/app/Catalog.cpp src/app/Profile.cpp src/input/Evdev.cpp)
   target_include_directories(curated_catalogs PRIVATE src third_party)
   add_test(NAME curated_catalogs COMMAND curated_catalogs ${CMAKE_SOURCE_DIR})
+  add_executable(binding_view tests/binding_view.cpp src/app/BindingView.cpp src/app/Catalog.cpp src/app/Profile.cpp src/input/Evdev.cpp)
+  target_include_directories(binding_view PRIVATE src third_party)
+  add_test(NAME binding_view COMMAND binding_view)
   add_executable(guide_flow tests/guide_flow.cpp src/app/Guide.cpp src/app/Keypad.cpp)
   target_include_directories(guide_flow PRIVATE src third_party)
   add_test(NAME guide_flow COMMAND guide_flow ${CMAKE_SOURCE_DIR})

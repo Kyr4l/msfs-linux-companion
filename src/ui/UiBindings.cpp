@@ -12,6 +12,7 @@
 #include <imgui.h>
 #include <imgui_stdlib.h>
 
+#include "app/BindingView.hpp"
 #include "app/Paths.hpp"
 #include "util/Log.hpp"
 
@@ -331,6 +332,37 @@ void Ui::drawBindingsTab() {
     ImGui::TextDisabled("Rows light up while their input is held. Buttons bound here should stay unassigned in the MSFS controls menu.");
 
     Profile& prof = s.ensureActive();
+    {   // how the list is arranged: grouped, sorted automatically, or in the order made by dragging rows
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted("Group by");
+        ImGui::SameLine();
+        int by = static_cast<int>(s.bindingsGroupBy);
+        ImGui::SetNextItemWidth(300);
+        if (ImGui::Combo("##groupby", &by, "Nothing (one list)\0Device\0Input type (axes, buttons, hats)\0My groups (set in each binding)\0")) {
+            s.bindingsGroupBy = static_cast<BindingsGroupBy>(by);
+            ctx_.dirty = true;
+        }
+        ImGui::SameLine();
+        if (ImGui::Checkbox("Sort automatically", &s.bindingsAutoSort)) ctx_.dirty = true;
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("On: groups by name, rows by device and input.\nOff: the order you made yourself, by dragging rows (or with Up / Down).");
+        if (s.bindingsGroupBy == BindingsGroupBy::Custom) {
+            ImGui::SameLine();
+            if (ImGui::SmallButton("Fill in the empty groups")) {
+                if (autoGroupBindings(prof, ctx_.catalogFor(prof.aircraft)) > 0) ctx_.markDirty();
+            }
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Gives every binding that has no group one: Throttle for throttle levers and events, otherwise the panel section of\nits control in the catalog, otherwise Axes / Other. Groups you set yourself are left alone.");
+        }
+        ImGui::SameLine();
+        ImGui::TextDisabled(s.bindingsAutoSort ? "%s" : "Drag a row to move it%s",
+                            s.bindingsAutoSort ? (s.bindingsGroupBy == BindingsGroupBy::Custom ? "Drag a row onto a group to move it there" : "") : (s.bindingsGroupBy == BindingsGroupBy::Custom ? ", onto a group to put it in it" : ""));
+    }
+
+    const BindingsGroupBy by = s.bindingsGroupBy;
+    const bool canReorder = !s.bindingsAutoSort;
+    const bool canRegroup = by == BindingsGroupBy::Custom;
+    const auto groups = arrangeBindings(prof, by, s.bindingsAutoSort, [this](const std::string& key) { return deviceDisplayName(key); });
     ImGuiTableFlags tflags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp;
     if (ImGui::BeginTable("bindings", 7, tflags, ImVec2(0, 0))) {
         ImGui::TableSetupScrollFreeze(0, 1);
@@ -343,79 +375,142 @@ void Ui::drawBindingsTab() {
         ImGui::TableSetupColumn("##actions", ImGuiTableColumnFlags_WidthFixed, 230);
         ImGui::TableHeadersRow();
 
-        int toDelete = -1, moveFrom = -1, moveTo = -1;
-        for (int i = 0; i < static_cast<int>(prof.bindings.size()); ++i) {
-            Binding& b = prof.bindings[static_cast<size_t>(i)];
-            ImGui::PushID(i);
-            ImGui::TableNextRow();
-            if (inputIsPressed(b.input)) ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ImVec4(0.2f, 0.45f, 0.2f, 0.6f)));
-            ImGui::TableSetColumnIndex(0);
-            if (ImGui::Checkbox("##on", &b.enabled)) ctx_.markDirty();
-            ImGui::TableSetColumnIndex(1);
-            ImGui::TextUnformatted(ctx_.input.describe(b.input).c_str());
-            if (b.input.kind == input::InputKind::Axis) {
-                const float now = axisNow(b.input);
-                ImGui::TextDisabled("%s  %s%s%s", deviceDisplayName(b.input.device).c_str(), b.axis.mode == AxisMode::Steps ? "steps" : "value",
-                                    now >= 0 ? "  now " : "", now >= 0 ? (std::to_string(static_cast<int>(now * 100 + 0.5f)) + "%").c_str() : "");
-            } else {
-                ImGui::TextDisabled("%s", deviceDisplayName(b.input.device).c_str());
+        int toDelete = -1, moveFrom = -1, moveTo = -1;  // Up / Down: two bindings swap places
+        int dropFrom = -1, dropOnRow = -1, dropOnGroup = -1;  // a dragged row, dropped on a row or on the header of a group
+        std::string dropGroup;
+        const std::string dragType = "BINDING_ROW";
+        for (const auto& g : groups) {
+            bool open = true;
+            if (!g.title.empty()) {
+                ImGui::TableNextRow();
+                ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ImVec4(0.20f, 0.26f, 0.38f, 0.8f)));
+                ImGui::TableSetColumnIndex(1);
+                char label[320];
+                snprintf(label, sizeof label, "%s  (%zu)###group:%s", g.title.c_str(), g.indices.size(), g.key.c_str());
+                open = ImGui::TreeNodeEx(label, ImGuiTreeNodeFlags_SpanAllColumns | ImGuiTreeNodeFlags_DefaultOpen);
+                if (canRegroup && ImGui::BeginDragDropTarget()) {
+                    if (const ImGuiPayload* pl = ImGui::AcceptDragDropPayload(dragType.c_str())) {
+                        dropFrom = *static_cast<const int*>(pl->Data);
+                        dropOnGroup = 1;
+                        dropGroup = g.key;
+                    }
+                    ImGui::EndDragDropTarget();
+                }
             }
-            ImGui::TableSetColumnIndex(2);
-            ImGui::TextUnformatted(b.label.c_str());
-            {
-                double lo, hi;
-                if (b.input.kind == input::InputKind::Axis && ctx_.suggestedAxisRange(b, lo, hi) && axisRangeLooksWrong(b.axis, lo, hi)) {
+            if (open) {
+                for (size_t pos = 0; pos < g.indices.size(); ++pos) {
+                    const int i = g.indices[pos];
+                    Binding& b = prof.bindings[static_cast<size_t>(i)];
+                    ImGui::PushID(i);
+                    ImGui::TableNextRow();
+                    if (inputIsPressed(b.input)) ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ImVec4(0.2f, 0.45f, 0.2f, 0.6f)));
+                    ImGui::TableSetColumnIndex(0);
+                    {   // the whole row is the handle to drag it by, and the place to drop another one; the widgets drawn after it stay clickable
+                        const ImVec2 rowPos = ImGui::GetCursorScreenPos();
+                        ImGui::Selectable("##row", false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap,
+                                          ImVec2(0, ImGui::GetTextLineHeight() * 2 + ImGui::GetStyle().ItemSpacing.y));
+                        if ((canReorder || canRegroup) && ImGui::BeginDragDropSource()) {
+                            ImGui::SetDragDropPayload(dragType.c_str(), &i, sizeof i);
+                            ImGui::Text("%s", b.label.empty() ? ctx_.input.describe(b.input).c_str() : b.label.c_str());
+                            ImGui::EndDragDropSource();
+                        }
+                        if (ImGui::BeginDragDropTarget()) {
+                            const ImGuiPayload* peek = ImGui::GetDragDropPayload();
+                            if (peek && peek->IsDataType(dragType.c_str()) && peek->DataSize == sizeof(int)) {
+                                const int from = *static_cast<const int*>(peek->Data);
+                                if (from >= 0 && from < static_cast<int>(prof.bindings.size()) && from != i) {
+                                    const bool sameGroup = bindingGroupKey(prof.bindings[static_cast<size_t>(from)], by) == bindingGroupKey(b, by);
+                                    // moving a row past others is only meaningful inside its group; "my groups" lets it change group too
+                                    const bool allowed = (canRegroup && (canReorder || !sameGroup)) || (canReorder && sameGroup);
+                                    if (allowed)
+                                        if (const ImGuiPayload* pl = ImGui::AcceptDragDropPayload(dragType.c_str())) { dropFrom = *static_cast<const int*>(pl->Data); dropOnRow = i; }
+                                }
+                            }
+                            ImGui::EndDragDropTarget();
+                        }
+                        ImGui::SetCursorScreenPos(rowPos);
+                    }
+                    if (ImGui::Checkbox("##on", &b.enabled)) ctx_.markDirty();
+                    ImGui::TableSetColumnIndex(1);
+                    ImGui::TextUnformatted(ctx_.input.describe(b.input).c_str());
+                    if (b.input.kind == input::InputKind::Axis) {
+                        const float now = axisNow(b.input);
+                        ImGui::TextDisabled("%s  %s%s%s", deviceDisplayName(b.input.device).c_str(), b.axis.mode == AxisMode::Steps ? "steps" : b.axis.detents.enabled ? "value, gates" : "value",
+                                            now >= 0 ? "  now " : "", now >= 0 ? (std::to_string(static_cast<int>(now * 100 + 0.5f)) + "%").c_str() : "");
+                    } else {
+                        ImGui::TextDisabled("%s", deviceDisplayName(b.input.device).c_str());
+                    }
+                    ImGui::TableSetColumnIndex(2);
+                    ImGui::TextUnformatted(b.label.c_str());
+                    {
+                        double lo, hi;
+                        if (b.input.kind == input::InputKind::Axis && ctx_.suggestedAxisRange(b, lo, hi) && axisRangeLooksWrong(b.axis, lo, hi)) {
+                            ImGui::SameLine();
+                            ImGui::TextColored(kYellow, "(!)");
+                            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Output range %g..%g, but the event expects %g..%g.", b.axis.outMin, b.axis.outMax, lo, hi);
+                        }
+                    }
+                    auto actionLine = [&](const Action& a) {
+                        ImGui::TextUnformatted(a.describe().c_str());
+                        if (a.kind == ActionKind::InputEvent || a.kind == ActionKind::InputEventToggle) {
+                            if (auto v = ctx_.bridge.inputEventValue(a.name)) {
+                                ImGui::SameLine();
+                                ImGui::TextColored(*v != 0 ? kGreen : kGrey, "[now %g]", *v);
+                            }
+                        }
+                        if (a.kind == ActionKind::LVarSet || a.kind == ActionKind::LVarToggle) {
+                            if (auto v = ctx_.bridge.lvarValue(a.name)) {
+                                ImGui::SameLine();
+                                ImGui::TextColored(*v != 0 ? kGreen : kGrey, "[now %g]", *v);
+                            }
+                        }
+                    };
+                    ImGui::TableSetColumnIndex(3);
+                    for (const auto& a : b.onPress) actionLine(a);
+                    ImGui::TableSetColumnIndex(4);
+                    for (const auto& a : b.onRelease) actionLine(a);
+                    ImGui::TableSetColumnIndex(5);
+                    if (b.input.kind == input::InputKind::Axis) ImGui::TextDisabled("%s", b.axis.mode == AxisMode::Steps ? (std::to_string(static_cast<int>(b.axis.stepPercent + 0.5)) + "% step").c_str() : "axis");
+                    else if (b.repeat) ImGui::Text("%d ms", b.repeatIntervalMs);
+                    ImGui::TableSetColumnIndex(6);
+                    if (ImGui::SmallButton("Edit")) openEditor(i);
                     ImGui::SameLine();
-                    ImGui::TextColored(kYellow, "(!)");
-                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Output range %g..%g, but the event expects %g..%g.", b.axis.outMin, b.axis.outMax, lo, hi);
+                    if (ImGui::SmallButton("Test")) {
+                        if (b.input.kind == input::InputKind::Axis && b.axis.mode == AxisMode::Value) {
+                            const float now = axisNow(b.input);
+                            const double out = Engine::axisOutput(b.axis, Engine::axisPosition(b.axis, now >= 0 ? now : 0.5f));
+                            ctx_.engine.fire(Engine::withValue(b.onPress, out, b.axis.integer), "test " + b.label);
+                        } else {
+                            ctx_.engine.fire(b.onPress, "test " + b.label);
+                        }
+                    }
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Fire the press actions now");
+                    ImGui::SameLine();
+                    ImGui::BeginDisabled(!canReorder);
+                    if (ImGui::SmallButton("Up") && pos > 0) { moveFrom = i; moveTo = g.indices[pos - 1]; }
+                    ImGui::SameLine();
+                    if (ImGui::SmallButton("Down") && pos + 1 < g.indices.size()) { moveFrom = i; moveTo = g.indices[pos + 1]; }
+                    ImGui::EndDisabled();
+                    ImGui::SameLine();
+                    if (ImGui::SmallButton("X")) toDelete = i;
+                    ImGui::PopID();
                 }
             }
-            auto actionLine = [&](const Action& a) {
-                ImGui::TextUnformatted(a.describe().c_str());
-                if (a.kind == ActionKind::InputEvent || a.kind == ActionKind::InputEventToggle) {
-                    if (auto v = ctx_.bridge.inputEventValue(a.name)) {
-                        ImGui::SameLine();
-                        ImGui::TextColored(*v != 0 ? kGreen : kGrey, "[now %g]", *v);
-                    }
-                }
-                if (a.kind == ActionKind::LVarSet || a.kind == ActionKind::LVarToggle) {
-                    if (auto v = ctx_.bridge.lvarValue(a.name)) {
-                        ImGui::SameLine();
-                        ImGui::TextColored(*v != 0 ? kGreen : kGrey, "[now %g]", *v);
-                    }
-                }
-            };
-            ImGui::TableSetColumnIndex(3);
-            for (const auto& a : b.onPress) actionLine(a);
-            ImGui::TableSetColumnIndex(4);
-            for (const auto& a : b.onRelease) actionLine(a);
-            ImGui::TableSetColumnIndex(5);
-            if (b.input.kind == input::InputKind::Axis) ImGui::TextDisabled("%s", b.axis.mode == AxisMode::Steps ? (std::to_string(static_cast<int>(b.axis.stepPercent + 0.5)) + "% step").c_str() : "axis");
-            else if (b.repeat) ImGui::Text("%d ms", b.repeatIntervalMs);
-            ImGui::TableSetColumnIndex(6);
-            if (ImGui::SmallButton("Edit")) openEditor(i);
-            ImGui::SameLine();
-            if (ImGui::SmallButton("Test")) {
-                if (b.input.kind == input::InputKind::Axis && b.axis.mode == AxisMode::Value) {
-                    const float now = axisNow(b.input);
-                    const double out = Engine::axisOutput(b.axis, Engine::axisPosition(b.axis, now >= 0 ? now : 0.5f));
-                    ctx_.engine.fire(Engine::withValue(b.onPress, out, b.axis.integer), "test " + b.label);
-                } else {
-                    ctx_.engine.fire(b.onPress, "test " + b.label);
-                }
-            }
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Fire the press actions now");
-            ImGui::SameLine();
-            if (ImGui::SmallButton("Up") && i > 0) { moveFrom = i; moveTo = i - 1; }
-            ImGui::SameLine();
-            if (ImGui::SmallButton("Down") && i + 1 < static_cast<int>(prof.bindings.size())) { moveFrom = i; moveTo = i + 1; }
-            ImGui::SameLine();
-            if (ImGui::SmallButton("X")) toDelete = i;
-            ImGui::PopID();
+            if (!g.title.empty() && open) ImGui::TreePop();
         }
         ImGui::EndTable();
         if (toDelete >= 0) { prof.bindings.erase(prof.bindings.begin() + toDelete); ctx_.markDirty(); }
         if (moveFrom >= 0) { std::swap(prof.bindings[static_cast<size_t>(moveFrom)], prof.bindings[static_cast<size_t>(moveTo)]); ctx_.markDirty(); }
+        if (dropFrom >= 0 && dropFrom < static_cast<int>(prof.bindings.size())) {
+            if (dropOnGroup >= 0) {
+                prof.bindings[static_cast<size_t>(dropFrom)].group = dropGroup;  // dropped on the header of a group
+                ctx_.markDirty();
+            } else if (dropOnRow >= 0 && dropOnRow < static_cast<int>(prof.bindings.size())) {
+                if (canRegroup) prof.bindings[static_cast<size_t>(dropFrom)].group = prof.bindings[static_cast<size_t>(dropOnRow)].group;
+                if (canReorder) moveBinding(prof.bindings, dropFrom, dropOnRow);
+                ctx_.markDirty();
+            }
+        }
     }
 }
 
@@ -505,6 +600,19 @@ void Ui::drawBindingEditor() {
         if (ImGui::Button("Cancel")) ctx_.engine.cancelCapture();
     }
     ImGui::InputTextWithHint("Label", "e.g. AP1 push", &draft_.label);
+    ImGui::InputTextWithHint("Group", "optional, for the \"My groups\" view of the list (e.g. Throttle)", &draft_.group);
+    ImGui::SameLine();
+    if (ImGui::SmallButton("pick...")) ImGui::OpenPopup("group_pick");
+    if (ImGui::BeginPopup("group_pick")) {
+        std::set<std::string> names;
+        for (const auto& b : ctx_.settings.ensureActive().bindings)
+            if (!b.group.empty()) names.insert(b.group);
+        names.insert("Throttle");
+        if (ImGui::Selectable("(no group)")) draft_.group.clear();
+        for (const auto& n : names)
+            if (ImGui::Selectable(n.c_str(), n == draft_.group)) draft_.group = n;
+        ImGui::EndPopup();
+    }
 
     const bool isAxis = draft_.input.kind == input::InputKind::Axis;
     const bool axisValue = isAxis && draft_.axis.mode == AxisMode::Value;

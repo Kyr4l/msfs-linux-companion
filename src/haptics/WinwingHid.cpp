@@ -217,7 +217,7 @@ void WinwingHidManager::autoAssign(Dev& d) {
 }
 
 void WinwingHidManager::rescan() {
-    if (isolatedRun()) return;  // tests never open the real devices
+    if (isolatedRun()) { scans_++; return; }  // tests never open the real devices (the scan still counts as done)
     std::lock_guard<std::mutex> lock(m_);
     DIR* dir = opendir("/sys/class/hidraw");
     if (!dir) return;

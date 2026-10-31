@@ -174,6 +174,7 @@ static json toJson(const Binding& b) {
         {"enabled", b.enabled},
     };
     if (b.input.kind == input::InputKind::Axis) out["axis"] = toJson(b.axis);  // omitted for buttons/hats: files stay as before
+    if (!b.group.empty()) out["group"] = b.group;  // omitted when empty: files stay as before
     if (b.axis.detents.enabled && b.input.kind == input::InputKind::Axis) {
         auto list = [](const std::vector<Action>& v) { json a = json::array(); for (const auto& x : v) a.push_back(toJson(x)); return a; };
         out["zone_actions"] = json{{"cutoff", list(b.onCutoff)}, {"cutoff_leave", list(b.onCutoffLeave)},
@@ -203,6 +204,7 @@ static Binding bindingFromJson(const json& j) {
         read("afterburner", b.onAfterburner);
         read("afterburner_leave", b.onAfterburnerLeave);
     }
+    b.group = j.value("group", "");
     b.repeat = j.value("repeat", false);
     b.repeatDelayMs = j.value("repeat_delay_ms", 400);
     b.repeatIntervalMs = j.value("repeat_interval_ms", 100);
@@ -237,6 +239,12 @@ bool loadSettings(const std::string& path, Settings& out, std::string& err) {
         s.autoConnect = j.value("auto_connect", s.autoConnect);
         s.guideAutodetect = j.value("guide_autodetect", s.guideAutodetect);
         s.activeProfile = j.value("active_profile", "");
+        if (j.contains("bindings_view") && j["bindings_view"].is_object()) {
+            const json& v = j["bindings_view"];
+            const std::string by = v.value("group_by", "none");
+            s.bindingsGroupBy = by == "device" ? BindingsGroupBy::Device : by == "type" ? BindingsGroupBy::InputType : by == "custom" ? BindingsGroupBy::Custom : BindingsGroupBy::None;
+            s.bindingsAutoSort = v.value("auto_sort", false);
+        }
         for (const auto& cj : j.value("calibrations", json::array())) {
             AxisCalibration c;
             c.device = cj.value("device", "");
@@ -305,6 +313,7 @@ bool saveSettings(const std::string& path, const Settings& s, std::string& err) 
         calibrations.push_back(json{{"device", c.device}, {"code", c.code}, {"cutoff", c.cutoff}, {"idle", c.idle}, {"mil", c.mil}, {"ab", c.ab}, {"snap", c.snap}});
     json j{{"version", kConfigVersion}, {"host", s.host}, {"port", s.port}, {"auto_connect", s.autoConnect}, {"guide_autodetect", s.guideAutodetect},
            {"active_profile", s.activeProfile}, {"profiles", profiles}, {"calibrations", calibrations},
+           {"bindings_view", {{"group_by", s.bindingsGroupBy == BindingsGroupBy::Device ? "device" : s.bindingsGroupBy == BindingsGroupBy::InputType ? "type" : s.bindingsGroupBy == BindingsGroupBy::Custom ? "custom" : "none"}, {"auto_sort", s.bindingsAutoSort}}},
            {"haptics", {{"enabled", s.haptics.enabled}, {"master", s.haptics.master}, {"rules", rules}, {"devices", devices}}}};
     try {
         std::filesystem::create_directories(std::filesystem::path(path).parent_path());
