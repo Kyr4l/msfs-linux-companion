@@ -52,6 +52,13 @@ add_executable(msfs-linux-companion
   src/app/Script.cpp
   src/app/Paths.cpp
   src/ui/Ui.cpp
+  src/ui/AppContext.cpp
+  src/ui/UiBindings.cpp
+  src/ui/UiCatalog.cpp
+  src/ui/UiDevices.cpp
+  src/ui/UiGuides.cpp
+  src/ui/UiSettings.cpp
+  src/ui/UiVibration.cpp
 )
 target_include_directories(msfs-linux-companion PRIVATE src third_party)
 target_link_libraries(msfs-linux-companion PRIVATE imgui Threads::Threads)

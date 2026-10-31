@@ -150,11 +150,6 @@ namespace lr::app {
 // ---------------------------------------------------------------- live / standard entries
 
 namespace {
-std::string prettify(std::string s) {
-    std::replace(s.begin(), s.end(), '_', ' ');
-    return s;
-}
-
 // Splits "AS1000_PFD_SOFTKEYS_1" into section "AS1000 PFD" and function "SOFTKEYS 1": the first token names the
 // system; short or digit-bearing first tokens (AS1000, G1000, FMS) are joined with the second one.
 void splitName(const std::string& name, std::string& section, std::string& function) {
