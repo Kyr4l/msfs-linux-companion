@@ -72,6 +72,22 @@ static void applyEntryRangeToAxisDraft(Binding& draft, const CatalogEntry& e) {
     }
 }
 
+std::vector<Action>& Ui::catalogTargetList() {
+    switch (catalogTarget_) {
+        case 1: return draft_.onRelease;
+        case 2: return draft_.onCutoff;
+        case 3: return draft_.onCutoffLeave;
+        case 4: return draft_.onAfterburner;
+        case 5: return draft_.onAfterburnerLeave;
+        default: return draft_.onPress;
+    }
+}
+
+const char* Ui::catalogTargetName(int target) {
+    static const char* names[] = {"PRESS", "RELEASE", "CUT-OFF (enters)", "CUT-OFF (leaves)", "AFTERBURNER (enters)", "AFTERBURNER (leaves)"};
+    return names[target >= 0 && target < 6 ? target : 0];
+}
+
 void Ui::newBindingFrom(const CatalogEntry& e) {
     openEditor(-1);
     for (const auto& a : catalogActions(e)) draft_.onPress.push_back(a);
@@ -310,7 +326,7 @@ void Ui::drawPanelsView(const Catalog& cat, bool pickMode, const std::vector<std
                     catalogSelected_ = g.preferred;
                     const CatalogEntry& e = cat.entries[static_cast<size_t>(g.preferred)];
                     if (pickMode) {
-                        for (const auto& a : catalogActions(e)) (catalogTarget_ == 0 ? draft_.onPress : draft_.onRelease).push_back(a);
+                        for (const auto& a : catalogActions(e)) catalogTargetList().push_back(a);
                         ImGui::CloseCurrentPopup();
                     } else {
                         newBindingFrom(e);
@@ -366,7 +382,7 @@ void Ui::drawCatalogBrowser(const char* id, bool pickMode) {
     if (ImGui::RadioButton("List", catalogView_ == CatalogView::List)) catalogView_ = CatalogView::List;
     if (pickMode) {
         ImGui::SameLine();
-        ImGui::Text("-> adding to the %s list", catalogTarget_ == 0 ? "PRESS" : "RELEASE");
+        ImGui::Text("-> adding to the %s list", catalogTargetName(catalogTarget_));
     }
 
     std::string needle = catalogFilter_;
@@ -409,7 +425,7 @@ void Ui::drawCatalogBrowser(const char* id, bool pickMode) {
                 catalogSelected_ = i;
                 if (ImGui::IsMouseDoubleClicked(0)) {
                     if (pickMode) {
-                        for (const auto& a : catalogActions(e)) (catalogTarget_ == 0 ? draft_.onPress : draft_.onRelease).push_back(a);
+                        for (const auto& a : catalogActions(e)) catalogTargetList().push_back(a);
                         applyEntryRangeToAxisDraft(draft_, e);
                         ImGui::CloseCurrentPopup();
                     } else {

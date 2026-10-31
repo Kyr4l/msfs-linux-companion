@@ -29,6 +29,16 @@ struct Action {
 // down the "release" actions, once per stepPercent of travel (a knob made from an axis).
 enum class AxisMode { Value, Steps };
 
+// A lever with mechanical gates (the URSA MINOR throttle: cut-off stop, idle detent, afterburner gate). Where the gates are on the
+// physical axis is a property of the hardware and is learned once in the calibration (AxisCalibration); what the sim should be told
+// at those points is per binding, here. Between idle and the end of the dry range the output runs linearly from outIdle to outMil;
+// in the cut-off zone it is outCutoff and in the afterburner zone outMil. Value mode only; the dead zone and range of AxisConfig
+// are then ignored.
+struct AxisDetents {
+    bool enabled = false;
+    double outCutoff = 0.0, outIdle = 0.1, outMil = 0.8;
+};
+
 struct AxisConfig {
     AxisMode mode = AxisMode::Value;
     bool invert = false;
@@ -37,6 +47,7 @@ struct AxisConfig {
     bool integer = true;                  // Value mode: round the output (event parameters are integers)
     int minIntervalMs = 40;               // Value mode: at most one update per interval (the last value is never lost)
     double stepPercent = 5.0;             // Steps mode: travel per step, in percent of the used travel
+    AxisDetents detents;                  // Value mode: a lever with gates (needs the axis to be calibrated)
 };
 
 struct Binding {
@@ -45,11 +56,25 @@ struct Binding {
     AxisConfig axis;                      // only used when input.kind == Axis
     std::vector<Action> onPress;
     std::vector<Action> onRelease;
+    // Lever with gates (axis.detents.enabled): run when the lever enters or leaves the cut-off or the afterburner zone.
+    std::vector<Action> onCutoff, onCutoffLeave, onAfterburner, onAfterburnerLeave;
     bool repeat = false;        // re-fire onPress while held (knob turning)
     int repeatDelayMs = 400;
     int repeatIntervalMs = 100;
     bool enabled = true;
 };
+
+// Where the gates of a lever are on the physical axis (0..1 of the device's travel), learned by the user moving the lever to each one.
+// A lever mounted the other way round reads descending (cutoff above ab): everything is mirrored.
+struct AxisCalibration {
+    std::string device;                       // device key "vvvv:pppp:Name"
+    int code = 0;                             // ABS_* code of the axis
+    double cutoff = 0.0, idle = 0.12, mil = 0.80, ab = 0.95;
+    double snap = 0.015;                      // half width of the idle band: the lever reads exactly idle inside it
+    bool valid() const;                       // the gates in order, far enough apart
+};
+
+enum class AxisZone { Dry, Cutoff, Afterburner };
 
 // Aircraft ids match the "aircraft" field of the catalogs in data/ (a32nx_catalog.json -> "A32NX").
 constexpr const char* kDefaultAircraft = "A32NX";
@@ -60,9 +85,9 @@ struct Profile {
     std::vector<Binding> bindings;
 };
 
-// Config schema: 1 = original, 2 = profiles carry an "aircraft", 3 = input event (B:) actions. Newer files stay readable by older
+// Config schema: 1 = original, 2 = profiles carry an "aircraft", 3 = input event (B:) actions, 4 = axis calibrations and lever gates. Newer files stay readable by older
 // builds (unknown fields are ignored); loading a file older than kConfigVersion never loses data.
-constexpr int kConfigVersion = 3;
+constexpr int kConfigVersion = 4;
 
 struct Settings {
     int loadedVersion = kConfigVersion;  // schema version of the file this was read from
@@ -73,6 +98,11 @@ struct Settings {
     std::string activeProfile;
     std::vector<Profile> profiles;
     haptics::HapticsConfig haptics;
+    std::vector<AxisCalibration> calibrations;  // one per calibrated axis, shared by every profile
+
+    const AxisCalibration* calibrationFor(const input::InputId& axis) const;
+    void setCalibration(const AxisCalibration& c);  // replaces the one of the same axis
+    void clearCalibration(const input::InputId& axis);
 
     Profile* active();
     const Profile* active() const;

@@ -28,6 +28,7 @@ public:
     explicit Engine(sim::SimBridge& bridge);
 
     void setProfile(std::shared_ptr<const Profile> profile);
+    void setCalibrations(std::vector<AxisCalibration> calibrations);  // the gates of the calibrated levers (Settings::calibrations)
     void setEnabled(bool on);
     bool enabled() const { return enabled_; }
 
@@ -41,6 +42,10 @@ public:
     // Pure helpers (also used by the UI and the tests)
     static double axisPosition(const AxisConfig& c, double raw01);            // 0..1 inside the used travel, inverted if asked
     static double axisOutput(const AxisConfig& c, double position01);        // rescaled (and rounded if integer)
+    // A lever with gates: where it is (raw 0..1 of the device travel) -> the value to send and the zone it is in. `previous` gives the
+    // zone a little hysteresis, so a lever resting at a zone boundary does not chatter.
+    struct DetentResult { double value; AxisZone zone; };
+    static DetentResult detentOutput(const AxisDetents& d, const AxisCalibration& cal, double raw01, AxisZone previous);
     static std::vector<Action> withValue(const std::vector<Action>& actions, double v, bool integer);  // substitute the axis value
     static std::string formatValue(double v, bool integer);
 
@@ -63,6 +68,7 @@ private:
     void recordLatest(const std::string& key, const std::string& text);  // replaces the previous entry of the same key
     void onAxis(const input::InputEvent& ev);
     void sendAxisValue(const Binding& b, double out);
+    void dispatchZone(const Binding& b, const std::vector<Action>& actions, const char* what);  // runs and records the actions of a gate zone
 
     struct AxisState {
         bool hasSent = false;
@@ -72,6 +78,8 @@ private:
         std::chrono::steady_clock::time_point lastTime{};
         bool anchorValid = false;
         double anchor = 0;
+        bool zoneKnown = false;  // lever with gates: the zone seen last
+        AxisZone zone = AxisZone::Dry;
     };
     std::unordered_map<size_t, AxisState> axisState_;           // by binding index in the current profile
     std::unordered_map<std::string, float> captureBase_;        // axis resting values seen since beginCapture()
@@ -79,6 +87,7 @@ private:
     sim::SimBridge& bridge_;
     mutable std::mutex m_;
     std::shared_ptr<const Profile> profile_;
+    std::shared_ptr<const std::vector<AxisCalibration>> calibrations_ = std::make_shared<const std::vector<AxisCalibration>>();
     std::vector<Held> held_;
     bool enabled_ = true;
     bool capturing_ = false;

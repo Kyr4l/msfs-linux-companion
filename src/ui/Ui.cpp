@@ -93,6 +93,7 @@ void Ui::draw() {
 
     if (!splashDone_) drawSplash();
     if (editorOpen_) drawBindingEditor();
+    drawCalibrationWizard();
 
     // Debounced auto-save.
     static double lastDirtyAt = -1;

@@ -61,6 +61,16 @@ void Ui::drawDevicesTab() {
                 ImGui::TextUnformatted(label);
                 ImGui::SameLine(130);
                 ImGui::ProgressBar(d.axisValue[a], ImVec2(300, 0), overlay);
+                ImGui::SameLine();
+                const input::InputId axisId{d.key, input::InputKind::Axis, d.axisCodes[a], 0};
+                const AxisCalibration* cal = ctx_.settings.calibrationFor(axisId);
+                if (ImGui::SmallButton(cal ? "Calibrate again..." : "Calibrate...")) openCalibration(axisId);
+                if (ImGui::IsItemHovered()) ImGui::SetTooltip("For a lever with gates (the URSA MINOR throttle: cut-off, idle, afterburner): teach the program where they are.");
+                if (cal) {
+                    ImGui::SameLine();
+                    if (cal->valid()) ImGui::TextColored(kGreen, "calibrated: cut-off at %.0f%%, idle %.0f%%, end of the dry range %.0f%%, afterburner end %.0f%%", cal->cutoff * 100, cal->idle * 100, cal->mil * 100, cal->ab * 100);
+                    else ImGui::TextColored(kYellow, "calibration unusable");
+                }
                 ImGui::PopID();
             }
             for (int h = 0; h < d.hatCount; ++h) {

@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Kyr4l
 #include "app/Profile.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <filesystem>
@@ -69,6 +70,31 @@ std::string Action::describe() const {
     return name;
 }
 
+bool AxisCalibration::valid() const {
+    const bool rev = cutoff > ab;
+    auto n = [rev](double x) { return rev ? 1.0 - x : x; };
+    const double c = n(cutoff), i = n(idle), m = n(mil), a = n(ab);
+    return c >= 0.0 && a <= 1.0 && i - c >= 0.01 && m - i >= 0.1 && a - m >= 0.01 && snap >= 0.0 && snap < (m - i) / 2;
+}
+
+const AxisCalibration* Settings::calibrationFor(const input::InputId& axis) const {
+    for (const auto& c : calibrations)
+        if (c.device == axis.device && c.code == axis.code) return &c;
+    return nullptr;
+}
+
+void Settings::setCalibration(const AxisCalibration& c) {
+    for (auto& x : calibrations)
+        if (x.device == c.device && x.code == c.code) { x = c; return; }
+    calibrations.push_back(c);
+}
+
+void Settings::clearCalibration(const input::InputId& axis) {
+    calibrations.erase(std::remove_if(calibrations.begin(), calibrations.end(),
+                                      [&](const AxisCalibration& c) { return c.device == axis.device && c.code == axis.code; }),
+                       calibrations.end());
+}
+
 Profile* Settings::active() {
     for (auto& p : profiles)
         if (p.name == activeProfile) return &p;
@@ -102,9 +128,12 @@ static Action actionFromJson(const json& j) {
 }
 
 static json toJson(const AxisConfig& c) {
-    return json{{"mode", c.mode == AxisMode::Steps ? "steps" : "value"}, {"invert", c.invert},
-                {"in_min", c.inMin}, {"in_max", c.inMax}, {"out_min", c.outMin}, {"out_max", c.outMax},
-                {"integer", c.integer}, {"min_interval_ms", c.minIntervalMs}, {"step_percent", c.stepPercent}};
+    json j{{"mode", c.mode == AxisMode::Steps ? "steps" : "value"}, {"invert", c.invert},
+           {"in_min", c.inMin}, {"in_max", c.inMax}, {"out_min", c.outMin}, {"out_max", c.outMax},
+           {"integer", c.integer}, {"min_interval_ms", c.minIntervalMs}, {"step_percent", c.stepPercent}};
+    if (c.detents.enabled)  // omitted otherwise: files of plain axes stay as before
+        j["detents"] = json{{"enabled", true}, {"out_cutoff", c.detents.outCutoff}, {"out_idle", c.detents.outIdle}, {"out_mil", c.detents.outMil}};
+    return j;
 }
 
 static AxisConfig axisFromJson(const json& j) {
@@ -118,6 +147,13 @@ static AxisConfig axisFromJson(const json& j) {
     c.integer = j.value("integer", true);
     c.minIntervalMs = j.value("min_interval_ms", 40);
     c.stepPercent = j.value("step_percent", 5.0);
+    if (j.contains("detents") && j["detents"].is_object()) {
+        const json& d = j["detents"];
+        c.detents.enabled = d.value("enabled", false);
+        c.detents.outCutoff = d.value("out_cutoff", c.detents.outCutoff);
+        c.detents.outIdle = d.value("out_idle", c.detents.outIdle);
+        c.detents.outMil = d.value("out_mil", c.detents.outMil);
+    }
     if (c.inMax <= c.inMin) { c.inMin = 0.0; c.inMax = 1.0; }
     if (c.stepPercent < 0.5) c.stepPercent = 0.5;
     return c;
@@ -138,6 +174,11 @@ static json toJson(const Binding& b) {
         {"enabled", b.enabled},
     };
     if (b.input.kind == input::InputKind::Axis) out["axis"] = toJson(b.axis);  // omitted for buttons/hats: files stay as before
+    if (b.axis.detents.enabled && b.input.kind == input::InputKind::Axis) {
+        auto list = [](const std::vector<Action>& v) { json a = json::array(); for (const auto& x : v) a.push_back(toJson(x)); return a; };
+        out["zone_actions"] = json{{"cutoff", list(b.onCutoff)}, {"cutoff_leave", list(b.onCutoffLeave)},
+                                   {"afterburner", list(b.onAfterburner)}, {"afterburner_leave", list(b.onAfterburnerLeave)}};
+    }
     return out;
 }
 
@@ -154,6 +195,14 @@ static Binding bindingFromJson(const json& j) {
     for (const auto& a : j.value("on_press", json::array())) b.onPress.push_back(actionFromJson(a));
     for (const auto& a : j.value("on_release", json::array())) b.onRelease.push_back(actionFromJson(a));
     if (j.contains("axis")) b.axis = axisFromJson(j["axis"]);
+    if (j.contains("zone_actions") && j["zone_actions"].is_object()) {
+        const json& z = j["zone_actions"];
+        auto read = [&z](const char* key, std::vector<Action>& into) { for (const auto& a : z.value(key, json::array())) into.push_back(actionFromJson(a)); };
+        read("cutoff", b.onCutoff);
+        read("cutoff_leave", b.onCutoffLeave);
+        read("afterburner", b.onAfterburner);
+        read("afterburner_leave", b.onAfterburnerLeave);
+    }
     b.repeat = j.value("repeat", false);
     b.repeatDelayMs = j.value("repeat_delay_ms", 400);
     b.repeatIntervalMs = j.value("repeat_interval_ms", 100);
@@ -188,6 +237,17 @@ bool loadSettings(const std::string& path, Settings& out, std::string& err) {
         s.autoConnect = j.value("auto_connect", s.autoConnect);
         s.guideAutodetect = j.value("guide_autodetect", s.guideAutodetect);
         s.activeProfile = j.value("active_profile", "");
+        for (const auto& cj : j.value("calibrations", json::array())) {
+            AxisCalibration c;
+            c.device = cj.value("device", "");
+            c.code = cj.value("code", 0);
+            c.cutoff = cj.value("cutoff", c.cutoff);
+            c.idle = cj.value("idle", c.idle);
+            c.mil = cj.value("mil", c.mil);
+            c.ab = cj.value("ab", c.ab);
+            c.snap = cj.value("snap", c.snap);
+            if (!c.device.empty()) s.calibrations.push_back(c);
+        }
         if (j.contains("haptics")) {
             const json& h = j["haptics"];
             s.haptics.enabled = h.value("enabled", false);
@@ -240,8 +300,11 @@ bool saveSettings(const std::string& path, const Settings& s, std::string& err) 
         devices[key] = json{{"enabled", dc.enabled}, {"family", dc.identity.family},
                             {"left_device", dc.identity.left.device}, {"left_index", dc.identity.left.index},
                             {"right_device", dc.identity.right.device}, {"right_index", dc.identity.right.index}};
+    json calibrations = json::array();
+    for (const auto& c : s.calibrations)
+        calibrations.push_back(json{{"device", c.device}, {"code", c.code}, {"cutoff", c.cutoff}, {"idle", c.idle}, {"mil", c.mil}, {"ab", c.ab}, {"snap", c.snap}});
     json j{{"version", kConfigVersion}, {"host", s.host}, {"port", s.port}, {"auto_connect", s.autoConnect}, {"guide_autodetect", s.guideAutodetect},
-           {"active_profile", s.activeProfile}, {"profiles", profiles},
+           {"active_profile", s.activeProfile}, {"profiles", profiles}, {"calibrations", calibrations},
            {"haptics", {{"enabled", s.haptics.enabled}, {"master", s.haptics.master}, {"rules", rules}, {"devices", devices}}}};
     try {
         std::filesystem::create_directories(std::filesystem::path(path).parent_path());

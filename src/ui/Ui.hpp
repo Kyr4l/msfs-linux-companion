@@ -85,6 +85,11 @@ private:
     bool inputIsPressed(const input::InputId& id) const;
     float axisNow(const input::InputId& id) const;  // live position 0..1 of an axis input, or -1 when the device is absent
     void drawAxisOptions();
+    void drawDetentOptions();  // lever with gates: calibration state, values at the gates, presets
+    void drawGateBar(const AxisCalibration& cal, float now, float width, const bool* gateSet = nullptr);  // the zones of a calibrated lever with its live position
+    void openCalibration(const input::InputId& axis);
+    void drawCalibrationWizard();
+    std::vector<Action>& catalogTargetList();  // the draft list the catalog picker adds to
 
     AppContext& ctx_;
     std::vector<input::DeviceSnapshot> devices_;
@@ -94,8 +99,16 @@ private:
     bool editorOpen_ = false;
     int editIndex_ = -1;
     Binding draft_;
-    int catalogTarget_ = 0;  // 0 = press list, 1 = release list
-    bool catalogPopupOpen_[2] = {false, false};  // [0] press list, [1] release list
+    // 0 = press, 1 = release, 2 / 3 = enters / leaves the cut-off zone, 4 / 5 = enters / leaves the afterburner zone
+    int catalogTarget_ = 0;
+    bool catalogPopupOpen_[6] = {false, false, false, false, false, false};  // one per list
+    static const char* catalogTargetName(int target);
+
+    // axis calibration wizard (gates of a lever)
+    bool calOpen_ = false, calJustOpened_ = false, calWasEnabled_ = true;
+    input::InputId calAxis_;
+    AxisCalibration calDraft_;
+    bool calSet_[4] = {false, false, false, false};  // which gates the user has pointed out in this run of the wizard
 
     // catalog panel view: the catalog regrouped into panels (cards) of controls, rebuilt when the catalog changes
     enum class CatalogView { List, Panels };

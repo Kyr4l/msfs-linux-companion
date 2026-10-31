@@ -235,6 +235,153 @@ int main() {
         std::filesystem::remove(path);
     }
 
+    // ---- a lever with gates (the URSA MINOR throttle): cut-off, idle detent, end of the dry range, afterburner gate
+    {
+        AxisCalibration cal;
+        cal.device = dev;
+        cal.code = 0;
+        cal.cutoff = 0.0; cal.idle = 0.12; cal.mil = 0.80; cal.ab = 0.95; cal.snap = 0.015;
+        CHECK(cal.valid());
+        AxisDetents d;
+        d.enabled = true; d.outCutoff = 0.0; d.outIdle = 0.1; d.outMil = 0.8;
+        auto at = [&](double raw, AxisZone prev) { return Engine::detentOutput(d, cal, raw, prev); };
+
+        CHECK(at(0.0, AxisZone::Dry).zone == AxisZone::Cutoff && at(0.0, AxisZone::Dry).value == 0.0);
+        CHECK(at(0.04, AxisZone::Dry).zone == AxisZone::Cutoff);
+        // the boundary between cut-off and idle is at 0.06; 0.01 either way keeps the zone the lever came from
+        CHECK(at(0.065, AxisZone::Dry).zone == AxisZone::Dry && at(0.065, AxisZone::Cutoff).zone == AxisZone::Cutoff);
+        CHECK(at(0.12, AxisZone::Dry).zone == AxisZone::Dry && at(0.12, AxisZone::Dry).value == 0.1);
+        CHECK(at(0.134, AxisZone::Dry).value == 0.1);  // inside the idle band
+        CHECK(std::fabs(at(0.5, AxisZone::Dry).value - (0.1 + (0.5 - 0.135) / (0.8 - 0.135) * 0.7)) < 1e-9);
+        CHECK(std::fabs(at(0.8, AxisZone::Dry).value - 0.8) < 1e-9 && at(0.8, AxisZone::Dry).zone == AxisZone::Dry);
+        // the boundary dry range / afterburner is at 0.875
+        CHECK(at(0.88, AxisZone::Dry).zone == AxisZone::Dry && at(0.88, AxisZone::Afterburner).zone == AxisZone::Afterburner);
+        CHECK(at(0.9, AxisZone::Dry).zone == AxisZone::Afterburner && at(0.9, AxisZone::Dry).value == 0.8);
+        CHECK(at(1.0, AxisZone::Dry).zone == AxisZone::Afterburner);
+        {   // sweeping the lever up never makes the output go down
+            AxisZone z = AxisZone::Dry;
+            double last = -1;
+            bool monotonic = true;
+            for (int i = 0; i <= 1000; ++i) {
+                const auto r = at(i / 1000.0, z);
+                z = r.zone;
+                monotonic = monotonic && r.value >= last - 1e-12;
+                last = r.value;
+            }
+            CHECK(monotonic);
+        }
+        {   // a lever mounted the other way round (reads 1 at the cut-off) is mirrored
+            AxisCalibration rev = cal;
+            rev.cutoff = 1.0; rev.idle = 0.88; rev.mil = 0.20; rev.ab = 0.05;
+            CHECK(rev.valid());
+            CHECK(Engine::detentOutput(d, rev, 1.0, AxisZone::Dry).zone == AxisZone::Cutoff);
+            CHECK(Engine::detentOutput(d, rev, 0.0, AxisZone::Dry).zone == AxisZone::Afterburner);
+            CHECK(std::fabs(Engine::detentOutput(d, rev, 0.5, AxisZone::Dry).value - at(0.5, AxisZone::Dry).value) < 1e-9);
+        }
+        {   // calibrations that cannot work are refused
+            AxisCalibration bad = cal;
+            bad.idle = bad.cutoff;               CHECK(!bad.valid());
+            bad = cal; bad.mil = bad.idle + 0.05; CHECK(!bad.valid());
+            bad = cal; bad.ab = bad.mil;          CHECK(!bad.valid());
+            bad = cal; bad.snap = 0.5;            CHECK(!bad.valid());
+            bad = cal; bad.idle = 0.9;            CHECK(!bad.valid());
+        }
+
+        // the engine: zone actions fire once per entry and per exit, the value follows
+        Engine lever(bridge);
+        auto lp = std::make_shared<Profile>();
+        Binding t;
+        t.label = "Left throttle";
+        t.input = {dev, InputKind::Axis, 0, 0};
+        t.axis.mode = AxisMode::Value;
+        t.axis.integer = false;
+        t.axis.minIntervalMs = 5;
+        t.axis.detents = d;
+        Action thr, cut, cutBack, burn, burnOff;
+        thr.kind = ActionKind::InputEvent; thr.name = "ENGINE_Throttle_1";
+        cut.kind = ActionKind::InputEvent; cut.name = "ENG_CUT"; cut.value = 1;
+        cutBack.kind = ActionKind::InputEvent; cutBack.name = "ENG_CUT"; cutBack.value = 0;
+        burn.kind = ActionKind::InputEvent; burn.name = "ENGINE_Throttle_1_Afterburner"; burn.value = 1;
+        burnOff.kind = ActionKind::InputEvent; burnOff.name = "ENGINE_Throttle_1_Afterburner"; burnOff.value = 0;
+        t.onPress = {thr};
+        t.onCutoff = {cut}; t.onCutoffLeave = {cutBack}; t.onAfterburner = {burn}; t.onAfterburnerLeave = {burnOff};
+        lp->bindings.push_back(t);
+        lever.setProfile(lp);
+        lever.setCalibrations({cal});
+        auto pause = [] { std::this_thread::sleep_for(std::chrono::milliseconds(12)); };
+
+        lever.onInput(axisEvent(dev, 0, 0.5f, 0.0f));  // slammed to the cut-off stop
+        CHECK(firesNamed(lever, "Left throttle (cut-off): ") == 1 && firesNamed(lever, "ENG_CUT") == 1);
+        CHECK(firesNamed(lever, "Left throttle = 0") == 1);
+        pause();
+        lever.onInput(axisEvent(dev, 0, 0.0f, 0.02f));  // still in the cut-off zone: nothing new
+        CHECK(firesNamed(lever, "(cut-off)") == 1 && firesNamed(lever, "(leaves the cut-off)") == 0);
+        pause();
+        lever.onInput(axisEvent(dev, 0, 0.02f, 0.12f));  // over the idle gate
+        CHECK(firesNamed(lever, "(leaves the cut-off)") == 1 && firesNamed(lever, "(cut-off)") == 1);
+        CHECK(firesNamed(lever, "Left throttle = 0.1") == 1);
+        pause();
+        lever.onInput(axisEvent(dev, 0, 0.12f, 0.50f));
+        CHECK(firesNamed(lever, "(afterburner)") == 0);
+        pause();
+        lever.onInput(axisEvent(dev, 0, 0.50f, 0.97f));  // through the afterburner gate
+        CHECK(firesNamed(lever, "Left throttle (afterburner): ") == 1 && firesNamed(lever, "ENGINE_Throttle_1_Afterburner") == 1);
+        CHECK(firesNamed(lever, "Left throttle = 0.8") == 1);
+        pause();
+        lever.onInput(axisEvent(dev, 0, 0.97f, 0.99f));  // inside the zone: nothing new
+        CHECK(firesNamed(lever, "(afterburner)") == 1);
+        pause();
+        lever.onInput(axisEvent(dev, 0, 0.99f, 0.40f));  // pulled back out
+        CHECK(firesNamed(lever, "(leaves the afterburner)") == 1);
+        pause();
+        lever.onInput(axisEvent(dev, 0, 0.40f, 0.95f));  // and in again
+        CHECK(firesNamed(lever, "(afterburner)") == 2);
+
+        // calibrations pushed to the engine are used; a lever without one is a plain linear axis (0 to 100 here)
+        Engine uncal(bridge);
+        uncal.setProfile(lp);
+        uncal.onInput(axisEvent(dev, 0, 0.0f, 0.5f));
+        CHECK(firesNamed(uncal, "(cut-off)") == 0 && firesNamed(uncal, "Left throttle = 50") == 1);
+        uncal.setCalibrations({cal});
+        pause();
+        uncal.onInput(axisEvent(dev, 0, 0.5f, 0.0f));
+        CHECK(firesNamed(uncal, "(cut-off)") == 1);
+        AxisCalibration broken = cal;
+        broken.idle = broken.cutoff;
+        Engine nobody(bridge);
+        nobody.setProfile(lp);
+        nobody.setCalibrations({broken});
+        nobody.onInput(axisEvent(dev, 0, 0.5f, 0.0f));
+        CHECK(firesNamed(nobody, "(cut-off)") == 0);  // an unusable calibration is ignored, not guessed at
+
+        // settings: calibrations and the lever's gates round-trip; a plain axis writes nothing new
+        Settings st;
+        st.profiles.push_back(*lp);
+        st.activeProfile = st.profiles[0].name;
+        st.setCalibration(cal);
+        AxisCalibration other = cal;
+        other.code = 1; other.idle = 0.2;
+        st.setCalibration(other);
+        st.setCalibration(cal);  // same axis again: replaced, not added
+        CHECK(st.calibrations.size() == 2 && st.calibrationFor({dev, InputKind::Axis, 1, 0}) && st.calibrationFor({dev, InputKind::Axis, 1, 0})->idle == 0.2);
+        const auto path = (std::filesystem::temp_directory_path() / "msfs-linux-companion-gates-test.json").string();
+        std::string err;
+        CHECK(saveSettings(path, st, err));
+        Settings back;
+        CHECK(loadSettings(path, back, err));
+        CHECK(back.calibrations.size() == 2);
+        const AxisCalibration* c0 = back.calibrationFor({dev, InputKind::Axis, 0, 0});
+        CHECK(c0 && c0->cutoff == 0.0 && c0->idle == 0.12 && c0->mil == 0.80 && c0->ab == 0.95 && c0->snap == 0.015);
+        const Binding& rb = back.profiles[0].bindings[0];
+        CHECK(rb.axis.detents.enabled && rb.axis.detents.outIdle == 0.1 && rb.axis.detents.outMil == 0.8);
+        CHECK(rb.onCutoff.size() == 1 && rb.onCutoff[0].name == "ENG_CUT" && rb.onCutoff[0].value == 1);
+        CHECK(rb.onCutoffLeave.size() == 1 && rb.onCutoffLeave[0].value == 0);
+        CHECK(rb.onAfterburner.size() == 1 && rb.onAfterburnerLeave.size() == 1 && rb.onAfterburnerLeave[0].name == "ENGINE_Throttle_1_Afterburner");
+        st.clearCalibration({dev, InputKind::Axis, 1, 0});
+        CHECK(st.calibrations.size() == 1 && !st.calibrationFor({dev, InputKind::Axis, 1, 0}));
+        std::filesystem::remove(path);
+    }
+
     std::printf(failures ? "\n%d check(s) FAILED\n" : "all axis checks passed\n", failures);
     return failures ? 1 : 0;
 }

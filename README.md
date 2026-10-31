@@ -12,6 +12,7 @@ flight data, which MSFS under Proton cannot do by itself.
 * **Dear ImGui** UI on **Wayland or X11** (GLFW 3.4+, runtime platform selection), or `--headless`.
 * Profiles with press / release actions, repeat-while-held (for FCU knobs), 2-position switches.
 * **Axes** as inputs: an axis can send its position as a value (brightness knobs, QNH set...) or act as a +/- knob, with dead zones, inversion and rate limiting.
+* **Throttle calibration** for levers with gates (cut-off, idle, afterburner), for aircraft whose own quadrant cannot be calibrated.
 * A visual **panels view** of the cockpit to find the control you want, plus a plain list; searchable catalogs of cockpit functions for the FlyByWire **A32NX** and **A380X**, generated from the FlyByWire docs, with a per-profile aircraft selector.
 
 ## AI-assisted code, real-hardware tested
@@ -162,6 +163,31 @@ the same physical axis unassigned in the MSFS controls menu, otherwise both inpu
 
 *Use travel from/to* turns the ends of the physical travel into dead zones and *Invert* flips the
 direction. `tools/virtual_joystick.py demo` creates a fake joystick to try all of this without hardware.
+
+#### Throttle calibration: levers with gates
+
+Some throttles have mechanical gates on the lever: the Winwing URSA MINOR has a cut-off stop below the idle
+detent and an afterburner gate at the front. The sim's own calibration cannot teach an aircraft those points
+(some aircraft have no throttle calibration at all), so the program does it:
+
+1. **Calibrate the axis once** (Devices tab, *Calibrate...* next to the axis, or from the binding editor). Move the
+   lever to the cut-off stop, the idle detent, the end of the dry range (just before the afterburner gate) and the
+   afterburner end, and press the button of each. The positions are stored in the config and shared by every
+   profile; the bindings are paused while the window is open. A lever that reads the other way round is detected.
+2. **Tick *Lever with gates*** in the binding of that axis and give the values the sim should get: at the cut-off, at
+   idle (the idle detent holds exactly that value, with a small band so it never wobbles) and at the end of the dry
+   range. Between idle and the end of the dry range the value follows the lever linearly; in the afterburner zone it
+   stays at the last value.
+3. **Gate actions**: lists of actions that run once when the lever enters or leaves the cut-off or the afterburner
+   zone (for example the aircraft's afterburner event on and off).
+
+The *F/A-18E throttle 1 / 2* presets fill in what was verified on the Asobo F/A-18E (the lever is a fraction of its
+travel: 0 at the off stop, 0.1 at the idle stop, 0.8 at military power) and the afterburner event on entering and
+leaving the afterburner zone. **That afterburner event has not been tried on a real aircraft, and the aircraft's
+engine cut-off is not understood yet, so the cut-off lists are left empty.** A lever that is not calibrated behaves as
+a plain axis. The processing is tested (`ctest`: zones, hysteresis, a reversed lever, the actions at the gates, the
+config round trip); the wizard and the editor were run against a virtual joystick on a virtual display, not yet
+with the real throttle.
 
 Tips:
 

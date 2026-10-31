@@ -22,6 +22,7 @@ using namespace uidetail;
 // ---------------------------------------------------------------- AppContext
 
 void AppContext::pushProfileToEngine() {
+    engine.setCalibrations(settings.calibrations);
     engine.setProfile(std::make_shared<Profile>(settings.ensureActive()));
     refreshWatches();
 }

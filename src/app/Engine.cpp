@@ -20,6 +20,13 @@ void Engine::setProfile(std::shared_ptr<const Profile> profile) {
     axisState_.clear();
 }
 
+void Engine::setCalibrations(std::vector<AxisCalibration> calibrations) {
+    auto list = std::make_shared<const std::vector<AxisCalibration>>(std::move(calibrations));
+    std::lock_guard<std::mutex> lock(m_);
+    calibrations_ = std::move(list);
+    for (auto& [idx, st] : axisState_) st.zoneKnown = false;  // the gates moved: the zone is looked at afresh
+}
+
 void Engine::setEnabled(bool on) {
     std::lock_guard<std::mutex> lock(m_);
     enabled_ = on;
@@ -86,6 +93,24 @@ double Engine::axisOutput(const AxisConfig& c, double t) {
     return c.integer ? std::round(v) : v;
 }
 
+Engine::DetentResult Engine::detentOutput(const AxisDetents& d, const AxisCalibration& cal, double raw01, AxisZone previous) {
+    // mirrored so that the cut-off is always the low end
+    const bool reversed = cal.cutoff > cal.ab;
+    auto n = [reversed](double x) { return reversed ? 1.0 - x : x; };
+    const double r = n(raw01), cutoff = n(cal.cutoff), idle = n(cal.idle), mil = n(cal.mil), ab = n(cal.ab);
+    const double cutLimit = (cutoff + idle) / 2, abLimit = (mil + ab) / 2, hysteresis = 0.01;
+    AxisZone zone = AxisZone::Dry;
+    if (previous == AxisZone::Cutoff ? r < cutLimit + hysteresis : r < cutLimit - hysteresis) zone = AxisZone::Cutoff;
+    else if (previous == AxisZone::Afterburner ? r > abLimit - hysteresis : r > abLimit + hysteresis) zone = AxisZone::Afterburner;
+    const double dryStart = idle + cal.snap;  // above the idle band the output leaves outIdle
+    double value;
+    if (zone == AxisZone::Cutoff) value = d.outCutoff;
+    else if (r <= dryStart) value = d.outIdle;
+    else if (r >= mil) value = d.outMil;
+    else value = d.outIdle + (r - dryStart) / (mil - dryStart) * (d.outMil - d.outIdle);
+    return {value, zone};
+}
+
 std::string Engine::formatValue(double v, bool integer) {
     char buf[64];
     if (integer) snprintf(buf, sizeof buf, "%lld", static_cast<long long>(std::llround(v)));
@@ -123,11 +148,13 @@ void Engine::sendAxisValue(const Binding& b, double out) {
 
 void Engine::onAxis(const input::InputEvent& ev) {
     std::shared_ptr<const Profile> profile;
+    std::shared_ptr<const std::vector<AxisCalibration>> calibrations;
     {
         std::lock_guard<std::mutex> lock(m_);
         lastInput_ = ev;
         if (!enabled_) return;
         profile = profile_;
+        calibrations = calibrations_;
     }
     if (!profile) return;
     const auto now = clock::now();
@@ -137,15 +164,44 @@ void Engine::onAxis(const input::InputEvent& ev) {
         const AxisConfig& c = b.axis;
         const double t = axisPosition(c, ev.axis);
         if (c.mode == AxisMode::Value) {
-            const double out = axisOutput(c, t);
+            // a lever with gates needs its calibration; without one it is a plain linear axis
+            const AxisCalibration* cal = nullptr;
+            if (c.detents.enabled)
+                for (const auto& k : *calibrations)
+                    if (k.device == ev.id.device && k.code == ev.id.code && k.valid()) cal = &k;
+            double out = axisOutput(c, t);
+            AxisZone zoneBefore = AxisZone::Dry, zoneNow = AxisZone::Dry;
+            bool zoneKnown = false;
+            if (cal) {
+                {
+                    std::lock_guard<std::mutex> lock(m_);
+                    const AxisState& st = axisState_[i];
+                    zoneKnown = st.zoneKnown;
+                    zoneBefore = st.zone;
+                }
+                const DetentResult r = detentOutput(c.detents, *cal, ev.axis, zoneBefore);
+                out = c.integer ? std::round(r.value) : r.value;
+                zoneNow = r.zone;
+                if (!zoneKnown || zoneNow != zoneBefore) {
+                    {
+                        std::lock_guard<std::mutex> lock(m_);
+                        axisState_[i].zone = zoneNow;
+                        axisState_[i].zoneKnown = true;
+                    }
+                    // leaving a gate zone first, then the value, then entering the next one
+                    if (zoneKnown && zoneBefore == AxisZone::Cutoff) dispatchZone(b, b.onCutoffLeave, " (leaves the cut-off)");
+                    if (zoneKnown && zoneBefore == AxisZone::Afterburner) dispatchZone(b, b.onAfterburnerLeave, " (leaves the afterburner)");
+                }
+            }
             bool sendNow = false;
             {
                 std::lock_guard<std::mutex> lock(m_);
                 AxisState& st = axisState_[i];
+                const double scale = cal ? std::fabs(c.detents.outMil - c.detents.outCutoff) : std::fabs(c.outMax - c.outMin);
                 const bool changed = !st.hasSent || (c.integer ? std::llround(out) != std::llround(st.lastSent)
-                                                                : std::fabs(out - st.lastSent) > 1e-6 * (std::fabs(c.outMax - c.outMin) + 1));
-                if (!changed) { st.hasPending = false; continue; }
-                if (st.hasSent && now - st.lastTime < std::chrono::milliseconds(c.minIntervalMs)) {
+                                                                : std::fabs(out - st.lastSent) > 1e-6 * (scale + 1));
+                if (!changed) st.hasPending = false;
+                else if (st.hasSent && now - st.lastTime < std::chrono::milliseconds(c.minIntervalMs)) {
                     st.pending = out;
                     st.hasPending = true;  // tick() sends the latest value once the interval has passed
                 } else {
@@ -157,6 +213,10 @@ void Engine::onAxis(const input::InputEvent& ev) {
                 }
             }
             if (sendNow) sendAxisValue(b, out);
+            if (cal && (!zoneKnown || zoneNow != zoneBefore)) {
+                if (zoneNow == AxisZone::Cutoff) dispatchZone(b, b.onCutoff, " (cut-off)");
+                if (zoneNow == AxisZone::Afterburner) dispatchZone(b, b.onAfterburner, " (afterburner)");
+            }
         } else {
             int steps = 0, dir = 0;
             const double step = std::max(0.005, c.stepPercent / 100.0);
@@ -198,6 +258,17 @@ void Engine::dispatch(const Binding& b, bool press, const char* why) {
     fire(actions, origin);
     std::string text = origin + ": ";
     for (size_t i = 0; i < actions.size(); ++i) text += (i ? ", " : "") + actions[i].describe();
+    std::lock_guard<std::mutex> lock(m_);
+    record(text);
+}
+
+void Engine::dispatchZone(const Binding& b, const std::vector<Action>& actions, const char* what) {
+    std::string origin = b.label.empty() ? std::string("axis") : b.label;
+    origin += what;
+    std::string text = origin + ": ";
+    for (size_t i = 0; i < actions.size(); ++i) text += (i ? ", " : "") + actions[i].describe();
+    if (actions.empty()) text += "(no actions)";
+    else fire(actions, origin);
     std::lock_guard<std::mutex> lock(m_);
     record(text);
 }

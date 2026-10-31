@@ -21,6 +21,68 @@ using namespace uidetail;
 
 // ---------------------------------------------------------------- Bindings
 
+void Ui::drawDetentOptions() {
+    AxisConfig& c = draft_.axis;
+    AxisDetents& d = c.detents;
+    const AxisCalibration* cal = ctx_.settings.calibrationFor(draft_.input);
+    const bool ok = cal && cal->valid();
+    ImGui::Indent();
+    if (ok) {
+        const float now = axisNow(draft_.input);
+        drawGateBar(*cal, now, 460);
+        if (now >= 0) {
+            const auto r = Engine::detentOutput(d, *cal, now, AxisZone::Dry);
+            ImGui::TextDisabled("The lever is in the %s zone.", r.zone == AxisZone::Cutoff ? "cut-off" : r.zone == AxisZone::Afterburner ? "afterburner" : "dry range (idle to military power)");
+        }
+    } else {
+        ImGui::TextColored(kYellow, "This axis is not calibrated%s: until it is, the lever acts as a plain axis.", cal ? " properly" : " yet");
+    }
+    if (ImGui::Button(ok ? "Calibrate again..." : "Calibrate this axis...")) openCalibration(draft_.input);
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Move the lever to its cut-off, idle, end-of-dry-range and afterburner positions and say when it is there.\nDone once per axis; every profile uses it.");
+
+    ImGui::SetNextItemWidth(110);
+    ImGui::InputDouble("Value at the cut-off", &d.outCutoff, 0, 0, "%g");
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(110);
+    ImGui::InputDouble("at idle", &d.outIdle, 0, 0, "%g");
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(110);
+    ImGui::InputDouble("at the end of the dry range", &d.outMil, 0, 0, "%g");
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Also the value while in the afterburner zone. Between idle and here the value follows the lever linearly.");
+    const bool fractional = d.outIdle != std::round(d.outIdle) || d.outMil != std::round(d.outMil) || d.outCutoff != std::round(d.outCutoff);
+    if (c.integer && fractional) {
+        ImGui::TextColored(kYellow, "'Whole numbers' is on: these values would be rounded.");
+        ImGui::SameLine();
+        if (ImGui::SmallButton("Turn it off")) c.integer = false;
+    }
+    ImGui::TextUnformatted("Preset");
+    for (int engine = 1; engine <= 2; ++engine) {
+        ImGui::SameLine();
+        char label[64];
+        snprintf(label, sizeof label, "F/A-18E throttle %d", engine);
+        if (ImGui::SmallButton(label)) {
+            // Asobo F/A-18E: the lever is a fraction of its travel (0 off stop, 0.1 idle stop, 0.8 military power); afterburner is its own event
+            d.outCutoff = 0.0; d.outIdle = 0.1; d.outMil = 0.8;
+            c.integer = false;
+            const std::string n = std::to_string(engine);
+            Action thr, burn, burnOff;
+            thr.kind = burn.kind = burnOff.kind = ActionKind::InputEvent;
+            thr.name = "ENGINE_Throttle_" + n;
+            burn.name = burnOff.name = "ENGINE_Throttle_" + n + "_Afterburner";
+            burn.value = 1;
+            burnOff.value = 0;
+            draft_.onPress = {thr};
+            draft_.onAfterburner = {burn};
+            draft_.onAfterburnerLeave = {burnOff};
+            if (draft_.label.empty()) draft_.label = "F/A-18E throttle " + n;
+        }
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("0 / 0.1 / 0.8 on ENGINE_Throttle_%d (verified on the aircraft), and the afterburner event on entering and leaving the afterburner zone.\n"
+                              "That afterburner event has NOT been tried on a real aircraft, and the engine cut-off is not understood there yet:\nthe cut-off lists are left empty.", engine);
+    }
+    ImGui::Unindent();
+}
+
 void Ui::drawAxisOptions() {
     AxisConfig& c = draft_.axis;
     ImGui::SeparatorText("Axis");
@@ -28,26 +90,46 @@ void Ui::drawAxisOptions() {
     ImGui::TextUnformatted("Position now");
     ImGui::SameLine();
     const double t = Engine::axisPosition(c, now >= 0 ? now : 0.0f);
+    const AxisCalibration* cal = c.detents.enabled && c.mode == AxisMode::Value ? ctx_.settings.calibrationFor(draft_.input) : nullptr;
+    const bool gates = cal && cal->valid();  // the lever's gates decide the output instead of the range below
+    double shown = Engine::axisOutput(c, t);
+    if (gates && now >= 0) shown = Engine::detentOutput(c.detents, *cal, now, AxisZone::Dry).value;
     char overlay[96];
     if (now < 0) snprintf(overlay, sizeof overlay, "device not connected");
-    else if (c.mode == AxisMode::Value) snprintf(overlay, sizeof overlay, "%d%% of travel  ->  %s", static_cast<int>(now * 100 + 0.5f), Engine::formatValue(Engine::axisOutput(c, t), c.integer).c_str());
+    else if (c.mode == AxisMode::Value) snprintf(overlay, sizeof overlay, "%d%% of travel  ->  %s", static_cast<int>(now * 100 + 0.5f), Engine::formatValue(shown, c.integer && !gates).c_str());
     else snprintf(overlay, sizeof overlay, "%d%% of travel", static_cast<int>(now * 100 + 0.5f));
     ImGui::ProgressBar(now < 0 ? 0.0f : now, ImVec2(360, 0), overlay);
 
     int mode = c.mode == AxisMode::Steps ? 1 : 0;
     ImGui::SetNextItemWidth(420);
     if (ImGui::Combo("Mode", &mode, "Value: the position is sent as the parameter\0Steps: up runs the + actions, down the - actions\0")) c.mode = mode == 1 ? AxisMode::Steps : AxisMode::Value;
-    ImGui::Checkbox("Invert", &c.invert);
+    if (c.mode == AxisMode::Value) {
+        ImGui::Checkbox("Lever with gates (cut-off, idle, afterburner)", &c.detents.enabled);
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("For a throttle with mechanical gates: the calibration learns where they are on the axis, and the value sent\nfollows them (a flat idle, a linear dry range, a fixed value in the afterburner), with actions at the gates.");
+    } else {
+        c.detents.enabled = false;
+    }
+    if (c.detents.enabled) drawDetentOptions();
+    if (!gates) ImGui::Checkbox("Invert", &c.invert);
 
     float from = static_cast<float>(c.inMin * 100.0), to = static_cast<float>(c.inMax * 100.0);
-    ImGui::SetNextItemWidth(160);
-    if (ImGui::SliderFloat("Use travel from (%)", &from, 0.0f, 98.0f, "%.0f")) c.inMin = std::min<double>(from / 100.0, c.inMax - 0.02);
-    ImGui::SameLine();
-    ImGui::SetNextItemWidth(160);
-    if (ImGui::SliderFloat("to (%)", &to, 2.0f, 100.0f, "%.0f")) c.inMax = std::max<double>(to / 100.0, c.inMin + 0.02);
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Everything outside this part of the physical travel is dead zone: it reads as the minimum or the maximum.");
+    if (!gates) {
+        ImGui::SetNextItemWidth(160);
+        if (ImGui::SliderFloat("Use travel from (%)", &from, 0.0f, 98.0f, "%.0f")) c.inMin = std::min<double>(from / 100.0, c.inMax - 0.02);
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(160);
+        if (ImGui::SliderFloat("to (%)", &to, 2.0f, 100.0f, "%.0f")) c.inMax = std::max<double>(to / 100.0, c.inMin + 0.02);
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Everything outside this part of the physical travel is dead zone: it reads as the minimum or the maximum.");
+    }
 
-    if (c.mode == AxisMode::Value) {
+    if (c.mode == AxisMode::Value && gates) {
+        ImGui::Checkbox("Whole numbers", &c.integer);
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(90);
+        ImGui::InputInt("min ms between updates", &c.minIntervalMs, 0, 0);
+        c.minIntervalMs = std::clamp(c.minIntervalMs, 5, 1000);
+    } else if (c.mode == AxisMode::Value) {
         struct Preset { const char* label; double lo, hi; bool integer; };
         static const Preset presets[] = {
             {"0 to 100 (percent)", 0, 100, true},
@@ -372,7 +454,7 @@ void Ui::drawActionList(const char* id, std::vector<Action>& actions, int listIn
     ImGui::SameLine();
     // One open-flag per list: BeginPopupModal() writes false into its p_open whenever its popup is not open, so a
     // flag shared by the press and release lists was cleared every frame by the list that was not open.
-    bool& popupOpen = catalogPopupOpen_[listIndex == 0 ? 0 : 1];
+    bool& popupOpen = catalogPopupOpen_[std::clamp(listIndex, 0, 5)];
     if (ImGui::SmallButton("+ from catalog")) { catalogTarget_ = listIndex; popupOpen = true; ImGui::OpenPopup("catalog_pick"); }
     ImGui::SameLine();
     if (ImGui::SmallButton("test")) {
@@ -431,6 +513,18 @@ void Ui::drawBindingEditor() {
     ImGui::SeparatorText(!isAxis ? "On press" : axisValue ? "Actions (the axis value is the parameter)" : "Axis moves up (+)");
     if (axisValue) ImGui::TextDisabled("K: events get the value as their parameter, L: var set uses it as the value to write, and RPN code can contain {v}.");
     drawActionList("press", draft_.onPress, 0);
+    if (axisValue && draft_.axis.detents.enabled) {
+        ImGui::SeparatorText("Lever gates: what to do at the cut-off and the afterburner");
+        ImGui::TextDisabled("Each list runs once when the lever enters or leaves that zone (after the calibration is done).");
+        ImGui::TextUnformatted("Enters the cut-off zone");
+        drawActionList("cutoff", draft_.onCutoff, 2);
+        ImGui::TextUnformatted("Leaves the cut-off zone");
+        drawActionList("cutoff_leave", draft_.onCutoffLeave, 3);
+        ImGui::TextUnformatted("Enters the afterburner zone");
+        drawActionList("afterburner", draft_.onAfterburner, 4);
+        ImGui::TextUnformatted("Leaves the afterburner zone");
+        drawActionList("afterburner_leave", draft_.onAfterburnerLeave, 5);
+    }
     if (!axisValue) {
         ImGui::SeparatorText(!isAxis ? "On release" : "Axis moves down (-)");
         if (!isAxis) ImGui::TextDisabled("Useful for 2-position switches: set a value on press, another on release.");
