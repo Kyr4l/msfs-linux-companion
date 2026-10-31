@@ -24,9 +24,11 @@ jobs:
       - name: Build GLFW 3.4
         run: |
           git clone --depth 1 --branch 3.4 https://github.com/glfw/glfw.git "$RUNNER_TEMP/glfw"
-          cmake -S "$RUNNER_TEMP/glfw" -B "$RUNNER_TEMP/glfw/build" -G Ninja -DCMAKE_BUILD_TYPE=Release \
+          cmake -S "$RUNNER_TEMP/glfw" -B "$RUNNER_TEMP/glfw/build" -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON \
             -DGLFW_BUILD_EXAMPLES=OFF -DGLFW_BUILD_TESTS=OFF -DGLFW_BUILD_DOCS=OFF
+          cmake --build "$RUNNER_TEMP/glfw/build"
           sudo cmake --install "$RUNNER_TEMP/glfw/build"
+          sudo ldconfig
 
       - name: Configure and build
         run: |
