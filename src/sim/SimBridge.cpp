@@ -12,6 +12,7 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <cstdlib>
 #include <cmath>
 #include <cstring>
 #include <fstream>
@@ -20,6 +21,7 @@
 #include <thread>
 
 #include "util/Log.hpp"
+#include "util/Isolated.hpp"
 
 namespace lr::sim {
 
@@ -512,6 +514,7 @@ bool simConnectAnswers(const std::string& host, uint16_t port, int timeoutMs) {
 
 std::vector<SimBridge::Endpoint> SimBridge::scanForSimConnect() {
     std::vector<Endpoint> found;
+    if (isolatedRun()) return found;  // a test run next to a real simulator must never probe or connect to it
     const WineSockets wine = wineserverSockets();
     const auto candidates = chooseProbeCandidates(loopbackListeners(), wine.processFound, wine.inodes);
     if (candidates.empty()) return found;  // the simulator is not running (or has not opened its port yet)

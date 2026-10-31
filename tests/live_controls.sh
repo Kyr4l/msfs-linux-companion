@@ -5,6 +5,7 @@
 # Runs the real binary against tools/mock_simconnect.py posing as the CJ4 (whose cockpit is "still loading" for the first
 # enumeration): lists the cockpit controls, sets, toggles and cycles input events, and reads them back.
 set -u
+export MSFS_LINUX_COMPANION_ISOLATED=1  # never probe a simulator that happens to be running, never open the real joysticks or Winwing devices
 BIN="$1"; ROOT="$2"
 TMP="$(mktemp -d)"; MOCKPID=""
 export XDG_STATE_HOME="$TMP/state"  # session logs of the test runs stay out of the real state directory

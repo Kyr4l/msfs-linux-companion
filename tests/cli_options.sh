@@ -5,6 +5,7 @@
 # Runs the binary headless with every value-taking option once. Exit status 2 means the parser rejected an
 # option; a timeout (124) or a normal exit are both fine. Options that exit immediately are checked separately.
 set -u
+export MSFS_LINUX_COMPANION_ISOLATED=1  # never probe a simulator that happens to be running, never open the real joysticks or Winwing devices
 BIN="$1"; CFG="$2"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 export XDG_STATE_HOME="$TMP/state"  # session logs of the test runs stay out of the real state directory
@@ -36,4 +37,6 @@ XDG_CONFIG_HOME="$XDG" timeout 2 "$BIN" --headless --port 1 2>&1 | grep -q 'Conf
 echo '{"profiles":[{"name":"Mine","aircraft":"A32NX","bindings":[]}],"active_profile":"Mine"}' > "$XDG/msfs-linux-companion/config.json"
 XDG_CONFIG_HOME="$XDG" timeout 2 "$BIN" --headless --port 1 2>&1 | grep -q 'profile "Mine"' \
     || { echo "FAIL: a second start replaced the new settings with the old ones"; fail=1; }
+# with the search switched off nothing is probed, even when a wineserver (a real simulator) is running: the port 1 does not answer
+timeout 6 "$BIN" --headless --port 1 2>&1 | grep -q 'probing' && { echo "FAIL: the search for the simulator ignored MSFS_LINUX_COMPANION_ISOLATED"; fail=1; }
 exit $fail

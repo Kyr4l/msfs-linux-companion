@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Kyr4l
 #include "input/Evdev.hpp"
+#include "util/Isolated.hpp"
 
 #include <dirent.h>
 #include <errno.h>
@@ -227,6 +228,7 @@ static bool sysfsLooksLikeJoystick(const std::string& eventName) {
 }
 
 void InputManager::scanDevices() {
+    if (isolatedRun()) return;  // tests never open the real devices
     DIR* dir = opendir("/dev/input");
     if (!dir) return;
     std::vector<std::string> paths;

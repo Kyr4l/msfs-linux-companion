@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Kyr4l
 #include "haptics/WinwingHid.hpp"
+#include "util/Isolated.hpp"
 
 #include <dirent.h>
 #include <errno.h>
@@ -216,6 +217,7 @@ void WinwingHidManager::autoAssign(Dev& d) {
 }
 
 void WinwingHidManager::rescan() {
+    if (isolatedRun()) return;  // tests never open the real devices
     std::lock_guard<std::mutex> lock(m_);
     DIR* dir = opendir("/sys/class/hidraw");
     if (!dir) return;

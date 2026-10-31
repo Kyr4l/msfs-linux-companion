@@ -6,6 +6,7 @@
 # program while connected to the mock simulator and while the simulator is gone, and no handshake to services that are
 # not the simulator.
 set -u
+export MSFS_LINUX_COMPANION_ISOLATED=1  # never probe a simulator that happens to be running, never open the real joysticks or Winwing devices
 BIN="$1"; ROOT="$2"
 TMP="$(mktemp -d)"; PIDS=()
 export XDG_STATE_HOME="$TMP/state" XDG_CONFIG_HOME="$TMP/cfg"
@@ -42,9 +43,13 @@ kill "$APP" 2>/dev/null; wait "$APP" 2>/dev/null
 # the configured port does not answer and another loopback service (here a second mock) is NOT the simulator's own
 # (wineserver) socket: it must never receive a SimConnect handshake
 echo '{"version":3,"host":"127.0.0.1","port":1,"auto_connect":true,"active_profile":"x","profiles":[{"name":"x","aircraft":"Asobo_CJ4","bindings":[]}]}' > "$TMP/config2.json"
-"$BIN" --headless --config "$TMP/config2.json" -q >"$TMP/app2.log" 2>&1 &
-APP2=$!; PIDS+=("$APP2")
-sleep 9
-kill "$APP2" 2>/dev/null; wait "$APP2" 2>/dev/null
-grep -q "OPEN from" "$TMP/other.log" && bad "a service that is not the simulator received a handshake" || ok "no handshake sent to other loopback services"
+if pgrep -x wineserver >/dev/null; then
+    echo "skip: a wineserver is running (a real simulator?): the search for the simulator's port is not exercised, so it cannot reach it"
+else
+    env -u MSFS_LINUX_COMPANION_ISOLATED "$BIN" --headless --config "$TMP/config2.json" -q >"$TMP/app2.log" 2>&1 &
+    APP2=$!; PIDS+=("$APP2")
+    sleep 9
+    kill "$APP2" 2>/dev/null; wait "$APP2" 2>/dev/null
+    grep -q "OPEN from" "$TMP/other.log" && bad "a service that is not the simulator received a handshake" || ok "no handshake sent to other loopback services"
+fi
 exit $fail
