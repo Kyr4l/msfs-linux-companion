@@ -184,9 +184,12 @@ checklists, whose copilot sets the lever with a parameter and then reads the lev
 its mixture: `MIXTURE1_SET` 0 lean, 16383 rich; the Pitts' propeller: `AXIS_PROPELLER_SET` -16383 to 16383); an entry whose range the SDK
 does not give says so. None of them is marked verified on a running aircraft yet. The same controls are listed in the Catalog tab
 of aircraft without a catalog of their own, and in the curated catalogs that ask for them, together with a few named buttons every
-aircraft can use: **Baro setting up / down** (`KOHLSMAN_INC` / `KOHLSMAN_DEC`, the events the sim's controls menu binds), **STD baro toggle**
-(`BAROMETRIC_STD_PRESSURE`, which the Garmin G1000 NXi of the C172, DA40 and others handles, see its public source) and **Baro: local
-pressure** (`BAROMETRIC`). They are findable by "baro", "std" or "qnh".
+aircraft can use: **Baro setting up / down** (`KOHLSMAN_INC` / `KOHLSMAN_DEC`, the events the sim's controls menu binds), **STD baro (set standard
+pressure)** (`BAROMETRIC_STD_PRESSURE`) and **Baro: local pressure** (`BAROMETRIC`), and for the Garmin G1000 two H events of its baro knob. They are
+findable by "baro", "std" or "qnh". None of them is a toggle: according to the public source of the G1000 NXi (the C172's, DA40's avionics),
+`BAROMETRIC_STD_PRESSURE` only switches STD on, `BAROMETRIC` switches STD on above 18000 ft and off below it (leaving the setting at 29.92), and the knob
+steps `AS1000_PFD_BARO_INC` / `_DEC` leave STD and put back the local setting that was remembered. So the way back from STD is the knob entries
+(*G1000 baro knob up / down*, they need the MobiFlight module), not a second press of the STD button. Not yet tried on a real cockpit.
 
 *Use travel from/to* turns the ends of the physical travel into dead zones and *Invert* flips the
 direction. `tools/virtual_joystick.py demo` creates a fake joystick to try all of this without hardware.

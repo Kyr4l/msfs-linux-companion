@@ -24,10 +24,11 @@ const std::vector<AxisTarget>& axisTargets();
 struct CommonControl {
     const char* section;  // "Altimeter"
     const char* label;    // "Altimeter setting (baro): increase"
-    const char* event;    // K: event name, without the prefix
+    const char* event;    // K: event name, without the prefix (H: event name for hEvent)
     const char* keywords; // extra words the Catalog search should find it by
     const char* note;     // one line: what it does and where that comes from
     bool incDec;          // a stepping control: a button bound to it repeats while held
+    bool hEvent = false;  // an H: event (needs the MobiFlight module) instead of a K: event
 };
 const std::vector<CommonControl>& commonControls();
 const AxisTarget* findAxisTarget(const std::string& event);  // by event name (with or without "K:"), or nullptr

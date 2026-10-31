@@ -222,6 +222,12 @@ int main() {
             for (const auto& e : c->entries)
                 if (e.name == "KOHLSMAN_INC" || e.name == "KOHLSMAN_DEC") CHECK(e.isIncDec() && e.searchKey.find("qnh") != std::string::npos);
                 else if (e.name == "BAROMETRIC_STD_PRESSURE") CHECK(!e.isIncDec() && e.searchKey.find("std") != std::string::npos);
+            // the way out of STD on the G1000 is its baro knob, an H: event: found by "std", turned into an H event action, repeats while held
+            const CatalogEntry* knob = nullptr;
+            for (const auto& e : c->entries)
+                if (e.name == "AS1000_PFD_BARO_INC") knob = &e;
+            CHECK(knob && knob->kind == "h_event" && knob->standard && knob->isIncDec() && knob->searchKey.find("std") != std::string::npos);
+            if (knob) CHECK(knob->toAction().kind == ActionKind::HEvent && knob->toAction().name == "AS1000_PFD_BARO_INC");
             std::set<std::string> events;
             for (const auto& t : axisTargets()) {
                 CHECK(events.insert(t.event).second);  // each event once

@@ -64,19 +64,34 @@ const std::vector<AxisTarget>& axisTargets() {
     return t;
 }
 
-// Sources: the MSFS controls menu binds KOHLSMAN_INC, KOHLSMAN_DEC and BAROMETRIC (Input profiles of the MSFS 2024 install); the Garmin G1000 NXi (the
-// C172's avionics) intercepts BAROMETRIC (sets the baro to the local value) and BAROMETRIC_STD_PRESSURE (switches STD baro on and off) in
-// src/workingtitle-instruments-g1000/html_ui/Shared/Input/AltimeterBaroKeyEventHandler.ts of github.com/microsoft/msfs-avionics-mirror.
+// Sources: the MSFS controls menu binds KOHLSMAN_INC, KOHLSMAN_DEC and BAROMETRIC (Input profiles of the MSFS 2024 install). The Garmin G1000 NXi (the
+// C172's avionics) intercepts BAROMETRIC and BAROMETRIC_STD_PRESSURE (Shared/Input/AltimeterBaroKeyEventHandler.ts in
+// github.com/microsoft/msfs-avionics-mirror, folder src/workingtitle-instruments-g1000/html_ui) and reads what they do in PFD/Components/FlightInstruments/Altimeter.tsx:
+//  * BAROMETRIC_STD_PRESSURE publishes "STD on": it only switches STD baro ON, never off (a second press while on STD overwrites the remembered
+//    local setting with 29.92). It is not a toggle.
+//  * BAROMETRIC (the 'B' key) acts by the indicated altitude: above 18000 ft it switches STD on, at or below it switches STD off (without restoring
+//    the local setting it remembered: the setting stays 29.92 inHg until it is set again).
+//  * The knob steps AS1000_PFD_BARO_INC / _DEC (H: events) leave STD at once and put back the local setting that was remembered, then step.
+//  * KOHLSMAN_INC / _DEC are not intercepted: they move the sim's setting, which the display follows, but not out of STD.
+// None of this has been tried on a real cockpit yet.
 const std::vector<CommonControl>& commonControls() {
     static const std::vector<CommonControl> t = {
         {"Altimeter", "Baro setting up", "KOHLSMAN_INC", "baro barometric pressure qnh kohlsman altimeter up higher",
          "One step up per press; a button repeats while held. The sim's controls menu binds this event.", true},
         {"Altimeter", "Baro setting down", "KOHLSMAN_DEC", "baro barometric pressure qnh kohlsman altimeter down lower",
          "One step down per press; a button repeats while held. The sim's controls menu binds this event.", true},
-        {"Altimeter", "STD baro toggle", "BAROMETRIC_STD_PRESSURE", "baro std standard pressure 1013 29.92 qnh altimeter toggle",
-         "Switches STD baro on and off on the Garmin G1000 NXi (source: its key event handler). Not in the sim's controls menu.", false},
+        {"Altimeter", "STD baro (set standard pressure)", "BAROMETRIC_STD_PRESSURE", "baro std standard pressure 1013 29.92 qnh altimeter",
+         "Sets the standard pressure (STD). It does not switch back: on the Garmin G1000 NXi it only turns STD on (source: its key event handler), "
+         "use the G1000 baro knob entries to leave STD. Not in the sim's controls menu.", false},
         {"Altimeter", "Baro: local pressure", "BAROMETRIC", "baro barometric pressure qnh local sync altimeter",
-         "Sets the altimeter to the local pressure (the SDK: sea level pressure; the G1000 NXi sets its baro). The sim's controls menu binds this event.", false},
+         "Sets the altimeter to the local pressure (the SDK: sea level pressure). On the Garmin G1000 NXi it depends on the altitude: above 18000 ft it "
+         "switches STD on, below it switches STD off (the setting stays 29.92 until you set it). The sim's controls menu binds this event.", false},
+        {"Altimeter", "G1000 baro knob up (leaves STD)", "AS1000_PFD_BARO_INC", "baro g1000 as1000 knob std standard qnh altimeter up higher leave",
+         "The baro knob of the Garmin G1000 PFD, one step up. From STD it goes back to the local setting that was remembered. H: event, needs the MobiFlight "
+         "module (source: the G1000 NXi altimeter).", true, true},
+        {"Altimeter", "G1000 baro knob down (leaves STD)", "AS1000_PFD_BARO_DEC", "baro g1000 as1000 knob std standard qnh altimeter down lower leave",
+         "The baro knob of the Garmin G1000 PFD, one step down. From STD it goes back to the local setting that was remembered. H: event, needs the MobiFlight "
+         "module (source: the G1000 NXi altimeter).", true, true},
     };
     return t;
 }

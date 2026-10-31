@@ -245,8 +245,8 @@ std::vector<CatalogEntry> commonControlEntries() {
         c.section = std::string("Common: ") + t.section;
         c.function = t.label;
         c.api = c.name = t.event;
-        c.kind = "sim_event";
-        c.type = "K: event";
+        c.kind = t.hEvent ? "h_event" : "sim_event";
+        c.type = t.hEvent ? "H: event" : "K: event";
         c.behavior = t.incDec ? "knob_up" : "press";
         c.description = t.note;
         c.standard = true;
@@ -447,10 +447,9 @@ void CatalogSet::refreshStandard() {
     if (Catalog* s = find(kStandardCatalogId)) {
         std::vector<CatalogEntry> axes = axisTargetEntries();
         for (auto& e : commonControlEntries()) axes.push_back(std::move(e));
-        std::unordered_set<std::string> names;
-        for (const auto& e : axes) names.insert(e.name);
-        s->entries.erase(std::remove_if(s->entries.begin(), s->entries.end(), [&](const CatalogEntry& e) { return e.kind == "sim_event" && names.count(e.name); }),
-                         s->entries.end());
+        std::unordered_set<std::string> keys;
+        for (const auto& e : axes) keys.insert(entryKey(e));
+        s->entries.erase(std::remove_if(s->entries.begin(), s->entries.end(), [&](const CatalogEntry& e) { return keys.count(entryKey(e)) > 0; }), s->entries.end());
         s->entries.insert(s->entries.begin(), axes.begin(), axes.end());
         ++s->revision;
     }
