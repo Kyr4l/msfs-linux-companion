@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <limits>
 #include <sstream>
 #include <string>
 
@@ -135,6 +136,111 @@ int main(int argc, char** argv) {
         std::string err;
         CHECK(loadSettings(f.string(), s, err));
         CHECK(s.profiles.size() == 1 && s.profiles[0].aircraft == "B787");
+    }
+
+    std::printf("an action of an unknown kind is left out, not turned into a sim event\n");
+    {
+        const fs::path f = tmp / "unknown_kind.json";
+        std::ofstream(f) << R"({"version": 4, "profiles": [{"name": "X", "aircraft": "A32NX", "bindings": [{"label": "b", "input": {"device": "d", "kind": "button", "code": 1},
+            "on_press": [{"kind": "key_press", "name": "SPACE"}, {"kind": "sim_event", "name": "GEAR_UP"}]}]}]})";
+        Settings s;
+        std::string err;
+        CHECK(loadSettings(f.string(), s, err));
+        CHECK(s.profiles.size() == 1 && s.profiles[0].bindings.size() == 1 && s.profiles[0].bindings[0].onPress.size() == 1);
+        if (s.profiles[0].bindings[0].onPress.size() == 1) CHECK(s.profiles[0].bindings[0].onPress[0].name == "GEAR_UP");
+    }
+
+    std::printf("a number that is not finite does not make the saved file unreadable\n");
+    {
+        Settings s;
+        Profile p;
+        p.name = "P";
+        Binding b;
+        b.input = {"dev", lr::input::InputKind::Axis, 3, 0};
+        Action a;
+        a.name = "THROTTLE_SET";
+        a.value = std::numeric_limits<double>::infinity();
+        b.onPress.push_back(a);
+        b.axis.outMax = std::numeric_limits<double>::quiet_NaN();
+        p.bindings.push_back(b);
+        s.profiles.push_back(p);
+        s.activeProfile = "P";
+        std::string err;
+        const fs::path f = tmp / "nonfinite.json";
+        CHECK(saveSettings(f.string(), s, err));
+        Settings t;
+        CHECK(loadSettings(f.string(), t, err));
+        CHECK(t.profiles.size() == 1 && t.profiles[0].bindings.size() == 1 && t.profiles[0].bindings[0].onPress[0].value == 0.0 && t.profiles[0].bindings[0].axis.outMax == 0.0);
+    }
+
+    std::printf("the settings of the gates stay in the file while the gates are off\n");
+    {
+        Settings s;
+        Profile p;
+        p.name = "P";
+        Binding b;
+        b.input = {"dev", lr::input::InputKind::Axis, 3, 0};
+        b.axis.detents.enabled = false;
+        b.axis.detents.outIdle = 0.25;
+        Action a;
+        a.name = "STOP";
+        b.onCutoff.push_back(a);
+        p.bindings.push_back(b);
+        Binding plain;
+        plain.input = {"dev", lr::input::InputKind::Axis, 4, 0};
+        p.bindings.push_back(plain);
+        s.profiles.push_back(p);
+        s.activeProfile = "P";
+        std::string err;
+        const fs::path f = tmp / "gates_off.json";
+        CHECK(saveSettings(f.string(), s, err));
+        Settings t;
+        CHECK(loadSettings(f.string(), t, err));
+        CHECK(t.profiles.size() == 1 && t.profiles[0].bindings.size() == 2);
+        if (t.profiles[0].bindings.size() == 2) {
+            CHECK(!t.profiles[0].bindings[0].axis.detents.enabled && t.profiles[0].bindings[0].axis.detents.outIdle == 0.25);
+            CHECK(t.profiles[0].bindings[0].onCutoff.size() == 1 && t.profiles[0].bindings[0].onCutoff[0].name == "STOP");
+        }
+        // a plain axis is written as before: no gate settings of its own
+        nlohmann::json j;
+        std::ifstream in(f);
+        in >> j;
+        CHECK(!j["profiles"][0]["bindings"][1]["axis"].contains("detents") && !j["profiles"][0]["bindings"][1].contains("zone_actions"));
+    }
+
+    std::printf("a port outside 0..65535 is clamped, a config path without a directory can be saved\n");
+    {
+        const fs::path f = tmp / "port.json";
+        std::ofstream(f) << R"({"version": 4, "port": 70000, "profiles": [{"name": "X", "aircraft": "A32NX", "bindings": []}]})";
+        Settings s;
+        std::string err;
+        CHECK(loadSettings(f.string(), s, err));
+        CHECK(s.port == 65535);
+        const fs::path before = fs::current_path();
+        fs::current_path(tmp);
+        CHECK(saveSettings("no-directory-part.json", s, err));
+        CHECK(fs::exists(tmp / "no-directory-part.json") && !fs::exists(tmp / "no-directory-part.json.tmp"));
+        fs::current_path(before);
+    }
+
+    std::printf("the engine is given a profile again only when something it uses has changed\n");
+    {
+        Profile p;
+        p.name = "P";
+        Binding b;
+        b.input = {"dev", lr::input::InputKind::Button, 1, 0};
+        Action a;
+        a.name = "GEAR_UP";
+        b.onPress.push_back(a);
+        p.bindings.push_back(b);
+        const std::vector<AxisCalibration> none;
+        const std::string first = engineFingerprint(p, none);
+        p.bindings[0].group = "Gear";  // only the Bindings tab looks at it
+        CHECK(engineFingerprint(p, none) == first);
+        p.bindings[0].onPress[0].name = "GEAR_DOWN";
+        CHECK(engineFingerprint(p, none) != first);
+        std::vector<AxisCalibration> cals(1);
+        CHECK(engineFingerprint(p, cals) != engineFingerprint(p, none));
     }
 
     std::printf(failures ? "\n%d check(s) FAILED\n" : "\nall checks passed\n", failures);

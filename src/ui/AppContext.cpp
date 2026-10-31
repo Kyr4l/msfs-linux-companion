@@ -24,8 +24,14 @@ using namespace uidetail;
 // ---------------------------------------------------------------- AppContext
 
 void AppContext::pushProfileToEngine() {
-    engine.setCalibrations(settings.calibrations);
-    engine.setProfile(std::make_shared<Profile>(settings.ensureActive()));
+    // Every edit of anything calls this; the engine forgets where each lever is when it is given a profile, so a lever resting in a gate
+    // would fire that gate's actions again at its next movement. Only a change of what the engine uses is passed on.
+    const std::string fingerprint = engineFingerprint(settings.ensureActive(), settings.calibrations);
+    if (fingerprint != pushedFingerprint_) {
+        pushedFingerprint_ = fingerprint;
+        engine.setCalibrations(settings.calibrations);
+        engine.setProfile(std::make_shared<Profile>(settings.ensureActive()));
+    }
     refreshWatches();
 }
 
@@ -116,14 +122,17 @@ void AppContext::loadLiveCaches() {
     std::error_code ec;
     const std::filesystem::path dir = std::filesystem::path(configDir()) / "live";
     if (!std::filesystem::is_directory(dir, ec)) return;
-    for (const auto& f : std::filesystem::directory_iterator(dir, ec)) {
-        if (f.path().extension() != ".json") continue;
+    std::vector<std::filesystem::path> files;
+    for (const auto& f : std::filesystem::directory_iterator(dir, ec))
+        if (f.path().extension() == ".json") files.push_back(f.path());
+    std::sort(files.begin(), files.end());  // the directory has no order of its own: the same files give the same catalogs every start
+    for (const auto& file : files) {
         Catalog cached;
         std::string err;
-        if (!Catalog::loadLive(f.path().string(), cached, err)) { LOG_WARN("Ignoring %s: %s", f.path().string().c_str(), err.c_str()); continue; }
+        if (!Catalog::loadLive(file.string(), cached, err)) { LOG_WARN("Ignoring %s: %s", file.string().c_str(), err.c_str()); continue; }
         if (sim::genericFolderName(cached.aircraft)) {
             // MSFS 2024 reports a path that older versions turned into the aircraft "config"; the file can be deleted
-            LOG_WARN("Ignoring %s: \"%s\" is not an aircraft (written by an older version on MSFS 2024)", f.path().string().c_str(), cached.aircraft.c_str());
+            LOG_WARN("Ignoring %s: \"%s\" is not an aircraft (written by an older version on MSFS 2024)", file.string().c_str(), cached.aircraft.c_str());
             continue;
         }
         catalogs.applyLive(cached.aircraft, cached.title, cached.entries);
@@ -150,10 +159,14 @@ void AppContext::syncLive() {
 }
 
 void AppContext::forgetLive(const std::string& aircraft) {
-    const std::string canon = catalogs.canonicalId(aircraft);  // the spelling that names the cache file
     catalogs.forgetLive(aircraft);
+    // every file of that aircraft, whatever the spelling of its name ("asobo_cj4.json" and "Asobo_CJ4.json" are the same aircraft)
     std::error_code ec;
-    std::filesystem::remove(liveCacheFile(canon), ec);
+    const std::filesystem::path dir = std::filesystem::path(configDir()) / "live";
+    std::vector<std::filesystem::path> files;
+    for (const auto& f : std::filesystem::directory_iterator(dir, ec))
+        if (f.path().extension() == ".json" && sim::sameAircraft(f.path().stem().string(), aircraft)) files.push_back(f.path());
+    for (const auto& f : files) std::filesystem::remove(f, ec);
 }
 
 void AppContext::pushHapticsConfig() {

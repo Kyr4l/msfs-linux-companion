@@ -7,8 +7,12 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <optional>
 
 #include <nlohmann/json.hpp>
+
+#include "util/AtomicFile.hpp"
+#include "util/Log.hpp"
 
 namespace lr::app {
 
@@ -125,24 +129,42 @@ Profile& Settings::ensureActive() {
     return *p;
 }
 
+// NaN and infinity would be written as null, which the next load refuses (and with it the whole file): a number the user typed as 1e999 is 0.
+static double finiteOr0(double v) { return std::isfinite(v) ? v : 0.0; }
+
 static json toJson(const Action& a) {
-    return json{{"kind", actionKindName(a.kind)}, {"name", a.name}, {"value", a.value}};
+    return json{{"kind", actionKindName(a.kind)}, {"name", a.name}, {"value", finiteOr0(a.value)}};
 }
 
-static Action actionFromJson(const json& j) {
+// An action of a kind this build does not know (a file written by a newer one) is left out: reading it as the default kind would send
+// something the user never bound.
+static std::optional<Action> actionFromJson(const json& j) {
     Action a;
-    actionKindFromName(j.value("kind", "sim_event"), a.kind);
+    const std::string kind = j.value("kind", "sim_event");
+    if (!actionKindFromName(kind, a.kind)) {
+        LOG_WARN("Config: an action of the unknown kind \"%s\" was skipped", kind.c_str());
+        return std::nullopt;
+    }
     a.name = j.value("name", "");
     a.value = j.value("value", 0.0);
     return a;
 }
 
+static void readActions(const json& list, std::vector<Action>& into) {
+    for (const auto& a : list)
+        if (auto action = actionFromJson(a)) into.push_back(*action);
+}
+
 static json toJson(const AxisConfig& c) {
     json j{{"mode", c.mode == AxisMode::Steps ? "steps" : "value"}, {"invert", c.invert},
-           {"in_min", c.inMin}, {"in_max", c.inMax}, {"out_min", c.outMin}, {"out_max", c.outMax},
-           {"integer", c.integer}, {"min_interval_ms", c.minIntervalMs}, {"step_percent", c.stepPercent}};
-    if (c.detents.enabled)  // omitted otherwise: files of plain axes stay as before
-        j["detents"] = json{{"enabled", true}, {"out_cutoff", c.detents.outCutoff}, {"out_idle", c.detents.outIdle}, {"out_mil", c.detents.outMil}};
+           {"in_min", finiteOr0(c.inMin)}, {"in_max", finiteOr0(c.inMax)}, {"out_min", finiteOr0(c.outMin)}, {"out_max", finiteOr0(c.outMax)},
+           {"integer", c.integer}, {"min_interval_ms", c.minIntervalMs}, {"step_percent", finiteOr0(c.stepPercent)}};
+    // omitted while they are the defaults and the gates are off (files of plain axes stay as before); kept once set, even when the gates
+    // are switched off, so switching them on again finds the values where they were left
+    const AxisDetents defaults;
+    if (c.detents.enabled || c.detents.outCutoff != defaults.outCutoff || c.detents.outIdle != defaults.outIdle || c.detents.outMil != defaults.outMil)
+        j["detents"] = json{{"enabled", c.detents.enabled}, {"out_cutoff", finiteOr0(c.detents.outCutoff)}, {"out_idle", finiteOr0(c.detents.outIdle)},
+                            {"out_mil", finiteOr0(c.detents.outMil)}};
     return j;
 }
 
@@ -185,7 +207,8 @@ static json toJson(const Binding& b) {
     };
     if (b.input.kind == input::InputKind::Axis) out["axis"] = toJson(b.axis);  // omitted for buttons/hats: files stay as before
     if (!b.group.empty()) out["group"] = b.group;  // omitted when empty: files stay as before
-    if (b.axis.detents.enabled && b.input.kind == input::InputKind::Axis) {
+    const bool hasZoneActions = !b.onCutoff.empty() || !b.onCutoffLeave.empty() || !b.onAfterburner.empty() || !b.onAfterburnerLeave.empty();
+    if ((b.axis.detents.enabled || hasZoneActions) && b.input.kind == input::InputKind::Axis) {
         auto list = [](const std::vector<Action>& v) { json a = json::array(); for (const auto& x : v) a.push_back(toJson(x)); return a; };
         out["zone_actions"] = json{{"cutoff", list(b.onCutoff)}, {"cutoff_leave", list(b.onCutoffLeave)},
                                    {"afterburner", list(b.onAfterburner)}, {"afterburner_leave", list(b.onAfterburnerLeave)}};
@@ -203,12 +226,12 @@ static Binding bindingFromJson(const json& j) {
         b.input.code = i.value("code", 0);
         b.input.dir = i.value("dir", 0);
     }
-    for (const auto& a : j.value("on_press", json::array())) b.onPress.push_back(actionFromJson(a));
-    for (const auto& a : j.value("on_release", json::array())) b.onRelease.push_back(actionFromJson(a));
+    readActions(j.value("on_press", json::array()), b.onPress);
+    readActions(j.value("on_release", json::array()), b.onRelease);
     if (j.contains("axis")) b.axis = axisFromJson(j["axis"]);
     if (j.contains("zone_actions") && j["zone_actions"].is_object()) {
         const json& z = j["zone_actions"];
-        auto read = [&z](const char* key, std::vector<Action>& into) { for (const auto& a : z.value(key, json::array())) into.push_back(actionFromJson(a)); };
+        auto read = [&z](const char* key, std::vector<Action>& into) { readActions(z.value(key, json::array()), into); };
         read("cutoff", b.onCutoff);
         read("cutoff_leave", b.onCutoffLeave);
         read("afterburner", b.onAfterburner);
@@ -245,7 +268,7 @@ bool loadSettings(const std::string& path, Settings& out, std::string& err) {
         Settings s;
         s.loadedVersion = j.value("version", 1);
         s.host = j.value("host", s.host);
-        s.port = j.value("port", s.port);
+        s.port = std::clamp(j.value("port", s.port), 0, 65535);  // the bridge takes a 16-bit port: 70000 would become 4464
         s.autoConnect = j.value("auto_connect", s.autoConnect);
         s.guideAutodetect = j.value("guide_autodetect", s.guideAutodetect);
         s.activeProfile = j.value("active_profile", "");
@@ -309,6 +332,26 @@ bool loadSettings(const std::string& path, Settings& out, std::string& err) {
     return true;
 }
 
+static json toJson(const AxisCalibration& c) {
+    json cj{{"device", c.device}, {"code", c.code}, {"cutoff", c.cutoff}, {"idle", c.idle}, {"mil", c.mil}, {"ab", c.ab}, {"snap", c.snap}};
+    if (c.cutoffBtn >= 0) cj["cutoff_btn"] = c.cutoffBtn;  // omitted without a button: files stay as before
+    if (c.idleBtn >= 0) cj["idle_btn"] = c.idleBtn;
+    if (c.milBtn >= 0) cj["mil_btn"] = c.milBtn;
+    if (c.abBtn >= 0) cj["ab_btn"] = c.abBtn;
+    return cj;
+}
+
+std::string engineFingerprint(const Profile& p, const std::vector<AxisCalibration>& calibrations) {
+    json bindings = json::array();
+    for (Binding b : p.bindings) {
+        b.group.clear();  // only the Bindings tab looks at it
+        bindings.push_back(toJson(b));
+    }
+    json cals = json::array();
+    for (const auto& c : calibrations) cals.push_back(toJson(c));
+    return json{{"name", p.name}, {"aircraft", p.aircraft}, {"bindings", bindings}, {"calibrations", cals}}.dump();
+}
+
 bool saveSettings(const std::string& path, const Settings& s, std::string& err) {
     json profiles = json::array();
     for (const auto& p : s.profiles) {
@@ -323,20 +366,12 @@ bool saveSettings(const std::string& path, const Settings& s, std::string& err) 
                             {"left_device", dc.identity.left.device}, {"left_index", dc.identity.left.index},
                             {"right_device", dc.identity.right.device}, {"right_index", dc.identity.right.index}};
     json calibrations = json::array();
-    for (const auto& c : s.calibrations) {
-        json cj{{"device", c.device}, {"code", c.code}, {"cutoff", c.cutoff}, {"idle", c.idle}, {"mil", c.mil}, {"ab", c.ab}, {"snap", c.snap}};
-        if (c.cutoffBtn >= 0) cj["cutoff_btn"] = c.cutoffBtn;  // omitted without a button: files stay as before
-        if (c.idleBtn >= 0) cj["idle_btn"] = c.idleBtn;
-        if (c.milBtn >= 0) cj["mil_btn"] = c.milBtn;
-        if (c.abBtn >= 0) cj["ab_btn"] = c.abBtn;
-        calibrations.push_back(cj);
-    }
+    for (const auto& c : s.calibrations) calibrations.push_back(toJson(c));
     json j{{"version", kConfigVersion}, {"host", s.host}, {"port", s.port}, {"auto_connect", s.autoConnect}, {"guide_autodetect", s.guideAutodetect},
            {"active_profile", s.activeProfile}, {"profiles", profiles}, {"calibrations", calibrations},
            {"bindings_view", {{"group_by", s.bindingsGroupBy == BindingsGroupBy::Device ? "device" : s.bindingsGroupBy == BindingsGroupBy::InputType ? "type" : s.bindingsGroupBy == BindingsGroupBy::Custom ? "custom" : "none"}, {"auto_sort", s.bindingsAutoSort}}},
            {"haptics", {{"enabled", s.haptics.enabled}, {"master", s.haptics.master}, {"rules", rules}, {"devices", devices}}}};
     try {
-        std::filesystem::create_directories(std::filesystem::path(path).parent_path());
         // First save over a file written by an older schema: keep a copy of it once, untouched, so an
         // upgrade can always be rolled back (config.json.v1.bak).
         if (std::filesystem::exists(path)) {
@@ -351,18 +386,11 @@ bool saveSettings(const std::string& path, const Settings& s, std::string& err) 
             const std::string bak = path + ".v" + std::to_string(onDisk) + ".bak";
             if (onDisk < kConfigVersion && !std::filesystem::exists(bak)) std::filesystem::copy_file(path, bak);
         }
-        const std::string tmp = path + ".tmp";
-        {
-            std::ofstream outFile(tmp);
-            if (!outFile) { err = "cannot write " + tmp; return false; }
-            outFile << j.dump(2) << "\n";
-        }
-        std::filesystem::rename(tmp, path);
     } catch (const std::exception& e) {
         err = e.what();
         return false;
     }
-    return true;
+    return writeFileAtomically(path, j.dump(2) + "\n", err);
 }
 
 }  // namespace lr::app

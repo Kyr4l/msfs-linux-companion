@@ -40,13 +40,25 @@ void Ui::drawLogTab() {
     ImGui::EndChild();
 
     if (ImGui::BeginChild("log", ImVec2(0, 0), ImGuiChildFlags_Borders)) {
-        const auto entries = Log::instance().snapshot();
-        for (const auto& e : entries) {
-            if (static_cast<int>(e.level) < logMinLevel_) continue;
-            ImVec4 c = e.level == LogLevel::Error ? kRed : e.level == LogLevel::Warn ? kYellow : e.level == LogLevel::Debug ? kGrey : ImGui::GetStyleColorVec4(ImGuiCol_Text);
-            ImGui::TextColored(c, "%s  %s", formatTime(e.time).c_str(), e.text.c_str());
+        // up to 3000 lines: copied when the log has changed, and only the ones in view are drawn
+        const uint64_t serial = Log::instance().serial();
+        if (serial != logCacheSerial_ || logMinLevel_ != logCacheLevel_) {
+            if (serial != logCacheSerial_) logEntries_ = Log::instance().snapshot();
+            logShown_.clear();
+            for (size_t i = 0; i < logEntries_.size(); ++i)
+                if (static_cast<int>(logEntries_[i].level) >= logMinLevel_) logShown_.push_back(i);
+            logCacheSerial_ = serial;
+            logCacheLevel_ = logMinLevel_;
         }
-        uint64_t serial = Log::instance().serial();
+        ImGuiListClipper clipper;
+        clipper.Begin(static_cast<int>(logShown_.size()));
+        while (clipper.Step()) {
+            for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; ++row) {
+                const LogEntry& e = logEntries_[logShown_[static_cast<size_t>(row)]];
+                ImVec4 c = e.level == LogLevel::Error ? kRed : e.level == LogLevel::Warn ? kYellow : e.level == LogLevel::Debug ? kGrey : ImGui::GetStyleColorVec4(ImGuiCol_Text);
+                ImGui::TextColored(c, "%s  %s", formatTime(e.time).c_str(), e.text.c_str());
+            }
+        }
         if (logAutoScroll_ && serial != logSerialSeen_) ImGui::SetScrollHereY(1.0f);
         logSerialSeen_ = serial;
     }
@@ -59,10 +71,12 @@ void Ui::drawSettingsTab() {
     Settings& s = ctx_.settings;
     ImGui::SeparatorText("SimConnect (TCP)");
     bool changed = false;
-    ImGui::SetNextItemWidth(200);
-    changed |= ImGui::InputText("Host", &s.host);
-    ImGui::SetNextItemWidth(120);
-    changed |= ImGui::InputInt("Port", &s.port);
+    fieldLabel("Host");
+    ImGui::SetNextItemWidth(ImGui::GetFontSize() * 14);
+    changed |= ImGui::InputText("##host", &s.host);
+    fieldLabel("Port");
+    ImGui::SetNextItemWidth(ImGui::GetFontSize() * 9);
+    changed |= ImGui::InputInt("##port", &s.port);
     changed |= ImGui::Checkbox("Connect automatically", &s.autoConnect);
     if (changed) {
         s.port = std::clamp(s.port, 0, 65535);
@@ -84,8 +98,8 @@ void Ui::drawSettingsTab() {
                        "steamapps/compatdata/2537590/pfx/drive_c/users/steamuser/AppData/Roaming/Microsoft Flight Simulator 2024/SimConnect.xml  (MSFS 2024)");
 
     ImGui::SeparatorText("Files");
-    ImGui::Text("Config:  %s", ctx_.configPath.c_str());
-    for (const auto& c : ctx_.catalogs) ImGui::Text("Catalog (%s): %s", c.aircraft.c_str(), c.sourcePath.empty() ? "from the sim / cache" : c.sourcePath.c_str());
+    ImGui::TextWrapped("Config:  %s", ctx_.configPath.c_str());
+    for (const auto& c : ctx_.catalogs) ImGui::TextWrapped("Catalog (%s): %s", c.aircraft.c_str(), c.sourcePath.empty() ? "from the sim / cache" : c.sourcePath.c_str());
     if (ctx_.catalogs.empty()) ImGui::TextUnformatted("Catalog: (none)");
     if (ImGui::Button("Save now")) ctx_.save();
 

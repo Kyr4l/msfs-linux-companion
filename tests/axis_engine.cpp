@@ -573,7 +573,7 @@ int main() {
             CHECK(log.size() == 1 && log[0].name == "A" && e.hasScheduled());
             CHECK(e.tick() > 0 && log.size() == 1);  // not due yet, and the engine says when to look again
             wait(80);
-            e.tick();
+            CHECK(e.tick() > 0);  // B ran and scheduled the rest of its list: the next look is due when that is, not at the default poll
             CHECK(log.size() == 2 && log[1].name == "B" && e.hasScheduled());
             wait(50);
             e.tick();
@@ -690,12 +690,12 @@ int main() {
         auto act = [](ActionKind k, const char* name, double v) { Action a; a.kind = k; a.name = name; a.value = v; return a; };
         auto wait = [](int ms) { std::this_thread::sleep_for(std::chrono::milliseconds(ms)); };
         struct Seen { std::string name; double value; };
-        auto setup = [&](Engine& e, std::vector<Seen>& log, std::map<int, bool>& pressed) {
+        auto setup = [&](Engine& e, std::vector<Seen>& log, std::map<int, bool>& pressed, int minInterval = 5) {
             auto lp = std::make_shared<Profile>();
             Binding t;
             t.label = "Left throttle";
             t.input = {dev, InputKind::Axis, 3, 0};
-            t.axis.mode = AxisMode::Value; t.axis.integer = false; t.axis.minIntervalMs = 5; t.axis.detents = d;
+            t.axis.mode = AxisMode::Value; t.axis.integer = false; t.axis.minIntervalMs = minInterval; t.axis.detents = d;
             t.onPress = {act(ActionKind::InputEvent, "THR", 0)};
             t.onCutoff = {act(ActionKind::InputEvent, "STOP", 1)};
             t.onCutoffLeave = {act(ActionKind::InputEvent, "STOP", 0)};
@@ -765,6 +765,66 @@ int main() {
             wait(130);
             e.tick();
             CHECK(count(log, "THR", 0) == zeros);       // no repeat for a change of zone
+        }
+    }
+
+    // ---- a value held back by the minimum interval: it is sent from tick(), and a lever that has come down onto idle gets its second 0 then too
+    {
+        AxisCalibration cal;
+        cal.device = dev; cal.code = 3;
+        cal.cutoff = 0.03; cal.idle = 0.03; cal.mil = 0.75; cal.ab = 0.90;
+        cal.cutoffBtn = 300; cal.idleBtn = 301; cal.milBtn = 302; cal.abBtn = 303;
+        AxisDetents d;
+        d.enabled = true; d.outCutoff = 0.0; d.outIdle = 0.0; d.outMil = 0.8;
+        struct Seen { std::string name; double value; };
+        auto act = [](ActionKind k, const char* name, double v) { Action a; a.kind = k; a.name = name; a.value = v; return a; };
+        auto wait = [](int ms) { std::this_thread::sleep_for(std::chrono::milliseconds(ms)); };
+        auto count = [](const std::vector<Seen>& log, const std::string& name, double value) {
+            size_t n = 0;
+            for (const auto& x : log) if (x.name == name && std::fabs(x.value - value) < 1e-9) ++n;
+            return n;
+        };
+        auto setup = [&](Engine& e, std::vector<Seen>& log, std::map<int, bool>& pressed) {
+            auto lp = std::make_shared<Profile>();
+            Binding t;
+            t.label = "Left throttle";
+            t.input = {dev, InputKind::Axis, 3, 0};
+            t.axis.mode = AxisMode::Value; t.axis.integer = false; t.axis.minIntervalMs = 60; t.axis.detents = d;
+            t.onPress = {act(ActionKind::InputEvent, "THR", 0)};
+            lp->bindings.push_back(t);
+            e.setProbes([&pressed](const std::string&, int code) { return pressed[code]; }, [](const std::string&, int) { return -1.0f; });
+            e.setProfile(lp);
+            e.setCalibrations({cal});
+            e.setActionObserver([&log](const Action& a, const std::string&) { log.push_back({a.name, a.value}); });
+        };
+        {
+            Engine e(bridge);
+            std::vector<Seen> log;
+            std::map<int, bool> pressed;
+            setup(e, log, pressed);
+            e.onInput(axisEvent(dev, 3, 0.0f, 0.40f));  // sent at once
+            pressed[301] = true;
+            e.onInput(buttonEvent(dev, 301, true));     // the idle switch closes inside the 60 ms interval: the 0 is held back
+            CHECK(count(log, "THR", 0) == 0);
+            wait(70);
+            e.tick();
+            CHECK(count(log, "THR", 0) == 1 && e.hasScheduled());  // the held value is out, and the second 0 is on its way
+            wait(130);
+            e.tick();
+            CHECK(count(log, "THR", 0) == 2 && !e.hasScheduled());
+        }
+        {   // paused: what was held back is dropped, not sent when the interval is over
+            Engine e(bridge);
+            std::vector<Seen> log;
+            std::map<int, bool> pressed;
+            setup(e, log, pressed);
+            e.onInput(axisEvent(dev, 3, 0.0f, 0.40f));
+            e.onInput(axisEvent(dev, 3, 0.40f, 0.60f));  // inside the interval: held back
+            const size_t sent = log.size();
+            e.setEnabled(false);
+            wait(70);
+            e.tick();
+            CHECK(log.size() == sent);
         }
     }
 

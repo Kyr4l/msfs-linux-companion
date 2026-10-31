@@ -72,6 +72,13 @@ target_compile_definitions(msfs-linux-companion PRIVATE
 )
 target_compile_options(msfs-linux-companion PRIVATE -Wall -Wextra -Wno-unused-parameter)
 
+option(COMPANION_UI_LINT "Developer build: report Dear ImGui widget id conflicts and recoverable errors on stderr (src/ui/UiLint.hpp)" OFF)
+if(COMPANION_UI_LINT)
+  target_compile_definitions(imgui PUBLIC IMGUI_ENABLE_TEST_ENGINE)
+  target_compile_definitions(msfs-linux-companion PRIVATE COMPANION_UI_LINT)
+  target_sources(msfs-linux-companion PRIVATE src/ui/UiLint.cpp)
+endif()
+
 option(COMPANION_STATIC_CXX "Link libstdc++ and libgcc statically (for portable AppImage builds)" OFF)
 if(COMPANION_STATIC_CXX)
   target_link_options(msfs-linux-companion PRIVATE -static-libstdc++ -static-libgcc)

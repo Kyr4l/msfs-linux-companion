@@ -64,7 +64,13 @@ struct LiveSnapshot {
     std::vector<std::string> lvars;
     bool inputEventsDone = false;           // enumeration answered (even if empty)
     bool lvarsDone = false;
-    uint64_t revision = 0;                  // bumped on every change; compare to know when to rebuild a catalog
+};
+
+// What is asked every frame (the Catalog tab): only whether the lists have arrived, not the lists, which are a thousand strings to copy.
+struct LiveStatus {
+    std::string aircraftId;
+    bool inputEventsDone = false;
+    bool lvarsDone = false;
 };
 
 struct SimCommand {
@@ -96,7 +102,6 @@ public:
     // L: vars to read continuously through the MobiFlight module (replaces the previous list).
     void watchLVars(std::vector<std::string> names);
     std::optional<double> lvarValue(const std::string& name) const;
-    std::vector<std::pair<std::string, double>> lvarValues() const;
     void execCalculatorCode(const std::string& code, const std::string& origin = {});
     // B: input events: cockpit switches exposed by the loaded aircraft (SimConnect input events, no add-on needed)
     void setInputEvent(const std::string& name, double value, const std::string& origin = {});
@@ -108,6 +113,7 @@ public:
     void requestLiveRefresh();      // re-enumerate input events and L: vars of the loaded aircraft now
     void setInitialScanDelayMs(int ms) { initialScanDelayMs_ = ms; }  // wait after an aircraft loads before listing its controls
     LiveSnapshot liveSnapshot() const;
+    LiveStatus liveStatus() const;
     uint64_t liveRevision() const { return liveRevision_.load(); }
     void probeMobiFlight();
 
@@ -124,6 +130,7 @@ private:
     void handleMessage(const RecvMessage& m);
     void drainQueue();
     void execute(const SimCommand& cmd);
+    void warnUnknownInput(const std::string& name, const std::string& where);
     void sendMobiFlightCommand(const std::string& text, const std::string& desc);
     void setupMobiFlight();
     void registerMobiFlightClient();
@@ -137,6 +144,7 @@ private:
     void publishLive();
     void handleInputEventList(const RecvInputEventList& l);
     void handleInputEventValue(const RecvInputEventValue& v);
+    void abandonToggles(const std::string& name);  // the sim could not tell the position of this input event
     void handleMobiFlightResponse(const std::string& text);
     void rememberSend(uint32_t sendId, std::string desc);
     std::string describeSend(uint32_t sendId);
@@ -149,6 +157,7 @@ private:
     std::atomic<bool> wantConnect_{true};
     std::atomic<bool> forceConnect_{false};
     std::atomic<bool> forceDisconnect_{false};
+    std::atomic<bool> userDisconnected_{false};  // "Disconnect" was pressed: no automatic attempt until "Connect now"
     std::atomic<bool> forceProbe_{false};
 
     void setupTelemetry();
@@ -177,9 +186,8 @@ private:
     uint32_t nextEventId_ = 1000;
     std::deque<std::pair<uint32_t, std::string>> sentLog_;
 
-    std::chrono::steady_clock::time_point nextConnectAttempt_{};
+    std::atomic<std::chrono::steady_clock::time_point> nextConnectAttempt_{};  // written by the UI thread (new endpoint) and the bridge thread
     std::chrono::steady_clock::time_point openSentAt_{};
-    std::chrono::steady_clock::time_point lastPing_{};
     std::chrono::steady_clock::time_point mfPingSentAt_{};
     bool mfSetupDone_ = false;
     bool mfClientReady_ = false;      // our own "<name>.Command/.Response/.LVars" areas exist
@@ -191,10 +199,10 @@ private:
     std::chrono::steady_clock::time_point lvarAcceptFrom_{};  // values before this are the old content of new slots
     bool lvarDefSent_ = false;   // the fixed SimConnect definition and requests exist on this connection
     bool lvarRebuild_ = true;    // empty the module's list and add everything again (also once at the start of a connection)
-    int lvarRetries_ = 0;        // rebuilds because values never arrived
+    std::atomic<int> lvarRetries_{0};  // rebuilds because values never arrived
     int lvarUpdatesLogged_ = 0;
     int lvarChangesLogged_ = 0;  // value changes written to the log since the last registration (bounded)  // debug log of the first updates after each registration
-    bool lvarWatchDirty_ = false;
+    std::atomic<bool> lvarWatchDirty_{false};  // the watched names changed (UI thread) or must be registered again (bridge thread)
 
     // --- input events (bridge thread owns these; the UI reads copies through liveSnapshot())
     std::unordered_map<std::string, uint64_t> inputHash_;      // name -> hash for the loaded aircraft
@@ -205,15 +213,16 @@ private:
     bool inputEnumInFlight_ = false;
     std::chrono::steady_clock::time_point inputEnumLastPacket_{};
     std::chrono::steady_clock::time_point nextLiveScanAt_{};
-    bool liveScanPending_ = false;
-    int liveScanTries_ = 0;
-    bool lvarListRequested_ = false;
+    std::atomic<bool> liveScanPending_{false};  // set by the UI thread (Refresh) as well as the bridge thread
+    std::atomic<int> liveScanTries_{0};
+    std::atomic<bool> lvarListRequested_{false};
     bool lvarCollecting_ = false;
     std::vector<std::string> lvarNamesPending_;
     std::chrono::steady_clock::time_point lvarListSentAt_{};
     uint32_t nextGetRequest_ = 5000;
     struct PendingToggle { std::string name; uint64_t hash; int positions; std::string origin; };
     std::unordered_map<uint32_t, PendingToggle> pendingToggles_;
+    std::set<std::string> unknownInputWarned_;  // input events already reported as unknown for the loaded aircraft
     std::deque<SimCommand> deferredToggles_;   // toggles of an event whose previous toggle has not been answered yet
     std::atomic<int> initialScanDelayMs_{3000};
     std::unordered_map<uint32_t, std::string> pendingWatchGets_;  // request id -> input event name

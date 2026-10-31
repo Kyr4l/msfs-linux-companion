@@ -93,7 +93,8 @@ struct Profile {
 };
 
 // Config schema: 1 = original, 2 = profiles carry an "aircraft", 3 = input event (B:) actions, 4 = axis calibrations and lever gates. Newer files stay readable by older
-// builds (unknown fields are ignored); loading a file older than kConfigVersion never loses data.
+// builds (unknown fields are ignored; an action of a kind they do not know is skipped). The first save over a file of an older schema keeps a copy of it
+// (config.json.v<N>.bak); a file that cannot be read at all is kept aside by main() before the defaults take its place.
 constexpr int kConfigVersion = 4;
 
 // How the Bindings tab arranges the bindings of a profile (see BindingView.hpp).
@@ -131,5 +132,9 @@ bool axisRangeLooksWrong(const AxisConfig& axis, double lo, double hi);
 
 bool loadSettings(const std::string& path, Settings& out, std::string& err);
 bool saveSettings(const std::string& path, const Settings& s, std::string& err);
+
+// Everything the binding engine is given (the profile's bindings and the lever calibrations) as text: two equal strings mean the engine
+// would behave the same, so it need not be given the profile again (which makes it forget the zone of every lever).
+std::string engineFingerprint(const Profile& p, const std::vector<AxisCalibration>& calibrations);
 
 }  // namespace lr::app

@@ -86,13 +86,13 @@ private:
     std::thread thread_;
     std::atomic<bool> running_{false};
 
-    // rule state
+    // rule state (guarded by m_)
+    void resetRuleState();
     bool prevOnGround_ = true;
     double prevGear_ = 1, prevFlaps_ = 0;
     double lastAirborneVs_ = 0;
     double gSmooth_ = 1.0;
     std::chrono::steady_clock::time_point prevTime_{};
-    uint64_t prevSeq_ = 0;
     double flapsRate_ = 0;
 };
 

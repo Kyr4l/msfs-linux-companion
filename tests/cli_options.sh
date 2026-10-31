@@ -9,6 +9,7 @@ export MSFS_LINUX_COMPANION_ISOLATED=1  # never probe a simulator that happens t
 BIN="$1"; CFG="$2"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 export XDG_STATE_HOME="$TMP/state"  # session logs of the test runs stay out of the real state directory
+export XDG_CONFIG_HOME="$TMP/xdg_default"  # a run without --config must not read (or rewrite) the developer's own settings
 cp "$CFG" "$TMP/config.json"
 fail=0
 check() {  # description, args...
@@ -37,6 +38,16 @@ XDG_CONFIG_HOME="$XDG" timeout 2 "$BIN" --headless --port 1 2>&1 | grep -q 'Conf
 echo '{"profiles":[{"name":"Mine","aircraft":"A32NX","bindings":[]}],"active_profile":"Mine"}' > "$XDG/msfs-linux-companion/config.json"
 XDG_CONFIG_HOME="$XDG" timeout 2 "$BIN" --headless --port 1 2>&1 | grep -q 'profile "Mine"' \
     || { echo "FAIL: a second start replaced the new settings with the old ones"; fail=1; }
+# a number that is not a number, or does not fit, is refused instead of becoming 0 or wrapping around (70000 -> 4464)
+for bad in "--port abc" "--port 0" "--port 70000" "--port -5" "--motor-sweep abc" "--motor-sweep 300"; do
+    timeout 2 "$BIN" --headless $bad >"$TMP/out.txt" 2>&1
+    [ $? -eq 2 ] || { echo "FAIL: '$bad' was not refused"; fail=1; }
+done
+# a config that cannot be read is kept aside, and the file itself is not written over
+echo '{"profiles": {"oops": ' > "$TMP/broken.json"; cp "$TMP/broken.json" "$TMP/broken.orig"
+timeout 2 "$BIN" --headless --config "$TMP/broken.json" --port 1 >/dev/null 2>&1
+ls "$TMP"/broken.json.unreadable-* >/dev/null 2>&1 || { echo "FAIL: an unreadable config was not kept aside"; fail=1; }
+cmp -s "$TMP/broken.json" "$TMP/broken.orig" || { echo "FAIL: an unreadable config was overwritten"; fail=1; }
 # with the search switched off nothing is probed, even when a wineserver (a real simulator) is running: the port 1 does not answer
 timeout 6 "$BIN" --headless --port 1 2>&1 | grep -q 'probing' && { echo "FAIL: the search for the simulator ignored MSFS_LINUX_COMPANION_ISOLATED"; fail=1; }
 exit $fail

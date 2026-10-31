@@ -2,9 +2,12 @@
 // Copyright (C) 2026 Kyr4l
 #pragma once
 // Colours and small widgets shared by the files that draw the tabs (Ui*.cpp).
+#include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <ctime>
 #include <string>
+#include <vector>
 
 #include <imgui.h>
 
@@ -39,6 +42,41 @@ inline const char* connStateText(sim::ConnState s) {
 inline std::string baseName(const std::string& path) {
     size_t p = path.find_last_of("/\\");
     return p == std::string::npos ? path : path.substr(p + 1);
+}
+
+// The words of a search box, lower case: a row matches when every word is somewhere in its text.
+inline std::vector<std::string> searchWords(const std::string& text) {
+    std::vector<std::string> words;
+    std::string word;
+    for (unsigned char c : text + ' ') {
+        if (c != ' ') {
+            word += static_cast<char>(std::tolower(c));
+        } else if (!word.empty()) {
+            words.push_back(std::move(word));
+            word.clear();
+        }
+    }
+    return words;
+}
+
+inline bool matchesAll(std::string text, const std::vector<std::string>& words) {
+    std::transform(text.begin(), text.end(), text.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    return std::all_of(words.begin(), words.end(), [&](const std::string& w) { return text.find(w) != std::string::npos; });
+}
+
+// The name a device reports, without a word said twice in a row ("WINCTRL WINCTRL URSA MINOR" -> "WINCTRL URSA MINOR").
+inline std::string tidyDeviceName(const std::string& name) {
+    std::string out, word, previous;
+    for (char c : name + ' ') {
+        if (c != ' ') {
+            word += c;
+            continue;
+        }
+        if (!word.empty() && word != previous) out += (out.empty() ? "" : " ") + word;
+        if (!word.empty()) previous = word;
+        word.clear();
+    }
+    return out;
 }
 
 inline std::string formatTime(std::chrono::system_clock::time_point tp) {

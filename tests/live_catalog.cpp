@@ -42,6 +42,18 @@ static CatalogEntry stdEntry(const char* name) {
 }
 
 int main() {
+    // a fixed-size text field of a packet keeps its size: padded when short, cut when long (it would shift every field after it)
+    {
+        ByteWriter w;
+        w.str("ab", 8);
+        CHECK(w.size() == 8 && w.data()[0] == 'a' && w.data()[2] == 0 && w.data()[7] == 0);
+        ByteWriter w2;
+        w2.str(std::string(300, 'x'), 256);
+        CHECK(w2.size() == 256);
+        ByteWriter w3;
+        w3.str("abc", 3);  // exactly as long as the field: no terminator, as before
+        CHECK(w3.size() == 3 && w3.data()[2] == 'c');
+    }
     // ---- which catalog an aircraft belongs to
     {
         auto id = [](const char* p) { return identifyAircraft(p).id; };

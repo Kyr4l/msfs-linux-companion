@@ -220,7 +220,7 @@ void WinwingHidManager::rescan() {
     if (isolatedRun()) { scans_++; return; }  // tests never open the real devices (the scan still counts as done)
     std::lock_guard<std::mutex> lock(m_);
     DIR* dir = opendir("/sys/class/hidraw");
-    if (!dir) return;
+    if (!dir) { scans_++; return; }  // no hidraw class (a sandbox): nothing to find, but the scan is done
     std::vector<std::string> seen;
     while (dirent* e = readdir(dir)) {
         if (strncmp(e->d_name, "hidraw", 6) != 0) continue;
@@ -240,7 +240,12 @@ void WinwingHidManager::rescan() {
         const std::string path = std::string("/dev/") + e->d_name;
         seen.push_back(path);
         bool exists = false;
-        for (auto& d : devs_) exists |= d.info.path == path;
+        for (size_t i = 0; i < devs_.size(); ++i) {
+            if (devs_[i].info.path != path) continue;
+            if (devs_[i].fd >= 0) { exists = true; break; }
+            devs_.erase(devs_.begin() + static_cast<long>(i));  // it could not be opened last time: try again
+            break;
+        }
         if (exists) continue;
 
         Dev d;
@@ -255,7 +260,9 @@ void WinwingHidManager::rescan() {
         d.fd = ::open(path.c_str(), O_RDWR | O_NONBLOCK | O_CLOEXEC);
         if (d.fd < 0) {
             d.info.error = strerror(errno);
-            LOG_WARN("Winwing %s (%s): cannot open %s: %s (udev rule needed, see README)", name.c_str(), key, path.c_str(), d.info.error.c_str());
+            std::string& reported = openErrorReported_[path];  // every scan tries again: say it when the reason changes, not every 3 s
+            if (reported != d.info.error) LOG_WARN("Winwing %s (%s): cannot open %s: %s (udev rule needed, see README)", name.c_str(), key, path.c_str(), d.info.error.c_str());
+            reported = d.info.error;
         } else {
             d.info.open = true;
             LOG_INFO("Winwing HID: %s (%s) at %s", name.c_str(), key, path.c_str());
@@ -311,18 +318,20 @@ bool WinwingHidManager::setMotors(const std::string& key, uint8_t left, uint8_t 
         if (force || v != d->info.lastLeft) {
             buildSetLedx(f, id.left.device, id.family, id.left.index, v);
             ok = writeFrame(*d, f);
-            d->info.lastLeft = d->info.lastRight = v;
+            if (ok) d->info.lastLeft = d->info.lastRight = v;  // a lost write must be sent again, not remembered as done
         }
     } else {
         if (force || left != d->info.lastLeft) {
             buildSetLedx(f, id.left.device, id.family, id.left.index, left);
-            ok &= writeFrame(*d, f);
-            d->info.lastLeft = left;
+            const bool sent = writeFrame(*d, f);
+            if (sent) d->info.lastLeft = left;
+            ok &= sent;
         }
         if (force || right != d->info.lastRight) {
             buildSetLedx(f, id.right.device, id.family, id.right.index, right);
-            ok &= writeFrame(*d, f);
-            d->info.lastRight = right;
+            const bool sent = writeFrame(*d, f);
+            if (sent) d->info.lastRight = right;
+            ok &= sent;
         }
     }
     collect(*d, -1, 0);  // drop echoes

@@ -2,8 +2,10 @@
 // Copyright (C) 2026 Kyr4l
 #pragma once
 // Small thread-safe ring-buffer logger shared by all threads; the UI renders a snapshot.
+#include <atomic>
 #include <chrono>
 #include <cstdarg>
+#include <cstdint>
 #include <cstdio>
 #include <ctime>
 #include <deque>
@@ -14,6 +16,16 @@
 namespace lr {
 
 enum class LogLevel { Debug, Info, Warn, Error };
+
+inline const char* logLevelName(LogLevel l) {
+    switch (l) {
+        case LogLevel::Debug: return "debug";
+        case LogLevel::Info: return "info";
+        case LogLevel::Warn: return "warn";
+        case LogLevel::Error: return "error";
+    }
+    return "?";
+}
 
 struct LogEntry {
     std::chrono::system_clock::time_point time;
@@ -70,6 +82,8 @@ public:
         vsnprintf(buf, sizeof buf, fmt, ap);
         va_end(ap);
         add(level, buf);
+        // one call, so lines of different threads do not mix
+        if (echoToStderr) std::fprintf(stderr, "[%s] %s\n", logLevelName(level), buf);
     }
 
     std::vector<LogEntry> snapshot() const {
@@ -88,7 +102,7 @@ public:
         ++serial_;
     }
 
-    bool echoToStderr = true;
+    std::atomic<bool> echoToStderr{true};
 
 private:
     mutable std::mutex m_;
@@ -99,25 +113,7 @@ private:
     uint64_t serial_ = 0;
 };
 
-#define LR_LOG(level, ...)                                                                 \
-    do {                                                                                   \
-        ::lr::Log::instance().logf(level, __VA_ARGS__);                                    \
-        if (::lr::Log::instance().echoToStderr) {                                          \
-            fprintf(stderr, "[%s] ", ::lr::logLevelName(level));                           \
-            fprintf(stderr, __VA_ARGS__);                                                  \
-            fputc('\n', stderr);                                                           \
-        }                                                                                  \
-    } while (0)
-
-inline const char* logLevelName(LogLevel l) {
-    switch (l) {
-        case LogLevel::Debug: return "debug";
-        case LogLevel::Info: return "info";
-        case LogLevel::Warn: return "warn";
-        case LogLevel::Error: return "error";
-    }
-    return "?";
-}
+#define LR_LOG(level, ...) do { ::lr::Log::instance().logf(level, __VA_ARGS__); } while (0)
 
 #define LOG_DEBUG(...) LR_LOG(::lr::LogLevel::Debug, __VA_ARGS__)
 #define LOG_INFO(...) LR_LOG(::lr::LogLevel::Info, __VA_ARGS__)

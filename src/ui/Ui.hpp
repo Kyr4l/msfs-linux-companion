@@ -18,6 +18,7 @@
 #include "haptics/WinwingHid.hpp"
 #include "input/Evdev.hpp"
 #include "sim/SimBridge.hpp"
+#include "util/Log.hpp"
 
 namespace lr::app {
 
@@ -51,6 +52,7 @@ struct AppContext {
     void syncLive();                                                // folds the sim's current lists into the catalog, saves the cache
     void forgetLive(const std::string& aircraft);
     uint64_t liveSeen = ~0ull;
+    std::string pushedFingerprint_;  // what the engine was last given (see engineFingerprint)
     void pushProfileToEngine();
     void pushHapticsConfig();
     void markDirty();
@@ -81,6 +83,8 @@ private:
     void drawActionList(const char* id, std::vector<Action>& actions, int listIndex);
     void drawCatalogBrowser(const char* id, bool pickMode);
     void openEditor(int bindingIndex);
+    void openEditorCopy(int bindingIndex);  // a new binding with everything the given one does; its button or axis is chosen next
+    bool bindingMatches(const Binding& b, const std::vector<std::string>& words) const;  // the filter box of the Bindings tab
     std::string deviceDisplayName(const std::string& key) const;
     bool inputIsPressed(const input::InputId& id) const;
     float axisNow(const input::InputId& id) const;  // live position 0..1 of an axis input, or -1 when the device is absent
@@ -100,8 +104,11 @@ private:
 
     // binding editor state
     bool editorOpen_ = false;
-    int editIndex_ = -1;
+    int editIndex_ = -1;      // the binding being edited, or -1 for a new one
+    int insertAt_ = -1;       // where a new binding goes in the list (a copy goes right after its original); -1 = the end
+    bool draftIsCopy_ = false;
     Binding draft_;
+    std::string bindingFilter_;  // Bindings tab: only the rows with all of these words
     // 0 = press, 1 = release, 2 / 3 = enters / leaves the cut-off zone, 4 / 5 = enters / leaves the afterburner zone
     int catalogTarget_ = 0;
     bool catalogPopupOpen_[6] = {false, false, false, false, false, false};  // one per list
@@ -172,6 +179,10 @@ private:
     int logMinLevel_ = 1;
     bool logAutoScroll_ = true;
     uint64_t logSerialSeen_ = 0;
+    std::vector<LogEntry> logEntries_;  // the log as it was when it last changed: copying it is not done every frame
+    std::vector<size_t> logShown_;      // the entries at or above logMinLevel_
+    uint64_t logCacheSerial_ = ~0ull;
+    int logCacheLevel_ = -1;
 };
 
 }  // namespace lr::app

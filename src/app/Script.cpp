@@ -20,7 +20,6 @@ struct Line {
     std::string cmd;
     std::vector<std::string> args;
     std::string expr;  // calculator code (with its parentheses) for code / expect
-    int number = 0;
 };
 
 std::string trim(const std::string& s) {

@@ -247,7 +247,7 @@ class Client(threading.Thread):
             rid, h = struct.unpack_from("<IQ", b, 0)
             n = self.input_by_hash.get(h)
             if n is None:
-                self.send(RECV_EXCEPTION, struct.pack("<III", 43, send_id, 0))  # GET_INPUT_EVENT_FAILED
+                self.send(RECV_EXCEPTION, struct.pack("<III", 42, send_id, 0))  # GET_INPUT_EVENT_FAILED
             else:
                 self.send(35, struct.pack("<IId", rid, 0, self.input_values[n]))
         elif t == 0x51:  # SetInputEvent
@@ -255,7 +255,7 @@ class Client(threading.Thread):
             n = self.input_by_hash.get(h)
             if n is None:
                 self.log(f"INPUT EVENT SET unknown hash {h:#x}")
-                self.send(RECV_EXCEPTION, struct.pack("<III", 44, send_id, 0))  # SET_INPUT_EVENT_FAILED
+                self.send(RECV_EXCEPTION, struct.pack("<III", 43, send_id, 0))  # SET_INPUT_EVENT_FAILED
             else:
                 self.input_values[n], = struct.unpack_from("<d", b, 12)
                 self.log(f"INPUT EVENT SET {n}={self.input_values[n]:g}")

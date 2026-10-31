@@ -3,6 +3,7 @@
 #include "app/Catalog.hpp"
 #include "app/AxisTargets.hpp"
 #include "sim/AircraftId.hpp"
+#include "util/AtomicFile.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -297,20 +298,7 @@ bool Catalog::saveLive(const std::string& path, std::string& err) const {
                        {"kind", e.kind}, {"type", e.type}, {"rw", e.rw}, {"live", true}});
     }
     nlohmann::json j{{"aircraft", aircraft}, {"title", title}, {"live_cache", true}, {"entries", arr}};
-    try {
-        std::filesystem::create_directories(std::filesystem::path(path).parent_path());
-        const std::string tmp = path + ".tmp";
-        {
-            std::ofstream out(tmp);
-            if (!out) { err = "cannot write " + tmp; return false; }
-            out << j.dump(1) << "\n";
-        }
-        std::filesystem::rename(tmp, path);
-    } catch (const std::exception& e) {
-        err = e.what();
-        return false;
-    }
-    return true;
+    return writeFileAtomically(path, j.dump(1) + "\n", err);
 }
 
 bool Catalog::loadLive(const std::string& path, Catalog& out, std::string& err) {

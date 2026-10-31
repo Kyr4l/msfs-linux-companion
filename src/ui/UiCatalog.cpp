@@ -397,18 +397,7 @@ void Ui::drawCatalogBrowser(const char* id, bool pickMode) {
         ImGui::Text("-> adding to the %s list", catalogTargetName(catalogTarget_));
     }
 
-    std::string needle = catalogFilter_;
-    std::transform(needle.begin(), needle.end(), needle.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-    std::vector<std::string> words;
-    {
-        size_t pos = 0;
-        while (pos < needle.size()) {
-            size_t sp = needle.find(' ', pos);
-            if (sp == std::string::npos) sp = needle.size();
-            if (sp > pos) words.push_back(needle.substr(pos, sp - pos));
-            pos = sp + 1;
-        }
-    }
+    const std::vector<std::string> words = searchWords(catalogFilter_);
 
     const float footer = pickMode ? ImGui::GetFrameHeightWithSpacing() * 3.5f : ImGui::GetFrameHeightWithSpacing() * 2.5f;
     ImGuiTableFlags tflags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable;
@@ -425,10 +414,7 @@ void Ui::drawCatalogBrowser(const char* id, bool pickMode) {
         const Catalog& cat = pickMode ? pickerCatalog() : currentCatalog();
         for (int i = 0; i < static_cast<int>(cat.entries.size()); ++i) {
             const CatalogEntry& e = cat.entries[static_cast<size_t>(i)];
-            bool match = true;
-            for (const auto& w : words)
-                if (e.searchKey.find(w) == std::string::npos) { match = false; break; }
-            if (!match) continue;
+            if (!std::all_of(words.begin(), words.end(), [&](const std::string& w) { return e.searchKey.find(w) != std::string::npos; })) continue;
             ImGui::PushID(i);
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
@@ -532,7 +518,7 @@ void Ui::drawCatalogTab() {
     {
         // what the sim told us about the aircraft being browsed (any aircraft, not only the loaded one: the lists are cached)
         const Catalog& shownCat = currentCatalog();
-        const sim::LiveSnapshot live = ctx_.bridge.liveSnapshot();
+        const sim::LiveStatus live = ctx_.bridge.liveStatus();
         const bool isLoaded = sim::sameAircraft(live.aircraftId, shownCat.aircraft);
         size_t nInput = 0, nLVar = 0;
         for (const auto& e : shownCat.entries) {

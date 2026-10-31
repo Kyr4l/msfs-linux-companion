@@ -104,15 +104,6 @@ static std::vector<fs::path> dataDirs() {
     };
 }
 
-std::string findDataFile(const std::string& name) {
-    for (const auto& dir : dataDirs()) {
-        const fs::path c = dir / name;
-        std::error_code ec;
-        if (fs::exists(c, ec)) return fs::weakly_canonical(c, ec).string();
-    }
-    return {};
-}
-
 std::vector<std::string> listDataFiles(const std::string& suffix) {
     std::vector<std::string> out;
     std::vector<std::string> names;

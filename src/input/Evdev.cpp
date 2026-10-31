@@ -219,8 +219,36 @@ bool InputManager::openDevice(const std::string& path) {
     return true;
 }
 
+void InputManager::refreshSnapshot(Device& d) {
+    DeviceSnapshot& s = d.snap;
+    for (size_t b = 0; b < s.buttonCodes.size(); ++b) s.buttonState[b] = d.keyState[static_cast<size_t>(s.buttonCodes[b])];
+    for (int h = 0; h < 4; ++h) s.hats[static_cast<size_t>(h)] = {d.hatX[static_cast<size_t>(h)], d.hatY[static_cast<size_t>(h)]};
+    for (size_t a = 0; a < s.axisCodes.size(); ++a) s.axisValue[a] = d.axisReported[static_cast<size_t>(s.axisCodes[a])];
+}
+
 void InputManager::closeDevice(size_t idx) {
-    LOG_INFO("Joystick removed: %s", devices_[idx].snap.name.c_str());
+    Device& d = devices_[idx];
+    LOG_INFO("Joystick removed: %s", d.snap.name.c_str());
+    // Whatever was held when the cable came out is released now: a binding that repeats while held would otherwise go on forever, and a gate
+    // button closed at that moment would still count as closed when the device comes back.
+    if (onEvent_) {
+        auto release = [&](InputKind kind, int code, int dir) {
+            InputEvent ie;
+            ie.id = {d.snap.key, kind, code, dir};
+            ie.pressed = false;
+            ie.time = std::chrono::steady_clock::now();
+            onEvent_(ie);
+        };
+        for (int code : d.snap.buttonCodes)
+            if (d.keyState[static_cast<size_t>(code)]) release(InputKind::Button, code, 0);
+        for (int h = 0; h < d.snap.hatCount && h < 4; ++h) {
+            const size_t i = static_cast<size_t>(h);
+            if (d.hatX[i] < 0) release(InputKind::Hat, h, 3);
+            if (d.hatX[i] > 0) release(InputKind::Hat, h, 1);
+            if (d.hatY[i] < 0) release(InputKind::Hat, h, 0);
+            if (d.hatY[i] > 0) release(InputKind::Hat, h, 2);
+        }
+    }
     ::close(devices_[idx].fd);
     devices_.erase(devices_.begin() + static_cast<long>(idx));
 }
@@ -250,7 +278,7 @@ static bool sysfsLooksLikeJoystick(const std::string& eventName) {
 void InputManager::scanDevices() {
     if (isolatedRun()) { scans_++; return; }  // tests never open the real devices (the scan still counts as done)
     DIR* dir = opendir("/dev/input");
-    if (!dir) return;
+    if (!dir) { scans_++; return; }  // no /dev/input (a sandbox): nothing to find, but the scan is done
     std::vector<std::string> paths;
     while (dirent* e = readdir(dir)) {
         if (strncmp(e->d_name, "event", 5) == 0 && sysfsLooksLikeJoystick(e->d_name)) paths.push_back(std::string("/dev/input/") + e->d_name);
@@ -265,7 +293,10 @@ void InputManager::scanDevices() {
     {
         std::lock_guard<std::mutex> lock(m_);
         snapshots_.clear();
-        for (const auto& d : devices_) snapshots_.push_back(d.snap);
+        for (auto& d : devices_) {
+            refreshSnapshot(d);  // d.snap is as the device was when it was opened until it is brought up to date
+            snapshots_.push_back(d.snap);
+        }
     }
     scans_++;
 }
@@ -345,12 +376,9 @@ void InputManager::readDevice(size_t idx) {
         }
         if (stateChanged) {
             std::lock_guard<std::mutex> lock(m_);
-            for (auto& s : snapshots_) {
-                if (s.key != d.snap.key) continue;
-                for (size_t b = 0; b < s.buttonCodes.size(); ++b) s.buttonState[b] = d.keyState[s.buttonCodes[b]];
-                for (int h = 0; h < 4; ++h) s.hats[h] = {d.hatX[h], d.hatY[h]};
-                for (size_t a = 0; a < s.axisCodes.size(); ++a) s.axisValue[a] = d.axisReported[static_cast<size_t>(s.axisCodes[a])];
-            }
+            refreshSnapshot(d);
+            for (auto& s : snapshots_)
+                if (s.key == d.snap.key) s = d.snap;
         }
     }
 }

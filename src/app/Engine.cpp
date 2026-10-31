@@ -192,7 +192,7 @@ Engine::DetentResult Engine::detentOutput(const AxisDetents& d, const AxisCalibr
 std::string Engine::formatValue(double v, bool integer) {
     char buf[64];
     if (integer) snprintf(buf, sizeof buf, "%lld", static_cast<long long>(std::llround(v)));
-    else snprintf(buf, sizeof buf, "%g", v);
+    else snprintf(buf, sizeof buf, "%.10g", v);  // enough digits for the value to reach the calculator code as it is (%g keeps six)
     return buf;
 }
 
@@ -338,11 +338,37 @@ void Engine::runActions(const std::vector<Action>& actions, size_t from, const s
     }
 }
 
+int Engine::nextScheduledMs() const {
+    const auto now = clock::now();
+    int wait = -1;
+    for (const auto& s : scheduled_) {
+        const int ms = std::max<int>(1, static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(s.due - now).count()) + 1);
+        if (wait < 0 || ms < wait) wait = ms;
+    }
+    return wait;
+}
+
+Engine::Scheduled Engine::idleAgain(const Binding& b, size_t index, double value, const AxisState& st) const {
+    // The aircraft stops a throttle that is set to 0 from above at its idle gate (10 %); it takes a second 0 to reach 0, which is the
+    // sim's own idle. Sent once more shortly after, unless the lever has moved on by then (a newer value or another zone).
+    Scheduled again;
+    again.due = clock::now() + std::chrono::milliseconds(100);
+    again.rest = withValue(b.onPress, value, b.axis.integer);
+    again.origin = (b.label.empty() ? std::string("axis") : b.label) + " (idle again)";
+    again.binding = static_cast<int>(index);
+    again.useSerial = true;
+    again.serial = st.sendSerial;
+    again.generation = st.generation;
+    return again;
+}
+
 std::vector<Engine::Scheduled> Engine::takeDue(int& waitMs) {
     std::vector<Scheduled> ready;
     const auto now = clock::now();
     for (auto it = scheduled_.begin(); it != scheduled_.end();) {
-        const bool stale = it->binding >= 0 && (axisState_.find(static_cast<size_t>(it->binding)) == axisState_.end() ||
+        // what belongs to a lever is dropped when the bindings are paused (the calibration window, the "Bindings active" box): the lever is not to be
+        // heard from until they are on again. A Test button (binding -1) carries on.
+        const bool stale = it->binding >= 0 && (!enabled_ || axisState_.find(static_cast<size_t>(it->binding)) == axisState_.end() ||
                                                 axisState_[static_cast<size_t>(it->binding)].generation != it->generation ||
                                                 (it->useSerial && axisState_[static_cast<size_t>(it->binding)].sendSerial != it->serial));
         if (stale) { it = scheduled_.erase(it); continue; }
@@ -424,20 +450,10 @@ void Engine::applyLever(const Binding& b, size_t i, const AxisCalibration& cal, 
     }
     if (sendNow) sendAxisValue(b, out);
     if (landedOnIdle) {
-        // The aircraft stops a throttle that is set to 0 from above at its idle gate (10 %); it takes a second 0 to reach 0, which is the
-        // sim's own idle. Send it once more shortly after, unless the lever has moved on by then (a newer value or another zone).
-        Scheduled again;
-        again.due = now + std::chrono::milliseconds(100);
-        again.rest = withValue(b.onPress, out, c.integer);
-        again.origin = (b.label.empty() ? std::string("axis") : b.label) + " (idle again)";
-        again.binding = static_cast<int>(i);
-        again.useSerial = true;
-        again.serial = serial;
-        {
-            std::lock_guard<std::mutex> lock(m_);
-            again.generation = axisState_[i].generation;
-            scheduled_.push_back(std::move(again));
-        }
+        std::lock_guard<std::mutex> lock(m_);
+        Scheduled again = idleAgain(b, i, out, axisState_[i]);
+        again.serial = serial;  // the value that was just sent, not one sent since
+        scheduled_.push_back(std::move(again));
     }
     if (zoneChanged) {
         if (r.zone == AxisZone::Cutoff) dispatchZone(b, i, b.onCutoff, " (cut-off)");
@@ -551,7 +567,9 @@ int Engine::tick() {
     {
         std::lock_guard<std::mutex> lock(m_);
         ready = takeDue(wait);  // the rest of an action list that was waiting for its Delay
-        if (profile_ && !(held_.empty() && axisState_.empty())) {
+        if (!enabled_)  // paused (the calibration window, the "Bindings active" box): a value held back for the interval is not sent after all
+            for (auto& [idx, st] : axisState_) st.hasPending = false;
+        if (profile_ && enabled_ && !(held_.empty() && axisState_.empty())) {
             const auto now = clock::now();
             // axis values held back by the minimum interval: send the latest one once it has passed
             for (auto& [idx, st] : axisState_) {
@@ -559,12 +577,16 @@ int Engine::tick() {
                 const AxisConfig& c = profile_->bindings[idx].axis;
                 const auto interval = std::chrono::milliseconds(c.minIntervalMs);
                 if (now - st.lastTime < interval) { soonest(interval - (now - st.lastTime)); continue; }
+                const Binding& lever = profile_->bindings[idx];
+                const bool landedOnIdle = lever.axis.detents.enabled && st.hasSent && st.zone == AxisZone::Dry && st.lastSent > st.pending + 1e-9 &&
+                                          std::fabs(st.pending - lever.axis.detents.outIdle) < 1e-9;
                 st.hasSent = true;
                 st.lastSent = st.pending;
                 st.lastTime = now;
                 st.hasPending = false;
                 ++st.sendSerial;
                 axisDue.push_back({profile_, {idx, st.pending}});
+                if (landedOnIdle) scheduled_.push_back(idleAgain(lever, idx, st.pending, st));
             }
             for (auto& h : held_) {
                 if (h.bindingIndex >= profile_->bindings.size()) continue;
@@ -580,6 +602,12 @@ int Engine::tick() {
     for (const auto& item : ready) runActions(item.rest, 0, item.origin, item.binding, item.generation);
     for (const auto& [profile, idx] : due) dispatch(profile->bindings[idx], true, " (repeat)");
     for (const auto& [profile, item] : axisDue) sendAxisValue(profile->bindings[item.first], item.second);
+    if (!ready.empty() || !axisDue.empty()) {
+        // the tails that ran may have scheduled the next part of their list: the next tick is due when that is, not at the default poll
+        std::lock_guard<std::mutex> lock(m_);
+        const int next = nextScheduledMs();
+        if (next >= 0 && (wait < 0 || next < wait)) wait = next;
+    }
     return wait;
 }
 

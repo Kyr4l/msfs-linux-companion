@@ -142,6 +142,11 @@ automatically whenever the sim is (re)started.
    *from catalog* → *Save binding*. *Test* fires the press actions immediately.
 4. Leave the same buttons **unassigned in the MSFS controls menu**, otherwise both fire.
 
+**A binding like another one.** *Copy* in a row opens the editor on a new binding that does everything the original does (its actions, its axis settings,
+its group, its repeat) and waits for you to press the button or move the axis it is for: the same button would fire both. It is added to the profile,
+right after the original, when you save it. *Delete* asks first. The box next to *View* filters the list: every word you type has to be in the row's name, its
+input, its device, its group or one of its actions.
+
 **Arranging the list of bindings.** *Group by* above the table arranges it: *Device* (one group per stick or throttle),
 *Input type* (axes, buttons, hats) or *My groups*, where each binding has its own group name (the *Group* field of the
 editor; *Fill in the empty groups* gives every ungrouped binding one: Throttle for throttle levers and events, otherwise the
@@ -400,6 +405,7 @@ then `sudo udevadm control --reload && sudo udevadm trigger` and re-plug the dev
 * `tools/build_keypad_layout.py <flybywire-aircraft-a320-neo package> --preview FILE.png` regenerates `data/a32nx_keypads.json` (the MCDU key positions, read from the aircraft's 3D model) and writes a picture of it.
 * `ctest --test-dir build` runs the config compatibility, command-line option, axis, live-catalog, curated-catalog, guide, idle-cost and live-control tests. The scripts set `MSFS_LINUX_COMPANION_ISOLATED=1`, which makes the program skip the search for a running simulator's port and the opening of joysticks and Winwing devices: a test run next to a real simulator (or with a stick in your hand) can neither reach the sim nor be disturbed by your input.
 * `tools/virtual_joystick.py` is a uinput joystick for exercising bindings without hardware.
+* `cmake -DCOMPANION_UI_LINT=ON` builds a variant that checks the way the windows are drawn on every frame (`src/ui/UiLint.hpp`): two widgets that share an identifier (Dear ImGui only complains about that when the widget is hovered, and a conflicting widget cannot be clicked) and the errors it repairs by itself (a `Begin` without `End`) are written once each to stderr as `[ui-lint] ...`. Run it on a virtual display, with `MSFS_LINUX_COMPANION_ISOLATED=1`, through the screens and popups you changed.
 * `_cpr/` is git-ignored: put copies of files from the (read-only) MSFS install there if you need
   to edit them.
 

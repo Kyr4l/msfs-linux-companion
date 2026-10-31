@@ -11,6 +11,7 @@
 #include <atomic>
 #include <cstdint>
 #include <functional>
+#include <map>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -96,6 +97,7 @@ private:
     std::vector<Dev> devs_;
     std::vector<std::pair<std::string, WinwingIdentity>> overrides_;
     std::atomic<int> scans_{0};
+    std::map<std::string, std::string> openErrorReported_;  // path -> the last open error that was logged (guarded by m_)
 };
 
 }  // namespace lr::haptics

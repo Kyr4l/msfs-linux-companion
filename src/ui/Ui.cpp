@@ -25,9 +25,9 @@ Ui::Ui(AppContext& ctx) : ctx_(ctx), startTab_(ctx.startTab) {}
 
 std::string Ui::deviceDisplayName(const std::string& key) const {
     for (const auto& d : devices_)
-        if (d.key == key) return d.name;
+        if (d.key == key) return tidyDeviceName(d.name);
     size_t p = key.find(':', 5);
-    return p == std::string::npos ? key : key.substr(p + 1) + " (not connected)";
+    return p == std::string::npos ? key : tidyDeviceName(key.substr(p + 1)) + " (not connected)";
 }
 
 float Ui::axisNow(const input::InputId& id) const {
@@ -120,6 +120,8 @@ void Ui::drawMenuBar() {
                 ctx_.dirty = false;
                 ctx_.pushProfileToEngine();
                 ctx_.bridge.setEndpoint(ctx_.settings.host, static_cast<uint16_t>(ctx_.settings.port));
+                ctx_.bridge.setAutoConnect(ctx_.settings.autoConnect);
+                ctx_.pushHapticsConfig();
             } else {
                 LOG_ERROR("Reload failed: %s", err.c_str());
             }

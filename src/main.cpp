@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Kyr4l
 // msfs-linux-companion (formerly msfs-linuxrebind): HOTAS bindings, cockpit catalogs, guides and haptics for MSFS 2020, on Linux.
+#include <cerrno>
 #include <csignal>
+#include <ctime>
+#include <filesystem>
 #include <sys/resource.h>
 #include <sys/syscall.h>
 #include <unistd.h>
@@ -28,9 +31,23 @@
 #include "sim/SimBridge.hpp"
 #include "ui/AppIcon.hpp"
 #include "ui/Ui.hpp"
+#ifdef COMPANION_UI_LINT
+#include "ui/UiLint.hpp"
+#endif
 #include "util/Log.hpp"
 
 namespace {
+
+// A whole number in [lo, hi] and nothing else (atoi took "abc" for 0 and a port of 70000 wrapped around to 4464).
+bool parseNumber(const char* text, long lo, long hi, int base, long& out) {
+    char* end = nullptr;
+    errno = 0;
+    const long v = std::strtol(text, &end, base);
+    if (end == text || *end != '\0' || errno != 0 || v < lo || v > hi) return false;
+    out = v;
+    return true;
+}
+
 volatile std::sig_atomic_t g_signalled = 0;
 double g_lastActivity = 0;  // GLFW time of the last input event on the window (main thread only)
 // what woke the window loop, per kind of event; written to the session log every 10 s (cursor, button, scroll, key, char, focus, enter)
@@ -105,10 +122,21 @@ int main(int argc, char** argv) {
         else if (a == "--dump-controls") { next(dumpControlsPath); listControls = true; }
         else if (a == "--motor-sweep") {
             motorSweep = true;
-            if (i + 1 < argc && argv[i + 1][0] != '-') sweepDevice = static_cast<int>(std::strtol(argv[++i], nullptr, 0));
+            if (i + 1 < argc && argv[i + 1][0] != '-') {
+                long dev;
+                if (!parseNumber(argv[i + 1], 0, 255, 0, dev)) { std::fprintf(stderr, "--motor-sweep: the device byte must be a number from 0 to 255 (0x04 and 4 are both fine), not \"%s\"\n", argv[i + 1]); return 2; }
+                sweepDevice = static_cast<int>(dev);
+                ++i;
+            }
         }
         else if (a == "--host") next(hostOverride);
-        else if (a == "--port") { std::string p; next(p); portOverride = std::atoi(p.c_str()); }
+        else if (a == "--port") {
+            std::string p;
+            next(p);
+            long port;
+            if (!parseNumber(p.c_str(), 1, 65535, 10, port)) { std::fprintf(stderr, "--port: expected a number from 1 to 65535, not \"%s\"\n", p.c_str()); return 2; }
+            portOverride = static_cast<int>(port);
+        }
         else if (a == "--profile") next(profileOverride);
         else if (a == "--config") next(configPath);
         else if (a == "--catalog") next(catalogPath);
@@ -198,10 +226,23 @@ int main(int argc, char** argv) {
         std::string err;
         if (!app::loadSettings(ctx.configPath, ctx.settings, err)) {
             LOG_INFO("No config loaded (%s); starting with defaults", err.c_str());
+            // A file that is there but cannot be read (a typo after editing it by hand) would be overwritten by the defaults at the
+            // first save: keep it aside, so the bindings in it can be recovered.
+            std::error_code ec;
+            bool leaveFileAlone = false;  // an unreadable file that was kept aside is not written over until the user changes something
+            if (std::filesystem::exists(ctx.configPath, ec)) {
+                const std::string kept = ctx.configPath + ".unreadable-" + std::to_string(std::time(nullptr));
+                std::filesystem::copy_file(ctx.configPath, kept, ec);
+                if (ec) LOG_WARN("The config could not be read and a copy of it could not be kept (%s): it will be overwritten", ec.message().c_str());
+                else {
+                    LOG_WARN("The config could not be read (%s): kept a copy as %s, starting with defaults", err.c_str(), kept.c_str());
+                    leaveFileAlone = true;
+                }
+            }
             ctx.settings = app::Settings{};
             { app::Profile first; first.name = "A32NX"; first.aircraft = "A32NX"; ctx.settings.profiles.push_back(first); }
             ctx.settings.activeProfile = "A32NX";
-            ctx.dirty = true;
+            ctx.dirty = !leaveFileAlone;
         }
         ctx.settings.ensureActive();
         if (!hostOverride.empty()) ctx.settings.host = hostOverride;
@@ -286,11 +327,12 @@ int main(int argc, char** argv) {
             needInputEvents |= act.kind == app::ActionKind::InputEvent || act.kind == app::ActionKind::InputEventToggle;
             actions.push_back(act);
         }
+        int exitCode = 0;
         const auto startedAt = std::chrono::steady_clock::now();
         const auto deadline = startedAt + std::chrono::seconds(listControls ? 45 : 25);
         for (;;) {
             auto st = bridge.status();
-            const auto snapNow = bridge.liveSnapshot();
+            const auto snapNow = bridge.liveStatus();
             // --list-controls reports whatever there is once the sim has had ~30 s; actions need the event list
             const bool eventsReady = !needInputEvents || snapNow.inputEventsDone ||
                                      (listControls && !snapNow.aircraftId.empty() && std::chrono::steady_clock::now() - startedAt > std::chrono::seconds(30));
@@ -337,7 +379,7 @@ int main(int argc, char** argv) {
                 if (have >= names.size()) break;
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
-            for (int i = 0; i < 80 && !bridge.liveSnapshot().lvarsDone; ++i) std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            for (int i = 0; i < 80 && !bridge.liveStatus().lvarsDone; ++i) std::this_thread::sleep_for(std::chrono::milliseconds(100));
             const sim::LiveSnapshot snap = bridge.liveSnapshot();
             nlohmann::json doc;
             doc["aircraft"] = snap.aircraftId;
@@ -355,12 +397,18 @@ int main(int argc, char** argv) {
             doc["lvars_listed"] = snap.lvarsDone;
             std::ofstream out(dumpControlsPath);
             out << doc.dump(1) << "\n";
-            std::printf("wrote %zu input events (%zu with a value) and %zu L: variables of %s to %s\n", snap.inputEvents.size(),
-                        static_cast<size_t>(std::count_if(doc["input_events"].begin(), doc["input_events"].end(), [](const nlohmann::json& j) { return j.contains("value"); })),
-                        snap.lvars.size(), snap.aircraftId.c_str(), dumpControlsPath.c_str());
+            out.flush();
+            if (!out) {
+                std::fprintf(stderr, "cannot write %s\n", dumpControlsPath.c_str());
+                exitCode = 1;
+            } else {
+                std::printf("wrote %zu input events (%zu with a value) and %zu L: variables of %s to %s\n", snap.inputEvents.size(),
+                            static_cast<size_t>(std::count_if(doc["input_events"].begin(), doc["input_events"].end(), [](const nlohmann::json& j) { return j.contains("value"); })),
+                            snap.lvars.size(), snap.aircraftId.c_str(), dumpControlsPath.c_str());
+            }
         } else if (listControls) {
             // L: variables come from the MobiFlight module; give it a few seconds, the list is optional
-            for (int i = 0; i < 80 && !bridge.liveSnapshot().lvarsDone; ++i) std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            for (int i = 0; i < 80 && !bridge.liveStatus().lvarsDone; ++i) std::this_thread::sleep_for(std::chrono::milliseconds(100));
             const sim::LiveSnapshot snap = bridge.liveSnapshot();
             std::printf("aircraft: %s (%s)\n", snap.aircraftId.empty() ? "unknown" : snap.aircraftId.c_str(), snap.aircraftLabel.c_str());
             std::printf("cockpit input events (B:): %zu\n", snap.inputEvents.size());
@@ -406,7 +454,7 @@ int main(int argc, char** argv) {
         input.stop();
         hapticsEngine.stop();
         bridge.stop();
-        return 0;
+        return exitCode;
     }
 
     if (headless) {
@@ -452,6 +500,9 @@ int main(int argc, char** argv) {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO();
+#ifdef COMPANION_UI_LINT
+        ui::lintInstall();
+#endif
         static std::string iniPath = app::imguiIniFile();
         io.IniFilename = iniPath.c_str();
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
@@ -507,6 +558,9 @@ int main(int argc, char** argv) {
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
             ui.draw();
+#ifdef COMPANION_UI_LINT
+            ui::lintEndFrame();
+#endif
             ImGui::Render();
             int w, h;
             glfwGetFramebufferSize(window, &w, &h);

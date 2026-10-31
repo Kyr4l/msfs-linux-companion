@@ -75,6 +75,7 @@ public:
 
 private:
     struct Device;
+    static void refreshSnapshot(Device& d);  // copies what the device reports now (buttons, hats, axes) into its snapshot
     void threadMain();
     void scanDevices();
     void closeDevice(size_t idx);

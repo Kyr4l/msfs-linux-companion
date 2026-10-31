@@ -77,14 +77,13 @@ void Ui::drawDetentOptions() {
         if (ImGui::SmallButton("Allow decimals")) c.integer = false;
     }
 
+    // the presets only mean something for that one aircraft: out of the way (folded) for every other
     ImGui::Spacing();
-    ImGui::AlignTextToFramePadding();
-    ImGui::TextUnformatted("Fill in for the F/A-18E:");
-    for (int engine = 1; engine <= 2; ++engine) {
-        ImGui::SameLine();
-        char label[64];
-        snprintf(label, sizeof label, engine == 1 ? "Left throttle (1)" : "Right throttle (2)");
-        if (ImGui::Button(label)) {
+    const bool forFa18 = sim::sameAircraft(ctx_.settings.ensureActive().aircraft, "Asobo_FA18E");
+    const bool showPresets = ImGui::TreeNodeEx("Presets for the F/A-18E throttles", forFa18 ? ImGuiTreeNodeFlags_DefaultOpen : ImGuiTreeNodeFlags_None);
+    for (int engine = 1; showPresets && engine <= 2; ++engine) {
+        if (engine == 2) ImGui::SameLine();
+        if (ImGui::Button(engine == 1 ? "Left throttle (1)" : "Right throttle (2)")) {
             // Asobo F/A-18E (the cockpit's own template, read from the sim files and checked on the aircraft): the throttle input event is a
             // fraction of the lever travel; the sim's own Idle preset sets 0 and military power is 0.8.
             //  * The cut-off needs the throttle at exactly 0 when STOP is set, and a fast pull from above lands on the idle gate (10 %) first,
@@ -115,6 +114,7 @@ void Ui::drawDetentOptions() {
                               "afterburner: XMLVAR_LastAB%dThrottleSet = 1 first (otherwise the afterburner drops the throttle to idle), then the afterburner.\n"
                               "It replaces the actions of this binding.", engine, engine);
     }
+    if (showPresets) ImGui::TreePop();
     ImGui::Unindent(fs);
 }
 
@@ -220,8 +220,37 @@ void Ui::openEditor(int bindingIndex) {
     editIndex_ = bindingIndex;
     if (bindingIndex >= 0 && bindingIndex < static_cast<int>(p.bindings.size())) draft_ = p.bindings[static_cast<size_t>(bindingIndex)];
     else draft_ = Binding{};
+    insertAt_ = -1;
+    draftIsCopy_ = false;
     editorOpen_ = true;
     ctx_.engine.cancelCapture();
+}
+
+// A copy keeps everything the binding does (its actions, its axis settings, its group, its repeat) and has no input yet: it is for another
+// button or axis, the same one would fire twice. The editor opens waiting for that input, and the copy is only added to the profile
+// when it is saved, right after the original.
+void Ui::openEditorCopy(int bindingIndex) {
+    const Profile& p = ctx_.settings.ensureActive();
+    if (bindingIndex < 0 || bindingIndex >= static_cast<int>(p.bindings.size())) return;
+    draft_ = p.bindings[static_cast<size_t>(bindingIndex)];
+    draft_.input.device.clear();
+    draft_.input.code = 0;
+    draft_.input.dir = 0;
+    if (!draft_.label.empty()) draft_.label += " copy";
+    editIndex_ = -1;
+    insertAt_ = bindingIndex + 1;
+    draftIsCopy_ = true;
+    editorOpen_ = true;
+    ctx_.engine.cancelCapture();
+    ctx_.engine.beginCapture();
+}
+
+bool Ui::bindingMatches(const Binding& b, const std::vector<std::string>& words) const {
+    if (words.empty()) return true;
+    std::string text = b.label + ' ' + b.group + ' ' + ctx_.input.describe(b.input) + ' ' + deviceDisplayName(b.input.device);
+    for (const auto* list : {&b.onPress, &b.onRelease, &b.onCutoff, &b.onCutoffLeave, &b.onAfterburner, &b.onAfterburnerLeave})
+        for (const Action& a : *list) text += ' ' + a.describe();
+    return matchesAll(std::move(text), words);
 }
 
 void Ui::drawBindingsTab() {
@@ -283,7 +312,9 @@ void Ui::drawBindingsTab() {
         ctx_.markDirty();
     }
     ImGui::SameLine();
-    if (ImGui::Button("Delete") && s.profiles.size() > 1) ImGui::OpenPopup("confirm_delete_profile");
+    ImGui::BeginDisabled(s.profiles.size() <= 1);  // the last profile cannot be deleted
+    if (ImGui::Button("Delete")) ImGui::OpenPopup("confirm_delete_profile");
+    ImGui::EndDisabled();
     if (ImGui::BeginPopup("profile_name")) {
         ImGui::InputText("Name", &newProfileName_);
         if (!renamingProfile_) {
@@ -396,10 +427,14 @@ void Ui::drawBindingsTab() {
         }
     }
     ImGui::SameLine();
+    ImGui::SetNextItemWidth(ImGui::GetFontSize() * 14);
+    ImGui::InputTextWithHint("##binding_filter", "filter the list ...", &bindingFilter_);
+    ImGui::SameLine();
     ImGui::TextDisabled("Leave the buttons you bind here unassigned in the MSFS controls menu.");
 
+    const std::vector<std::string> filterWords = searchWords(bindingFilter_);
     const BindingsGroupBy by = s.bindingsGroupBy;
-    const bool canReorder = !s.bindingsAutoSort;
+    const bool canReorder = !s.bindingsAutoSort && filterWords.empty();  // Up and Down move past rows that a filter hides
     const bool canRegroup = by == BindingsGroupBy::Custom;
     const auto groups = arrangeBindings(prof, by, s.bindingsAutoSort, [this](const std::string& key) { return deviceDisplayName(key); });
     ImGuiTableFlags tflags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp;
@@ -411,21 +446,27 @@ void Ui::drawBindingsTab() {
         ImGui::TableSetupColumn("On press", ImGuiTableColumnFlags_WidthStretch, 2.0f);
         ImGui::TableSetupColumn("On release", ImGuiTableColumnFlags_WidthStretch, 1.5f);
         ImGui::TableSetupColumn("Repeat", ImGuiTableColumnFlags_WidthFixed, 60);
-        ImGui::TableSetupColumn("##actions", ImGuiTableColumnFlags_WidthFixed, 230);
+        ImGui::TableSetupColumn("##actions", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFontSize() * 21);
         ImGui::TableHeadersRow();
 
         int toDelete = -1, moveFrom = -1, moveTo = -1;  // Up / Down: two bindings swap places
         int dropFrom = -1, dropOnRow = -1, dropOnGroup = -1;  // a dragged row, dropped on a row or on the header of a group
         std::string dropGroup;
         const std::string dragType = "BINDING_ROW";
+        int rowsShown = 0;
         for (const auto& g : groups) {
+            std::vector<int> shown;  // the rows of the group that pass the filter box
+            for (int i : g.indices)
+                if (bindingMatches(prof.bindings[static_cast<size_t>(i)], filterWords)) shown.push_back(i);
+            if (shown.empty()) continue;
+            rowsShown += static_cast<int>(shown.size());
             bool open = true;
             if (!g.title.empty()) {
                 ImGui::TableNextRow();
                 ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ImVec4(0.20f, 0.26f, 0.38f, 0.8f)));
                 ImGui::TableSetColumnIndex(1);
                 char label[320];
-                snprintf(label, sizeof label, "%s  (%zu)###group:%s", g.title.c_str(), g.indices.size(), g.key.c_str());
+                snprintf(label, sizeof label, "%s  (%zu)###group:%s", g.title.c_str(), shown.size(), g.key.c_str());
                 open = ImGui::TreeNodeEx(label, ImGuiTreeNodeFlags_SpanAllColumns | ImGuiTreeNodeFlags_DefaultOpen);
                 if (canRegroup && ImGui::BeginDragDropTarget()) {
                     if (const ImGuiPayload* pl = ImGui::AcceptDragDropPayload(dragType.c_str())) {
@@ -437,8 +478,8 @@ void Ui::drawBindingsTab() {
                 }
             }
             if (open) {
-                for (size_t pos = 0; pos < g.indices.size(); ++pos) {
-                    const int i = g.indices[pos];
+                for (size_t pos = 0; pos < shown.size(); ++pos) {
+                    const int i = shown[pos];
                     Binding& b = prof.bindings[static_cast<size_t>(i)];
                     ImGui::PushID(i);
                     ImGui::TableNextRow();
@@ -479,6 +520,7 @@ void Ui::drawBindingsTab() {
                     } else {
                         ImGui::TextDisabled("%s", deviceDisplayName(b.input.device).c_str());
                     }
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", deviceDisplayName(b.input.device).c_str());  // the column clips a long device name
                     ImGui::TableSetColumnIndex(2);
                     ImGui::TextUnformatted(b.label.c_str());
                     {
@@ -514,6 +556,9 @@ void Ui::drawBindingsTab() {
                     ImGui::TableSetColumnIndex(6);
                     if (ImGui::SmallButton("Edit")) openEditor(i);
                     ImGui::SameLine();
+                    if (ImGui::SmallButton("Copy")) openEditorCopy(i);
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("A new binding that does the same: you choose its button or axis next");
+                    ImGui::SameLine();
                     if (ImGui::SmallButton("Test")) {
                         if (b.input.kind == input::InputKind::Axis && b.axis.mode == AxisMode::Value) {
                             const float now = axisNow(b.input);
@@ -526,16 +571,28 @@ void Ui::drawBindingsTab() {
                     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Fire the press actions now");
                     ImGui::SameLine();
                     ImGui::BeginDisabled(!canReorder);
-                    if (ImGui::SmallButton("Up") && pos > 0) { moveFrom = i; moveTo = g.indices[pos - 1]; }
+                    if (ImGui::SmallButton("Up") && pos > 0) { moveFrom = i; moveTo = shown[pos - 1]; }
                     ImGui::SameLine();
-                    if (ImGui::SmallButton("Down") && pos + 1 < g.indices.size()) { moveFrom = i; moveTo = g.indices[pos + 1]; }
+                    if (ImGui::SmallButton("Down") && pos + 1 < shown.size()) { moveFrom = i; moveTo = shown[pos + 1]; }
                     ImGui::EndDisabled();
                     ImGui::SameLine();
-                    if (ImGui::SmallButton("X")) toDelete = i;
+                    if (ImGui::SmallButton("Delete")) ImGui::OpenPopup("delete_binding");
+                    if (ImGui::BeginPopup("delete_binding")) {
+                        ImGui::Text("Delete \"%s\"?", b.label.empty() ? ctx_.input.describe(b.input).c_str() : b.label.c_str());
+                        if (ImGui::Button("Delete")) { toDelete = i; ImGui::CloseCurrentPopup(); }
+                        ImGui::SameLine();
+                        if (ImGui::Button("Keep it")) ImGui::CloseCurrentPopup();
+                        ImGui::EndPopup();
+                    }
                     ImGui::PopID();
                 }
             }
             if (!g.title.empty() && open) ImGui::TreePop();
+        }
+        if (rowsShown == 0 && !filterWords.empty()) {
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(1);
+            ImGui::TextDisabled("No binding of this profile matches \"%s\".", bindingFilter_.c_str());
         }
         ImGui::EndTable();
         if (toDelete >= 0) { prof.bindings.erase(prof.bindings.begin() + toDelete); ctx_.markDirty(); }
@@ -614,7 +671,7 @@ void Ui::drawActionList(const char* id, std::vector<Action>& actions, int listIn
     ImGui::EndDisabled();
     if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) ImGui::SetTooltip("Carry out this list now, as a test (needs the simulator)");
     ImGui::SetNextWindowSize(ImVec2(ImGui::GetMainViewport()->WorkSize.x * 0.85f, ImGui::GetMainViewport()->WorkSize.y * 0.8f), ImGuiCond_Appearing);
-    if (ImGui::BeginPopupModal("catalog_pick", &popupOpen, ImGuiWindowFlags_NoSavedSettings)) {
+    if (ImGui::BeginPopupModal("Pick from the catalog###catalog_pick", &popupOpen, ImGuiWindowFlags_NoSavedSettings)) {
         drawCatalogBrowser("picker", true);
         ImGui::EndPopup();
     }
@@ -657,7 +714,7 @@ void Ui::drawAxisTargetPicker() {
 
 void Ui::drawBindingEditor() {
     ImGui::SetNextWindowSize(ImVec2(920, 640), ImGuiCond_FirstUseEver);
-    const char* title = editIndex_ >= 0 ? "Edit binding###binding_editor" : "New binding###binding_editor";
+    const char* title = editIndex_ >= 0 ? "Edit binding###binding_editor" : draftIsCopy_ ? "New binding (a copy)###binding_editor" : "New binding###binding_editor";
     if (!ImGui::Begin(title, &editorOpen_)) { ImGui::End(); return; }
     const float fs = ImGui::GetFontSize();
 
@@ -675,9 +732,11 @@ void Ui::drawBindingEditor() {
         }
     }
     fieldLabel("Input");
-    if (draft_.input.device.empty()) ImGui::TextColored(kYellow, "none yet");
-    else ImGui::Text("%s  on  %s", ctx_.input.describe(draft_.input).c_str(), deviceDisplayName(draft_.input.device).c_str());
-    ImGui::SameLine();
+    if (!draft_.input.device.empty() || !capturing) {  // while listening for it, the prompt on this line says what is wanted
+        if (draft_.input.device.empty()) ImGui::TextColored(kYellow, "none yet");
+        else ImGui::Text("%s  on  %s", ctx_.input.describe(draft_.input).c_str(), deviceDisplayName(draft_.input.device).c_str());
+        ImGui::SameLine();
+    }
     if (!capturing) {
         if (ImGui::Button("Choose by pressing it")) ctx_.engine.beginCapture();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("Then press the button, move the hat, or move the axis about a quarter of its travel.");
@@ -773,6 +832,7 @@ void Ui::drawBindingEditor() {
     if (ImGui::Button("Save", ImVec2(fs * 9, 0))) {
         Profile& p = ctx_.settings.ensureActive();
         if (editIndex_ >= 0 && editIndex_ < static_cast<int>(p.bindings.size())) p.bindings[static_cast<size_t>(editIndex_)] = draft_;
+        else if (insertAt_ >= 0 && insertAt_ <= static_cast<int>(p.bindings.size())) p.bindings.insert(p.bindings.begin() + insertAt_, draft_);
         else p.bindings.push_back(draft_);
         ctx_.markDirty();
         editorOpen_ = false;

@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Kyr4l
 #pragma once
 // Little-endian serialization helpers for the SimConnect wire protocol.
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -18,10 +19,12 @@ public:
     void f32(float v) { raw(&v, 4); }
     void f64(double v) { raw(&v, 8); }
     void bytes(const void* p, size_t n) { raw(p, n); }
-    // Writes the string and pads with zeros up to `fixed` bytes (a longer string is written in full).
+    // Writes the string and pads with zeros up to `fixed` bytes: a field has that size in the packet, so a longer string is cut short
+    // (written in full it would shift every field after it).
     void str(const std::string& s, size_t fixed) {
-        raw(s.data(), s.size());
-        if (s.size() < fixed) buf_.insert(buf_.end(), fixed - s.size(), 0);
+        const size_t n = std::min(s.size(), fixed);
+        raw(s.data(), n);
+        if (n < fixed) buf_.insert(buf_.end(), fixed - n, 0);
     }
     void u32At(size_t off, uint32_t v) { std::memcpy(buf_.data() + off, &v, 4); }
     size_t size() const { return buf_.size(); }

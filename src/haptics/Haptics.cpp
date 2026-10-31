@@ -165,6 +165,17 @@ void HapticsEngine::evaluate(const sim::Telemetry& t, float& left, float& right,
     prevFlaps_ = t.flapsPct;
 }
 
+void HapticsEngine::resetRuleState() {
+    prevTime_ = {};
+    globalPulses_.clear();
+    prevOnGround_ = true;
+    prevGear_ = 1;
+    prevFlaps_ = 0;
+    lastAirborneVs_ = 0;
+    gSmooth_ = 1.0;
+    flapsRate_ = 0;
+}
+
 void HapticsEngine::threadMain() {
     LOG_INFO("Haptics thread started");
     auto nextScan = clock::now();
@@ -184,7 +195,8 @@ void HapticsEngine::threadMain() {
             pulses = pulses_;
         }
         // The sim is asked for flight data (every third frame) only while vibration is enabled and a device is plugged in.
-        const bool haveDevice = !hid_.devices().empty();
+        const auto devices = hid_.devices();
+        const bool haveDevice = !devices.empty();
         const bool wantTelemetry = cfg.enabled && haveDevice;
         if (wantTelemetry != telemetryOn) {
             bridge_.setTelemetryEnabled(wantTelemetry);
@@ -199,13 +211,13 @@ void HapticsEngine::threadMain() {
             std::lock_guard<std::mutex> lock(m_);
             evaluate(t, left, right, contrib);
         } else {
-            prevTime_ = {};
-            globalPulses_.clear();
+            std::lock_guard<std::mutex> lock(m_);
+            resetRuleState();  // the next flight must not inherit a touchdown or a flaps movement from this one
         }
         left = clamp01(left * cfg.master);
         right = clamp01(right * cfg.master);
 
-        for (const auto& dev : hid_.devices()) {
+        for (const auto& dev : devices) {
             float l = left, r = right;
             auto dc = cfg.devices.find(dev.key);
             const bool devEnabled = dc == cfg.devices.end() ? true : dc->second.enabled;
@@ -218,10 +230,11 @@ void HapticsEngine::threadMain() {
             const uint8_t lb = static_cast<uint8_t>(std::lround(l * 255)), rb = static_cast<uint8_t>(std::lround(r * 255));
             auto& last = lastSent[dev.key];
             if (last.first != lb || last.second != rb) {
-                hid_.setMotors(dev.key, lb, rb);
-                last = {lb, rb};
+                if (hid_.setMotors(dev.key, lb, rb)) last = {lb, rb};  // a lost write is tried again, not taken as done
             }
         }
+        for (auto it = lastSent.begin(); it != lastSent.end();)  // a device that was unplugged no longer keeps the loop busy
+            it = std::any_of(devices.begin(), devices.end(), [&](const WinwingDeviceInfo& d) { return d.key == it->first; }) ? std::next(it) : lastSent.erase(it);
         {
             std::lock_guard<std::mutex> lock(m_);
             status_.left = left;

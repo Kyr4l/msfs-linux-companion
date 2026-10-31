@@ -2,7 +2,8 @@
 // Copyright (C) 2026 Kyr4l
 #pragma once
 // Turns joystick events into simulator commands according to the active profile.
-// Called from the input thread; the UI thread swaps in new profiles and reads status.
+// onInput() and tick() are called from the input thread; the UI thread swaps in new profiles, reads status, runs the Test buttons (fire())
+// and, while a Delay of those is waiting, calls tick() too. Everything is guarded by one mutex; actions are sent outside it.
 #include <array>
 #include <chrono>
 #include <deque>
@@ -47,15 +48,14 @@ public:
     // has to run again, or -1 when nothing is waiting: the input thread sleeps exactly that long.
     int tick();
 
-    // UI helpers
     // Pure helpers (also used by the UI and the tests)
     static double axisPosition(const AxisConfig& c, double raw01);            // 0..1 inside the used travel, inverted if asked
     static double axisOutput(const AxisConfig& c, double position01);        // rescaled (and rounded if integer)
-    // A lever with gates: where it is (raw 0..1 of the device travel) -> the value to send and the zone it is in. `previous` gives the
-    // zone a little hysteresis, so a lever resting at a zone boundary does not chatter.
     // Which gate buttons are closed (only meaningful for the gates of the calibration that have a button).
     struct GateState { bool cutoff = false, idle = false, mil = false, ab = false; };
     struct DetentResult { double value; AxisZone zone; };
+    // A lever with gates: where it is (raw 0..1 of the device travel) -> the value to send and the zone it is in. `previous` gives the
+    // zone a little hysteresis, so a lever resting at a zone boundary does not chatter.
     static DetentResult detentOutput(const AxisDetents& d, const AxisCalibration& cal, double raw01, AxisZone previous, const GateState& gates);
     static DetentResult detentOutput(const AxisDetents& d, const AxisCalibration& cal, double raw01, AxisZone previous);  // no gate button closed
     static std::vector<Action> withValue(const std::vector<Action>& actions, double v, bool integer);  // substitute the axis value
@@ -132,6 +132,9 @@ private:
     std::function<void(const Action&, const std::string&)> observer_;
     void runActions(const std::vector<Action>& actions, size_t from, const std::string& origin, int binding, uint64_t generation);
     std::vector<Scheduled> takeDue(int& waitMs);  // under m_: what is due now (stale ones dropped), and the wait until the next
+    int nextScheduledMs() const;                  // under m_: milliseconds until the next waiting Delay tail is due, -1 when none
+    // The second 0 of a lever that came down onto idle from higher up (see onAxis), due shortly after the value that was just sent.
+    Scheduled idleAgain(const Binding& b, size_t index, double value, const AxisState& st) const;
 
     sim::SimBridge& bridge_;
     mutable std::mutex m_;
