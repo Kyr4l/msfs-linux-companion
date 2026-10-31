@@ -23,6 +23,7 @@ const char* actionKindName(ActionKind k) {
         case ActionKind::CalcCode: return "calc_code";
         case ActionKind::InputEvent: return "input_event";
         case ActionKind::InputEventToggle: return "input_event_toggle";
+        case ActionKind::Delay: return "delay";
     }
     return "sim_event";
 }
@@ -36,19 +37,22 @@ const char* actionKindLabel(ActionKind k) {
         case ActionKind::CalcCode: return "RPN calculator code (needs MobiFlight)";
         case ActionKind::InputEvent: return "B: input event, set value (cockpit switch)";
         case ActionKind::InputEventToggle: return "B: input event, toggle / cycle positions";
+        case ActionKind::Delay: return "Wait (milliseconds), then the actions below";
     }
     return "?";
 }
 
 bool actionKindFromName(const std::string& s, ActionKind& out) {
     for (ActionKind k : {ActionKind::SimEvent, ActionKind::HEvent, ActionKind::LVarSet, ActionKind::LVarToggle, ActionKind::CalcCode,
-                         ActionKind::InputEvent, ActionKind::InputEventToggle}) {
+                         ActionKind::InputEvent, ActionKind::InputEventToggle, ActionKind::Delay}) {
         if (s == actionKindName(k)) { out = k; return true; }
     }
     return false;
 }
 
-bool actionNeedsMobiFlight(ActionKind k) { return k != ActionKind::SimEvent && k != ActionKind::InputEvent && k != ActionKind::InputEventToggle; }
+bool actionNeedsMobiFlight(ActionKind k) {
+    return k != ActionKind::SimEvent && k != ActionKind::InputEvent && k != ActionKind::InputEventToggle && k != ActionKind::Delay;
+}
 
 static std::string num(double v) {
     char buf[64];
@@ -66,6 +70,7 @@ std::string Action::describe() const {
         case ActionKind::CalcCode: return "calc: " + name;
         case ActionKind::InputEvent: return "B:" + name + " = " + num(value);
         case ActionKind::InputEventToggle: return "B:" + name + (value > 2 ? " cycle " + num(value) : std::string(" toggle"));
+        case ActionKind::Delay: return "wait " + num(value) + " ms";
     }
     return name;
 }

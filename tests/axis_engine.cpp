@@ -542,6 +542,143 @@ int main() {
         std::filesystem::remove(path);
     }
 
+    // ---- Delay: the rest of a list waits, and what a lever with gates held back is dropped when it changes zone
+    {
+        AxisCalibration cal;
+        cal.device = dev; cal.code = 3;
+        cal.cutoff = 0.03; cal.idle = 0.03; cal.mil = 0.75; cal.ab = 0.90;
+        cal.cutoffBtn = 300; cal.idleBtn = 301; cal.milBtn = 302; cal.abBtn = 303;
+        AxisDetents d;
+        d.enabled = true; d.outCutoff = 0.0; d.outIdle = 0.1; d.outMil = 0.8;
+
+        struct Seen { std::string name; double value; std::chrono::steady_clock::time_point at; };
+        auto watch = [](Engine& e, std::vector<Seen>& log) {
+            e.setActionObserver([&log](const Action& a, const std::string&) { log.push_back({a.name, a.value, std::chrono::steady_clock::now()}); });
+        };
+        auto count = [](const std::vector<Seen>& log, const std::string& name, double value) {
+            size_t n = 0;
+            for (const auto& x : log) if (x.name == name && std::fabs(x.value - value) < 1e-9) ++n;
+            return n;
+        };
+        auto act = [](ActionKind k, const char* name, double v) { Action a; a.kind = k; a.name = name; a.value = v; return a; };
+        auto wait = [](int ms) { std::this_thread::sleep_for(std::chrono::milliseconds(ms)); };
+
+        {   // a plain list: what follows the Delay comes later, from tick(), and nothing sleeps
+            Engine e(bridge);
+            std::vector<Seen> log;
+            watch(e, log);
+            const auto t0 = std::chrono::steady_clock::now();
+            e.fire({act(ActionKind::InputEvent, "A", 1), act(ActionKind::Delay, "", 60), act(ActionKind::InputEvent, "B", 2), act(ActionKind::Delay, "", 30), act(ActionKind::InputEvent, "C", 3)}, "test");
+            CHECK(std::chrono::steady_clock::now() - t0 < std::chrono::milliseconds(40));
+            CHECK(log.size() == 1 && log[0].name == "A" && e.hasScheduled());
+            CHECK(e.tick() > 0 && log.size() == 1);  // not due yet, and the engine says when to look again
+            wait(80);
+            e.tick();
+            CHECK(log.size() == 2 && log[1].name == "B" && e.hasScheduled());
+            wait(50);
+            e.tick();
+            CHECK(log.size() == 3 && log[2].name == "C" && !e.hasScheduled() && e.tick() == -1);
+            CHECK(log[1].at - log[0].at >= std::chrono::milliseconds(55));
+            Action w = act(ActionKind::Delay, "", 120);
+            CHECK(w.describe() == "wait 120 ms" && !actionNeedsMobiFlight(ActionKind::Delay));
+            ActionKind k = ActionKind::SimEvent;
+            CHECK(actionKindFromName(actionKindName(ActionKind::Delay), k) && k == ActionKind::Delay);
+        }
+
+        auto lever = [&](Engine& e, const std::vector<Action>& onCutoff, const std::vector<Action>& onAb, std::map<int, bool>& pressed) {
+            auto lp = std::make_shared<Profile>();
+            Binding t;
+            t.label = "Left throttle";
+            t.input = {dev, InputKind::Axis, 3, 0};
+            t.axis.mode = AxisMode::Value; t.axis.integer = false; t.axis.minIntervalMs = 5; t.axis.detents = d;
+            t.onPress = {act(ActionKind::InputEvent, "THR", 0)};
+            t.onCutoff = onCutoff;
+            t.onAfterburner = onAb;
+            t.onAfterburnerLeave = {act(ActionKind::InputEvent, "AB", 0)};
+            lp->bindings.push_back(t);
+            e.setProbes([&pressed](const std::string&, int code) { return pressed[code]; }, [](const std::string&, int) { return -1.0f; });
+            e.setProfile(lp);
+            e.setCalibrations({cal});
+        };
+        const std::vector<Action> cutSeq = {act(ActionKind::Delay, "", 40), act(ActionKind::InputEvent, "THR", 0), act(ActionKind::Delay, "", 40), act(ActionKind::InputEvent, "STOP", 1)};
+        const std::vector<Action> abSeq = {act(ActionKind::LVarSet, "LASTAB", 1), act(ActionKind::Delay, "", 40), act(ActionKind::InputEvent, "AB", 1)};
+
+        {   // the lever stays in the cut-off gate: the whole sequence runs, in order
+            Engine e(bridge);
+            std::vector<Seen> log;
+            std::map<int, bool> pressed;
+            lever(e, cutSeq, abSeq, pressed);
+            watch(e, log);
+            e.onInput(axisEvent(dev, 3, 0.0f, 0.5f));
+            wait(8);
+            pressed[300] = true;
+            e.onInput(buttonEvent(dev, 300, true));
+            CHECK(count(log, "THR", 0) == 1 && count(log, "STOP", 1) == 0);  // the value went at once, the sequence waits
+            wait(60); e.tick();
+            CHECK(count(log, "THR", 0) == 2 && count(log, "STOP", 1) == 0);
+            wait(60); e.tick();
+            CHECK(count(log, "STOP", 1) == 1 && !e.hasScheduled());
+        }
+        {   // the lever leaves the gate before the sequence is done: the rest is dropped, STOP is never sent for a lever at idle
+            Engine e(bridge);
+            std::vector<Seen> log;
+            std::map<int, bool> pressed;
+            lever(e, cutSeq, abSeq, pressed);
+            watch(e, log);
+            e.onInput(axisEvent(dev, 3, 0.0f, 0.5f));
+            wait(8);
+            pressed[300] = true;
+            e.onInput(buttonEvent(dev, 300, true));
+            wait(60); e.tick();                      // the second throttle 0 is out, STOP waits
+            pressed[300] = false;
+            e.onInput(buttonEvent(dev, 300, false));  // the lever goes back up
+            wait(60); e.tick();
+            CHECK(count(log, "STOP", 1) == 0);
+        }
+        {   // afterburner: the value is sent again when the zone changes, the L: var goes before the event, and leaving sends the value back
+            Engine e(bridge);
+            std::vector<Seen> log;
+            std::map<int, bool> pressed;
+            lever(e, cutSeq, abSeq, pressed);
+            watch(e, log);
+            pressed[302] = true;
+            e.onInput(axisEvent(dev, 3, 0.0f, 0.76f));  // end of the dry range: 0.8
+            const size_t at80 = count(log, "THR", 0.8);
+            CHECK(at80 == 1);
+            wait(8);
+            pressed[303] = true;
+            e.onInput(buttonEvent(dev, 303, true));    // the afterburner switch closes
+            CHECK(count(log, "THR", 0.8) == 2);        // the same value again, whatever the simulator did to the lever meanwhile
+            CHECK(count(log, "LASTAB", 1) == 1 && count(log, "AB", 1) == 0);
+            wait(60); e.tick();
+            CHECK(count(log, "AB", 1) == 1);
+            size_t iLast = 0, iAb = 0;
+            for (size_t i = 0; i < log.size(); ++i) { if (log[i].name == "LASTAB") iLast = i; if (log[i].name == "AB" && log[i].value == 1) iAb = i; }
+            CHECK(iLast < iAb);
+            wait(8);
+            pressed[303] = false;
+            e.onInput(buttonEvent(dev, 303, false));   // leaves the afterburner: AB off, then the throttle back to 0.8
+            CHECK(count(log, "AB", 0) == 1 && count(log, "THR", 0.8) == 3);
+            size_t iOff = 0, iBack = 0;
+            for (size_t i = 0; i < log.size(); ++i) { if (log[i].name == "AB" && log[i].value == 0) iOff = i; if (i > iOff && log[i].name == "THR" && log[i].value == 0.8) iBack = i; }
+            CHECK(iOff > 0 && iBack > iOff);
+        }
+        {   // a new profile drops what a lever held back
+            Engine e(bridge);
+            std::vector<Seen> log;
+            std::map<int, bool> pressed;
+            lever(e, cutSeq, abSeq, pressed);
+            watch(e, log);
+            e.onInput(axisEvent(dev, 3, 0.0f, 0.5f));
+            wait(8);
+            pressed[300] = true;
+            e.onInput(buttonEvent(dev, 300, true));
+            e.setProfile(std::make_shared<Profile>());
+            wait(100); e.tick();
+            CHECK(count(log, "STOP", 1) == 0);
+        }
+    }
+
     std::printf(failures ? "\n%d check(s) FAILED\n" : "all axis checks passed\n", failures);
     return failures ? 1 : 0;
 }

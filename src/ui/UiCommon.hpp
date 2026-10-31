@@ -52,8 +52,8 @@ inline std::string formatTime(std::chrono::system_clock::time_point tp) {
 
 inline bool actionKindCombo(const char* label, ActionKind& kind) {
     static const ActionKind kinds[] = {ActionKind::SimEvent, ActionKind::InputEvent, ActionKind::InputEventToggle, ActionKind::HEvent,
-                                       ActionKind::LVarSet, ActionKind::LVarToggle, ActionKind::CalcCode};
-    constexpr int n = 7;
+                                       ActionKind::LVarSet, ActionKind::LVarToggle, ActionKind::CalcCode, ActionKind::Delay};
+    constexpr int n = 8;
     int idx = 0;
     for (int i = 0; i < n; ++i)
         if (kinds[i] == kind) idx = i;

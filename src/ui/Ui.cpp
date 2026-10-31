@@ -64,6 +64,7 @@ void Ui::draw() {
     devices_ = ctx_.input.devices();
     status_ = ctx_.bridge.status();
     ctx_.syncLive();  // folds new input events / L: vars reported by the sim into the catalog
+    if (ctx_.engine.hasScheduled()) ctx_.engine.tick();  // what a Delay of a Test button held back
 
     const ImGuiViewport* vp = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(vp->WorkPos);

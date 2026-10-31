@@ -57,20 +57,22 @@
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "",
-   "note": "Reads 0 at rest; not tried."
+   "behavior": "latched",
+   "verified": true,
+   "note": "Verified on an F/A-18E (engines off, read back with the event itself): set 1 switches the afterburner of the left engine on and sets the throttle to (L:XMLVAR_LastAB1ThrottleSet), a fraction that is 0 until the game's own throttle has been used, so with 0 the throttle falls to the idle gate instead. Set that L: variable to 1 first (the throttle then goes to 100 % and values up to 1 are accepted), wait about 100 ms, then set the event to 1. It is refused below military power (throttle 0.8). Set 0 switches it off and leaves the throttle where it was: send the throttle value again."
   },
   {
    "panel": "Engines and throttles",
    "section": "Throttle 1 (left)",
-   "function": "STOP",
+   "function": "Cut-off (STOP)",
    "api": "ENGINE_Throttle_1_STOP",
    "name": "ENGINE_Throttle_1_STOP",
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "",
-   "note": "The sim's checklist toggles it to move the lever past the idle stop, but the value always read 0 whatever was sent and the engine kept running: the engine cut-off was not found."
+   "behavior": "latched",
+   "verified": true,
+   "note": "Verified on an F/A-18E (read from the sim's throttle template and run on the aircraft): the fuel cut-off of the left engine. Set 1 is refused unless the throttle (ENGINE_Throttle_1) is at exactly 0, and a throttle set to 0 from higher up stops at the idle gate first, so the sequence is: throttle 0, wait about 50 ms, throttle 0 again, wait, STOP 1. It then reads 1 and closes the fuel valve ((A:FUELSYSTEM VALVE SWITCH:7) = 0). Any later throttle value clears it by itself (STOP reads 0, the valve reopens); set 0 reopens the valve too."
   },
   {
    "panel": "Engines and throttles",
@@ -84,7 +86,7 @@
    "behavior": "level",
    "value": 0.5,
    "verified": true,
-   "note": "Verified on an F/A-18E: the value is the lever position as a fraction: 0.5 puts the lever at 50 %, 1 or more at 80 % (the military-power stop; afterburner is its own event), 0 from a higher position or 0.1 from the stop at 0 puts it at the idle stop (10 %). A set 0 while the lever already is at 0 changes nothing. Light-off at 12 % N2 needs the lever at idle ((A:GENERAL ENG THROTTLE LEVER POSITION:1))."
+   "note": "Verified on an F/A-18E: the value is the lever position as a fraction: 0.5 puts the lever at 50 %, 1 or more at 80 % (the military-power stop; afterburner is its own event), a 0 from a higher position stops at the idle gate (10 %, the value then reads 9.99756); only a second 0 (sent about 50 ms later) takes the lever to 0 (the off stop), and 0.1 from the stop puts it back at the idle gate. Any throttle value also clears the cut-off (STOP) and reopens the fuel valve. Light-off at 12 % N2 needs the lever at idle ((A:GENERAL ENG THROTTLE LEVER POSITION:1))."
   },
   {
    "panel": "Engines and throttles",
@@ -101,7 +103,7 @@
     1
    ],
    "verified": true,
-   "note": "Verified on an F/A-18E: the value is the lever position as a fraction: 0.5 puts the lever at 50 %, 1 or more at 80 % (the military-power stop; afterburner is its own event), 0 from a higher position or 0.1 from the stop at 0 puts it at the idle stop (10 %). A set 0 while the lever already is at 0 changes nothing. Light-off at 12 % N2 needs the lever at idle ((A:GENERAL ENG THROTTLE LEVER POSITION:1))."
+   "note": "Verified on an F/A-18E: the value is the lever position as a fraction: 0.5 puts the lever at 50 %, 1 or more at 80 % (the military-power stop; afterburner is its own event), a 0 from a higher position stops at the idle gate (10 %, the value then reads 9.99756); only a second 0 (sent about 50 ms later) takes the lever to 0 (the off stop), and 0.1 from the stop puts it back at the idle gate. Any throttle value also clears the cut-off (STOP) and reopens the fuel valve. Light-off at 12 % N2 needs the lever at idle ((A:GENERAL ENG THROTTLE LEVER POSITION:1))."
   },
   {
    "panel": "Engines and throttles",
@@ -115,7 +117,7 @@
    "behavior": "level",
    "value": 0.1,
    "verified": true,
-   "note": "Verified on an F/A-18E: the value is the lever position as a fraction: 0.5 puts the lever at 50 %, 1 or more at 80 % (the military-power stop; afterburner is its own event), 0 from a higher position or 0.1 from the stop at 0 puts it at the idle stop (10 %). A set 0 while the lever already is at 0 changes nothing. Light-off at 12 % N2 needs the lever at idle ((A:GENERAL ENG THROTTLE LEVER POSITION:1))."
+   "note": "Verified on an F/A-18E: the value is the lever position as a fraction: 0.5 puts the lever at 50 %, 1 or more at 80 % (the military-power stop; afterburner is its own event), a 0 from a higher position stops at the idle gate (10 %, the value then reads 9.99756); only a second 0 (sent about 50 ms later) takes the lever to 0 (the off stop), and 0.1 from the stop puts it back at the idle gate. Any throttle value also clears the cut-off (STOP) and reopens the fuel valve. Light-off at 12 % N2 needs the lever at idle ((A:GENERAL ENG THROTTLE LEVER POSITION:1))."
   },
   {
    "panel": "Engines and throttles",
@@ -129,7 +131,7 @@
    "behavior": "level",
    "value": 1,
    "verified": true,
-   "note": "Verified on an F/A-18E: the value is the lever position as a fraction: 0.5 puts the lever at 50 %, 1 or more at 80 % (the military-power stop; afterburner is its own event), 0 from a higher position or 0.1 from the stop at 0 puts it at the idle stop (10 %). A set 0 while the lever already is at 0 changes nothing. Light-off at 12 % N2 needs the lever at idle ((A:GENERAL ENG THROTTLE LEVER POSITION:1))."
+   "note": "Verified on an F/A-18E: the value is the lever position as a fraction: 0.5 puts the lever at 50 %, 1 or more at 80 % (the military-power stop; afterburner is its own event), a 0 from a higher position stops at the idle gate (10 %, the value then reads 9.99756); only a second 0 (sent about 50 ms later) takes the lever to 0 (the off stop), and 0.1 from the stop puts it back at the idle gate. Any throttle value also clears the cut-off (STOP) and reopens the fuel valve. Light-off at 12 % N2 needs the lever at idle ((A:GENERAL ENG THROTTLE LEVER POSITION:1))."
   },
   {
    "panel": "Engines and throttles",
@@ -140,20 +142,22 @@
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "",
-   "note": "Reads 0 at rest; not tried."
+   "behavior": "latched",
+   "verified": true,
+   "note": "Verified on an F/A-18E (engines off, read back with the event itself): set 1 switches the afterburner of the right engine on and sets the throttle to (L:XMLVAR_LastAB2ThrottleSet), a fraction that is 0 until the game's own throttle has been used, so with 0 the throttle falls to the idle gate instead. Set that L: variable to 1 first (the throttle then goes to 100 % and values up to 1 are accepted), wait about 100 ms, then set the event to 1. It is refused below military power (throttle 0.8). Set 0 switches it off and leaves the throttle where it was: send the throttle value again."
   },
   {
    "panel": "Engines and throttles",
    "section": "Throttle 2 (right)",
-   "function": "STOP",
+   "function": "Cut-off (STOP)",
    "api": "ENGINE_Throttle_2_STOP",
    "name": "ENGINE_Throttle_2_STOP",
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "",
-   "note": "The sim's checklist toggles it to move the lever past the idle stop, but the value always read 0 whatever was sent and the engine kept running: the engine cut-off was not found."
+   "behavior": "latched",
+   "verified": true,
+   "note": "Verified on an F/A-18E (read from the sim's throttle template and run on the aircraft): the fuel cut-off of the right engine. Set 1 is refused unless the throttle (ENGINE_Throttle_2) is at exactly 0, and a throttle set to 0 from higher up stops at the idle gate first, so the sequence is: throttle 0, wait about 50 ms, throttle 0 again, wait, STOP 1. It then reads 1 and closes the fuel valve ((A:FUELSYSTEM VALVE SWITCH:8) = 0). Any later throttle value clears it by itself (STOP reads 0, the valve reopens); set 0 reopens the valve too."
   },
   {
    "panel": "Engines and throttles",
@@ -167,7 +171,7 @@
    "behavior": "level",
    "value": 0.5,
    "verified": true,
-   "note": "Verified on an F/A-18E: the value is the lever position as a fraction: 0.5 puts the lever at 50 %, 1 or more at 80 % (the military-power stop; afterburner is its own event), 0 from a higher position or 0.1 from the stop at 0 puts it at the idle stop (10 %). A set 0 while the lever already is at 0 changes nothing. Light-off at 12 % N2 needs the lever at idle ((A:GENERAL ENG THROTTLE LEVER POSITION:2))."
+   "note": "Verified on an F/A-18E: the value is the lever position as a fraction: 0.5 puts the lever at 50 %, 1 or more at 80 % (the military-power stop; afterburner is its own event), a 0 from a higher position stops at the idle gate (10 %, the value then reads 9.99756); only a second 0 (sent about 50 ms later) takes the lever to 0 (the off stop), and 0.1 from the stop puts it back at the idle gate. Any throttle value also clears the cut-off (STOP) and reopens the fuel valve. Light-off at 12 % N2 needs the lever at idle ((A:GENERAL ENG THROTTLE LEVER POSITION:2))."
   },
   {
    "panel": "Engines and throttles",
@@ -184,7 +188,7 @@
     1
    ],
    "verified": true,
-   "note": "Verified on an F/A-18E: the value is the lever position as a fraction: 0.5 puts the lever at 50 %, 1 or more at 80 % (the military-power stop; afterburner is its own event), 0 from a higher position or 0.1 from the stop at 0 puts it at the idle stop (10 %). A set 0 while the lever already is at 0 changes nothing. Light-off at 12 % N2 needs the lever at idle ((A:GENERAL ENG THROTTLE LEVER POSITION:2))."
+   "note": "Verified on an F/A-18E: the value is the lever position as a fraction: 0.5 puts the lever at 50 %, 1 or more at 80 % (the military-power stop; afterburner is its own event), a 0 from a higher position stops at the idle gate (10 %, the value then reads 9.99756); only a second 0 (sent about 50 ms later) takes the lever to 0 (the off stop), and 0.1 from the stop puts it back at the idle gate. Any throttle value also clears the cut-off (STOP) and reopens the fuel valve. Light-off at 12 % N2 needs the lever at idle ((A:GENERAL ENG THROTTLE LEVER POSITION:2))."
   },
   {
    "panel": "Engines and throttles",
@@ -198,7 +202,7 @@
    "behavior": "level",
    "value": 0.1,
    "verified": true,
-   "note": "Verified on an F/A-18E: the value is the lever position as a fraction: 0.5 puts the lever at 50 %, 1 or more at 80 % (the military-power stop; afterburner is its own event), 0 from a higher position or 0.1 from the stop at 0 puts it at the idle stop (10 %). A set 0 while the lever already is at 0 changes nothing. Light-off at 12 % N2 needs the lever at idle ((A:GENERAL ENG THROTTLE LEVER POSITION:2))."
+   "note": "Verified on an F/A-18E: the value is the lever position as a fraction: 0.5 puts the lever at 50 %, 1 or more at 80 % (the military-power stop; afterburner is its own event), a 0 from a higher position stops at the idle gate (10 %, the value then reads 9.99756); only a second 0 (sent about 50 ms later) takes the lever to 0 (the off stop), and 0.1 from the stop puts it back at the idle gate. Any throttle value also clears the cut-off (STOP) and reopens the fuel valve. Light-off at 12 % N2 needs the lever at idle ((A:GENERAL ENG THROTTLE LEVER POSITION:2))."
   },
   {
    "panel": "Engines and throttles",
@@ -212,7 +216,7 @@
    "behavior": "level",
    "value": 1,
    "verified": true,
-   "note": "Verified on an F/A-18E: the value is the lever position as a fraction: 0.5 puts the lever at 50 %, 1 or more at 80 % (the military-power stop; afterburner is its own event), 0 from a higher position or 0.1 from the stop at 0 puts it at the idle stop (10 %). A set 0 while the lever already is at 0 changes nothing. Light-off at 12 % N2 needs the lever at idle ((A:GENERAL ENG THROTTLE LEVER POSITION:2))."
+   "note": "Verified on an F/A-18E: the value is the lever position as a fraction: 0.5 puts the lever at 50 %, 1 or more at 80 % (the military-power stop; afterburner is its own event), a 0 from a higher position stops at the idle gate (10 %, the value then reads 9.99756); only a second 0 (sent about 50 ms later) takes the lever to 0 (the off stop), and 0.1 from the stop puts it back at the idle gate. Any throttle value also clears the cut-off (STOP) and reopens the fuel valve. Light-off at 12 % N2 needs the lever at idle ((A:GENERAL ENG THROTTLE LEVER POSITION:2))."
   },
   {
    "panel": "Electrical and APU",

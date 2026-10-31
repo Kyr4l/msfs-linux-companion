@@ -179,7 +179,16 @@ int main(int argc, char** argv) {
         const auto* batt = find(fa, "ELECTRICAL_Battery_1", "latched");
         CHECK(batt && batt->verified && batt->note.find("set 1 = ON") != std::string::npos);
         // what could not be understood must not be offered with a behaviour
-        for (const char* n : {"ENGINE_Throttle_1_STOP", "LANDING_GEAR_Parking_Brake", "HANDLING_Spoilers", "LANDING_GEAR_Gear"}) {
+        // the cut-off and the afterburner were worked out from the sim's throttle template and run on the aircraft: they say what they need
+        for (const char* n : {"ENGINE_Throttle_1_STOP", "ENGINE_Throttle_2_STOP"}) {
+            const auto* e = find(fa, n, "latched");
+            CHECK(e && e->verified && e->note.find("exactly 0") != std::string::npos && e->note.find("FUELSYSTEM VALVE SWITCH") != std::string::npos);
+        }
+        for (const char* n : {"ENGINE_Throttle_1_Afterburner", "ENGINE_Throttle_2_Afterburner"}) {
+            const auto* e = find(fa, n, "latched");
+            CHECK(e && e->verified && e->note.find("XMLVAR_LastAB") != std::string::npos);
+        }
+        for (const char* n : {"LANDING_GEAR_Parking_Brake", "HANDLING_Spoilers", "LANDING_GEAR_Gear"}) {
             const auto* e = find(fa, n, "");
             CHECK(e && !e->verified);
         }

@@ -62,24 +62,34 @@ void Ui::drawDetentOptions() {
         char label[64];
         snprintf(label, sizeof label, "F/A-18E throttle %d", engine);
         if (ImGui::SmallButton(label)) {
-            // Asobo F/A-18E: the lever is a fraction of its travel (0 off stop, 0.1 idle stop, 0.8 military power); afterburner is its own event
+            // Asobo F/A-18E (the cockpit's own template, read from the sim files and checked on the aircraft): the throttle input event is a
+            // fraction of the lever travel, 0 at the off stop, 0.1 at the idle gate, 0.8 at military power.
+            //  * The cut-off needs the throttle at exactly 0 when STOP is set, and a fast pull from above lands on the idle gate first, so
+            //    the sequence is: 0, wait, 0 again, wait, STOP. Any later throttle value clears STOP by itself.
+            //  * The afterburner sets the throttle to L:XMLVAR_LastAB<n>ThrottleSet, which is 0 until the game's own throttle is used, so
+            //    it is set to 1 first; leaving sends the throttle value again.
             d.outCutoff = 0.0; d.outIdle = 0.1; d.outMil = 0.8;
             c.integer = false;
             const std::string n = std::to_string(engine);
-            Action thr, burn, burnOff;
-            thr.kind = burn.kind = burnOff.kind = ActionKind::InputEvent;
-            thr.name = "ENGINE_Throttle_" + n;
-            burn.name = burnOff.name = "ENGINE_Throttle_" + n + "_Afterburner";
-            burn.value = 1;
-            burnOff.value = 0;
-            draft_.onPress = {thr};
-            draft_.onAfterburner = {burn};
-            draft_.onAfterburnerLeave = {burnOff};
+            auto event = [](const std::string& name, double value) { Action a; a.kind = ActionKind::InputEvent; a.name = name; a.value = value; return a; };
+            auto wait = [](double ms) { Action a; a.kind = ActionKind::Delay; a.value = ms; return a; };
+            Action lastAb;
+            lastAb.kind = ActionKind::LVarSet;
+            lastAb.name = "XMLVAR_LastAB" + n + "ThrottleSet";
+            lastAb.value = 1;
+            const std::string thr = "ENGINE_Throttle_" + n;
+            draft_.onPress = {event(thr, 0)};
+            draft_.onCutoff = {wait(100), event(thr, 0), wait(100), event(thr + "_STOP", 1)};
+            draft_.onCutoffLeave = {};
+            draft_.onAfterburner = {lastAb, wait(100), event(thr + "_Afterburner", 1)};
+            draft_.onAfterburnerLeave = {event(thr + "_Afterburner", 0)};
             if (draft_.label.empty()) draft_.label = "F/A-18E throttle " + n;
         }
         if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("0 / 0.1 / 0.8 on ENGINE_Throttle_%d (verified on the aircraft), and the afterburner event on entering and leaving the afterburner zone.\n"
-                              "That afterburner event has NOT been tried on a real aircraft, and the engine cut-off is not understood there yet:\nthe cut-off lists are left empty.", engine);
+            ImGui::SetTooltip("Fills in what the F/A-18E needs for lever %d:\n"
+                              "values 0 / 0.1 / 0.8 on ENGINE_Throttle_%d;\n"
+                              "cut-off: throttle 0, wait, 0 again, wait, STOP (the aircraft refuses STOP unless the throttle is at exactly 0);\n"
+                              "afterburner: sets XMLVAR_LastAB%dThrottleSet = 1 first (else the afterburner drops the throttle to idle), then the afterburner event.", engine, engine, engine);
     }
     ImGui::Unindent();
 }
@@ -529,13 +539,16 @@ void Ui::drawActionList(const char* id, std::vector<Action>& actions, int listIn
                            a.kind == ActionKind::LVarSet ? "A32NX_AUTOBRAKES_ARMED_MODE_SET" :
                            a.kind == ActionKind::LVarToggle ? "A32NX_OVHD_APU_MASTER_SW_PB_IS_ON" :
                            (a.kind == ActionKind::InputEvent || a.kind == ActionKind::InputEventToggle) ? "LIGHTING_LANDING_1" : "1 (>L:A32NX_SOME_VAR)";
-        ImGui::InputTextWithHint("##name", hint, &a.name);
-        if (a.kind == ActionKind::SimEvent || a.kind == ActionKind::LVarSet || a.kind == ActionKind::InputEvent || a.kind == ActionKind::InputEventToggle) {
+        if (a.kind == ActionKind::Delay) ImGui::TextDisabled("then wait (milliseconds):");
+        else ImGui::InputTextWithHint("##name", hint, &a.name);
+        if (a.kind == ActionKind::SimEvent || a.kind == ActionKind::LVarSet || a.kind == ActionKind::InputEvent || a.kind == ActionKind::InputEventToggle ||
+            a.kind == ActionKind::Delay) {
             ImGui::SameLine();
             ImGui::SetNextItemWidth(110);
             ImGui::InputDouble("##value", &a.value, 0, 0, "%g");
             if (ImGui::IsItemHovered())
-                ImGui::SetTooltip(a.kind == ActionKind::SimEvent ? "Event parameter (0 for plain push buttons)"
+                ImGui::SetTooltip(a.kind == ActionKind::Delay ? "The actions after this one run this many milliseconds later (the program does not stand still while it waits)"
+                                  : a.kind == ActionKind::SimEvent ? "Event parameter (0 for plain push buttons)"
                                   : a.kind == ActionKind::LVarSet ? "Value written to the L: var"
                                   : a.kind == ActionKind::InputEvent ? "Value the cockpit input event is set to (switch position)"
                                                                      : "Number of positions to cycle through (2 = on/off, 3 = a three-position switch)");

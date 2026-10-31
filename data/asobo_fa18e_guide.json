@@ -1,7 +1,7 @@
 {
  "aircraft": "Asobo_FA18E",
  "title": "Boeing F/A-18E Super Hornet (Asobo)",
- "notice": "No official Asobo or Microsoft manual for this aircraft was found, so the procedures come from the sim's own checklist shipped with the aircraft, the sim's cockpit and instrument files, and three community guides on the MSFS forum (marked as community, not official; every step names its source). This guide itself has not been run on the aircraft. What was checked on a real F/A-18E when the catalog was built: a full engine start through the app and the controls it uses (battery, APU, generators, crank switch, throttles at idle), the flaps lever, anti-skid, the landing light, the strobes (inverted), cabin light 1, the tail hook, the wing fold and the altimeter setting; steps that use only those controls carry checks read back from the sim. Not understood on the real aircraft: the engine cut-off (throttle OFF stop), releasing the parking brake, the speed brake and the navigation light knob; steps that need them have no check and say so. Everything else (gear lever, nosewheel steering, bleed air, display brightness, exterior lights master switch, UFCD, DDIs, the pilot relief modes and the autothrottle, TACAN, afterburner) was written from the sources and has not been run on the aircraft: tick by hand if a tick never appears.",
+ "notice": "No official Asobo or Microsoft manual for this aircraft was found, so the procedures come from the sim's own checklist shipped with the aircraft, the sim's cockpit and instrument files, and three community guides on the MSFS forum (marked as community, not official; every step names its source). This guide itself has not been run on the aircraft. What was checked on a real F/A-18E when the catalog was built: a full engine start through the app and the controls it uses (battery, APU, generators, crank switch, throttles at idle), the flaps lever, anti-skid, the landing light, the strobes (inverted), cabin light 1, the tail hook, the wing fold and the altimeter setting; steps that use only those controls carry checks read back from the sim. The cut-off (the STOP control with the throttle at exactly 0) and the afterburner event were read from the sim's throttle template and run on the aircraft with the engines off (fuel valves, throttle and event read back). Not understood on the real aircraft: releasing the parking brake, the speed brake and the navigation light knob; steps that need them have no check and say so. Everything else (gear lever, nosewheel steering, bleed air, display brightness, exterior lights master switch, UFCD, DDIs, the pilot relief modes and the autothrottle, TACAN) was written from the sources and has not been run on the aircraft: tick by hand if a tick never appears.",
  "sources": [
   "FA18E_Checklist.xml and Library.xml shipped with the aircraft (Official/Steam/asobo-aircraft-fa18e/SimObjects/Airplanes/Asobo_FA18E/Checklist), the sim's own interactive checklist; English clue texts from Official/Steam/fs-base/en-US.locPak",
   "Asobo_DefaultCheckpointLibrary.xml (Official/Steam/fs-base-aircraft-common/CheckpointsLibrary), the shared checklist items FA18E_Checklist.xml refers to",
@@ -264,8 +264,7 @@
     },
     {
      "text": "Put both throttles on the OFF stop.",
-     "warn": "Not verified: on the real aircraft the STOP control always read 0 and the engine cut-off was not found. The sim's checklist reads the engine fuel valves (FUELSYSTEM VALVE SWITCH 7 and 8) to know the throttles are OFF. Tick by hand.",
-     "source": "FA18E_Checklist.xml: page Before starting engine, Throttles_cut_off_FA18E (clue \"Set throttles on \"Off\" position\")",
+     "source": "FA18E_Checklist.xml: page Before starting engine, Throttles_cut_off_FA18E (clue \"Set throttles on \"Off\" position\"); fs-base-aircraft-common ModelBehaviorDefs/Asobo/Common/Subtemplates/Engine_Subtemplates.xml (the throttle template: OFF gate and afterburner gate), and tried on the aircraft",
      "controls": [
       {
        "api": "ENGINE_Throttle_1_STOP"
@@ -273,7 +272,13 @@
       {
        "api": "ENGINE_Throttle_2_STOP"
       }
-     ]
+     ],
+     "why": "Verified on the aircraft: the cut-off is the STOP control. It is refused unless the throttle is at exactly 0, and a throttle set to 0 from higher up stops at the idle gate first, so: throttle 0, wait a moment, throttle 0 again, then STOP. The fuel valves then read closed. Any throttle value after that reopens them by itself, which is what the start steps below do.",
+     "check": {
+      "code": "(A:FUELSYSTEM VALVE SWITCH:7, Bool) (A:FUELSYSTEM VALVE SWITCH:8, Bool) +",
+      "op": "==",
+      "value": 0
+     }
     },
     {
      "text": "Set the exterior lights master switch FORWARD.",
@@ -1749,8 +1754,8 @@
     },
     {
      "text": "Engage the afterburner once rolling, if you want it.",
-     "warn": "Not verified: the afterburner events read 0 at rest and were not tried on the real aircraft.",
-     "source": "Raynen, F/A-18E Startup + Basic TACAN Navigation (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/f-a-18e-startup-basic-tacan-navigation/472861), Taxi and takeoff item 5",
+     "warn": "A lit afterburner with the engines running has not been watched yet.",
+     "source": "Raynen, F/A-18E Startup + Basic TACAN Navigation (community guide on the MSFS forum, not official; forums.flightsimulator.com/t/f-a-18e-startup-basic-tacan-navigation/472861), Taxi and takeoff item 5; fs-base-aircraft-common ModelBehaviorDefs/Asobo/Common/Subtemplates/Engine_Subtemplates.xml (the throttle template: OFF gate and afterburner gate), and tried on the aircraft",
      "controls": [
       {
        "api": "ENGINE_Throttle_1_Afterburner"
@@ -1758,7 +1763,8 @@
       {
        "api": "ENGINE_Throttle_2_Afterburner"
       }
-     ]
+     ],
+     "why": "Verified on the aircraft with the engines off: the event is accepted at 80 % throttle or more, and it moves the throttle to L:XMLVAR_LastAB1ThrottleSet (right engine: ...2...), which is 0 until the game's own throttle has been used, so the throttle falls to idle. Set that variable to 1 first and wait a moment, or use a throttle with its gates calibrated in this program, which does it."
     },
     {
      "text": "Rotate at about 135 knots indicated.",
@@ -2865,8 +2871,8 @@
     },
     {
      "text": "Put the throttles on the OFF stop: the left one first, then the right one.",
-     "warn": "Not verified: on the real aircraft the STOP control always read 0 and the engine kept running, so the engine cut-off was not found. Simvol's tutorial moves the throttles to the rear OFF stop. Tick by hand.",
-     "source": "FA18E_Checklist.xml: page Shutdown, Throttles_cut_off_FA18E (clue \"Left throttle must be set to \"Off\" first, then the right one\")",
+     "warn": "Do it for the left engine first, then the right one, as the checklist says.",
+     "source": "FA18E_Checklist.xml: page Shutdown, Throttles_cut_off_FA18E (clue \"Left throttle must be set to \"Off\" first, then the right one\"); fs-base-aircraft-common ModelBehaviorDefs/Asobo/Common/Subtemplates/Engine_Subtemplates.xml (the throttle template: OFF gate and afterburner gate), and tried on the aircraft",
      "controls": [
       {
        "api": "ENGINE_Throttle_1_STOP"
@@ -2881,7 +2887,13 @@
        "unit": "",
        "code": "(A:GENERAL ENG COMBUSTION:1, Bool) (A:GENERAL ENG COMBUSTION:2, Bool) +"
       }
-     ]
+     ],
+     "why": "Verified on the aircraft: the cut-off is the STOP control (throttle exactly 0, then STOP): the fuel valves read closed. That the running engines then wind down was not watched. A throttle whose gates are calibrated in this program does it by pulling the lever back over the idle gate.",
+     "check": {
+      "code": "(A:FUELSYSTEM VALVE SWITCH:7, Bool) (A:FUELSYSTEM VALVE SWITCH:8, Bool) +",
+      "op": "==",
+      "value": 0
+     }
     },
     {
      "text": "Turn the COMM 1 and COMM 2 volume knobs OFF.",
@@ -3670,8 +3682,9 @@
   "ts_eng_stops": {
    "type": "info",
    "title": "The engine stops by itself",
-   "text": "No sourced cause. What the files say: the sim's checklist reads the engine fuel valves (FUELSYSTEM VALVE SWITCH 7 and 8) to know a throttle is OFF, and the lever has an OFF gate at 10 % (FA18E_cockpit.xml, OFF_GATE_POS 0.1). On the real aircraft, setting the throttle to 0 from a higher position only went to the idle stop, and the engine cut-off was not found. If an engine stops, start it again with the topic Start the engines.",
-   "next": ""
+   "text": "What the sim's files and the aircraft say: setting the cut-off (STOP) closes the fuel valve of that engine (FUELSYSTEM VALVE SWITCH 7 for the left, 8 for the right), and the engine stops. Any throttle value afterwards reopens the valve. The lever has an OFF gate at 10 % (FA18E_cockpit.xml, OFF_GATE_POS 0.1). If an engine stops without your doing, nothing sourced explains it. Start it again with the topic Start the engines.",
+   "next": "",
+   "source": "fs-base-aircraft-common ModelBehaviorDefs/Asobo/Common/Subtemplates/Engine_Subtemplates.xml (the throttle template: OFF gate and afterburner gate), and tried on the aircraft"
   },
   "ts_pwr_q1": {
    "type": "question",
@@ -4206,8 +4219,9 @@
   "ts_ctl_ab": {
    "type": "info",
    "title": "Afterburner",
-   "text": "In the sim the lever has its afterburner gate at 80 % (FA18E_cockpit.xml, AFTERBURNER_GATE_POS 0.8); a throttle value of 1 or more puts the lever at 80 % and the afterburner is a separate event (catalog, verified for the lever, not tried for the afterburner events). Forum replies say it needs its own key or button binding. These replies are community opinions, not confirmed by the sim's files.",
-   "next": ""
+   "text": "In the sim the lever has its afterburner gate at 80 % (FA18E_cockpit.xml, AFTERBURNER_GATE_POS 0.8); a throttle value of 1 or more puts the lever at 80 % while the afterburner is off. The afterburner is its own event: accepted at 80 % or more, it moves the throttle to L:XMLVAR_LastABnThrottleSet (0 until the game's own throttle has been used: the throttle then falls to idle, so set it to 1 first), and the throttle then goes up to 100 %. Setting it to 0 leaves the throttle where it was. Verified on the aircraft with the engines off. Forum replies say it needs its own key or button binding; those replies are community opinions.",
+   "next": "",
+   "source": "fs-base-aircraft-common ModelBehaviorDefs/Asobo/Common/Subtemplates/Engine_Subtemplates.xml (the throttle template: OFF gate and afterburner gate), and tried on the aircraft"
   },
   "ts_ctl_spd": {
    "type": "info",

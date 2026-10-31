@@ -10,7 +10,7 @@
 
 namespace lr::app {
 
-enum class ActionKind { SimEvent, HEvent, LVarSet, LVarToggle, CalcCode, InputEvent, InputEventToggle };
+enum class ActionKind { SimEvent, HEvent, LVarSet, LVarToggle, CalcCode, InputEvent, InputEventToggle, Delay };  // Delay: value = milliseconds; what follows in the list waits
 
 const char* actionKindName(ActionKind k);   // "sim_event" ... (stable, used in JSON)
 const char* actionKindLabel(ActionKind k);  // "K: event" ... (UI)
@@ -20,7 +20,7 @@ bool actionNeedsMobiFlight(ActionKind k);
 struct Action {
     ActionKind kind = ActionKind::SimEvent;
     std::string name;   // event name / L var / H event / RPN code
-    double value = 0;   // event parameter, L var / input event value; for input_event_toggle the number of positions (default 2)
+    double value = 0;   // event parameter, L var / input event value; for input_event_toggle the number of positions (default 2); for delay the milliseconds
     std::string describe() const;
 };
 

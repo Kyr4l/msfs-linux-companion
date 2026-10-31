@@ -67,7 +67,10 @@ public:
     std::optional<input::InputId> takeCaptured();
     std::optional<input::InputEvent> lastInput() const;
     std::vector<FiredRecord> recentFires() const;
-    void fire(const std::vector<Action>& actions, const std::string& origin);
+    void fire(const std::vector<Action>& actions, const std::string& origin);  // a Delay action holds back what follows it in the list
+    bool hasScheduled() const;  // actions are waiting for a Delay: call tick() when they are due
+    // Called with every action the engine carries out (after its Delay), for the tests.
+    void setActionObserver(std::function<void(const Action&, const std::string& origin)> observer);
 
 private:
     struct Held {
@@ -80,7 +83,7 @@ private:
     void recordLatest(const std::string& key, const std::string& text);  // replaces the previous entry of the same key
     void onAxis(const input::InputEvent& ev);
     void sendAxisValue(const Binding& b, double out);
-    void dispatchZone(const Binding& b, const std::vector<Action>& actions, const char* what);  // runs and records the actions of a gate zone
+    void dispatchZone(const Binding& b, size_t index, const std::vector<Action>& actions, const char* what);  // runs and records the actions of a gate zone
     void applyLever(const Binding& b, size_t index, const AxisCalibration& cal, double raw);  // value and gate actions of a lever with gates
     bool buttonIsDown(const std::string& device, int code);
     GateState gatesOf(const AxisCalibration& cal);
@@ -96,6 +99,7 @@ private:
         double anchor = 0;
         bool zoneKnown = false;  // lever with gates: the zone seen last
         AxisZone zone = AxisZone::Dry;
+        uint64_t generation = 0;  // counts the changes of zone: what a Delay held back for an earlier zone is dropped
     };
     std::unordered_map<size_t, AxisState> axisState_;           // by binding index in the current profile
     std::unordered_map<std::string, float> captureBase_;        // axis resting values seen since beginCapture()
@@ -111,6 +115,20 @@ private:
         std::array<std::optional<double>, 4> raw;
     } learn_;
     bool captureButtonsOnly_ = false;
+
+    // The rest of an action list after a Delay. One tied to a lever with gates (binding >= 0) is dropped when the lever changes zone
+    // before it is due: a cut-off held back for 100 ms must not fire for a lever that has meanwhile left the gate.
+    struct Scheduled {
+        std::chrono::steady_clock::time_point due;
+        std::vector<Action> rest;
+        std::string origin;
+        int binding = -1;
+        uint64_t generation = 0;
+    };
+    std::vector<Scheduled> scheduled_;
+    std::function<void(const Action&, const std::string&)> observer_;
+    void runActions(const std::vector<Action>& actions, size_t from, const std::string& origin, int binding, uint64_t generation);
+    std::vector<Scheduled> takeDue(int& waitMs);  // under m_: what is due now (stale ones dropped), and the wait until the next
 
     sim::SimBridge& bridge_;
     mutable std::mutex m_;
