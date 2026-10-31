@@ -103,7 +103,7 @@ ScriptNeeds scanScript(const std::string& path) {
             if (!err.empty()) { needs.error = "line " + std::to_string(number) + ": " + err; return needs; }
             continue;
         }
-        static const char* known[] = {"set", "toggle", "press", "get", "code", "expect", "expectb", "sleep", "rewatch"};
+        static const char* known[] = {"set", "toggle", "press", "event", "get", "code", "expect", "expectb", "sleep", "rewatch"};
         if (std::find_if(std::begin(known), std::end(known), [&](const char* k) { return l.cmd == k; }) == std::end(known)) {
             needs.error = "line " + std::to_string(number) + ": unknown command '" + l.cmd + "'";
             return needs;
@@ -152,6 +152,8 @@ int runScript(sim::SimBridge& bridge, const std::string& path) {
             bridge.toggleInputEvent(stripB(arg(0)), static_cast<int>(num(1, 2)), "script");
         } else if (l.cmd == "press") {
             bridge.setInputEvent(stripB(arg(0)), 1, "script");
+        } else if (l.cmd == "event") {
+            bridge.sendEvent(arg(0), num(1, 0), "script");
         } else if (l.cmd == "rewatch") {
             // swap the whole watch set while connected, the way the guides do when a page changes, and report what arrives
             std::vector<std::string> codes;

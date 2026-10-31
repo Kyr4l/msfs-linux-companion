@@ -7,6 +7,7 @@
 //   set NAME VALUE              cockpit input event (B:) to a value
 //   toggle NAME [N]             toggle / cycle through N positions (default 2)
 //   press NAME                  one event with value 1: a push button (the sim acts on every event, so no release)
+//   event NAME [VALUE]          a sim event (K:), for example THROTTLE1_SET 8192
 //   get NAME                    print the current value of an input event
 //   code EXPR                   print the value of calculator code, for example (A:LIGHT NAV, Bool)
 //   expect EXPR OP VALUE [MS]   wait up to MS (default 1500) until the code satisfies OP (== != > < >= <=); prints ok or FAIL
