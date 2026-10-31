@@ -991,7 +991,7 @@ void SimBridge::onAircraftPath(const std::string& cfgPath) {
     inputByLower_.clear();
     inputIsString_.clear();
     lvarListRequested_ = false;
-    if (changed) LOG_INFO("Aircraft id: %s", id.id.empty() ? "(unknown)" : id.id.c_str());
+    if (changed) LOG_INFO("Aircraft id: %s (from the path \"%s\")", id.id.empty() ? "(unknown)" : id.id.c_str(), cfgPath.c_str());
     // the cockpit registers its input events while it loads: ask after a short delay and retry while the list is empty
     scheduleLiveScan(initialScanDelayMs_);
     publishLive();
