@@ -199,13 +199,16 @@ detent and an afterburner gate at the front. The sim's own calibration cannot te
 3. **Gate actions**: lists of actions that run once when the lever enters or leaves the cut-off or the afterburner
    zone (for example the aircraft's afterburner event on and off).
 
-The *F/A-18E throttle 1 / 2* presets fill in what the aircraft needs (the lever is a fraction of its travel: 0 at the off
-stop, 0.1 at the idle gate, 0.8 at military power):
+The *F/A-18E throttle 1 / 2* presets fill in what the aircraft needs (the lever is a fraction of its travel: 0 is idle, the
+value of the sim's own *Idle* preset, and 0.8 is military power):
 
+* **Idle**: 0. A throttle set to 0 from higher up stops at the aircraft's idle gate (10 % on the engine display); only a second 0
+  reaches 0. So when the lever comes down onto idle the program sends the 0 once more 100 ms later (dropped if the lever has moved on).
 * **Cut-off**: throttle 0, a *Wait* action, throttle 0 again, *Wait*, `ENGINE_Throttle_n_STOP` = 1. The aircraft refuses STOP
   unless the throttle is at exactly 0, and a single 0 from higher up only reaches the idle gate; the waits are what it needs
   (50 ms worked, the preset uses 100). A *Wait* in an action list holds back what follows it without stopping anything, and
   is dropped if the lever changes zone first, so a cut-off still on its way never fires for a lever that has left the gate.
+  Leaving the cut-off sends STOP = 0 (a throttle value that does not change the throttle, such as 0 at 0, would not clear it).
 * **Afterburner**: `XMLVAR_LastAB<n>ThrottleSet` = 1, wait, `ENGINE_Throttle_n_Afterburner` = 1. The aircraft sets the throttle to
   that variable when the afterburner comes on; it is 0 until the game's own throttle has been used, and with 0 the throttle
   falls to idle (a lever that "worked" had simply been used in the game before). Leaving the afterburner sends the event 0 and the

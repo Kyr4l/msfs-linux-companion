@@ -100,6 +100,7 @@ private:
         bool zoneKnown = false;  // lever with gates: the zone seen last
         AxisZone zone = AxisZone::Dry;
         uint64_t generation = 0;  // counts the changes of zone: what a Delay held back for an earlier zone is dropped
+        uint64_t sendSerial = 0;  // counts the values sent: a repeat held back for the last one is dropped when a newer one goes out
     };
     std::unordered_map<size_t, AxisState> axisState_;           // by binding index in the current profile
     std::unordered_map<std::string, float> captureBase_;        // axis resting values seen since beginCapture()
@@ -124,6 +125,8 @@ private:
         std::string origin;
         int binding = -1;
         uint64_t generation = 0;
+        bool useSerial = false;  // also dropped when a newer value of the lever has been sent since
+        uint64_t serial = 0;
     };
     std::vector<Scheduled> scheduled_;
     std::function<void(const Action&, const std::string&)> observer_;

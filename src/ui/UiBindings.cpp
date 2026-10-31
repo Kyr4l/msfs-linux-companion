@@ -85,12 +85,13 @@ void Ui::drawDetentOptions() {
         snprintf(label, sizeof label, engine == 1 ? "Left throttle (1)" : "Right throttle (2)");
         if (ImGui::Button(label)) {
             // Asobo F/A-18E (the cockpit's own template, read from the sim files and checked on the aircraft): the throttle input event is a
-            // fraction of the lever travel, 0 at the off stop, 0.1 at the idle gate, 0.8 at military power.
-            //  * The cut-off needs the throttle at exactly 0 when STOP is set, and a fast pull from above lands on the idle gate first, so
-            //    the sequence is: 0, wait, 0 again, wait, STOP. Any later throttle value clears STOP by itself.
+            // fraction of the lever travel; the sim's own Idle preset sets 0 and military power is 0.8.
+            //  * The cut-off needs the throttle at exactly 0 when STOP is set, and a fast pull from above lands on the idle gate (10 %) first,
+            //    so the sequence is: 0, wait, 0 again, wait, STOP. A throttle value that changes the throttle clears STOP by itself, but
+            //    leaving the cut-off at 0 changes nothing, so STOP is cleared explicitly.
             //  * The afterburner sets the throttle to L:XMLVAR_LastAB<n>ThrottleSet, which is 0 until the game's own throttle is used, so
             //    it is set to 1 first; leaving sends the throttle value again.
-            d.outCutoff = 0.0; d.outIdle = 0.1; d.outMil = 0.8;
+            d.outCutoff = 0.0; d.outIdle = 0.0; d.outMil = 0.8;
             c.integer = false;
             const std::string n = std::to_string(engine);
             auto event = [](const std::string& name, double value) { Action a; a.kind = ActionKind::InputEvent; a.name = name; a.value = value; return a; };
@@ -102,14 +103,14 @@ void Ui::drawDetentOptions() {
             const std::string thr = "ENGINE_Throttle_" + n;
             draft_.onPress = {event(thr, 0)};
             draft_.onCutoff = {wait(100), event(thr, 0), wait(100), event(thr + "_STOP", 1)};
-            draft_.onCutoffLeave = {};
+            draft_.onCutoffLeave = {event(thr + "_STOP", 0)};
             draft_.onAfterburner = {lastAb, wait(100), event(thr + "_Afterburner", 1)};
             draft_.onAfterburnerLeave = {event(thr + "_Afterburner", 0)};
             if (draft_.label.empty()) draft_.label = engine == 1 ? "Left throttle" : "Right throttle";
         }
         if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("Sets the values 0 / 0.1 / 0.8 on ENGINE_Throttle_%d and the actions the aircraft needs at the gates:\n"
-                              "cut-off: throttle 0, wait, 0 again, wait, STOP (the aircraft refuses STOP unless the throttle is at exactly 0);\n"
+            ImGui::SetTooltip("Sets the values 0 (idle, as the sim's own Idle) / 0.8 (military power) on ENGINE_Throttle_%d and the actions the aircraft needs at the gates:\n"
+                              "cut-off: throttle 0, wait, 0 again, wait, STOP (the aircraft refuses STOP unless the throttle is at exactly 0); leaving it clears STOP;\n"
                               "afterburner: XMLVAR_LastAB%dThrottleSet = 1 first (otherwise the afterburner drops the throttle to idle), then the afterburner.\n"
                               "It replaces the actions of this binding.", engine, engine);
     }

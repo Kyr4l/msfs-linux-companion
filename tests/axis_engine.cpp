@@ -679,6 +679,95 @@ int main() {
         }
     }
 
+    // ---- the sim's own idle is 0, and a 0 set from above stops at the idle gate: landing on idle sends it once more
+    {
+        AxisCalibration cal;
+        cal.device = dev; cal.code = 3;
+        cal.cutoff = 0.03; cal.idle = 0.03; cal.mil = 0.75; cal.ab = 0.90;
+        cal.cutoffBtn = 300; cal.idleBtn = 301; cal.milBtn = 302; cal.abBtn = 303;
+        AxisDetents d;
+        d.enabled = true; d.outCutoff = 0.0; d.outIdle = 0.0; d.outMil = 0.8;
+        auto act = [](ActionKind k, const char* name, double v) { Action a; a.kind = k; a.name = name; a.value = v; return a; };
+        auto wait = [](int ms) { std::this_thread::sleep_for(std::chrono::milliseconds(ms)); };
+        struct Seen { std::string name; double value; };
+        auto setup = [&](Engine& e, std::vector<Seen>& log, std::map<int, bool>& pressed) {
+            auto lp = std::make_shared<Profile>();
+            Binding t;
+            t.label = "Left throttle";
+            t.input = {dev, InputKind::Axis, 3, 0};
+            t.axis.mode = AxisMode::Value; t.axis.integer = false; t.axis.minIntervalMs = 5; t.axis.detents = d;
+            t.onPress = {act(ActionKind::InputEvent, "THR", 0)};
+            t.onCutoff = {act(ActionKind::InputEvent, "STOP", 1)};
+            t.onCutoffLeave = {act(ActionKind::InputEvent, "STOP", 0)};
+            lp->bindings.push_back(t);
+            e.setProbes([&pressed](const std::string&, int code) { return pressed[code]; }, [](const std::string&, int) { return -1.0f; });
+            e.setProfile(lp);
+            e.setCalibrations({cal});
+            e.setActionObserver([&log](const Action& a, const std::string&) { log.push_back({a.name, a.value}); });
+        };
+        auto count = [](const std::vector<Seen>& log, const std::string& name, double value) {
+            size_t n = 0;
+            for (const auto& x : log) if (x.name == name && std::fabs(x.value - value) < 1e-9) ++n;
+            return n;
+        };
+
+        {   // pulled back from the dry range onto idle: 0, and 0 again 100 ms later
+            Engine e(bridge);
+            std::vector<Seen> log;
+            std::map<int, bool> pressed;
+            setup(e, log, pressed);
+            e.onInput(axisEvent(dev, 3, 0.0f, 0.40f));
+            wait(8);
+            pressed[301] = true;
+            e.onInput(buttonEvent(dev, 301, true));  // the idle switch closes
+            CHECK(count(log, "THR", 0) == 1);
+            e.tick();
+            CHECK(count(log, "THR", 0) == 1);  // not yet
+            wait(130);
+            e.tick();
+            CHECK(count(log, "THR", 0) == 2 && !e.hasScheduled());
+        }
+        {   // the lever moves on before the repeat is due: nothing is sent for the lever that is no longer at idle
+            Engine e(bridge);
+            std::vector<Seen> log;
+            std::map<int, bool> pressed;
+            setup(e, log, pressed);
+            e.onInput(axisEvent(dev, 3, 0.0f, 0.40f));
+            wait(8);
+            pressed[301] = true;
+            e.onInput(buttonEvent(dev, 301, true));
+            wait(30);
+            pressed[301] = false;
+            e.onInput(buttonEvent(dev, 301, false));
+            e.onInput(axisEvent(dev, 3, 0.40f, 0.45f));  // up again: a newer value
+            wait(130);
+            e.tick();
+            CHECK(count(log, "THR", 0) == 1);
+        }
+        {   // a lever that starts at idle, and one that comes out of the cut-off, send no repeat; leaving the cut-off clears STOP
+            Engine e(bridge);
+            std::vector<Seen> log;
+            std::map<int, bool> pressed;
+            pressed[301] = true;
+            setup(e, log, pressed);
+            e.onInput(axisEvent(dev, 3, 0.0f, 0.02f));
+            wait(130);
+            e.tick();
+            CHECK(count(log, "THR", 0) == 1);
+            pressed[300] = true;
+            e.onInput(buttonEvent(dev, 300, true));    // cut-off
+            CHECK(count(log, "STOP", 1) == 1);
+            wait(8);
+            pressed[300] = false;
+            e.onInput(buttonEvent(dev, 300, false));   // out of it, back to idle
+            CHECK(count(log, "STOP", 0) == 1);
+            const size_t zeros = count(log, "THR", 0);
+            wait(130);
+            e.tick();
+            CHECK(count(log, "THR", 0) == zeros);       // no repeat for a change of zone
+        }
+    }
+
     std::printf(failures ? "\n%d check(s) FAILED\n" : "all axis checks passed\n", failures);
     return failures ? 1 : 0;
 }

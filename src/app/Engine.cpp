@@ -343,7 +343,8 @@ std::vector<Engine::Scheduled> Engine::takeDue(int& waitMs) {
     const auto now = clock::now();
     for (auto it = scheduled_.begin(); it != scheduled_.end();) {
         const bool stale = it->binding >= 0 && (axisState_.find(static_cast<size_t>(it->binding)) == axisState_.end() ||
-                                                axisState_[static_cast<size_t>(it->binding)].generation != it->generation);
+                                                axisState_[static_cast<size_t>(it->binding)].generation != it->generation ||
+                                                (it->useSerial && axisState_[static_cast<size_t>(it->binding)].sendSerial != it->serial));
         if (stale) { it = scheduled_.erase(it); continue; }
         if (it->due <= now) {
             ready.push_back(std::move(*it));
@@ -397,6 +398,8 @@ void Engine::applyLever(const Binding& b, size_t i, const AxisCalibration& cal, 
     }
     const auto now = clock::now();
     bool sendNow = false;
+    bool landedOnIdle = false;
+    uint64_t serial = 0;
     {
         std::lock_guard<std::mutex> lock(m_);
         AxisState& st = axisState_[i];
@@ -409,14 +412,33 @@ void Engine::applyLever(const Binding& b, size_t i, const AxisCalibration& cal, 
             st.pending = out;
             st.hasPending = true;  // tick() sends the latest value once the interval has passed
         } else {
+            // the lever has come down onto idle from higher up (not just changed zone): see below
+            landedOnIdle = st.hasSent && r.zone == AxisZone::Dry && !zoneChanged && st.lastSent > out + 1e-9 && std::fabs(out - c.detents.outIdle) < 1e-9;
             st.hasSent = true;  // a change of zone is never held back: the gate and its value go together
             st.lastSent = out;
             st.lastTime = now;
             st.hasPending = false;
+            serial = ++st.sendSerial;
             sendNow = true;
         }
     }
     if (sendNow) sendAxisValue(b, out);
+    if (landedOnIdle) {
+        // The aircraft stops a throttle that is set to 0 from above at its idle gate (10 %); it takes a second 0 to reach 0, which is the
+        // sim's own idle. Send it once more shortly after, unless the lever has moved on by then (a newer value or another zone).
+        Scheduled again;
+        again.due = now + std::chrono::milliseconds(100);
+        again.rest = withValue(b.onPress, out, c.integer);
+        again.origin = (b.label.empty() ? std::string("axis") : b.label) + " (idle again)";
+        again.binding = static_cast<int>(i);
+        again.useSerial = true;
+        again.serial = serial;
+        {
+            std::lock_guard<std::mutex> lock(m_);
+            again.generation = axisState_[i].generation;
+            scheduled_.push_back(std::move(again));
+        }
+    }
     if (zoneChanged) {
         if (r.zone == AxisZone::Cutoff) dispatchZone(b, i, b.onCutoff, " (cut-off)");
         if (r.zone == AxisZone::Afterburner) dispatchZone(b, i, b.onAfterburner, " (afterburner)");
@@ -541,6 +563,7 @@ int Engine::tick() {
                 st.lastSent = st.pending;
                 st.lastTime = now;
                 st.hasPending = false;
+                ++st.sendSerial;
                 axisDue.push_back({profile_, {idx, st.pending}});
             }
             for (auto& h : held_) {
