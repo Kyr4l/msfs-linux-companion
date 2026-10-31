@@ -3,6 +3,7 @@
 #include "app/Script.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <cmath>
 #include <cstdio>
@@ -21,6 +22,11 @@ struct Line {
     std::vector<std::string> args;
     std::string expr;  // calculator code (with its parentheses) for code / expect
 };
+
+std::string lowerCopy(std::string s) {
+    for (char& c : s) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));  // 2020 and 2024 spell the same event differently
+    return s;
+}
 
 std::string trim(const std::string& s) {
     size_t a = s.find_first_not_of(" \t\r");
@@ -102,7 +108,7 @@ ScriptNeeds scanScript(const std::string& path) {
             if (!err.empty()) { needs.error = "line " + std::to_string(number) + ": " + err; return needs; }
             continue;
         }
-        static const char* known[] = {"set", "toggle", "press", "event", "get", "code", "expect", "expectb", "sleep", "rewatch"};
+        static const char* known[] = {"set", "toggle", "press", "event", "get", "code", "expect", "expectb", "sleep", "rewatch", "trace", "expecttrace"};
         if (std::find_if(std::begin(known), std::end(known), [&](const char* k) { return l.cmd == k; }) == std::end(known)) {
             needs.error = "line " + std::to_string(number) + ": unknown command '" + l.cmd + "'";
             return needs;
@@ -178,6 +184,24 @@ int runScript(sim::SimBridge& bridge, const std::string& path) {
                 const auto v = bridge.lvarValue(c);
                 if (v) std::printf("  %s = %g\n", c.c_str(), *v); else std::printf("  %s = (none)\n", c.c_str());
             }
+        } else if (l.cmd == "trace") {
+            bridge.setInputTrace(arg(0) != "off");
+        } else if (l.cmd == "expecttrace") {
+            const std::string key = stripB(arg(0));
+            const int timeout = static_cast<int>(num(1, 3000));
+            const auto deadline = clock::now() + std::chrono::milliseconds(timeout);
+            sim::InputChange seen;
+            bool good = false;
+            do {
+                std::this_thread::sleep_for(std::chrono::milliseconds(120));
+                for (const auto& c : bridge.inputChanges(0))
+                    if (lowerCopy(c.name) == lowerCopy(key)) { seen = c; good = true; }
+            } while (!good && clock::now() < deadline);
+            ++checks;
+            const sim::TraceStatus ts = bridge.traceStatus();
+            if (good) std::printf("ok:   trace saw B:%s change %g -> %g (%llu announced, %llu read back)\n", key.c_str(), seen.oldValue, seen.newValue,
+                                  static_cast<unsigned long long>(ts.pushed), static_cast<unsigned long long>(ts.polled));
+            else { ++failures; std::printf("FAIL: trace saw no change of B:%s  [line %d]\n", key.c_str(), number); }
         } else if (l.cmd == "sleep") {
             std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(num(0, 100))));
         } else if (l.cmd == "get" || l.cmd == "code") {

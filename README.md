@@ -142,6 +142,15 @@ automatically whenever the sim is (re)started.
    *from catalog* → *Save binding*. *Test* fires the press actions immediately.
 4. Leave the same buttons **unassigned in the MSFS controls menu**, otherwise both fire.
 
+**Which input is this control? (Cockpit tab).** Press *Start watching*, keep your hands off the cockpit for three seconds (what changes by itself, such
+as a clock or a needle, is learned and hidden), then click or turn a control in the simulator with the mouse: the cockpit input events (B:) whose value
+changes are listed, newest first, with what they changed from and to. *Bind to a button* opens a new binding that sets the event to that value and
+waits for the button, *Toggle* does the same for a switch with whole positions (0 to N-1) and steps through them at each press, *Copy name* puts the
+name on the clipboard. The sim is asked to announce every change (`SimConnect_SubscribeInputEvent`, all events), and every value is also read back
+about four times a second, so a change is found even if one of the two does not work on your sim (the tab says which found how many). Watching stops
+when you leave the tab. Only B: input events are watched: the L: variables of some aircraft (the A32NX) are too many to read back, and K: events or H
+events cannot be seen from outside.
+
 **A binding like another one.** *Copy* in a row opens the editor on a new binding that does everything the original does (its actions, its axis settings,
 its group, its repeat) and waits for you to press the button or move the axis it is for: the same button would fire both. It is added to the profile,
 right after the original, when you save it. *Delete* asks first. The box next to *View* filters the list: every word you type has to be in the row's name, its

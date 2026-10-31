@@ -219,6 +219,98 @@ std::optional<double> SimBridge::inputEventValue(const std::string& name) const 
     return it->second;
 }
 
+void SimBridge::setInputTrace(bool on) {
+    if (on) traceReset_ = true;
+    traceInputs_ = on;
+    wake();
+}
+
+std::vector<InputChange> SimBridge::inputChanges(uint64_t afterSerial) const {
+    std::lock_guard<std::mutex> lock(m_);
+    std::vector<InputChange> out;
+    for (const auto& c : inputChanges_)
+        if (c.serial > afterSerial) out.push_back(c);
+    return out;
+}
+
+void SimBridge::clearInputChanges() {
+    std::lock_guard<std::mutex> lock(m_);
+    inputChanges_.clear();
+}
+
+TraceStatus SimBridge::traceStatus() const {
+    TraceStatus s;
+    s.on = traceInputs_;
+    s.events = traceEventCount_;
+    s.subscribed = traceSubscribed_;
+    s.refused = traceRefused_;
+    std::lock_guard<std::mutex> lock(m_);
+    s.pushed = tracePushed_;
+    s.polled = tracePolled_;
+    return s;
+}
+
+// The value of an input event as the trace sees it: the first sighting is the baseline, a different value later is a change (found twice, by
+// the sim's announcement and by the read-back, it is still one change: the second sighting finds the value already recorded).
+void SimBridge::traceValue(const std::string& name, double value, bool announced) {
+    if (!traceInputs_) return;
+    auto it = traceLast_.find(name);
+    if (it == traceLast_.end()) {
+        traceLast_[name] = value;
+        return;
+    }
+    if (std::fabs(it->second - value) < 1e-6) return;
+    InputChange c;
+    c.time = clock::now();
+    c.name = name;
+    c.oldValue = it->second;
+    c.newValue = value;
+    it->second = value;
+    std::lock_guard<std::mutex> lock(m_);
+    c.serial = ++inputChangeSerial_;
+    (announced ? tracePushed_ : tracePolled_)++;
+    inputChanges_.push_back(std::move(c));
+    while (inputChanges_.size() > 1000) inputChanges_.pop_front();
+}
+
+void SimBridge::pumpInputTrace(clock::time_point now) {
+    if (!traceInputs_ || inputHash_.empty()) return;  // off, or the aircraft's events are not listed yet
+    if (traceReset_.exchange(false)) {
+        traceLast_.clear();
+        traceBroken_.clear();
+        tracePollCursor_ = 0;
+        pendingTraceGets_.clear();
+    }
+    if (!traceSubscribed_) {
+        traceSubscribed_ = true;
+        rememberSend(client_.subscribeInputEvent(0), "subscribe input events");  // hash 0: all of them
+    }
+    if (traceNames_.empty()) {
+        for (const auto& [name, hash] : inputHash_)
+            if (!inputIsString_[name] && !traceBroken_.count(name)) traceNames_.push_back(name);
+        std::sort(traceNames_.begin(), traceNames_.end());
+        traceEventCount_ = traceNames_.size();
+    }
+    if (now < nextTracePollAt_ || traceNames_.empty()) return;
+    // Every value is read back in turns (a 64-event batch every 40 ms, a quarter of a second between rounds): a push button pressed and
+    // released between two reads is missed by this, which is what the sim's announcements are for.
+    constexpr size_t kBatch = 64;
+    if (tracePollCursor_ >= traceNames_.size()) tracePollCursor_ = 0;
+    const size_t end = std::min(traceNames_.size(), tracePollCursor_ + kBatch);
+    for (size_t i = tracePollCursor_; i < end; ++i) {
+        const std::string& n = traceNames_[i];
+        auto it = inputHash_.find(n);
+        if (it == inputHash_.end() || traceBroken_.count(n)) continue;
+        const uint32_t req = nextGetRequest_++;
+        pendingTraceGets_[req] = n;
+        rememberSend(client_.getInputEvent(req, it->second), "trace input event " + n);
+    }
+    const bool wrapped = end >= traceNames_.size();
+    tracePollCursor_ = wrapped ? 0 : end;
+    nextTracePollAt_ = now + std::chrono::milliseconds(wrapped ? 250 : 40);
+    if (pendingTraceGets_.size() > 4096) pendingTraceGets_.clear();
+}
+
 LiveSnapshot SimBridge::liveSnapshot() const {
     std::lock_guard<std::mutex> lock(m_);
     return live_;
@@ -403,6 +495,12 @@ void SimBridge::dropConnection(const std::string& why) {
     inputHash_.clear();
     inputByLower_.clear();
     inputIsString_.clear();
+    inputNameByHash_.clear();
+    traceNames_.clear();
+    pendingTraceGets_.clear();
+    traceSubscribed_ = false;
+    traceRefused_ = false;
+    traceReset_ = true;
     inputEventsPending_.clear();
     inputParamQueue_.clear();
     pendingToggles_.clear();
@@ -890,6 +988,14 @@ void SimBridge::handleMessage(const RecvMessage& m) {
             }
             if (what.rfind("map event ", 0) == 0) eventIds_.erase(what.substr(10));
             if (what.rfind("get input event ", 0) == 0) abandonToggles(what.substr(16));
+            if (what.rfind("subscribe input events", 0) == 0) {
+                traceRefused_ = true;
+                LOG_WARN("The sim refused the input event subscription: changes of the cockpit are found by reading the values back");
+            }
+            if (what.rfind("trace input event ", 0) == 0) {
+                traceBroken_.insert(what.substr(18));  // not read again, the sim would only answer with the same exception
+                traceNames_.clear();                    // the list of what is read is made again without it
+            }
             break;
         }
         case RecvId::Event: {
@@ -938,6 +1044,12 @@ void SimBridge::handleMessage(const RecvMessage& m) {
         case RecvId::GetInputEvent:
             handleInputEventValue(SimConnectClient::parseGetInputEvent(m));
             break;
+        case RecvId::SubscribeInputEvent: {
+            const RecvInputEventValue v = SimConnectClient::parseSubscribeInputEvent(m);
+            auto name = inputNameByHash_.find(v.hash);
+            if (name != inputNameByHash_.end() && v.type == 0) traceValue(name->second, v.number, true);
+            break;
+        }
         case RecvId::SimObjectData: {
             RecvClientData d = SimConnectClient::parseSimObjectData(m);
             if (d.requestId == REQ_TELEMETRY) handleTelemetry(d);
@@ -1015,6 +1127,12 @@ void SimBridge::onAircraftPath(const std::string& cfgPath) {
     inputHash_.clear();
     inputByLower_.clear();
     inputIsString_.clear();
+    inputNameByHash_.clear();
+    traceNames_.clear();
+    pendingTraceGets_.clear();
+    traceSubscribed_ = false;
+    traceRefused_ = false;
+    traceReset_ = true;  // the new aircraft has its own events: a new baseline
     unknownInputWarned_.clear();
     lvarListRequested_ = false;
     if (changed) LOG_INFO("Aircraft id: %s (from the path \"%s\")", id.id.empty() ? "(unknown)" : id.id.c_str(), cfgPath.c_str());
@@ -1045,6 +1163,7 @@ void SimBridge::handleInputEventList(const RecvInputEventList& l) {
     for (const auto& d : l.events) {
         if (d.name.empty()) continue;
         inputHash_[d.name] = d.hash;
+        inputNameByHash_[d.hash] = d.name;
         inputByLower_[lowerAscii(d.name)] = d.name;
         inputIsString_[d.name] = d.type == 1;
         inputEventsPending_.push_back({d.name, d.type == 1});
@@ -1066,6 +1185,11 @@ void SimBridge::abandonToggles(const std::string& name) {
 }
 
 void SimBridge::handleInputEventValue(const RecvInputEventValue& v) {
+    if (auto t = pendingTraceGets_.find(v.requestId); t != pendingTraceGets_.end()) {
+        if (v.type == 0) traceValue(t->second, v.number, false);
+        pendingTraceGets_.erase(t);
+        return;
+    }
     if (auto t = pendingToggles_.find(v.requestId); t != pendingToggles_.end()) {
         const PendingToggle pt = t->second;
         pendingToggles_.erase(t);
@@ -1172,6 +1296,8 @@ void SimBridge::pumpLiveScan() {
         auto it = findInput(name);
         if (it != inputHash_.end()) rememberSend(client_.enumerateInputEventParams(it->second), "input event params " + name);
     }
+
+    pumpInputTrace(now);
 
     // poll the values of watched input events. A handful (the ones bindings use) are all polled twice a second; a long
     // list (a full dump) goes through in batches so the sim is never flooded.

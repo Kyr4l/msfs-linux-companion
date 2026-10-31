@@ -73,6 +73,23 @@ struct LiveStatus {
     bool lvarsDone = false;
 };
 
+// A change of the value of a cockpit input event while the cockpit trace is on (see SimBridge::setInputTrace).
+struct InputChange {
+    uint64_t serial = 0;  // 1, 2, 3 ... in the order they were seen
+    std::chrono::steady_clock::time_point time;
+    std::string name;
+    double oldValue = 0, newValue = 0;
+};
+
+struct TraceStatus {
+    bool on = false;
+    size_t events = 0;           // input events that are read back
+    bool subscribed = false;     // the subscription was sent
+    bool refused = false;        // the sim answered it with an exception: only the read-back finds changes
+    uint64_t pushed = 0;         // changes the sim announced
+    uint64_t polled = 0;         // changes found by reading the values back
+};
+
 struct SimCommand {
     enum class Type { SimEvent, HEvent, LVarSet, LVarToggle, CalcCode, MobiFlightPing, MobiFlightRaw, InputEventSet, InputEventToggle };
     Type type = Type::SimEvent;
@@ -110,6 +127,12 @@ public:
     std::optional<double> inputEventValue(const std::string& name) const;
     void requestInputParams(const std::vector<std::string>& names);  // asks the sim how it describes each event's parameters
     std::optional<std::string> inputParams(const std::string& name) const;
+    // Watching the cockpit: while on, every change of the value of a cockpit input event (a switch clicked with the mouse, a knob turned) is recorded,
+    // found by the sim's own announcement and by reading every value back a few times a second. The first value of each event is only the baseline.
+    void setInputTrace(bool on);
+    std::vector<InputChange> inputChanges(uint64_t afterSerial) const;  // the recorded changes with a serial above this one (the last 1000 are kept)
+    void clearInputChanges();
+    TraceStatus traceStatus() const;
     void requestLiveRefresh();      // re-enumerate input events and L: vars of the loaded aircraft now
     void setInitialScanDelayMs(int ms) { initialScanDelayMs_ = ms; }  // wait after an aircraft loads before listing its controls
     LiveSnapshot liveSnapshot() const;
@@ -140,6 +163,8 @@ private:
     void handleLVarData(const RecvClientData& d);
     void onAircraftPath(const std::string& cfgPath);
     void scheduleLiveScan(int delayMs);
+    void pumpInputTrace(std::chrono::steady_clock::time_point now);  // subscription and read-back of the cockpit trace
+    void traceValue(const std::string& name, double value, bool announced);
     void pumpLiveScan();                 // sends the enumeration requests when due and publishes finished results
     void publishLive();
     void handleInputEventList(const RecvInputEventList& l);
@@ -222,6 +247,21 @@ private:
     uint32_t nextGetRequest_ = 5000;
     struct PendingToggle { std::string name; uint64_t hash; int positions; std::string origin; };
     std::unordered_map<uint32_t, PendingToggle> pendingToggles_;
+    // cockpit trace (bridge thread unless noted)
+    std::atomic<bool> traceInputs_{false};
+    std::atomic<bool> traceReset_{false};          // set by setInputTrace(true): start from a new baseline
+    std::atomic<bool> traceSubscribed_{false};
+    std::atomic<bool> traceRefused_{false};
+    std::atomic<size_t> traceEventCount_{0};
+    std::unordered_map<uint64_t, std::string> inputNameByHash_;
+    std::unordered_map<std::string, double> traceLast_;
+    std::vector<std::string> traceNames_;           // what is read back, in turns
+    std::set<std::string> traceBroken_;             // events the sim would not read: left out
+    std::unordered_map<uint32_t, std::string> pendingTraceGets_;
+    size_t tracePollCursor_ = 0;
+    std::chrono::steady_clock::time_point nextTracePollAt_{};
+    std::deque<InputChange> inputChanges_;          // guarded by m_
+    uint64_t inputChangeSerial_ = 0, tracePushed_ = 0, tracePolled_ = 0;  // guarded by m_
     std::set<std::string> unknownInputWarned_;  // input events already reported as unknown for the loaded aircraft
     std::deque<SimCommand> deferredToggles_;   // toggles of an event whose previous toggle has not been answered yet
     std::atomic<int> initialScanDelayMs_{3000};

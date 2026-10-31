@@ -134,6 +134,19 @@ int main() {
         gm.body = g.data();
         auto v = SimConnectClient::parseGetInputEvent(gm);
         CHECK(v.requestId == 9 && v.type == 0 && v.number == 3.0);
+        // the sim's announcement of a change (SimConnect_SubscribeInputEvent): the hash comes first, then the type and the value
+        ByteWriter n;
+        n.u64(0xAABBCCDDEEFF0011ull); n.u32(0); n.f64(29.92);
+        RecvMessage nm;
+        nm.body = n.data();
+        auto note = SimConnectClient::parseSubscribeInputEvent(nm);
+        CHECK(note.hash == 0xAABBCCDDEEFF0011ull && note.type == 0 && note.number == 29.92);
+        ByteWriter ns;
+        ns.u64(7); ns.u32(1); ns.str("TEXT VALUE", 256);
+        RecvMessage nsm;
+        nsm.body = ns.data();
+        auto text = SimConnectClient::parseSubscribeInputEvent(nsm);
+        CHECK(text.hash == 7 && text.type == 1 && text.text == "TEXT VALUE");
         // a truncated list must not read past its end
         RecvMessage cut;
         cut.body.assign(w.data().begin(), w.data().begin() + 16 + 76 + 30);

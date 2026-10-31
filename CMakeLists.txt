@@ -49,6 +49,7 @@ add_executable(msfs-linux-companion
   src/app/Catalog.cpp
   src/app/AxisTargets.cpp
   src/app/Guide.cpp
+  src/app/CockpitWatch.cpp
   src/app/Keypad.cpp
   src/app/BindingView.cpp
   src/app/Engine.cpp
@@ -59,6 +60,7 @@ add_executable(msfs-linux-companion
   src/ui/UiBindings.cpp
   src/ui/UiCalibration.cpp
   src/ui/UiCatalog.cpp
+  src/ui/UiCockpit.cpp
   src/ui/UiDevices.cpp
   src/ui/UiGuides.cpp
   src/ui/UiSettings.cpp
@@ -118,6 +120,9 @@ if(COMPANION_BUILD_TESTS)
   add_executable(binding_view tests/binding_view.cpp src/app/BindingView.cpp src/app/Catalog.cpp src/app/AxisTargets.cpp src/app/Profile.cpp src/input/Evdev.cpp)
   target_include_directories(binding_view PRIVATE src third_party)
   add_test(NAME binding_view COMMAND binding_view)
+  add_executable(cockpit_watch tests/cockpit_watch.cpp src/app/CockpitWatch.cpp)
+  target_include_directories(cockpit_watch PRIVATE src third_party)
+  add_test(NAME cockpit_watch COMMAND cockpit_watch)
   add_executable(guide_flow tests/guide_flow.cpp src/app/Guide.cpp src/app/Keypad.cpp)
   target_include_directories(guide_flow PRIVATE src third_party)
   add_test(NAME guide_flow COMMAND guide_flow ${CMAKE_SOURCE_DIR})

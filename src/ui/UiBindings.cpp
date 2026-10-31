@@ -226,6 +226,19 @@ void Ui::openEditor(int bindingIndex) {
     ctx_.engine.cancelCapture();
 }
 
+void Ui::openEditorWith(std::vector<Action> press, const std::string& label) {
+    ctx_.settings.ensureActive();
+    draft_ = Binding{};
+    draft_.label = label;
+    draft_.onPress = std::move(press);
+    editIndex_ = -1;
+    insertAt_ = -1;
+    draftIsCopy_ = false;
+    editorOpen_ = true;
+    ctx_.engine.cancelCapture();
+    ctx_.engine.beginCapture();  // the next thing wanted is the button
+}
+
 // A copy keeps everything the binding does (its actions, its axis settings, its group, its repeat) and has no input yet: it is for another
 // button or axis, the same one would fire twice. The editor opens waiting for that input, and the copy is only added to the profile
 // when it is saved, right after the original.

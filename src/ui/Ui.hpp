@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "app/Catalog.hpp"
+#include "app/CockpitWatch.hpp"
 #include "app/Guide.hpp"
 #include "app/Keypad.hpp"
 #include "app/Engine.hpp"
@@ -70,6 +71,8 @@ private:
     void drawBindingsTab();
     void drawDevicesTab();
     void drawCatalogTab();
+    void drawCockpitTab();     // which input event is the control I just clicked in the cockpit?
+    void stopCockpitWatch();
     void drawGuidesTab();
     void drawGuideNode(const Guide& g, const Catalog* cat);
     void drawGuideCard(const Catalog& cat, const std::vector<int>& targets);
@@ -83,6 +86,7 @@ private:
     void drawActionList(const char* id, std::vector<Action>& actions, int listIndex);
     void drawCatalogBrowser(const char* id, bool pickMode);
     void openEditor(int bindingIndex);
+    void openEditorWith(std::vector<Action> press, const std::string& label);  // a new binding that does this; its button or axis is chosen next
     void openEditorCopy(int bindingIndex);  // a new binding with everything the given one does; its button or axis is chosen next
     bool bindingMatches(const Binding& b, const std::vector<std::string>& words) const;  // the filter box of the Bindings tab
     std::string deviceDisplayName(const std::string& key) const;
@@ -109,6 +113,12 @@ private:
     bool draftIsCopy_ = false;
     Binding draft_;
     std::string bindingFilter_;  // Bindings tab: only the rows with all of these words
+
+    // cockpit tab
+    CockpitWatch cockpit_;
+    uint64_t cockpitSerial_ = 0;       // the last change of the bridge that was taken over
+    bool cockpitShowNoisy_ = false;
+    bool cockpitDrawn_ = false;        // the tab was drawn in this frame: watching ends when it is not
     // 0 = press, 1 = release, 2 / 3 = enters / leaves the cut-off zone, 4 / 5 = enters / leaves the afterburner zone
     int catalogTarget_ = 0;
     bool catalogPopupOpen_[6] = {false, false, false, false, false, false};  // one per list

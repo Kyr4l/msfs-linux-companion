@@ -61,6 +61,7 @@ bool Ui::inputIsPressed(const input::InputId& id) const {
 }
 
 void Ui::draw() {
+    cockpitDrawn_ = false;
     devices_ = ctx_.input.devices();
     status_ = ctx_.bridge.status();
     ctx_.syncLive();  // folds new input events / L: vars reported by the sim into the catalog
@@ -85,6 +86,7 @@ void Ui::draw() {
         tab("Devices", &Ui::drawDevicesTab);
         tab("Guides", &Ui::drawGuidesTab);
         tab("Catalog", &Ui::drawCatalogTab);
+        tab("Cockpit", &Ui::drawCockpitTab);
         tab("Vibration", &Ui::drawVibrationTab);
         tab("Log", &Ui::drawLogTab);
         tab("Settings", &Ui::drawSettingsTab);
@@ -92,6 +94,7 @@ void Ui::draw() {
     }
     ImGui::End();
 
+    if (cockpit_.running() && !cockpitDrawn_) stopCockpitWatch();  // the tab was left: no more reading of every input event
     if (!splashDone_) drawSplash();
     if (editorOpen_) drawBindingEditor();
     drawCalibrationWizard();

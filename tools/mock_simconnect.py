@@ -57,6 +57,8 @@ def name_hash(name):
 
 
 class Config:
+    flips = []  # input events the mock flips between 0 and 1 every few seconds, as if somebody clicked them in the cockpit
+    clients = []
     aircraft = "FlyByWire_A320_NEO"
     late = 0
     enum_requests = 0
@@ -84,6 +86,17 @@ class Client(threading.Thread):
         self.lvar_codes = []  # the module's list for this client
         self.send_lock = threading.Lock()
         self.ticker = None
+        self.subscribed = set()  # hashes of the input events this client asked to be told about; 0 = all of them
+        Config.clients.append(self)
+
+    def notify_input(self, name):
+        """SimConnect_SubscribeInputEvent: the sim tells a subscribed client when an input event changes."""
+        h = name_hash(name)
+        if 0 in self.subscribed or h in self.subscribed:
+            try:
+                self.send(36, struct.pack("<QId", h, 0, self.input_values[name]))
+            except OSError:
+                pass
 
     def aircraft_path(self):
         return ("C:\\mock\\SimObjects\\Airplanes\\%s\\aircraft.CFG" % Config.aircraft).encode()
@@ -135,6 +148,8 @@ class Client(threading.Thread):
                     self.handle(ptype & 0x0FFFFFFF, send_id, body, proto)
         except (ConnectionResetError, BrokenPipeError):
             pass
+        if self in Config.clients:
+            Config.clients.remove(self)
         self.log("disconnected")
 
     def handle(self, t, send_id, b, proto):
@@ -259,6 +274,18 @@ class Client(threading.Thread):
             else:
                 self.input_values[n], = struct.unpack_from("<d", b, 12)
                 self.log(f"INPUT EVENT SET {n}={self.input_values[n]:g}")
+                for c in list(Config.clients):
+                    c.notify_input(n)
+        elif t == 0x52:  # SubscribeInputEvent (hash 0 = all)
+            h, = struct.unpack_from("<Q", b, 0)
+            if h != 0 and h not in self.input_by_hash:
+                self.send(RECV_EXCEPTION, struct.pack("<III", 42, send_id, 0))  # GET_INPUT_EVENT_FAILED: the hash is wrong
+            else:
+                self.subscribed.add(h)
+                self.log(f"INPUT EVENT SUBSCRIBE {'all' if h == 0 else self.input_by_hash[h]}")
+        elif t == 0x53:  # UnsubscribeInputEvent
+            h, = struct.unpack_from("<Q", b, 0)
+            self.subscribed.discard(h)
         else:
             if self.verbose:
                 self.log(f"packet type {t:#x} ({len(b)} bytes)")
@@ -290,13 +317,28 @@ def main():
     ap.add_argument("-v", "--verbose", action="store_true")
     ap.add_argument("--aircraft", default="FlyByWire_A320_NEO")
     ap.add_argument("--late", type=int, default=0)
+    ap.add_argument("--flip", action="append", default=[], metavar="NAME",
+                    help="flip this input event between 0 and 1 every 4 s, as if it was clicked in the cockpit (repeatable)")
     args = ap.parse_args()
+    Config.flips = args.flip
     Config.aircraft, Config.late = args.aircraft, args.late
     srv = socket.socket()
     srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     srv.bind((args.host, args.port))
     srv.listen(4)
     print(f"mock SimConnect listening on {args.host}:{args.port}", flush=True)
+
+    def flipper():
+        while True:
+            time.sleep(4)
+            for name in Config.flips:
+                if name in Config.values:
+                    Config.values[name] = 0.0 if Config.values[name] else 1.0
+                    for c in list(Config.clients):
+                        c.notify_input(name)
+
+    if Config.flips:
+        threading.Thread(target=flipper, daemon=True).start()
     while True:
         sock, addr = srv.accept()
         print(f"[{addr[1]}] connected", flush=True)

@@ -68,7 +68,7 @@ void usage() {
         "  --profile NAME         activate this profile for the session\n"
         "  --config FILE          config file (default $XDG_CONFIG_HOME/msfs-linux-companion/config.json)\n"
         "  --catalog FILE         extra action catalog JSON (all data/*_catalog.json are loaded automatically)\n"
-        "  --tab NAME             start on a tab: Bindings, Devices, Catalog, Vibration, Log, Settings\n"
+        "  --tab NAME             start on a tab: Bindings, Devices, Guides, Catalog, Cockpit, Vibration, Log, Settings\n"
         "  --quiet                do not echo the log to stderr\n"
         "  --probe-winwing        list Winwing HID devices and the controllers behind them, then exit\n"
         "  --motor-sweep [DEV]    buzz every SET_LEDX index (0..31) on each controller (or only device byte DEV, e.g. 0x04)\n"

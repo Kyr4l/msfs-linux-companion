@@ -132,6 +132,10 @@ public:
     uint32_t getInputEvent(uint32_t requestId, uint64_t hash);
     uint32_t setInputEvent(uint64_t hash, double value);
     uint32_t enumerateInputEventParams(uint64_t hash);
+    // Notifications (RecvId::SubscribeInputEvent) whenever the value of the input event changes, whoever changed it; hash 0 = all of them
+    // (SDK: SimConnect_SubscribeInputEvent). The packet ids 0x52 / 0x53 are the two between SetInputEvent and EnumerateInputEventParams.
+    uint32_t subscribeInputEvent(uint64_t hash);
+    uint32_t unsubscribeInputEvent(uint64_t hash);
     uint32_t requestClientData(uint32_t clientDataId, uint32_t requestId, uint32_t defineId, uint32_t period, uint32_t flags,
                                uint32_t origin = 0, uint32_t interval = 0, uint32_t limit = 0);
     uint32_t setClientData(uint32_t clientDataId, uint32_t defineId, uint32_t unitSize, const void* data, size_t len);
@@ -148,6 +152,7 @@ public:
     static RecvClientData parseClientData(const RecvMessage& m);
     static RecvInputEventList parseInputEventList(const RecvMessage& m);
     static RecvInputEventValue parseGetInputEvent(const RecvMessage& m);
+    static RecvInputEventValue parseSubscribeInputEvent(const RecvMessage& m);  // hash, type, value
     static RecvInputEventParams parseInputEventParams(const RecvMessage& m);
     static RecvClientData parseSimObjectData(const RecvMessage& m) { return parseClientData(m); }  // same layout
 

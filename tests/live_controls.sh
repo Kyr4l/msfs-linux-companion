@@ -66,5 +66,18 @@ for line in sys.argv[1].splitlines():
             print("wrong:", line)
 sys.exit(1 if wrong or seen != 11 else 0)
 PY
+# Watching the cockpit: the trace subscribes to the input events and reads every value back; a control changed by somebody else (here: the
+# script writes it, the mock tells subscribers, like the sim does for a click in the cockpit) is recorded once, whichever way it was found.
+cat > "$TMP/trace.script" <<'EOF'
+trace on
+sleep 1500
+set TRIM_AILERON 0.75
+expecttrace TRIM_AILERON 3000
+trace off
+EOF
+tr="$(run --script "$TMP/trace.script")"
+echo "$tr" | grep -q '^ok:   trace saw B:TRIM_AILERON change 0.25 -> 0.75' && ok "a change of a cockpit control is seen by the trace" || bad "trace: $tr"
+echo "$tr" | grep -q '[1-9][0-9]* announced' && ok "the sim's announcement of the change arrived" || bad "no announcement: $tr"
+grep -q 'INPUT EVENT SUBSCRIBE all' "$TMP/mock.log" && ok "the trace subscribed to all input events" || bad "no subscription in the mock log"
 grep -q 'INPUT EVENT SET LIGHTING_LANDING_1=1' "$TMP/mock.log" && ok "the simulator received the writes" || bad "mock log"
 exit $fail
