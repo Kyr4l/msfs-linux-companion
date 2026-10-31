@@ -50,6 +50,13 @@ inline std::string formatTime(std::chrono::system_clock::time_point tp) {
     return buf;
 }
 
+// A label on the left and the widget at a fixed column, so a form reads as a list: call it, then draw the widget.
+inline void fieldLabel(const char* text) {
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted(text);
+    ImGui::SameLine(ImGui::GetFontSize() * 11.0f);
+}
+
 inline bool actionKindCombo(const char* label, ActionKind& kind) {
     static const ActionKind kinds[] = {ActionKind::SimEvent, ActionKind::InputEvent, ActionKind::InputEventToggle, ActionKind::HEvent,
                                        ActionKind::LVarSet, ActionKind::LVarToggle, ActionKind::CalcCode, ActionKind::Delay};
