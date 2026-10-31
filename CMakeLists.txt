@@ -47,6 +47,7 @@ add_executable(msfs-linux-companion
   src/haptics/Haptics.cpp
   src/app/Profile.cpp
   src/app/Catalog.cpp
+  src/app/AxisTargets.cpp
   src/app/Guide.cpp
   src/app/Keypad.cpp
   src/app/BindingView.cpp
@@ -100,14 +101,14 @@ if(COMPANION_BUILD_TESTS)
   target_include_directories(axis_engine PRIVATE src third_party)
   target_link_libraries(axis_engine PRIVATE Threads::Threads)
   add_test(NAME axis_engine COMMAND axis_engine)
-  add_executable(live_catalog tests/live_catalog.cpp src/app/Catalog.cpp src/app/Profile.cpp src/input/Evdev.cpp src/sim/SimConnectClient.cpp)
+  add_executable(live_catalog tests/live_catalog.cpp src/app/Catalog.cpp src/app/AxisTargets.cpp src/app/Profile.cpp src/input/Evdev.cpp src/sim/SimConnectClient.cpp)
   target_include_directories(live_catalog PRIVATE src third_party)
   target_link_libraries(live_catalog PRIVATE Threads::Threads)
   add_test(NAME live_catalog COMMAND live_catalog)
-  add_executable(curated_catalogs tests/curated_catalogs.cpp src/app/Catalog.cpp src/app/Profile.cpp src/input/Evdev.cpp)
+  add_executable(curated_catalogs tests/curated_catalogs.cpp src/app/Catalog.cpp src/app/AxisTargets.cpp src/app/Profile.cpp src/input/Evdev.cpp)
   target_include_directories(curated_catalogs PRIVATE src third_party)
   add_test(NAME curated_catalogs COMMAND curated_catalogs ${CMAKE_SOURCE_DIR})
-  add_executable(binding_view tests/binding_view.cpp src/app/BindingView.cpp src/app/Catalog.cpp src/app/Profile.cpp src/input/Evdev.cpp)
+  add_executable(binding_view tests/binding_view.cpp src/app/BindingView.cpp src/app/Catalog.cpp src/app/AxisTargets.cpp src/app/Profile.cpp src/input/Evdev.cpp)
   target_include_directories(binding_view PRIVATE src third_party)
   add_test(NAME binding_view COMMAND binding_view)
   add_executable(guide_flow tests/guide_flow.cpp src/app/Guide.cpp src/app/Keypad.cpp)

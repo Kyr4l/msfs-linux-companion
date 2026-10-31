@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Kyr4l
 #include "ui/Ui.hpp"
+#include "app/AxisTargets.hpp"
 #include "ui/UiCommon.hpp"
 
 #include <algorithm>
@@ -620,6 +621,40 @@ void Ui::drawActionList(const char* id, std::vector<Action>& actions, int listIn
     ImGui::PopID();
 }
 
+// "Control: [Throttle 1 v]": points an axis at one of the plain flight controls every aircraft has (see AxisTargets.hpp). It
+// replaces the press list with the one sim event and sets the range the event takes.
+void Ui::drawAxisTargetPicker() {
+    const float fs = ImGui::GetFontSize();
+    const AxisTarget* current = nullptr;
+    if (draft_.onPress.size() == 1 && draft_.onPress[0].kind == ActionKind::SimEvent) current = findAxisTarget(draft_.onPress[0].name);
+    fieldLabel("Control");
+    ImGui::SetNextItemWidth(fs * 20);
+    if (ImGui::BeginCombo("##axis_target", current ? current->label : "Pick what this axis moves...", ImGuiComboFlags_HeightLargest)) {
+        const char* group = nullptr;
+        for (const auto& t : axisTargets()) {
+            if (!group || std::strcmp(group, t.group) != 0) {
+                group = t.group;
+                ImGui::SeparatorText(group);
+            }
+            if (ImGui::Selectable(t.label, &t == current)) {
+                Action a;
+                a.kind = ActionKind::SimEvent;
+                a.name = t.event;
+                draft_.onPress = {a};
+                draft_.axis.outMin = t.lo;
+                draft_.axis.outMax = t.hi;
+                draft_.axis.integer = true;
+                if (draft_.label.empty()) draft_.label = t.label;
+            }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s\n\nEvent K:%s, values %g to %g", t.note, t.event, t.lo, t.hi);
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::SameLine();
+    ImGui::TextDisabled("or build the action yourself below");
+    if (current) ImGui::TextDisabled("%s", current->note);
+}
+
 void Ui::drawBindingEditor() {
     ImGui::SetNextWindowSize(ImVec2(920, 640), ImGuiCond_FirstUseEver);
     const char* title = editIndex_ >= 0 ? "Edit binding###binding_editor" : "New binding###binding_editor";
@@ -685,6 +720,7 @@ void Ui::drawBindingEditor() {
         drawActionList("release", draft_.onRelease, 1);
     } else if (axisValue) {
         ImGui::SeparatorText("What it sends");
+        if (!draft_.axis.detents.enabled) drawAxisTargetPicker();
         ImGui::TextDisabled("The value of the axis goes in as the parameter of a sim event, the value of an L: variable, or {v} in RPN code.");
         drawActionList("press", draft_.onPress, 0);
         if (draft_.axis.detents.enabled) {

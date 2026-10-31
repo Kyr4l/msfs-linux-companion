@@ -9,8 +9,10 @@
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
+#include <set>
 #include <thread>
 
+#include "app/AxisTargets.hpp"
 #include "app/Catalog.hpp"
 #include "app/Profile.hpp"
 #include "sim/AircraftId.hpp"
@@ -151,7 +153,8 @@ int main() {
         CHECK(cj4 && !cj4->curated);
         size_t live = 0, std_ = 0;
         for (const auto& e : cj4->entries) { live += e.live; std_ += e.standard; }
-        CHECK(live == 4 && std_ == 3);
+        const size_t axes = axisTargets().size();  // every aircraft without a catalog of its own also gets the axis controls
+        CHECK(live == 4 && std_ == 3 + axes);
         CHECK(cj4->title == "Asobo CJ4 (from the sim)");
         CatalogSet reloaded;  // the cache stores the decorated title; loading it must not decorate it again
         reloaded.applyLive("Asobo_CJ4", cj4->title, fresh);
@@ -170,10 +173,10 @@ int main() {
         CHECK(set.find("Asobo_CJ4")->revision == rev);
         // a later session reports fewer names (L: vars appear lazily): the cached ones stay
         CHECK(!set.applyLive("Asobo_CJ4", "Asobo CJ4", CatalogSet::liveEntriesFor({{"LIGHTING_LANDING_1", false}}, {})));
-        CHECK(set.find("Asobo_CJ4")->entries.size() == 4 + 3);
+        CHECK(set.find("Asobo_CJ4")->entries.size() == 4 + 3 + axes);
         // ... and grow when it reports new ones
         CHECK(set.applyLive("Asobo_CJ4", "Asobo CJ4", CatalogSet::liveEntriesFor({{"NEW_EVENT", false}}, {})));
-        CHECK(set.find("Asobo_CJ4")->entries.size() == 5 + 3);
+        CHECK(set.find("Asobo_CJ4")->entries.size() == 5 + 3 + axes);
 
         // curated aircraft take live entries but keep their own and add no standard events
         CHECK(set.applyLive("A32NX", "x", CatalogSet::liveEntriesFor({{"LIGHTING_STROBE_0", false}}, {})));
@@ -183,6 +186,34 @@ int main() {
         CHECK(!set.applyLive("A32NX", "x", CatalogSet::liveEntriesFor({{"LIGHTING_STROBE_0", false}}, {"A32NX_OVHD_APU_MASTER_SW_PB_IS_ON"})));
         CHECK(set.find("A32NX")->entries.size() == 2);
 
+        // the axis controls: a ranged level per entry, found by name, and the bare event of the standard catalog is replaced
+        {
+            const Catalog* c = set.find("Asobo_CJ4");
+            const CatalogEntry* thr = nullptr;
+            for (const auto& e : c->entries)
+                if (e.kind == "sim_event" && e.api == "THROTTLE1_AXIS_SET_EX1") thr = &e;
+            CHECK(thr && thr->behavior == "level" && thr->hasAxisRange && thr->axisMin == 0 && thr->axisMax == 16383 && thr->standard);
+            CHECK(findAxisTarget("K:THROTTLE1_AXIS_SET_EX1") == findAxisTarget("THROTTLE1_AXIS_SET_EX1") && findAxisTarget("THROTTLE1_AXIS_SET_EX1"));
+            CHECK(!findAxisTarget("GEAR_UP"));
+            std::set<std::string> events;
+            for (const auto& t : axisTargets()) {
+                CHECK(events.insert(t.event).second);  // each event once
+                CHECK(t.lo < t.hi && t.label[0] && t.note[0] && t.group[0]);
+            }
+            for (const char* must : {"THROTTLE_AXIS_SET_EX1", "THROTTLE1_AXIS_SET_EX1", "THROTTLE2_AXIS_SET_EX1", "AXIS_MIXTURE_SET", "PROP_PITCH_AXIS_SET_EX1",
+                                     "AXIS_ELEVATOR_SET", "AXIS_AILERONS_SET", "AXIS_RUDDER_SET", "AXIS_ELEV_TRIM_SET", "AXIS_FLAPS_SET",
+                                     "AXIS_LEFT_BRAKE_SET", "AXIS_RIGHT_BRAKE_SET", "THROTTLE1_SET"})
+                CHECK(events.count(must));
+            std::set<std::string> seen;
+            for (const auto& e : c->entries)
+                if (e.kind == "sim_event") CHECK(seen.insert(e.name).second);  // no event listed twice
+            // the standard catalog lists them too, and a second refresh changes nothing
+            const size_t n = set.standard()->entries.size();
+            set.refreshStandard();
+            CHECK(set.standard()->entries.size() == n);
+            CHECK(n == 3 + axes);
+        }
+
         // what a profile for an aircraft without any catalog gets
         CHECK(set.forAircraft("Asobo_DA62") == set.standard());
         CHECK(set.forAircraft("Asobo_CJ4") == set.find("Asobo_CJ4"));
@@ -191,7 +222,7 @@ int main() {
         CHECK(set.forgetLive("Asobo_CJ4"));
         size_t liveLeft = 0;
         for (const auto& e : set.find("Asobo_CJ4")->entries) liveLeft += e.live;
-        CHECK(liveLeft == 0 && set.find("Asobo_CJ4")->entries.size() == 3);
+        CHECK(liveLeft == 0 && set.find("Asobo_CJ4")->entries.size() == 3 + axes);
 
         // cache round trip: only live entries are written
         set.applyLive("Asobo_CJ4", "Asobo CJ4", fresh);

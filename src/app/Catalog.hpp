@@ -85,6 +85,8 @@ public:
     bool forgetLive(const std::string& id);
     // (Re)adds the standard events to every catalog that has no curated file. Call after loading or adding catalogs.
     void refreshStandard();
+    // What a catalog without a curated file gets: the axis controls of axisTargets() first, then the standard events.
+    std::vector<CatalogEntry> standardEntries() const;
     // Live entries for a snapshot of the sim: input events (not the text ones) and L: variables.
     // The sim lists every L: variable it has ever seen, whichever aircraft created it: with an aircraft id, the
     // FlyByWire variables (A32NX_*, A380X_*) are left out for every aircraft that is not a FlyByWire one.
@@ -102,6 +104,8 @@ public:
 // Builds catalog entries for what the sim reports about the loaded aircraft.
 CatalogEntry makeInputEventEntry(const std::string& name, bool isString);
 CatalogEntry makeLiveLVarEntry(const std::string& name);
+// One entry per axisTargets() item (a level with its range), in the section "Axes".
+std::vector<CatalogEntry> axisTargetEntries();
 
 // Rewrites each profile's aircraft to the spelling of its catalog (a profile saved as "asobo_cj4" becomes "Asobo_CJ4"). Returns how many changed.
 int canonicalizeProfileAircraft(Settings& s, const CatalogSet& catalogs);

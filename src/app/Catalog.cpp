@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Kyr4l
 #include "app/Catalog.hpp"
+#include "app/AxisTargets.hpp"
 #include "sim/AircraftId.hpp"
 
 #include <algorithm>
@@ -203,6 +204,30 @@ CatalogEntry makeLiveLVarEntry(const std::string& name) {
     return c;
 }
 
+std::vector<CatalogEntry> axisTargetEntries() {
+    std::vector<CatalogEntry> out;
+    for (const auto& t : axisTargets()) {
+        CatalogEntry c;
+        c.panel = "Standard events";
+        c.section = std::string("Axes: ") + t.group;
+        c.function = t.label;
+        c.api = c.name = t.event;
+        c.kind = "sim_event";
+        c.type = "K: event";
+        c.values = "axis";
+        c.behavior = "level";
+        c.hasAxisRange = true;
+        c.axisMin = t.lo;
+        c.axisMax = t.hi;
+        c.description = t.note;
+        c.verified = t.verified;
+        c.standard = true;
+        c.searchKey = lowerKey(c) + " axis throttle lever";
+        out.push_back(std::move(c));
+    }
+    return out;
+}
+
 bool Catalog::setLiveEntries(std::vector<CatalogEntry> fresh) {
     // names the curated part already lists stay out of the live part (no duplicates in the panels)
     std::unordered_set<std::string> have;
@@ -379,7 +404,7 @@ bool CatalogSet::applyLive(const std::string& id, const std::string& title, cons
         if (e.live && have.insert(e.kind + ":" + e.api).second) merged.push_back(e);
     const bool changed = cat.setLiveEntries(std::move(merged));
     if (changed && !cat.curated) {
-        if (const Catalog* s = standard()) cat.addStandardEntries(s->entries);
+        cat.addStandardEntries(standardEntries());
     }
     return changed;
 }
@@ -391,12 +416,31 @@ bool CatalogSet::forgetLive(const std::string& id) {
     return changed;
 }
 
+std::vector<CatalogEntry> CatalogSet::standardEntries() const {
+    std::vector<CatalogEntry> out = axisTargetEntries();
+    std::unordered_set<std::string> have;
+    for (const auto& e : out) have.insert(e.kind + ":" + e.name);
+    if (const Catalog* s = standard())
+        for (const auto& e : s->entries)
+            if (have.insert(e.kind + ":" + e.name).second) out.push_back(e);
+    return out;
+}
+
 void CatalogSet::refreshStandard() {
-    const Catalog* s = standard();
+    // the standard catalog itself lists the axis controls with their ranges instead of the bare event names
+    if (Catalog* s = find(kStandardCatalogId)) {
+        std::vector<CatalogEntry> axes = axisTargetEntries();
+        std::unordered_set<std::string> names;
+        for (const auto& e : axes) names.insert(e.name);
+        s->entries.erase(std::remove_if(s->entries.begin(), s->entries.end(), [&](const CatalogEntry& e) { return e.kind == "sim_event" && names.count(e.name); }),
+                         s->entries.end());
+        s->entries.insert(s->entries.begin(), axes.begin(), axes.end());
+        ++s->revision;
+    }
+    const std::vector<CatalogEntry> shared = standardEntries();
     for (auto& c : items) {
         if (c.aircraft == kStandardCatalogId || c.curated) continue;
-        if (s) c.addStandardEntries(s->entries);
-        else c.removeStandardEntries();
+        c.addStandardEntries(shared);
     }
 }
 

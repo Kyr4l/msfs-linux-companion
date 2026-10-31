@@ -85,6 +85,7 @@ private:
     bool inputIsPressed(const input::InputId& id) const;
     float axisNow(const input::InputId& id) const;  // live position 0..1 of an axis input, or -1 when the device is absent
     void drawAxisOptions();
+    void drawAxisTargetPicker();  // quick setup: one of the flight controls every aircraft has, with its range
     void drawDetentOptions();  // lever with gates: calibration state, values at the gates, presets
     void drawGateBar(const AxisCalibration& cal, float now, float width, const bool* gateSet = nullptr);  // the zones of a calibrated lever with its live position
     Engine::GateState gateStateNow(const AxisCalibration& cal) const;  // which gate buttons of a calibrated lever are closed right now

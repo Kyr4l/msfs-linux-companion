@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Kyr4l
 #include "ui/Ui.hpp"
+#include "app/AxisTargets.hpp"
 #include "ui/UiCommon.hpp"
 
 #include <algorithm>
@@ -54,12 +55,24 @@ void AppContext::refreshWatches() {
 }
 
 bool AppContext::suggestedAxisRange(const Binding& b, double& lo, double& hi) const {
+    // the active profile's own catalog speaks first (the same event takes other ranges in other cockpits), then the controls every
+    // aircraft has, then any catalog, then the name
+    const Profile* active = settings.active();
+    const Catalog* own = active ? catalogs.forAircraft(active->aircraft) : nullptr;
     for (const auto& a : b.onPress) {
         const bool input = a.kind == ActionKind::InputEvent || a.kind == ActionKind::InputEventToggle;
         if (a.kind != ActionKind::SimEvent && !input) continue;
-        for (const auto& cat : catalogs)
+        auto fromCatalog = [&](const Catalog& cat) {
             for (const auto& e : cat.entries)
                 if (e.hasAxisRange && e.name == a.name && (e.kind == "input_event") == input) { lo = e.axisMin; hi = e.axisMax; return true; }
+            return false;
+        };
+        if (own && fromCatalog(*own)) return true;
+        if (!input) {
+            if (const AxisTarget* t = findAxisTarget(a.name)) { lo = t->lo; hi = t->hi; return true; }
+        }
+        for (const auto& cat : catalogs)
+            if (fromCatalog(cat)) return true;
         if (!input && axisEventRange(a.name, lo, hi)) return true;
     }
     return false;
