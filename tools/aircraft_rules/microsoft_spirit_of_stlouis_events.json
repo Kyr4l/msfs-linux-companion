@@ -1,0 +1,27 @@
+{
+ "aircraft": "Microsoft_Spirit_of_StLouis",
+ "label": "Microsoft Spirit of StLouis",
+ "sim": "11.0.282174.999",
+ "note": "Cockpit input events the sim reports for the Microsoft Spirit of St. Louis (the list msfs-linux-companion cached from the running sim), names only",
+ "input_events": [
+  "DEICE_Engine_1",
+  "ENGINE_Magneto_1",
+  "ENGINE_Primer_1_Lever",
+  "ENGINE_Primer_1_Lever_Lock",
+  "ENGINE_Throttle_1",
+  "FUEL_Manual_Pump_2",
+  "FUEL_Mixture_1",
+  "FUEL_Valve_1",
+  "FUEL_Valve_2",
+  "FUEL_Valve_3",
+  "FUEL_Valve_4",
+  "FUEL_Valve_5",
+  "FUEL_Valve_6",
+  "HANDLING_ElevatorTrim_1",
+  "INSTRUMENT_Altimeter_1",
+  "INSTRUMENT_Clock_Ajustment_Target",
+  "INSTRUMENT_Clock_Time",
+  "LANDING_GEAR_ParkingBrake",
+  "LIGHTING_PANEL_1"
+ ]
+}

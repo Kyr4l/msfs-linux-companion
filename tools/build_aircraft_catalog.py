@@ -75,9 +75,16 @@ def main():
     if unmatched:
         sys.exit("no rule for %d event(s): %s" % (len(unmatched), ", ".join(unmatched)))
 
+    # entries that are not cockpit input events: K: events and L: variables the aircraft's model or checklist uses (rules.EXTRA_ENTRIES)
+    for e in getattr(rules, "EXTRA_ENTRIES", []):
+        assert e["behavior"] in BEHAVIORS and e["kind"] in ("sim_event", "lvar"), e
+        entries.append(e)
+
     order = {p: i for i, p in enumerate(rules.PANEL_ORDER)}
     entries.sort(key=lambda e: (order.get(e["panel"], 99), e["section"], e["function"], e["behavior"] != "knob_up"))
     out = {"aircraft": rules.AIRCRAFT, "title": rules.TITLE, "sources": rules.SOURCES, "entries": entries}
+    if getattr(rules, "AXIS_CONTROLS", False):
+        out["axis_controls"] = True  # the program adds the ranged axis events every aircraft has (throttle, mixture, brakes, surfaces ...)
     out_path = args.out or os.path.join(ROOT, "data", "%s_catalog.json" % args.module)
     with open(out_path, "w") as f:
         json.dump(out, f, indent=1)

@@ -44,6 +44,7 @@ struct Catalog {
     std::string aircraft;   // id, e.g. "A32NX", or an aircraft folder name such as "Asobo_CJ4"
     std::string title;      // display name
     bool curated = false;   // has hand-checked entries from a shipped catalog file (not just live / standard ones)
+    bool axisControls = false;  // a curated catalog that also lists the ranged axis events every aircraft has ("axis_controls": true)
     unsigned revision = 0;  // bumped whenever the entries change so views know to rebuild
     std::string label() const { return title.empty() ? aircraft : title; }
     std::string sourcePath;

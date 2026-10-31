@@ -200,6 +200,71 @@ int main(int argc, char** argv) {
         CHECK(push == 60);
     }
 
+    // ---- the Spirit of St. Louis: built from the cockpit model and the sim's own checklist, nothing claimed as tried
+    {
+        Catalog sp;
+        if (!sp.load(root + "/data/microsoft_spirit_of_stlouis_catalog.json", err)) { std::printf("cannot load the Spirit catalog: %s\n", err.c_str()); return 1; }
+        CHECK(sp.aircraft == "Microsoft_Spirit_of_StLouis" && sp.curated && sp.axisControls);
+        std::ifstream in(root + "/tools/aircraft_rules/microsoft_spirit_of_stlouis_events.json");
+        nlohmann::json j;
+        in >> j;
+        std::set<std::string> have;
+        for (const auto& e : sp.entries) have.insert(e.name);
+        size_t missing = 0;
+        for (const auto& n : j["input_events"]) if (!have.count(n.get<std::string>())) { std::printf("  no entry for %s\n", n.get<std::string>().c_str()); ++missing; }
+        CHECK(missing == 0 && j["input_events"].size() == 19);
+        for (const auto& e : sp.entries) {
+            CHECK(!e.function.empty() && !e.note.empty());
+            CHECK(!e.verified);  // nothing was tried through the program yet; the notes say where each entry comes from
+        }
+        // the throttle and mixture the sim's own checklist drives: 0 .. 16383, as levels with a range and as fixed positions
+        for (const char* n : {"THROTTLE1_SET", "MIXTURE1_SET"}) {
+            bool axis = false, zero = false, full = false;
+            for (const auto& e : sp.entries)
+                if (e.kind == "sim_event" && e.name == n) {
+                    if (e.hasAxisRange) axis = e.axisMin == 0 && e.axisMax == 16383;
+                    else if (e.hasValue && e.value == 0) zero = true;
+                    else if (e.hasValue && e.value == 16383) full = true;
+                }
+            CHECK(axis && zero && full);
+        }
+        // a fuel valve is opened by FUELSYSTEM_VALVE_OPEN with its number as the parameter, six valves, open and close
+        for (const char* verb : {"FUELSYSTEM_VALVE_OPEN", "FUELSYSTEM_VALVE_CLOSE"}) {
+            std::set<double> valves;
+            for (const auto& e : sp.entries)
+                if (e.kind == "sim_event" && e.name == verb && e.hasValue) {
+                    CHECK(e.toAction().kind == lr::app::ActionKind::SimEvent && e.toAction().value == e.value);
+                    valves.insert(e.value);
+                }
+            CHECK(valves == std::set<double>({1, 2, 3, 4, 5, 6}));
+        }
+        // the magneto switch cycles its four positions
+        const auto* mag = find(sp, "ENGINE_Magneto_1", "latched");
+        CHECK(mag && mag->positions == 4 && mag->toAction().value == 4);
+        // the other controls of the cockpit exist too: hand prop, primer, periscope lever
+        CHECK(find(sp, "TOGGLE_STARTER1", "press") && find(sp, "TOGGLE_PRIMER", "press") && find(sp, "NYP_Periscope_anim_handle_percent", ""));
+        // a refresh adds the axis events every aircraft has (brakes, surfaces ...) without the standard events, and keeps the aircraft's own entries
+        CatalogSet set;
+        Catalog std_;
+        std_.aircraft = kStandardCatalogId;
+        set.addShipped(std_);
+        set.addShipped(sp);
+        const size_t before = set.find("Microsoft_Spirit_of_StLouis")->entries.size();
+        set.refreshStandard();
+        const Catalog* withAxes = set.find("Microsoft_Spirit_of_StLouis");
+        CHECK(withAxes->entries.size() > before);
+        bool brake = false, rudder = false, std_event = false;
+        size_t throttle1 = 0;
+        for (const auto& e : withAxes->entries) {
+            brake |= e.kind == "sim_event" && e.name == "AXIS_LEFT_BRAKE_SET" && e.hasAxisRange;
+            rudder |= e.kind == "sim_event" && e.name == "AXIS_RUDDER_SET" && e.hasAxisRange;
+            std_event |= e.standard && !e.hasAxisRange;
+            throttle1 += e.kind == "sim_event" && e.name == "THROTTLE1_SET";
+        }
+        CHECK(brake && rudder && !std_event);
+        CHECK(throttle1 == 3);  // the aircraft's own three entries, not duplicated by the axis list
+    }
+
     std::printf(failures ? "\n%d check(s) FAILED\n" : "all curated catalog checks passed\n", failures);
     return failures ? 1 : 0;
 }

@@ -102,6 +102,7 @@ bool Catalog::load(const std::string& path, std::string& err) {
         in >> j;
         aircraft = j.value("aircraft", "");
         title = j.value("title", "");
+        axisControls = j.value("axis_controls", false);
         entries.clear();
         for (const auto& e : j.value("entries", nlohmann::json::array())) {
             CatalogEntry c;
@@ -438,8 +439,13 @@ void CatalogSet::refreshStandard() {
         ++s->revision;
     }
     const std::vector<CatalogEntry> shared = standardEntries();
+    const std::vector<CatalogEntry> axes = axisTargetEntries();
     for (auto& c : items) {
-        if (c.aircraft == kStandardCatalogId || c.curated) continue;
+        if (c.aircraft == kStandardCatalogId) continue;
+        if (c.curated) {
+            if (c.axisControls) c.addStandardEntries(axes);  // a curated catalog that asks for them gets the axis controls, not every standard event
+            continue;
+        }
         c.addStandardEntries(shared);
     }
 }

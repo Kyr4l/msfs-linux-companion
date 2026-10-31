@@ -1,0 +1,931 @@
+{
+ "aircraft": "Microsoft_Spirit_of_StLouis",
+ "title": "Ryan NYP Spirit of St. Louis (Microsoft)",
+ "notice": "The procedures are the sim's own checklist for this aircraft (Spirit_Of_St_Louis_Checklist.xml and NYP_Lib.xml, with the English texts of the sim), and the control names come from the aircraft's cockpit model; every step names its source. The guide has not been run on the aircraft and none of its controls is marked verified: the checks read the same simulation variables the sim's checklist tests, so a tick that does not appear means the control did not do what the checklist expects. What the sim's checklist file gets wrong is said where it matters: its comments give speeds in knots that differ from what the sim shows (80 mph and 86 mph), the \"RPM\" items test the throttle, the After landing page is empty and the shutdown page names an item (NYP_RPM_600) its library does not define, so that item is left out.",
+ "sources": [
+  "Spirit_Of_St_Louis_Checklist.xml and NYP_Lib.xml shipped with the aircraft (Official/Steam/microsoft-aircraft-spirit-of-st-louis/SimObjects/Airplanes/Microsoft_Spirit_of_StLouis/Checklist): the sim's own interactive checklist",
+  "Interior_SpiritOfStLouis_1928.xml (the same folder, model.1928): the cockpit model: which control is which, the K: events and L: variables behind them, the units of the instruments",
+  "Official/Steam/microsoft-aircraft-spirit-of-st-louis/en-US.locPak: the aircraft's English tooltips; Official/Steam/fs-base/en-US.locPak: the English texts of the checklist (CLUE.* and GAME.CHECKLIST_*)"
+ ],
+ "topics": [
+  {
+   "id": "engine_start",
+   "title": "Start the engine",
+   "summary": "Fuel valves, mixture, magnetos, primer and the hand prop, following the sim's own checklist.",
+   "start": "es_ground"
+  },
+  {
+   "id": "takeoff",
+   "title": "Taxi, take off and climb",
+   "summary": "Brake, oil temperature, mixture, full throttle and the rotation speed.",
+   "start": "to_ground"
+  },
+  {
+   "id": "landing",
+   "title": "Approach and landing",
+   "summary": "The final approach speed and what follows the landing.",
+   "start": "ld_ground"
+  },
+  {
+   "id": "shutdown",
+   "title": "Shut the engine down",
+   "summary": "Parking brake, fuel valves, mixture and magnetos.",
+   "start": "sd_ground"
+  }
+ ],
+ "nodes": {
+  "es_ground": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "help": "The engine is started on the ground. The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, on the ground",
+     "next": "es_state"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "es_air"
+    }
+   ]
+  },
+  "es_air": {
+   "type": "info",
+   "title": "Not on the ground",
+   "text": "This guide covers the engine start on the ground, which is the only start the sim's own checklist for the Spirit of St. Louis describes. Land first, then come back.",
+   "next": ""
+  },
+  "es_state": {
+   "type": "question",
+   "title": "Engine",
+   "text": "Is the engine running?",
+   "help": "A running engine skips the start: the guide goes straight to the checks that follow it.",
+   "auto": {
+    "code": "(A:GENERAL ENG COMBUSTION:1, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "no",
+     "label": "No, it is stopped",
+     "next": "es_valves"
+    },
+    {
+     "id": "yes",
+     "label": "Yes, it is running",
+     "next": "es_after"
+    }
+   ]
+  },
+  "es_valves": {
+   "type": "steps",
+   "title": "Fuel valves",
+   "source": "Spirit_Of_St_Louis_Checklist.xml, page Starting engine, items NYP_FUEL_VALVE_GLOBAL and NYP_FUEL_VALVE_1 to 5 (NYP_Lib.xml)",
+   "steps": [
+    {
+     "text": "Open the engine inlet valve (valve 6).",
+     "where": "Fuel valves: the valve called Engine inlet valve (the checklist calls it the global valve).",
+     "why": "The sim's checklist: \"Fuel shutoff valve must be open\". Without fuel the engine cannot start: the sim's checklist begins with the fuel valves.",
+     "source": "NYP_Lib.xml: NYP_FUEL_VALVE_GLOBAL; fs-base/en-US.locPak: CLUE.FUEL_SHUTOFF_VALVE_OPEN; NYP_Lib.xml: FUELSYSTEM_VALVE_OPEN 6",
+     "controls": [
+      {
+       "api": "FUELSYSTEM_VALVE_OPEN",
+       "function": "Inlet valve 6: open"
+      }
+     ],
+     "check": {
+      "code": "(A:FUELSYSTEM VALVE SWITCH:6, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Open the left wing tank valve (valve 1).",
+     "where": "Fuel valves: the valve called Left wing fuel tank valve.",
+     "why": "The sim's checklist: \"Fuel shutoff valve must be open\".",
+     "source": "NYP_Lib.xml: NYP_FUEL_VALVE_1; fs-base/en-US.locPak: CLUE.FUEL_SHUTOFF_VALVE_OPEN; NYP_Lib.xml: FUELSYSTEM_VALVE_OPEN 1",
+     "controls": [
+      {
+       "api": "FUELSYSTEM_VALVE_OPEN",
+       "function": "Left tank valve 1: open"
+      }
+     ],
+     "check": {
+      "code": "(A:FUELSYSTEM VALVE SWITCH:1, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Open the centre wing tank valve (valve 2).",
+     "where": "Fuel valves: the valve called Center Wing Fuel tank valve.",
+     "why": "The sim's checklist: \"Fuel shutoff valve must be open\".",
+     "source": "NYP_Lib.xml: NYP_FUEL_VALVE_2; fs-base/en-US.locPak: CLUE.FUEL_SHUTOFF_VALVE_OPEN; NYP_Lib.xml: FUELSYSTEM_VALVE_OPEN 2",
+     "controls": [
+      {
+       "api": "FUELSYSTEM_VALVE_OPEN",
+       "function": "Centre tank valve 2: open"
+      }
+     ],
+     "check": {
+      "code": "(A:FUELSYSTEM VALVE SWITCH:2, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Open the right wing tank valve (valve 3).",
+     "where": "Fuel valves: the valve called Right Wing Fuel tank valve.",
+     "why": "The sim's checklist: \"Fuel shutoff valve must be open\".",
+     "source": "NYP_Lib.xml: NYP_FUEL_VALVE_3; fs-base/en-US.locPak: CLUE.FUEL_SHUTOFF_VALVE_OPEN; NYP_Lib.xml: FUELSYSTEM_VALVE_OPEN 3",
+     "controls": [
+      {
+       "api": "FUELSYSTEM_VALVE_OPEN",
+       "function": "Right tank valve 3: open"
+      }
+     ],
+     "check": {
+      "code": "(A:FUELSYSTEM VALVE SWITCH:3, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Open the fuel valve 4.",
+     "where": "Fuel valves: valve 4, which has only the generic tooltip \"fuel switch open / closed\".",
+     "why": "The sim's checklist: \"Fuel shutoff valve must be open\".",
+     "source": "NYP_Lib.xml: NYP_FUEL_VALVE_4; fs-base/en-US.locPak: CLUE.FUEL_SHUTOFF_VALVE_OPEN; NYP_Lib.xml: FUELSYSTEM_VALVE_OPEN 4",
+     "controls": [
+      {
+       "api": "FUELSYSTEM_VALVE_OPEN",
+       "function": "Valve 4: open"
+      }
+     ],
+     "check": {
+      "code": "(A:FUELSYSTEM VALVE SWITCH:4, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Open the fuel valve 5.",
+     "where": "Fuel valves: valve 5, which has only the generic tooltip \"fuel switch open / closed\".",
+     "why": "The sim's checklist: \"Fuel shutoff valve must be open\".",
+     "source": "NYP_Lib.xml: NYP_FUEL_VALVE_5; fs-base/en-US.locPak: CLUE.FUEL_SHUTOFF_VALVE_OPEN; NYP_Lib.xml: FUELSYSTEM_VALVE_OPEN 5",
+     "controls": [
+      {
+       "api": "FUELSYSTEM_VALVE_OPEN",
+       "function": "Valve 5: open"
+      }
+     ],
+     "check": {
+      "code": "(A:FUELSYSTEM VALVE SWITCH:5, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    }
+   ],
+   "next": "es_mixture"
+  },
+  "es_mixture": {
+   "type": "steps",
+   "title": "Mixture and magnetos",
+   "source": "Spirit_Of_St_Louis_Checklist.xml, page Starting engine, items NYP_MIXTURE_MAXIMUM and NYP_MAGNETO_BOTH (NYP_Lib.xml)",
+   "steps": [
+    {
+     "text": "Push the mixture lever fully forward (rich).",
+     "where": "Left side of the panel; the sim's checklist shows it with its left panel camera.",
+     "why": "The sim's checklist: \"Mixture must be rich (push mixture lever completely)\".",
+     "source": "NYP_Lib.xml: NYP_MIXTURE_MAXIMUM (tests GENERAL ENG MIXTURE LEVER POSITION:1 at 100 %, tolerance 2; its action sends MIXTURE1_SET 16383); fs-base/en-US.locPak: CLUE.MIXTURE_RICH",
+     "controls": [
+      {
+       "api": "MIXTURE1_SET",
+       "function": "Mixture: rich"
+      },
+      {
+       "api": "MIXTURE1_SET",
+       "function": "Mixture lever (0 to 16383)"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG MIXTURE LEVER POSITION:1, percent)",
+      "op": ">=",
+      "value": 98
+     }
+    },
+    {
+     "text": "Set the magnetos to BOTH.",
+     "where": "Magneto switch, left side of the panel.",
+     "why": "The sim's checklist: \"Magnetos switch must be set to ON\". The switch has the positions BOTH, LEFT, RIGHT and OFF.",
+     "source": "NYP_Lib.xml: NYP_MAGNETO_BOTH (tests RECIP ENG LEFT MAGNETO:1 and RIGHT MAGNETO:1; its action sends MAGNETO_BOTH); fs-base/en-US.locPak: CLUE.MAGNETO_ON; Interior_SpiritOfStLouis_1928.xml: ASOBO_ELECTRICAL_Switch_Magneto_Template, INDEX_BOTH 0, LEFT 1, RIGHT 2, OFF 3",
+     "controls": [
+      {
+       "api": "MAGNETO_BOTH"
+      },
+      {
+       "api": "ENGINE_Magneto_1"
+      }
+     ],
+     "check": {
+      "code": "(A:RECIP ENG LEFT MAGNETO:1, Bool) (A:RECIP ENG RIGHT MAGNETO:1, Bool) +",
+      "op": "==",
+      "value": 2
+     }
+    }
+   ],
+   "next": "es_cold"
+  },
+  "es_cold": {
+   "type": "question",
+   "title": "Is the engine cold?",
+   "text": "Is the engine cold?",
+   "help": "The sim's checklist asks for up to three strokes of the primer, none when the engine is warm. It counts the engine as warm when the oil temperature is more than 15 °C above the ambient temperature.",
+   "auto": {
+    "code": "(A:ENG OIL TEMPERATURE:1, celsius) (A:AMBIENT TEMPERATURE, celsius) -",
+    "rules": [
+     {
+      "op": "<=",
+      "value": 15,
+      "choice": "cold"
+     },
+     {
+      "op": ">",
+      "value": 15,
+      "choice": "warm"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "cold",
+     "label": "Cold: prime it",
+     "next": "es_primer"
+    },
+    {
+     "id": "warm",
+     "label": "Warm: no priming",
+     "next": "es_prop"
+    }
+   ]
+  },
+  "es_primer": {
+   "type": "steps",
+   "title": "Primer",
+   "source": "Spirit_Of_St_Louis_Checklist.xml, page Starting engine, item NYP_Primer (NYP_Lib.xml)",
+   "steps": [
+    {
+     "text": "Prime the engine: up to three strokes of the primer.",
+     "where": "Right side of the panel; the sim's checklist shows it with its right panel camera.",
+     "why": "The sim's checklist: \"prime the engine up to 3 strokes, none if the engine is warm.\" Its own copilot sends TOGGLE_PRIMER and counts three strokes. No stroke counter can be read back, so tick the step by hand.",
+     "source": "NYP_Lib.xml: NYP_Primer (counts strokes in L:XMLVAR_Prime_amount, stops at 3); fs-base/en-US.locPak: CLUE.PRIME_AS_REQUIRED",
+     "controls": [
+      {
+       "api": "TOGGLE_PRIMER"
+      },
+      {
+       "api": "ENGINE_Primer_1_Lever"
+      }
+     ]
+    }
+   ],
+   "next": "es_prop"
+  },
+  "es_prop": {
+   "type": "steps",
+   "title": "Start the engine",
+   "source": "Spirit_Of_St_Louis_Checklist.xml, page Starting engine, item NYP_HAND_PROP (NYP_Lib.xml)",
+   "steps": [
+    {
+     "text": "Hand prop the airplane.",
+     "where": "The paper marked \"Hand prop the airplane\" on the panel.",
+     "why": "The sim's checklist: \"Ignition must be on START position\". The Spirit has no starter motor: the hand prop is the start, and the sim's checklist toggles the starter with the same event. If the engine does not catch, check the fuel valves, the mixture and the magnetos again.",
+     "source": "NYP_Lib.xml: NYP_HAND_PROP (tests GENERAL ENG STARTER:1; its action sends TOGGLE_STARTER1); fs-base/en-US.locPak: CLUE.IGNITION_START; Interior_SpiritOfStLouis_1928.xml: the hand prop's mouse rectangle sends K:TOGGLE_STARTER1, tooltip HAND_PROP_TITLE (en-US.locPak of the aircraft: \"Hand prop the airplane\")",
+     "controls": [
+      {
+       "api": "TOGGLE_STARTER1"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG COMBUSTION:1, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "readouts": [
+      {
+       "label": "Engine speed",
+       "unit": "rpm",
+       "code": "(A:GENERAL ENG RPM:1, rpm)"
+      }
+     ]
+    }
+   ],
+   "next": "es_after"
+  },
+  "es_after": {
+   "type": "steps",
+   "title": "After the start",
+   "source": "Spirit_Of_St_Louis_Checklist.xml, page Starting engine, items NYP_RPM_700 and NYP_OIL_PRESS (NYP_Lib.xml)",
+   "steps": [
+    {
+     "text": "Pull the throttle fully back.",
+     "where": "Throttle lever, handling area; the sim's checklist shows it with its handling camera.",
+     "why": "The sim's checklist: \"Pull the throttle fully backward\". The file calls this item \"RPM 700\" (its comment says \"RPM 800 tr/min\"), but what the sim tests is a closed throttle, 0 to 2 %.",
+     "source": "NYP_Lib.xml: NYP_RPM_700 (tests GENERAL ENG THROTTLE LEVER POSITION:1 between 0 and 2 %; its action sends THROTTLE1_SET 0); fs-base/en-US.locPak: CLUE.THROTTLE_CLOSED",
+     "controls": [
+      {
+       "api": "THROTTLE1_SET",
+       "function": "Throttle: closed"
+      },
+      {
+       "api": "THROTTLE1_SET",
+       "function": "Throttle lever (0 to 16383)"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG THROTTLE LEVER POSITION:1, percent)",
+      "op": "<=",
+      "value": 2
+     }
+    },
+    {
+     "text": "Check the oil pressure: 50 psi.",
+     "where": "Oil pressure gauge, left side of the panel.",
+     "why": "The sim's checklist expects 50 PSI (its comment says: green). Nothing in the sim tests it, so tick the step by hand once the needle is there.",
+     "source": "NYP_Lib.xml: NYP_OIL_PRESS (ExpectationTT \"50 PSI\", instrument NYP_oil_Press, no test); fs-base/en-US.locPak: GAME.CHECKLIST_OIL_PRESSURE",
+     "readouts": [
+      {
+       "label": "Oil pressure",
+       "unit": "psi",
+       "code": "(A:ENG OIL PRESSURE:1, psi)"
+      },
+      {
+       "label": "Engine speed",
+       "unit": "rpm",
+       "code": "(A:GENERAL ENG RPM:1, rpm)"
+      }
+     ]
+    }
+   ],
+   "next": "es_done"
+  },
+  "es_done": {
+   "type": "end",
+   "title": "Done",
+   "text": "The engine is running with the throttle closed and the oil pressure up. Next: taxi and take-off."
+  },
+  "to_ground": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "help": "Taxi and take-off start on the ground. The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, on the ground",
+     "next": "to_engine"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "to_air"
+    }
+   ]
+  },
+  "to_air": {
+   "type": "info",
+   "title": "Already flying",
+   "text": "This guide is for the taxi, the take-off and the climb. For the descent, use \"Approach and landing\".",
+   "next": ""
+  },
+  "to_engine": {
+   "type": "question",
+   "title": "Engine",
+   "text": "Is the engine running?",
+   "auto": {
+    "code": "(A:GENERAL ENG COMBUSTION:1, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, it is running",
+     "next": "to_taxi"
+    },
+    {
+     "id": "no",
+     "label": "No, it is stopped",
+     "next": "to_start"
+    }
+   ]
+  },
+  "to_start": {
+   "type": "info",
+   "title": "Start the engine first",
+   "text": "The engine is stopped. Use the topic \"Start the engine\", then come back here.",
+   "next": ""
+  },
+  "to_taxi": {
+   "type": "steps",
+   "title": "Taxi",
+   "source": "Spirit_Of_St_Louis_Checklist.xml, page Taxi, item NYP_OIL_TEMPERATURE_ABOVE_40 (NYP_Lib.xml); NYP_Lib.xml: NYP_PARKING_BRAKE_OFF",
+   "steps": [
+    {
+     "text": "Release the parking brake.",
+     "where": "Parking brake lever, left side of the panel.",
+     "why": "The library of the sim's checklist defines this item (parking brake OFF), although none of its pages lists it. Nothing moves with the brake set.",
+     "source": "NYP_Lib.xml: NYP_PARKING_BRAKE_OFF (tests BRAKE PARKING POSITION; its action sends PARKING_BRAKE_SET); Interior_SpiritOfStLouis_1928.xml: the lever is NYP_Parking_Brake (ASOBO_LANDING_GEAR_Switch_ParkingBrake_Template)",
+     "controls": [
+      {
+       "api": "PARKING_BRAKES"
+      },
+      {
+       "api": "LANDING_GEAR_ParkingBrake"
+      }
+     ],
+     "check": {
+      "code": "(A:BRAKE PARKING POSITION, Bool)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Let the engine warm up: the oil temperature must be above 40 °C.",
+     "where": "Oil temperature gauge, left side of the panel.",
+     "why": "The sim's checklist: \"Check that oil temperature is in green sector\" (expectation 40 °C). Taxi gently while it warms up.",
+     "source": "NYP_Lib.xml: NYP_OIL_TEMPERATURE_ABOVE_40 (ExpectationTT \"40C\", instrument NYP_oil_temp, no test); fs-base/en-US.locPak: CLUE.OIL_TEMPERATURE_CHECK",
+     "check": {
+      "code": "(A:ENG OIL TEMPERATURE:1, celsius)",
+      "op": ">",
+      "value": 40
+     },
+     "readouts": [
+      {
+       "label": "Oil temperature",
+       "unit": "°C",
+       "code": "(A:ENG OIL TEMPERATURE:1, celsius)"
+      }
+     ]
+    }
+   ],
+   "next": "to_before"
+  },
+  "to_before": {
+   "type": "steps",
+   "title": "Before take-off",
+   "source": "Spirit_Of_St_Louis_Checklist.xml, page Before take off, items NYP_OIL_PRESS and NYP_MIXTURE_MAXIMUM (NYP_Lib.xml)",
+   "steps": [
+    {
+     "text": "Check the oil pressure: 50 psi.",
+     "where": "Oil pressure gauge, left side of the panel.",
+     "why": "Same expectation as after the start: 50 PSI. Nothing in the sim tests it.",
+     "source": "NYP_Lib.xml: NYP_OIL_PRESS (ExpectationTT \"50 PSI\", no test)",
+     "readouts": [
+      {
+       "label": "Oil pressure",
+       "unit": "psi",
+       "code": "(A:ENG OIL PRESSURE:1, psi)"
+      }
+     ]
+    },
+    {
+     "text": "Mixture rich.",
+     "where": "Mixture lever, left side of the panel.",
+     "why": "The sim's checklist: \"Mixture must be rich (push mixture lever completely)\".",
+     "source": "NYP_Lib.xml: NYP_MIXTURE_MAXIMUM; fs-base/en-US.locPak: CLUE.MIXTURE_RICH",
+     "controls": [
+      {
+       "api": "MIXTURE1_SET",
+       "function": "Mixture: rich"
+      },
+      {
+       "api": "MIXTURE1_SET",
+       "function": "Mixture lever (0 to 16383)"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG MIXTURE LEVER POSITION:1, percent)",
+      "op": ">=",
+      "value": 98
+     }
+    }
+   ],
+   "next": "to_takeoff"
+  },
+  "to_takeoff": {
+   "type": "steps",
+   "title": "Take-off and climb",
+   "source": "Spirit_Of_St_Louis_Checklist.xml, page En route climb, item NYP_RPM_1800 and the rotation speed (NYP_Lib.xml)",
+   "steps": [
+    {
+     "text": "Push the throttle fully forward.",
+     "where": "Throttle lever, handling area.",
+     "why": "The sim's checklist: \"Throttle must be fully pushed\". The file calls this item \"RPM 1800\".",
+     "source": "NYP_Lib.xml: NYP_RPM_1800 (tests GENERAL ENG THROTTLE LEVER POSITION:1 at 100 %, tolerance 2; its action sends THROTTLE1_SET 16383); fs-base/en-US.locPak: CLUE.THROTTLE_FULL",
+     "controls": [
+      {
+       "api": "THROTTLE1_SET",
+       "function": "Throttle: full"
+      },
+      {
+       "api": "THROTTLE1_SET",
+       "function": "Throttle lever (0 to 16383)"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG THROTTLE LEVER POSITION:1, percent)",
+      "op": ">=",
+      "value": 98
+     },
+     "readouts": [
+      {
+       "label": "Engine speed",
+       "unit": "rpm",
+       "code": "(A:GENERAL ENG RPM:1, rpm)"
+      }
+     ]
+    },
+    {
+     "text": "Rotate at 80 mph (about 129 km/h).",
+     "where": "Airspeed indicator, right side of the panel. It is graduated in km/h.",
+     "why": "The sim's checklist shows \"Rotation speed: 80 MPH\" (the comment in the file says 75 kt). The indicator of this aircraft is graduated in km/h, from 0 to 225.",
+     "source": "Spirit_Of_St_Louis_Checklist.xml, page En route climb: CheckpointDesc ROTATION_SPEED, ExpectationTT \"80 MPH\", instrument NYP_AirSpeed; Interior_SpiritOfStLouis_1928.xml: the airspeed needle uses UNITS kilometers per hour, 0 to 225",
+     "check": {
+      "code": "(A:AIRSPEED INDICATED, miles per hour)",
+      "op": ">=",
+      "value": 80
+     },
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "mph",
+       "code": "(A:AIRSPEED INDICATED, miles per hour)"
+      },
+      {
+       "label": "Airspeed (the indicator's unit)",
+       "unit": "km/h",
+       "code": "(A:AIRSPEED INDICATED, kilometers per hour)"
+      }
+     ]
+    }
+   ],
+   "next": "to_done"
+  },
+  "to_done": {
+   "type": "end",
+   "title": "Climbing",
+   "text": "That is everything the sim's own checklist says for the take-off and the climb. Next: approach and landing."
+  },
+  "ld_ground": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "ld_final"
+    },
+    {
+     "id": "yes",
+     "label": "Yes, I have landed",
+     "next": "ld_after"
+    }
+   ]
+  },
+  "ld_final": {
+   "type": "steps",
+   "title": "Before landing",
+   "source": "Spirit_Of_St_Louis_Checklist.xml, page Before landing (NYP_Lib.xml)",
+   "steps": [
+    {
+     "text": "Fly the final approach at 86 mph (about 138 km/h).",
+     "where": "Airspeed indicator, right side of the panel. It is graduated in km/h.",
+     "why": "The sim's checklist shows \"Final approach airspeed: 86 MPH\" (the comment in the file says 90 kt). It is the only item of this page.",
+     "source": "Spirit_Of_St_Louis_Checklist.xml, page Before landing: CheckpointDesc FINAL_APPROACH_AIRSPEED, ExpectationTT \"86 MPH\", instrument NYP_AirSpeed; Interior_SpiritOfStLouis_1928.xml: the airspeed needle uses UNITS kilometers per hour, 0 to 225",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "mph",
+       "code": "(A:AIRSPEED INDICATED, miles per hour)"
+      },
+      {
+       "label": "Airspeed (the indicator's unit)",
+       "unit": "km/h",
+       "code": "(A:AIRSPEED INDICATED, kilometers per hour)"
+      }
+     ]
+    }
+   ],
+   "next": "ld_flying_end"
+  },
+  "ld_flying_end": {
+   "type": "end",
+   "title": "Landed?",
+   "text": "Once you are on the ground, open this topic again for the page that follows the landing."
+  },
+  "ld_after": {
+   "type": "info",
+   "title": "After landing",
+   "text": "The sim's own checklist has a page called After landing, and it lists nothing: there is no step to tick. Slow down, taxi clear of the runway, and use the topic \"Shut the engine down\" at the parking spot.",
+   "next": ""
+  },
+  "sd_ground": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, parked",
+     "next": "sd_brake"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "sd_air"
+    }
+   ]
+  },
+  "sd_air": {
+   "type": "info",
+   "title": "Not on the ground",
+   "text": "The engine is shut down on the ground. Land first.",
+   "next": ""
+  },
+  "sd_brake": {
+   "type": "steps",
+   "title": "Park",
+   "source": "NYP_Lib.xml: NYP_PARKING_BRAKE_ON (NYP_Lib.xml)",
+   "steps": [
+    {
+     "text": "Set the parking brake.",
+     "where": "Parking brake lever, left side of the panel.",
+     "why": "The library of the sim's checklist defines this item (parking brake ON), although the shutdown page does not list it. It is a precaution, not a documented step.",
+     "source": "NYP_Lib.xml: NYP_PARKING_BRAKE_ON (tests BRAKE PARKING POSITION; its action sends PARKING_BRAKE_SET)",
+     "controls": [
+      {
+       "api": "PARKING_BRAKES"
+      },
+      {
+       "api": "LANDING_GEAR_ParkingBrake"
+      }
+     ],
+     "check": {
+      "code": "(A:BRAKE PARKING POSITION, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    }
+   ],
+   "next": "sd_valves"
+  },
+  "sd_valves": {
+   "type": "steps",
+   "title": "Fuel valves",
+   "source": "Spirit_Of_St_Louis_Checklist.xml, page Shutdown, items NYP_FUEL_VALVE_GLOBAL_OFF and NYP_FUEL_VALVE_1_OFF to 5_OFF (NYP_Lib.xml)",
+   "steps": [
+    {
+     "text": "Close the engine inlet valve (valve 6).",
+     "where": "Fuel valves: the valve called Engine inlet valve (the checklist calls it the global valve).",
+     "why": "The sim's checklist: \"Fuel shutoff valve must be closed\".",
+     "source": "NYP_Lib.xml: NYP_FUEL_VALVE_GLOBAL_OFF; fs-base/en-US.locPak: CLUE.FUEL_SHUTOFF_VALVE_CLOSED; NYP_Lib.xml: FUELSYSTEM_VALVE_CLOSE 6",
+     "controls": [
+      {
+       "api": "FUELSYSTEM_VALVE_CLOSE",
+       "function": "Inlet valve 6: close"
+      }
+     ],
+     "check": {
+      "code": "(A:FUELSYSTEM VALVE SWITCH:6, Bool)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Close the left wing tank valve (valve 1).",
+     "where": "Fuel valves: the valve called Left wing fuel tank valve.",
+     "why": "The sim's checklist: \"Fuel shutoff valve must be closed\".",
+     "source": "NYP_Lib.xml: NYP_FUEL_VALVE_1_OFF; fs-base/en-US.locPak: CLUE.FUEL_SHUTOFF_VALVE_CLOSED; NYP_Lib.xml: FUELSYSTEM_VALVE_CLOSE 1",
+     "controls": [
+      {
+       "api": "FUELSYSTEM_VALVE_CLOSE",
+       "function": "Left tank valve 1: close"
+      }
+     ],
+     "check": {
+      "code": "(A:FUELSYSTEM VALVE SWITCH:1, Bool)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Close the centre wing tank valve (valve 2).",
+     "where": "Fuel valves: the valve called Center Wing Fuel tank valve.",
+     "why": "The sim's checklist: \"Fuel shutoff valve must be closed\".",
+     "source": "NYP_Lib.xml: NYP_FUEL_VALVE_2_OFF; fs-base/en-US.locPak: CLUE.FUEL_SHUTOFF_VALVE_CLOSED; NYP_Lib.xml: FUELSYSTEM_VALVE_CLOSE 2",
+     "controls": [
+      {
+       "api": "FUELSYSTEM_VALVE_CLOSE",
+       "function": "Centre tank valve 2: close"
+      }
+     ],
+     "check": {
+      "code": "(A:FUELSYSTEM VALVE SWITCH:2, Bool)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Close the right wing tank valve (valve 3).",
+     "where": "Fuel valves: the valve called Right Wing Fuel tank valve.",
+     "why": "The sim's checklist: \"Fuel shutoff valve must be closed\".",
+     "source": "NYP_Lib.xml: NYP_FUEL_VALVE_3_OFF; fs-base/en-US.locPak: CLUE.FUEL_SHUTOFF_VALVE_CLOSED; NYP_Lib.xml: FUELSYSTEM_VALVE_CLOSE 3",
+     "controls": [
+      {
+       "api": "FUELSYSTEM_VALVE_CLOSE",
+       "function": "Right tank valve 3: close"
+      }
+     ],
+     "check": {
+      "code": "(A:FUELSYSTEM VALVE SWITCH:3, Bool)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Close the fuel valve 4.",
+     "where": "Fuel valves: valve 4, which has only the generic tooltip \"fuel switch open / closed\".",
+     "why": "The sim's checklist: \"Fuel shutoff valve must be closed\".",
+     "source": "NYP_Lib.xml: NYP_FUEL_VALVE_4_OFF; fs-base/en-US.locPak: CLUE.FUEL_SHUTOFF_VALVE_CLOSED; NYP_Lib.xml: FUELSYSTEM_VALVE_CLOSE 4",
+     "controls": [
+      {
+       "api": "FUELSYSTEM_VALVE_CLOSE",
+       "function": "Valve 4: close"
+      }
+     ],
+     "check": {
+      "code": "(A:FUELSYSTEM VALVE SWITCH:4, Bool)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Close the fuel valve 5.",
+     "where": "Fuel valves: valve 5, which has only the generic tooltip \"fuel switch open / closed\".",
+     "why": "The sim's checklist: \"Fuel shutoff valve must be closed\".",
+     "source": "NYP_Lib.xml: NYP_FUEL_VALVE_5_OFF; fs-base/en-US.locPak: CLUE.FUEL_SHUTOFF_VALVE_CLOSED; NYP_Lib.xml: FUELSYSTEM_VALVE_CLOSE 5",
+     "controls": [
+      {
+       "api": "FUELSYSTEM_VALVE_CLOSE",
+       "function": "Valve 5: close"
+      }
+     ],
+     "check": {
+      "code": "(A:FUELSYSTEM VALVE SWITCH:5, Bool)",
+      "op": "==",
+      "value": 0
+     }
+    }
+   ],
+   "next": "sd_rest"
+  },
+  "sd_rest": {
+   "type": "steps",
+   "title": "Mixture and magnetos",
+   "source": "Spirit_Of_St_Louis_Checklist.xml, page Shutdown, items NYP_MIXTURE_MINIMUM and NYP_MAGNETO_OFF (NYP_Lib.xml)",
+   "steps": [
+    {
+     "text": "Pull the mixture lever fully back (lean, cut off).",
+     "where": "Left side of the panel.",
+     "why": "The sim's checklist: \"Mixture must be cut off (pull mixture lever completely)\".",
+     "source": "NYP_Lib.xml: NYP_MIXTURE_MINIMUM (tests GENERAL ENG MIXTURE LEVER POSITION:1 at 0, tolerance 10; its action sends MIXTURE1_SET 0); fs-base/en-US.locPak: CLUE.MIXTURE_CUTOFF",
+     "controls": [
+      {
+       "api": "MIXTURE1_SET",
+       "function": "Mixture: lean (cut off)"
+      },
+      {
+       "api": "MIXTURE1_SET",
+       "function": "Mixture lever (0 to 16383)"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG MIXTURE LEVER POSITION:1, percent)",
+      "op": "<=",
+      "value": 10
+     }
+    },
+    {
+     "text": "Set the magnetos to OFF.",
+     "where": "Magneto switch, left side of the panel.",
+     "why": "The sim's checklist: \"Magnetos switch must be set to OFF\".",
+     "source": "NYP_Lib.xml: NYP_MAGNETO_OFF (its action sends MAGNETO1_OFF; the sim's test reads LEFT MAGNETO:1 and :2, this guide reads left and right); fs-base/en-US.locPak: CLUE.MAGNETO_OFF",
+     "controls": [
+      {
+       "api": "MAGNETO1_OFF"
+      },
+      {
+       "api": "ENGINE_Magneto_1"
+      }
+     ],
+     "check": {
+      "code": "(A:RECIP ENG LEFT MAGNETO:1, Bool) (A:RECIP ENG RIGHT MAGNETO:1, Bool) +",
+      "op": "==",
+      "value": 0
+     }
+    }
+   ],
+   "next": "sd_done"
+  },
+  "sd_done": {
+   "type": "end",
+   "title": "Shut down",
+   "text": "The engine is stopped, the fuel is shut off and the magnetos are off."
+  }
+ }
+}

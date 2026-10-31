@@ -202,7 +202,7 @@ int main() {
             }
             for (const char* must : {"THROTTLE_AXIS_SET_EX1", "THROTTLE1_AXIS_SET_EX1", "THROTTLE2_AXIS_SET_EX1", "AXIS_MIXTURE_SET", "PROP_PITCH_AXIS_SET_EX1",
                                      "AXIS_ELEVATOR_SET", "AXIS_AILERONS_SET", "AXIS_RUDDER_SET", "AXIS_ELEV_TRIM_SET", "AXIS_FLAPS_SET",
-                                     "AXIS_LEFT_BRAKE_SET", "AXIS_RIGHT_BRAKE_SET", "THROTTLE1_SET"})
+                                     "AXIS_LEFT_BRAKE_SET", "AXIS_RIGHT_BRAKE_SET", "THROTTLE1_SET", "MIXTURE1_SET", "AXIS_PROPELLER_SET", "SPOILERS_SET"})
                 CHECK(events.count(must));
             std::set<std::string> seen;
             for (const auto& e : c->entries)
