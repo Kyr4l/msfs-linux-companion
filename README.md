@@ -178,7 +178,10 @@ Cessna, a Cub) needs no hunting for event names. The ranges come from the MSFS S
 checklists, whose copilot sets the lever with a parameter and then reads the lever back (the Spirit's throttle: `THROTTLE1_SET` 0 closed, 16383 full;
 its mixture: `MIXTURE1_SET` 0 lean, 16383 rich; the Pitts' propeller: `AXIS_PROPELLER_SET` -16383 to 16383); an entry whose range the SDK
 does not give says so. None of them is marked verified on a running aircraft yet. The same controls are listed in the Catalog tab
-of aircraft without a catalog of their own, and in the curated catalogs that ask for them.
+of aircraft without a catalog of their own, and in the curated catalogs that ask for them, together with a few named buttons every
+aircraft can use: **Baro setting up / down** (`KOHLSMAN_INC` / `KOHLSMAN_DEC`, the events the sim's controls menu binds), **STD baro toggle**
+(`BAROMETRIC_STD_PRESSURE`, which the Garmin G1000 NXi of the C172, DA40 and others handles, see its public source) and **Baro: local
+pressure** (`BAROMETRIC`). They are findable by "baro", "std" or "qnh".
 
 *Use travel from/to* turns the ends of the physical travel into dead zones and *Invert* flips the
 direction. `tools/virtual_joystick.py demo` creates a fake joystick to try all of this without hardware.

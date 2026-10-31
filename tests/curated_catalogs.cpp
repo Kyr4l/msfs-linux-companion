@@ -258,10 +258,13 @@ int main(int argc, char** argv) {
         for (const auto& e : withAxes->entries) {
             brake |= e.kind == "sim_event" && e.name == "AXIS_LEFT_BRAKE_SET" && e.hasAxisRange;
             rudder |= e.kind == "sim_event" && e.name == "AXIS_RUDDER_SET" && e.hasAxisRange;
-            std_event |= e.standard && !e.hasAxisRange;
+            std_event |= e.standard && !e.hasAxisRange && e.section.rfind("Common: ", 0) != 0;
             throttle1 += e.kind == "sim_event" && e.name == "THROTTLE1_SET";
         }
         CHECK(brake && rudder && !std_event);
+        bool baroStd = false;
+        for (const auto& e : withAxes->entries) baroStd |= e.name == "BAROMETRIC_STD_PRESSURE";
+        CHECK(baroStd);  // the altimeter buttons come with the axis controls
         CHECK(throttle1 == 3);  // the aircraft's own three entries, not duplicated by the axis list
     }
 

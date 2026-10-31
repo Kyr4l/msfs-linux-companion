@@ -107,6 +107,8 @@ CatalogEntry makeInputEventEntry(const std::string& name, bool isString);
 CatalogEntry makeLiveLVarEntry(const std::string& name);
 // One entry per axisTargets() item (a level with its range), in the section "Axes".
 std::vector<CatalogEntry> axisTargetEntries();
+// One entry per commonControls() item (named K: events like the altimeter setting), in the sections "Common: ...".
+std::vector<CatalogEntry> commonControlEntries();
 
 // Rewrites each profile's aircraft to the spelling of its catalog (a profile saved as "asobo_cj4" becomes "Asobo_CJ4"). Returns how many changed.
 int canonicalizeProfileAircraft(Settings& s, const CatalogSet& catalogs);

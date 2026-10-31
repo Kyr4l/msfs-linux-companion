@@ -160,7 +160,7 @@ int main() {
         CHECK(cj4 && !cj4->curated);
         size_t live = 0, std_ = 0;
         for (const auto& e : cj4->entries) { live += e.live; std_ += e.standard; }
-        const size_t axes = axisTargets().size();  // every aircraft without a catalog of its own also gets the axis controls
+        const size_t axes = axisTargets().size() + commonControls().size();  // every aircraft without a catalog of its own also gets the axis controls and the named buttons
         CHECK(live == 4 && std_ == 3 + axes);
         CHECK(cj4->title == "Asobo CJ4 (from the sim)");
         CatalogSet reloaded;  // the cache stores the decorated title; loading it must not decorate it again
@@ -202,6 +202,14 @@ int main() {
             CHECK(thr && thr->behavior == "level" && thr->hasAxisRange && thr->axisMin == 0 && thr->axisMax == 16383 && thr->standard);
             CHECK(findAxisTarget("K:THROTTLE1_AXIS_SET_EX1") == findAxisTarget("THROTTLE1_AXIS_SET_EX1") && findAxisTarget("THROTTLE1_AXIS_SET_EX1"));
             CHECK(!findAxisTarget("GEAR_UP"));
+            // the altimeter buttons: found by "baro" and "std", not only by the sim's name for them (Kohlsman)
+            std::set<std::string> baro;
+            for (const auto& e : c->entries)
+                if (e.kind == "sim_event" && e.searchKey.find("baro") != std::string::npos && e.standard) baro.insert(e.name);
+            CHECK(baro.count("KOHLSMAN_INC") && baro.count("KOHLSMAN_DEC") && baro.count("BAROMETRIC_STD_PRESSURE") && baro.count("BAROMETRIC"));
+            for (const auto& e : c->entries)
+                if (e.name == "KOHLSMAN_INC" || e.name == "KOHLSMAN_DEC") CHECK(e.isIncDec() && e.searchKey.find("qnh") != std::string::npos);
+                else if (e.name == "BAROMETRIC_STD_PRESSURE") CHECK(!e.isIncDec() && e.searchKey.find("std") != std::string::npos);
             std::set<std::string> events;
             for (const auto& t : axisTargets()) {
                 CHECK(events.insert(t.event).second);  // each event once

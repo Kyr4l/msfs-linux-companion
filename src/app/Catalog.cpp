@@ -236,6 +236,25 @@ std::vector<CatalogEntry> axisTargetEntries() {
     return out;
 }
 
+std::vector<CatalogEntry> commonControlEntries() {
+    std::vector<CatalogEntry> out;
+    for (const auto& t : commonControls()) {
+        CatalogEntry c;
+        c.panel = "Standard events";
+        c.section = std::string("Common: ") + t.section;
+        c.function = t.label;
+        c.api = c.name = t.event;
+        c.kind = "sim_event";
+        c.type = "K: event";
+        c.behavior = t.incDec ? "knob_up" : "press";
+        c.description = t.note;
+        c.standard = true;
+        c.searchKey = lowerKey(c) + " " + t.keywords;
+        out.push_back(std::move(c));
+    }
+    return out;
+}
+
 bool Catalog::setLiveEntries(std::vector<CatalogEntry> fresh) {
     // names the curated part already lists stay out of the live part (no duplicates in the panels)
     std::unordered_set<std::string> have;
@@ -426,6 +445,7 @@ bool CatalogSet::forgetLive(const std::string& id) {
 
 std::vector<CatalogEntry> CatalogSet::standardEntries() const {
     std::vector<CatalogEntry> out = axisTargetEntries();
+    for (auto& e : commonControlEntries()) out.push_back(std::move(e));
     std::unordered_set<std::string> have;
     for (const auto& e : out) have.insert(entryKey(e));
     if (const Catalog* s = standard())
@@ -438,6 +458,7 @@ void CatalogSet::refreshStandard() {
     // the standard catalog itself lists the axis controls with their ranges instead of the bare event names
     if (Catalog* s = find(kStandardCatalogId)) {
         std::vector<CatalogEntry> axes = axisTargetEntries();
+        for (auto& e : commonControlEntries()) axes.push_back(std::move(e));
         std::unordered_set<std::string> names;
         for (const auto& e : axes) names.insert(e.name);
         s->entries.erase(std::remove_if(s->entries.begin(), s->entries.end(), [&](const CatalogEntry& e) { return e.kind == "sim_event" && names.count(e.name); }),
@@ -446,7 +467,8 @@ void CatalogSet::refreshStandard() {
         ++s->revision;
     }
     const std::vector<CatalogEntry> shared = standardEntries();
-    const std::vector<CatalogEntry> axes = axisTargetEntries();
+    std::vector<CatalogEntry> axes = axisTargetEntries();
+    for (auto& e : commonControlEntries()) axes.push_back(std::move(e));
     for (auto& c : items) {
         if (c.aircraft == kStandardCatalogId) continue;
         if (c.curated) {

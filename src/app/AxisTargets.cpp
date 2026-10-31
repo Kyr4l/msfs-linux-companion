@@ -64,6 +64,23 @@ const std::vector<AxisTarget>& axisTargets() {
     return t;
 }
 
+// Sources: the MSFS controls menu binds KOHLSMAN_INC, KOHLSMAN_DEC and BAROMETRIC (Input profiles of the MSFS 2024 install); the Garmin G1000 NXi (the
+// C172's avionics) intercepts BAROMETRIC (sets the baro to the local value) and BAROMETRIC_STD_PRESSURE (switches STD baro on and off) in
+// src/workingtitle-instruments-g1000/html_ui/Shared/Input/AltimeterBaroKeyEventHandler.ts of github.com/microsoft/msfs-avionics-mirror.
+const std::vector<CommonControl>& commonControls() {
+    static const std::vector<CommonControl> t = {
+        {"Altimeter", "Baro setting up", "KOHLSMAN_INC", "baro barometric pressure qnh kohlsman altimeter up higher",
+         "One step up per press; a button repeats while held. The sim's controls menu binds this event.", true},
+        {"Altimeter", "Baro setting down", "KOHLSMAN_DEC", "baro barometric pressure qnh kohlsman altimeter down lower",
+         "One step down per press; a button repeats while held. The sim's controls menu binds this event.", true},
+        {"Altimeter", "STD baro toggle", "BAROMETRIC_STD_PRESSURE", "baro std standard pressure 1013 29.92 qnh altimeter toggle",
+         "Switches STD baro on and off on the Garmin G1000 NXi (source: its key event handler). Not in the sim's controls menu.", false},
+        {"Altimeter", "Baro: local pressure", "BAROMETRIC", "baro barometric pressure qnh local sync altimeter",
+         "Sets the altimeter to the local pressure (the SDK: sea level pressure; the G1000 NXi sets its baro). The sim's controls menu binds this event.", false},
+    };
+    return t;
+}
+
 const AxisTarget* findAxisTarget(const std::string& event) {
     const std::string name = event.rfind("K:", 0) == 0 ? event.substr(2) : event;
     for (const auto& t : axisTargets())
