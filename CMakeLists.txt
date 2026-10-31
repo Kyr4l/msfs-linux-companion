@@ -118,6 +118,7 @@ if(COMPANION_BUILD_TESTS)
   add_test(NAME live_controls COMMAND bash ${CMAKE_SOURCE_DIR}/tests/live_controls.sh $<TARGET_FILE:msfs-linux-companion> ${CMAKE_SOURCE_DIR})
   # Every documented command-line option must be accepted (exit code 2 = "unknown option"). Regression test for
   # a refactor that once silently dropped --config/--host/--port/--profile/--catalog/--motor-sweep.
+  add_test(NAME probe_controls COMMAND python3 -I ${CMAKE_SOURCE_DIR}/tests/probe_controls.py ${CMAKE_SOURCE_DIR})
   add_test(NAME idle_cost COMMAND bash ${CMAKE_SOURCE_DIR}/tests/idle_cost.sh $<TARGET_FILE:msfs-linux-companion> ${CMAKE_SOURCE_DIR})
   add_test(NAME cli_options COMMAND bash ${CMAKE_SOURCE_DIR}/tests/cli_options.sh $<TARGET_FILE:msfs-linux-companion>
            ${CMAKE_SOURCE_DIR}/tests/fixtures/config_v1.json)
