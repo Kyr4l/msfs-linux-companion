@@ -268,6 +268,74 @@ int main(int argc, char** argv) {
         CHECK(throttle1 == 3);  // the aircraft's own three entries, not duplicated by the axis list
     }
 
+    // ---- the Cirrus Vision Jet G2: the event list is what the running MSFS 2024 reported; labels come from the aircraft's tooltips,
+    // its own checklist and the public G3000 sources, nothing claimed as tried
+    {
+        Catalog sf;
+        if (!sf.load(root + "/data/microsoft_sf50_catalog.json", err)) { std::printf("cannot load the SF50 catalog: %s\n", err.c_str()); return 1; }
+        CHECK(sf.aircraft == "Microsoft_SF50" && sf.curated && sf.axisControls);
+        std::ifstream in(root + "/tools/aircraft_rules/microsoft_sf50_events.json");
+        nlohmann::json j;
+        in >> j;
+        std::set<std::string> have;
+        for (const auto& e : sf.entries) have.insert(e.name);
+        size_t missing = 0;
+        for (const auto& n : j["input_events"]) if (!have.count(n.get<std::string>())) { std::printf("  no entry for %s\n", n.get<std::string>().c_str()); ++missing; }
+        CHECK(missing == 0 && j["input_events"].size() == 141);
+        for (const auto& e : sf.entries) {
+            CHECK(!e.function.empty() && !e.note.empty());
+            CHECK(!e.verified);  // nothing was tried through the program yet; the notes say where each entry comes from
+        }
+        // the switches the sim's checklist names flip between their positions
+        for (const char* n : {"SF50_ELECTRICAL_BATTERY_1_SWITCH", "SF50_ELECTRICAL_GEN_2_SWITCH", "SF50_PRESSURIZATION_SWITCH_AIR_BLEED", "SF50_ENGINE_RUN_KNOB"}) {
+            const auto* e = find(sf, n, "latched");
+            CHECK(e && e->toAction().kind == lr::app::ActionKind::InputEventToggle && e->toAction().value == 2);
+        }
+        const auto* fuel = find(sf, "SF50_FUEL_CONTROL_KNOB", "latched");
+        CHECK(fuel && fuel->positions == 3 && fuel->toAction().value == 3);  // LEFT / AUTO / RIGHT
+        const auto* flaps = find(sf, "SF50_HANDLING_FLAP_SELECTOR", "latched");
+        CHECK(flaps && flaps->positions == 3);  // UP / 50% / 100%
+        // the touch controller knobs of the three GTCs: the sign of the value picks the direction (public G3000 behaviour file)
+        for (int n = 1; n <= 3; ++n) {
+            const std::string knob = "AS3000_TSC_" + std::to_string(n) + "_FREQUENCY_KNOB_KHZ";
+            const auto* up = find(sf, knob, "knob_up");
+            const auto* down = find(sf, knob, "knob_down");
+            CHECK(up && down && up->toAction().value == 1 && down->toAction().value == -1 && up->isIncDec());
+            for (const char* key : {"SOFTKEY_1", "SOFTKEY_2", "SOFTKEY_3", "FREQUENCY_SWAP", "MULTIFUNCTION_KNOB_BUTTON"})
+                CHECK(find(sf, "AS3000_TSC_" + std::to_string(n) + "_" + key, "press"));
+        }
+        // controls that can hurt carry a warning in their note and are not offered as an ordinary press or toggle
+        const auto* caps = find(sf, "SF50_CAPS_HANDLE", "");
+        CHECK(caps && caps->behavior.empty() && caps->note.find("DANGER") == 0);
+        const auto* safeReturn = find(sf, "SF50_SAFE_RETURN_ACTIVATE_BUTTON", "press");
+        CHECK(safeReturn && safeReturn->note.find("WARNING") == 0);
+        // what the management tablet sets: an L: variable per option, the K: event of the GPU button
+        const auto* chocks = find(sf, "SF50_Chocks_Enabled", "");
+        CHECK(chocks && chocks->kind == "lvar" && chocks->toAction().kind == lr::app::ActionKind::LVarToggle);
+        size_t states = 0;
+        for (const auto& e : sf.entries)
+            if (e.kind == "lvar" && e.name == "SF50_Management_Status_Type" && e.hasValue) {
+                CHECK(e.toAction().kind == lr::app::ActionKind::LVarSet && e.toAction().value == e.value);
+                states += e.value >= 1 && e.value <= 3;
+            }
+        CHECK(states == 3);
+        const auto* gpu = find(sf, "TOGGLE_EXTERNAL_POWER", "press");
+        CHECK(gpu && gpu->kind == "sim_event" && gpu->toAction().kind == lr::app::ActionKind::SimEvent);
+        // a refresh adds the ranged axis events (thrust lever, brakes, surfaces) next to the aircraft's own entries
+        CatalogSet set;
+        Catalog std_;
+        std_.aircraft = kStandardCatalogId;
+        set.addShipped(std_);
+        set.addShipped(sf);
+        const size_t before = set.find("Microsoft_SF50")->entries.size();
+        set.refreshStandard();
+        const Catalog* withAxes = set.find("Microsoft_SF50");
+        CHECK(withAxes->entries.size() > before);
+        bool thrustAxis = false;
+        for (const auto& e : withAxes->entries) thrustAxis |= e.kind == "sim_event" && e.name == "THROTTLE1_AXIS_SET_EX1" && e.hasAxisRange;
+        CHECK(thrustAxis);
+    }
+
     std::printf(failures ? "\n%d check(s) FAILED\n" : "all curated catalog checks passed\n", failures);
     return failures ? 1 : 0;
 }

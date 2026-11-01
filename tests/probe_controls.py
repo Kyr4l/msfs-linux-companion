@@ -55,6 +55,9 @@ check([e["name"] for e in probed] == ["LIGHTING_LANDING_1", "HANDLING_FLAPS"], "
 # doors and windows are left alone: opening one took the pilot out of the cockpit in MSFS 2024
 doors = [{"name": n, "value": 0.0} for n in ("INSTRUMENT_DOOR_LEFT", "AIRCRAFT_DOOR_WINDOW_PILOT", "UNKNOWN_DOOR_HANDLE_1", "CANOPY_1", "LIGHTING_NAV_0")]
 check([e["name"] for e in pc.make_script(doors, pc.DEFAULT_SKIP, None)[1]] == ["LIGHTING_NAV_0"], "doors, windows and canopies are not probed")
+# the parachute handle and the emergency autoland of the Vision Jet cannot be put back
+risky = [{"name": n, "value": 0.0} for n in ("SF50_CAPS_HANDLE", "SF50_SAFE_RETURN_ACTIVATE_BUTTON", "SF50_SAFE_RETURN_AUTOPILOT_INTERCEPTS", "SF50_CAPS_SAFETY_PIN")]
+check([e["name"] for e in pc.make_script(risky, pc.DEFAULT_SKIP, None)[1]] == ["SF50_CAPS_SAFETY_PIN"], "CAPS handle and Safe Return are not probed")
 # a control that moves but does not take the value (altimeter: set 0..1, read 955..1060 hPa) gets its fraction
 alt = {"name": "INSTRUMENT_ALTIMETER_CALIBRATION_0", "initial": 1013.25, "restored": False, "high": {"requested": pc.HIGH, "actual": 1060.0},
        "low": {"requested": pc.LOW, "actual": 955.0}}
