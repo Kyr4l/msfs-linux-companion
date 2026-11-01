@@ -50,7 +50,8 @@ struct Telemetry {
     uint64_t seq = 0;
     double onGround = 0, groundSpeedKt = 0, gForce = 1, stallWarning = 0, overspeedWarning = 0, gearPct = 1, flapsPct = 0,
            spoilersHandle = 0, n1Eng1 = 0, n1Eng2 = 0, reverse1 = 0, reverse2 = 0, accelBodyY = 0, verticalSpeedFpm = 0,
-           brakeLeft = 0, brakeRight = 0, iasKt = 0, altAgl = 0;
+           brakeLeft = 0, brakeRight = 0, iasKt = 0, altAgl = 0,
+           rotorRpmPct = 0, collective = 0;  // helicopter: main rotor speed and collective, both 0..1 (1 = 100 %); 0 on an aircraft without a rotor
 
     // N1 of the engines that turn. A single-engine aircraft (the Vision Jet) reports 0 for engine 2, which must not halve engine 1.
     double turningN1() const {

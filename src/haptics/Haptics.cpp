@@ -22,6 +22,8 @@ const std::vector<RuleInfo>& ruleInfos() {
         {"speedbrake", "Speed brake", "Spoilers out in flight"},
         {"reverse", "Reverse thrust", "Reversers deployed"},
         {"engine", "Takeoff thrust", "High thrust on the ground"},
+        {"rotor", "Rotor", "Helicopter rotor turning, more with the collective"},
+        {"rotor_low", "Low rotor speed", "Helicopter rotor too slow in flight"},
         {"turbulence", "Turbulence / G", "G-force changes in flight"},
         {"brakes", "Wheel braking", "Braking at speed"},
     };
@@ -139,6 +141,10 @@ void HapticsEngine::evaluate(const sim::Telemetry& t, float& left, float& right,
 
     const double n1 = t.turningN1();
     if (onGround && n1 > 35) add("engine", (n1 - 35.0) / 65.0 * 0.35);
+
+    const float rotor = rotorVibration(t);
+    if (rotor > 0.f) add("rotor", rotor);
+    if (rotorLow(t)) add("rotor_low", std::fmod(phase * 5.0, 1.0) < 0.5 ? 0.9 : 0.3);
 
     if (!onGround) {
         const double d = std::fabs(gSmooth_ - 1.0);

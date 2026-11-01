@@ -1,0 +1,1691 @@
+{
+ "aircraft": "Asobo_Cabri_G2",
+ "title": "Guimbal Cabri G2",
+ "notice": "The procedures are the sim's own wording for this helicopter: the checklist items and clues of the Cabri G2 (its language file) and the instructor texts of the sim's eleven helicopter lessons, which fly this aircraft; every step names the key it comes from. The language file gives the wording and the numbers (NR 530 RPM, 45 and 50 kt, 300 ft, 500 ft) but not the order of the items: the order of the walkaround and of the start follows the logic of the clues (the clutch before the checks that need the rotor turning) and is ours, as is the order of the shutdown. The master and governor steps are marked as technique where the sim does not list them. The guide has not been run on the helicopter and none of its controls is marked verified: the ticks read standard simulation variables (the ones the aircraft's own templates use) that the aircraft may not drive. There is no procedure for an engine failure or an autorotation: the files that can be read offline do not contain one.",
+ "sources": [
+  "MSFS2024/minimalcache/fs24-asobo-aircraft-cabri-g2/minimal.fsarchive, en-us.locpak: CHECKLIST.CLUE.*, CHECKLIST.GAME.*, CHECKLIST.FEEDBACK.*, GAME.CHECKLIST_* (the sim's checklist wording for the Cabri G2; unencrypted archive)",
+  "MSFS2024/minimalcache/fs24-asobo-trainings-helicopter-{intro,collective,pedals,cyclic,hover,basic,takeoff,approach,quickstop,steep,solo}/minimal.fsarchive, en-us.locpak: the briefings and the instructor's dialogs of the sim's helicopter lessons (unencrypted archives)",
+  "MSFS2024/Packages/fs-base-aircraft-common/ModelBehaviorDefs/Asobo/AircraftTypes/Rotorcrafts.xml: the clutch switch, its cover, the governor switch and the rotor brake"
+ ],
+ "topics": [
+  {
+   "id": "walkaround",
+   "title": "Walk around the helicopter",
+   "summary": "Covers, engine, oil, fuel, skids and doors, in the sim's own words.",
+   "start": "wa_ground"
+  },
+  {
+   "id": "engine_start",
+   "title": "Start the engine and the rotor",
+   "summary": "Master, plasma and magneto, starter, clutch, governor and the checks before takeoff.",
+   "start": "es_ground"
+  },
+  {
+   "id": "hover",
+   "title": "Hover",
+   "summary": "Take off to a hover, hold it, hover taxi.",
+   "start": "hv_start"
+  },
+  {
+   "id": "takeoff",
+   "title": "Take off and climb",
+   "summary": "The takeoff from a hover to the downwind leg: 45 kt, 50 kt, 300 ft, 500 ft.",
+   "start": "to_steps"
+  },
+  {
+   "id": "cruise",
+   "title": "Cruise and turns",
+   "summary": "Level flight at 80 kt, trim, coordinated turns.",
+   "start": "cr_steps"
+  },
+  {
+   "id": "approach",
+   "title": "Pattern and approach",
+   "summary": "Downwind 500 ft and 70 kt, final at 300 ft and 50 kt, the approach to a hover.",
+   "start": "ap_steps"
+  },
+  {
+   "id": "landing",
+   "title": "Land from a hover",
+   "summary": "From a 2 ft hover to the skids on the ground.",
+   "start": "ld_steps"
+  },
+  {
+   "id": "shutdown",
+   "title": "Shut down",
+   "summary": "Cool down, clutch off, lights and ignition off, rotor brake.",
+   "start": "sd_ground"
+  },
+  {
+   "id": "quickstop",
+   "title": "Air taxi and quick stop",
+   "summary": "The rapid deceleration from 45 kt and 30 ft to a hover.",
+   "start": "qs_steps"
+  },
+  {
+   "id": "confined",
+   "title": "Confined area",
+   "summary": "Reconnaissance, steep approach and maximum performance takeoff.",
+   "start": "st_recon"
+  },
+  {
+   "id": "dangers",
+   "title": "Dangers",
+   "summary": "The limits the sim's lessons name: speed, power, vortex ring, rollover, the 8 ft rule.",
+   "start": "hz_steps"
+  }
+ ],
+ "nodes": {
+  "wa_ground": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "help": "The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, on the ground",
+     "next": "wa_covers"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "wa_air"
+    }
+   ]
+  },
+  "wa_air": {
+   "type": "info",
+   "title": "Flying",
+   "text": "The walkaround is done on the ground, before the flight.",
+   "next": ""
+  },
+  "wa_covers": {
+   "type": "steps",
+   "title": "Covers",
+   "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.* and GAME.CHECKLIST_*",
+   "steps": [
+    {
+     "text": "Remove the three blade socks from the main rotor blades.",
+     "why": "The sim's solo lesson: \"Go through your pre-flight checklist thoroughly, don't forget to remove covers.\"",
+     "controls": [
+      {
+       "api": "COMMON_BLADE_SOCKS_1"
+      },
+      {
+       "api": "COMMON_BLADE_SOCKS_2"
+      },
+      {
+       "api": "COMMON_BLADE_SOCKS_3"
+      }
+     ],
+     "source": "Sim lesson \"solo\" (fs24-asobo-trainings-helicopter-solo, en-us.locpak): Solo.Briefing.Long"
+    },
+    {
+     "text": "Remove the pitot and static port covers (plugs) and check their condition.",
+     "controls": [
+      {
+       "api": "COMMON_PITOT_AND_STATIC_PORT_COVERS_1"
+      },
+      {
+       "api": "COMMON_PITOT_AND_STATIC_PORT_COVERS_2"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): GAME.CHECKLIST_PITOT_TUBE_AND_STATIC_PRESSURE_PORT; Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): GAME.CHECKLIST_REMOVE_PLUGS_CHECK_CONDITION"
+    }
+   ],
+   "next": "wa_engine"
+  },
+  "wa_engine": {
+   "type": "steps",
+   "title": "Engine and main gearbox",
+   "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.* and GAME.CHECKLIST_*",
+   "steps": [
+    {
+     "text": "Open the left engine cowling and check behind it.",
+     "controls": [
+      {
+       "api": "COMMON_ENGINE_COWLING_LATCH_LEFT"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): GAME.CHECKLIST_BEHIND_LEFT_ENGINE_COWLING"
+    },
+    {
+     "text": "Open the right engine cowling and check behind it.",
+     "controls": [
+      {
+       "api": "COMMON_ENGINE_COWLING_RIGHT"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): GAME.CHECKLIST_BEHIND_RIGHT_ENGINE_COWLING"
+    },
+    {
+     "text": "Check the air intake and the main gearbox compartment.",
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): GAME.CHECKLIST_AIR_INTAKE_AND_MGB_COMPARTMENT"
+    },
+    {
+     "text": "Pull the dipstick out. The oil level must be between 4 and 6 Qt. Tighten the dipstick back in place.",
+     "controls": [
+      {
+       "api": "COMMON_OIL_GAUGE"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CLUE.DIPSTICK_OUT_OIL_LEVEL_4_AND_6_QT"
+    },
+    {
+     "text": "Check the oil level in the sight gauge: it must be at the mid-sight gauge minimum.",
+     "controls": [
+      {
+       "api": "UNKNOWN_INTERNAL_OIL_CAP"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CLUE.OIL_LEVEL_MUST_BE_AT_MID_SIGHT_GAUGE_MINIMUM"
+    },
+    {
+     "text": "Close and lock the front latch, then both side latches of the cowlings.",
+     "controls": [
+      {
+       "api": "COMMON_ENGINE_COWLINGS_LATCH_CENTER"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): GAME.CHECKLIST_CLOSE_AND_LOCK_FRONT_LATCH; Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): GAME.CHECKLIST_CLOSE_AND_LOCK_BOTH_LATCHES"
+    }
+   ],
+   "next": "wa_fuel"
+  },
+  "wa_fuel": {
+   "type": "steps",
+   "title": "Fuel",
+   "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.* and GAME.CHECKLIST_*",
+   "steps": [
+    {
+     "text": "Check the fuel pump and its hose.",
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): GAME.CHECKLIST_FUEL_PUMP_AND_HOSE"
+    },
+    {
+     "text": "Drain the gascolator.",
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): GAME.CHECKLIST_GASCOLATOR_DRAIN"
+    },
+    {
+     "text": "Check the fuel quantity.",
+     "why": "The sim's instructor: before taking off, check that all gauges are green and that there is enough fuel.",
+     "readouts": [
+      {
+       "label": "Fuel",
+       "unit": "gal",
+       "code": "(A:FUEL TOTAL QUANTITY, gallons)"
+      }
+     ],
+     "source": "Sim lesson \"collective\" (fs24-asobo-trainings-helicopter-collective, en-us.locpak): Collective.Dlg.State1.Intro140.Fuel"
+    }
+   ],
+   "next": "wa_outside"
+  },
+  "wa_outside": {
+   "type": "steps",
+   "title": "Skids, windows, lights, luggage",
+   "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.* and GAME.CHECKLIST_*",
+   "steps": [
+    {
+     "text": "Check the landing gear pants and the skids.",
+     "controls": [
+      {
+       "api": "LANDING_SKID_LEFT"
+      },
+      {
+       "api": "LANDING_SKID_RIGHT"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): GAME.CHECKLIST_LANDING_GEAR_PANTS_AND_SKID"
+    },
+    {
+     "text": "Check the lower windows.",
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): GAME.CHECKLIST_LOWER_WINDOWS"
+    },
+    {
+     "text": "Check the landing light and the navigation light.",
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): GAME.CHECKLIST_LANDING_LIGHT_AND_NAV_LIGHT"
+    },
+    {
+     "text": "Check the inside of the luggage compartment.",
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): GAME.CHECKLIST_INSIDE_LUGGAGE_COMPARTMENT"
+    },
+    {
+     "text": "Close and lock the luggage door.",
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): GAME.CHECKLIST_LUGGAGE_DOOR"
+    }
+   ],
+   "next": "wa_done"
+  },
+  "wa_done": {
+   "type": "end",
+   "title": "Walkaround done",
+   "text": "Get in and buckle up. Go on with the engine start."
+  },
+  "es_ground": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "help": "The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, on the ground",
+     "next": "es_pre"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "es_air"
+    }
+   ]
+  },
+  "es_air": {
+   "type": "info",
+   "title": "Flying",
+   "text": "Do not start the engine in flight. Use the sim's own procedures if the engine stopped.",
+   "next": ""
+  },
+  "es_pre": {
+   "type": "steps",
+   "title": "Before the start",
+   "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.* and GAME.CHECKLIST_*",
+   "steps": [
+    {
+     "text": "Lower the collective all the way down.",
+     "why": "The sim's instructor: before starting the engine, lower the collective all the way down.",
+     "check": {
+      "code": "(A:COLLECTIVE HANDLE POSITION, percent)",
+      "op": "<=",
+      "value": 2
+     },
+     "readouts": [
+      {
+       "label": "Collective",
+       "unit": "%",
+       "code": "(A:COLLECTIVE POSITION, percent)"
+      }
+     ],
+     "source": "Sim lesson \"intro\" (fs24-asobo-trainings-helicopter-intro, en-us.locpak): Intro.Dlg.Reminder.CollectiveDown"
+    },
+    {
+     "text": "Pull the rotor brake lever fully backward, check that the indicator is on, then lock the lever fully forward.",
+     "controls": [
+      {
+       "api": "ROTOR_BRAKE"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.PULL_ROTOR_BRAKE_LEVER_CHECK_LOCK_FORWARD"
+    },
+    {
+     "text": "Check that the GOV OFF light is on.",
+     "controls": [
+      {
+       "api": "ENGINE_GOVERNOR"
+      }
+     ],
+     "check": {
+      "code": "(A:ROTOR GOV SWITCH POS, Bool)",
+      "op": "==",
+      "value": 0
+     },
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.CHECK_GOV_OFF_LIGHT_ON"
+    },
+    {
+     "text": "If the engine is cold, OAT, CHT, OIL T and CARB T must show the same temperature.",
+     "readouts": [
+      {
+       "label": "CHT",
+       "unit": "°C",
+       "code": "(A:ENG CYLINDER HEAD TEMPERATURE:1, celsius)"
+      },
+      {
+       "label": "Oil temperature",
+       "unit": "°C",
+       "code": "(A:GENERAL ENG OIL TEMPERATURE:1, celsius)"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.TEMPERATURES_SAME_IF_ENGINE_COLD"
+    },
+    {
+     "text": "Switch the master on.",
+     "why": "Technique, not a checklist item: the sim's checklist file has no master item. The tooltip names the switch \"Master\"; the plasma ignition, the starter and the EPM need power.",
+     "controls": [
+      {
+       "api": "ENGINE_MASTER"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): AIRCRAFT.TOOLTIPS.TITLE.ENGINE_MASTER"
+    }
+   ],
+   "next": "es_start"
+  },
+  "es_start": {
+   "type": "steps",
+   "title": "Start",
+   "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.* and GAME.CHECKLIST_*",
+   "steps": [
+    {
+     "text": "Switch the plasma ignition on and check the beeper.",
+     "controls": [
+      {
+       "api": "ENGINE_PLASMA"
+      }
+     ],
+     "check": {
+      "code": "(A:PLASMA ON:1, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.SWITCH_PLASMA_IGNITION_ON"
+    },
+    {
+     "text": "Switch the magneto on.",
+     "why": "The sim's item is \"Ignition switches\"; its clue switches both the plasma and the magneto switches off at shutdown, so both are on for the start.",
+     "controls": [
+      {
+       "api": "ENGINE_MAGNETO"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.GAME.CHECKLIST_IGNITION_SWITCHES"
+    },
+    {
+     "text": "For injections, raise the collective to 1/3, then roll the twist grip back and forth 2 to 3 times.",
+     "why": "The sim's clue gives no condition for this item.",
+     "controls": [
+      {
+       "api": "ENGINE_THROTTLE"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.INJECTIONS_COLLECTIVE"
+    },
+    {
+     "text": "Press the starter button. The STARTER light must light on, then back off.",
+     "controls": [
+      {
+       "api": "ENGINE_STARTER"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG COMBUSTION:1, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "readouts": [
+      {
+       "label": "Engine",
+       "unit": "RPM",
+       "code": "(A:GENERAL ENG RPM:1, rpm)"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.PRESS_STARTER_BUTTON_STARTER_LIGHT_ON_THEN_BACK_OFF"
+    },
+    {
+     "text": "The oil pressure annunciator must light off within 30 seconds of starting.",
+     "readouts": [
+      {
+       "label": "Oil pressure",
+       "unit": "psi",
+       "code": "(A:GENERAL ENG OIL PRESSURE:1, psi)"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.OIL_PRESSURE_ANNUNC_OFF_WITHIN_30_SEC_OF_STARTING"
+    },
+    {
+     "text": "Set the throttle to get around 2000 RPM.",
+     "controls": [
+      {
+       "api": "ENGINE_THROTTLE"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Engine",
+       "unit": "RPM",
+       "code": "(A:GENERAL ENG RPM:1, rpm)"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.SET_THROTTLE_LEVER_TO_GET_2000_RPM"
+    },
+    {
+     "text": "The ALT light must be off.",
+     "controls": [
+      {
+       "api": "ELECTRICAL_ALTERNATOR"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.ALT_LIGHT_OFF"
+    },
+    {
+     "text": "No alarms must be displayed, except OIL P, FUEL P, OIL T and CARB T (if the outside temperature corresponds).",
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.NO_ALARMS_DISPLAYED_EXCEPT"
+    }
+   ],
+   "next": "es_clutch"
+  },
+  "es_clutch": {
+   "type": "steps",
+   "title": "Rotor",
+   "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.* and GAME.CHECKLIST_*",
+   "steps": [
+    {
+     "text": "At idle power, the engine RPM and NR must be desynchronized: the needles apart.",
+     "readouts": [
+      {
+       "label": "Engine",
+       "unit": "RPM",
+       "code": "(A:GENERAL ENG RPM:1, rpm)"
+      },
+      {
+       "label": "NR",
+       "unit": "RPM",
+       "code": "(A:ROTOR RPM:1, rpm)"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.AT_IDLE_ENGINE_RPM_AND_NR_DESYNC"
+    },
+    {
+     "text": "Open the cover of the clutch switch.",
+     "why": "The clutch switch sits under a cover (the L: variable XMLVAR_ROTORCRAFT_Clutch_Cover_Opened); the switch only works while the cover is open.",
+     "controls": [
+      {
+       "api": "COMMON_ROTOR_CLUTCH_COVER"
+      }
+     ],
+     "source": "MSFS2024 Packages/fs-base-aircraft-common, ModelBehaviorDefs/Asobo/AircraftTypes/Rotorcrafts.xml: ASOBO_ROTORCRAFT_Clutch_Template"
+    },
+    {
+     "text": "Engage the clutch and lock the switch. The CLUTCH light must light on.",
+     "controls": [
+      {
+       "api": "ROTOR_CLUTCH"
+      }
+     ],
+     "check": {
+      "code": "(A:ROTOR CLUTCH SWITCH POS, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.ENGAGE_CLUTCH_AND_LOCK_SWITCH_CLUTCH_LIGHT_ON"
+    },
+    {
+     "text": "Wait for the CLUTCH light to light off.",
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.CLUTCH_LIGHT_LIGHT_OFF; Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.FEEDBACK.WAITING_CLUTCH_LIGHT_OFF"
+    },
+    {
+     "text": "Check that the rotor and engine indicators are synchronized.",
+     "readouts": [
+      {
+       "label": "Engine",
+       "unit": "RPM",
+       "code": "(A:GENERAL ENG RPM:1, rpm)"
+      },
+      {
+       "label": "NR",
+       "unit": "RPM",
+       "code": "(A:ROTOR RPM:1, rpm)"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.ROTOR_AND_ENGINE_INDICATORS_MUST_BE_SYNCHRONIZED"
+    },
+    {
+     "text": "While the engine warms up, set the throttle to keep NR between 420 and 450 RPM, below 450.",
+     "controls": [
+      {
+       "api": "ENGINE_THROTTLE"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "NR",
+       "unit": "RPM",
+       "code": "(A:ROTOR RPM:1, rpm)"
+      },
+      {
+       "label": "Oil temperature",
+       "unit": "°C",
+       "code": "(A:GENERAL ENG OIL TEMPERATURE:1, celsius)"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.SET_THROTTLE_LEVER_NR_BETWEEN_420_450_RPM; Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.MAINTAIN_NR_BELOW_450_RPM"
+    },
+    {
+     "text": "Switch the governor on.",
+     "why": "Technique, not a checklist item: the sim checks the GOV OFF light before the start and the governor engaging at NR 400 RPM, and does not list the switch itself or when to set it.",
+     "controls": [
+      {
+       "api": "ENGINE_GOVERNOR"
+      }
+     ],
+     "check": {
+      "code": "(A:ROTOR GOV SWITCH POS, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.GAME.CHECKLIST_GOV_OFF_LIGHT"
+    },
+    {
+     "text": "Increase power. Check that the governor engages from NR 400 RPM.",
+     "controls": [
+      {
+       "api": "ENGINE_THROTTLE"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "NR",
+       "unit": "RPM",
+       "code": "(A:ROTOR RPM:1, rpm)"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.INCREASE_POWER_CHECK_GOVERNOR_ENGAGING_NR_400_RPM"
+    },
+    {
+     "text": "Set the throttle to get NR around 530 RPM.",
+     "controls": [
+      {
+       "api": "ENGINE_THROTTLE"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "NR",
+       "unit": "RPM",
+       "code": "(A:ROTOR RPM:1, rpm)"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.SET_THROTTLE_LEVER_NR_530_RPM"
+    }
+   ],
+   "next": "es_runup"
+  },
+  "es_runup": {
+   "type": "steps",
+   "title": "Checks before takeoff",
+   "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.* and GAME.CHECKLIST_*",
+   "steps": [
+    {
+     "text": "Set the carburetor heat switch to HOT. Check that the additional carb brick pops and NR drops.",
+     "controls": [
+      {
+       "api": "DEICE_CARB_HEAT"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "NR",
+       "unit": "RPM",
+       "code": "(A:ROTOR RPM:1, rpm)"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.SET_CARB_HEAT_SWITCH_HOT_BRICK_POPPING_NR_DROP"
+    },
+    {
+     "text": "Set the carburetor heat switch to COLD. Check that the additional carb brick disappears and NR increases.",
+     "controls": [
+      {
+       "api": "DEICE_CARB_HEAT"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "NR",
+       "unit": "RPM",
+       "code": "(A:ROTOR RPM:1, rpm)"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.SET_CARB_HEAT_SWITCH_COLD_BRICK_DISAPPEARING_NR_INCREASE"
+    },
+    {
+     "text": "Switch the plasma ignition off: the engine RPM should drop by about 300. Then switch it back on.",
+     "controls": [
+      {
+       "api": "ENGINE_PLASMA"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Engine",
+       "unit": "RPM",
+       "code": "(A:GENERAL ENG RPM:1, rpm)"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.PLASMA_OFF_RPM_DROP"
+    },
+    {
+     "text": "The warning horn must work when NR is near the lower red limit.",
+     "readouts": [
+      {
+       "label": "NR",
+       "unit": "RPM",
+       "code": "(A:ROTOR RPM:1, rpm)"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.WARNING_HORN_WORKING_NR_NEAR_LOWER_RED_LIMIT"
+    },
+    {
+     "text": "The lower BARC light must blink when NR is in the yellow arc.",
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.LOWER_BARC_LIGHT_BLINKING_NR_IN_YELLOW_ARC"
+    },
+    {
+     "text": "Check the oil temperature: 30 °C (86 °F) minimum is recommended, 60 °C (140 °F) minimum for maximum power.",
+     "check": {
+      "code": "(A:GENERAL ENG OIL TEMPERATURE:1, celsius)",
+      "op": ">=",
+      "value": 30
+     },
+     "readouts": [
+      {
+       "label": "Oil temperature",
+       "unit": "°C",
+       "code": "(A:GENERAL ENG OIL TEMPERATURE:1, celsius)"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.OIL_TEMPERATURE_BEFORE_TAKE_OFF"
+    },
+    {
+     "text": "Check that all gauges are green and that the fuel is enough.",
+     "readouts": [
+      {
+       "label": "Fuel",
+       "unit": "gal",
+       "code": "(A:FUEL TOTAL QUANTITY, gallons)"
+      }
+     ],
+     "source": "Sim lesson \"collective\" (fs24-asobo-trainings-helicopter-collective, en-us.locpak): Collective.Dlg.State1.Intro140.Fuel"
+    },
+    {
+     "text": "Set NR around 530 RPM again.",
+     "controls": [
+      {
+       "api": "ENGINE_THROTTLE"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "NR",
+       "unit": "RPM",
+       "code": "(A:ROTOR RPM:1, rpm)"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.SET_THROTTLE_LEVER_NR_530_RPM"
+    }
+   ],
+   "next": "es_done"
+  },
+  "es_done": {
+   "type": "end",
+   "title": "Ready",
+   "text": "The engine runs, the rotor turns at NR 530 RPM and the checks are done. Take off to a hover."
+  },
+  "hv_start": {
+   "type": "question",
+   "title": "What do you want?",
+   "text": "What do you want to do?",
+   "choices": [
+    {
+     "id": "takeoff",
+     "label": "Take off to a hover",
+     "next": "hv_up"
+    },
+    {
+     "id": "hover",
+     "label": "Hold the hover and hover taxi",
+     "next": "hv_hold"
+    }
+   ]
+  },
+  "hv_up": {
+   "type": "steps",
+   "title": "Take off to a hover",
+   "source": "Sim lesson \"collective\" (fs24-asobo-trainings-helicopter-collective, en-us.locpak): Collective.Briefing.Long and Collective.Dlg.State1/State2",
+   "steps": [
+    {
+     "text": "Look left and right: no people or vehicles may approach.",
+     "source": "Sim lesson \"collective\" (fs24-asobo-trainings-helicopter-collective, en-us.locpak): Collective.Dlg.State1.Intro160.Obstacles"
+    },
+    {
+     "text": "Raise the collective slowly until the helicopter is light on the skids, at about 65 percent of the available power.",
+     "readouts": [
+      {
+       "label": "Collective",
+       "unit": "%",
+       "code": "(A:COLLECTIVE POSITION, percent)"
+      },
+      {
+       "label": "Height",
+       "unit": "ft",
+       "code": "(A:PLANE ALT ABOVE GROUND, feet)"
+      }
+     ],
+     "source": "Sim lesson \"collective\" (fs24-asobo-trainings-helicopter-collective, en-us.locpak): Collective.Dlg.State2.Takeoff010.RaiseCollective"
+    },
+    {
+     "text": "At first the power indication does not move. Keep raising the collective slowly: too fast makes a sloppy takeoff.",
+     "source": "Sim lesson \"collective\" (fs24-asobo-trainings-helicopter-collective, en-us.locpak): Collective.Briefing.Long"
+    },
+    {
+     "text": "Once the helicopter leaves the ground, let it rise to a hover at 2 ft skid height. Look into the distance and be very gentle.",
+     "readouts": [
+      {
+       "label": "Height",
+       "unit": "ft",
+       "code": "(A:PLANE ALT ABOVE GROUND, feet)"
+      }
+     ],
+     "source": "Sim lesson \"collective\" (fs24-asobo-trainings-helicopter-collective, en-us.locpak): Collective.Briefing.Long"
+    },
+    {
+     "text": "Keep the heading with the pedals. The rotor turns clockwise and the nose yaws left, so press the right pedal as you raise the collective.",
+     "source": "Sim lesson \"pedals\" (fs24-asobo-trainings-helicopter-pedals, en-us.locpak): Pedals.Briefing.Long"
+    },
+    {
+     "text": "Keep the position with the cyclic. The Cabri drifts left in a hover, so expect a little right pressure.",
+     "source": "Sim lesson \"cyclic\" (fs24-asobo-trainings-helicopter-cyclic, en-us.locpak): Cyclic.Briefing.Long"
+    },
+    {
+     "text": "Note where the power needle stands in the hover (the MLI): that is the power to hover, and it changes with weight, wind, elevation and temperature.",
+     "source": "Sim lesson \"collective\" (fs24-asobo-trainings-helicopter-collective, en-us.locpak): Collective.Briefing.Long"
+    }
+   ],
+   "next": "hv_hold"
+  },
+  "hv_hold": {
+   "type": "steps",
+   "title": "Hold the hover",
+   "source": "Sim lesson \"hover\" (fs24-asobo-trainings-helicopter-hover, en-us.locpak): Hover.Dlg.State2 and Hover.Briefing.Long",
+   "steps": [
+    {
+     "text": "Cyclic: eliminate drift in the horizontal plane.",
+     "source": "Sim lesson \"hover\" (fs24-asobo-trainings-helicopter-hover, en-us.locpak): Hover.Dlg.State2.Hover130.Cyclic"
+    },
+    {
+     "text": "Collective: maintain the altitude.",
+     "source": "Sim lesson \"hover\" (fs24-asobo-trainings-helicopter-hover, en-us.locpak): Hover.Dlg.State2.Hover140.Collective"
+    },
+    {
+     "text": "Pedals: control the nose direction.",
+     "source": "Sim lesson \"hover\" (fs24-asobo-trainings-helicopter-hover, en-us.locpak): Hover.Dlg.State2.Hover150.Pedals"
+    },
+    {
+     "text": "Never stop making small corrections: a helicopter is dynamically unstable.",
+     "source": "Sim lesson \"hover\" (fs24-asobo-trainings-helicopter-hover, en-us.locpak): Hover.Dlg.State2.Hover120.Unstable"
+    },
+    {
+     "text": "Move the controls as gently as possible.",
+     "source": "Sim lesson \"collective\" (fs24-asobo-trainings-helicopter-collective, en-us.locpak): Collective.Dlg.State2.Takeoff080.Gentle"
+    },
+    {
+     "text": "Adjusting one control needs an adjustment of the other two; this is what makes the hover hard.",
+     "source": "Sim lesson \"hover\" (fs24-asobo-trainings-helicopter-hover, en-us.locpak): Hover.Briefing.Long"
+    },
+    {
+     "text": "Stay below 8 ft in a stationary hover near the ground and in a hover taxi: if the engine quits higher without airspeed, you cannot land safely.",
+     "readouts": [
+      {
+       "label": "Height",
+       "unit": "ft",
+       "code": "(A:PLANE ALT ABOVE GROUND, feet)"
+      }
+     ],
+     "source": "Sim lesson \"collective\" (fs24-asobo-trainings-helicopter-collective, en-us.locpak): Collective.Dlg.State3.Col130.StayBelow10ft"
+    },
+    {
+     "text": "To turn on the spot, press the right pedal to turn right; to turn left, ease the right pedal or press the left one. Press the opposite pedal to stop the turn.",
+     "source": "Sim lesson \"pedals\" (fs24-asobo-trainings-helicopter-pedals, en-us.locpak): Pedals.Briefing.Long"
+    }
+   ],
+   "next": "hv_taxi"
+  },
+  "hv_taxi": {
+   "type": "steps",
+   "title": "Hover taxi",
+   "source": "Sim lesson \"hover\" (fs24-asobo-trainings-helicopter-hover, en-us.locpak): Hover.Briefing.Long and Hover.Dlg.State3",
+   "steps": [
+    {
+     "text": "Hover taxi is for moving below 25 ft AGL. Move at the speed of a brisk walk and keep every input very gentle.",
+     "readouts": [
+      {
+       "label": "Ground speed",
+       "unit": "kt",
+       "code": "(A:GROUND VELOCITY, knots)"
+      },
+      {
+       "label": "Height",
+       "unit": "ft",
+       "code": "(A:PLANE ALT ABOVE GROUND, feet)"
+      }
+     ],
+     "source": "Sim lesson \"hover\" (fs24-asobo-trainings-helicopter-hover, en-us.locpak): Hover.Briefing.Long"
+    },
+    {
+     "text": "Stay at a hovering altitude of 2 to 8 ft.",
+     "source": "Sim lesson \"hover\" (fs24-asobo-trainings-helicopter-hover, en-us.locpak): Hover.Dlg.State3.Taxi030.Fly"
+    },
+    {
+     "text": "When you move faster the rotor gets more effective and lifts you: lower the collective to keep your height. When you slow down, raise it again.",
+     "source": "Sim lesson \"hover\" (fs24-asobo-trainings-helicopter-hover, en-us.locpak): Hover.Dlg.State3.Taxi050.MoveFast"
+    },
+    {
+     "text": "At 16 to 24 kt the rotor gains translational lift: the nose rises. Apply slight forward cyclic and reduce the right pedal to keep the heading.",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      }
+     ],
+     "source": "Sim lesson \"hover\" (fs24-asobo-trainings-helicopter-hover, en-us.locpak): Hover.Briefing.Long"
+    }
+   ],
+   "next": ""
+  },
+  "to_steps": {
+   "type": "steps",
+   "title": "Takeoff from a hover",
+   "source": "Sim lesson \"takeoff\" (fs24-asobo-trainings-helicopter-takeoff, en-us.locpak): HeliTakeoff.Briefing.Long",
+   "steps": [
+    {
+     "text": "Hover taxi to the helipad and turn into the wind: find the windsock. A headwind is always preferred.",
+     "source": "Sim lesson \"takeoff\" (fs24-asobo-trainings-helicopter-takeoff, en-us.locpak): HeliTakeoff.Dlg.State2.Taxi070.Windsock"
+    },
+    {
+     "text": "Make sure no other aircraft are on the taxiways you cross.",
+     "source": "Sim lesson \"takeoff\" (fs24-asobo-trainings-helicopter-takeoff, en-us.locpak): HeliTakeoff.Dlg.State3.Climb010.NoOtherAircraft"
+    },
+    {
+     "text": "Ease the cyclic forward smoothly and slowly. Raise the collective as needed so that the helicopter does not sink.",
+     "source": "Sim lesson \"takeoff\" (fs24-asobo-trainings-helicopter-takeoff, en-us.locpak): HeliTakeoff.Briefing.Long"
+    },
+    {
+     "text": "Accelerate at a constant height below 10 ft toward 45 kt.",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      },
+      {
+       "label": "Height",
+       "unit": "ft",
+       "code": "(A:PLANE ALT ABOVE GROUND, feet)"
+      }
+     ],
+     "source": "Sim lesson \"takeoff\" (fs24-asobo-trainings-helicopter-takeoff, en-us.locpak): HeliTakeoff.Dlg.State3.Climb020.Move"
+    },
+    {
+     "text": "Through translational lift the nose tends to rise: apply enough forward cyclic. The faster you are, the less right pedal you need.",
+     "source": "Sim lesson \"takeoff\" (fs24-asobo-trainings-helicopter-takeoff, en-us.locpak): HeliTakeoff.Briefing.Long"
+    },
+    {
+     "text": "Rotate at 45 kt.",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      }
+     ],
+     "source": "Sim lesson \"takeoff\" (fs24-asobo-trainings-helicopter-takeoff, en-us.locpak): HeliTakeoff.Dlg.State3.Climb040.Rotate"
+    },
+    {
+     "text": "Climb at 50 kt and keep 50 kt for the whole climb. Put the helicopter in trim.",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      }
+     ],
+     "source": "Sim lesson \"takeoff\" (fs24-asobo-trainings-helicopter-takeoff, en-us.locpak): HeliTakeoff.Briefing.Long"
+    },
+    {
+     "text": "Below 100 ft keep the rate of climb at or below 500 fpm, so that an engine failure is easier to handle.",
+     "readouts": [
+      {
+       "label": "Vertical speed",
+       "unit": "fpm",
+       "code": "(A:VERTICAL SPEED, feet per minute)"
+      },
+      {
+       "label": "Height",
+       "unit": "ft",
+       "code": "(A:PLANE ALT ABOVE GROUND, feet)"
+      }
+     ],
+     "source": "Sim lesson \"takeoff\" (fs24-asobo-trainings-helicopter-takeoff, en-us.locpak): HeliTakeoff.Briefing.Long"
+    },
+    {
+     "text": "Raise the collective for a more effective climb, but never over 100 percent of the available power.",
+     "source": "Sim lesson \"takeoff\" (fs24-asobo-trainings-helicopter-takeoff, en-us.locpak): HeliTakeoff.Dlg.State3.Climb050.Maintain50"
+    },
+    {
+     "text": "Turn right at 300 ft AGL, still climbing: the helicopter pattern has right turns.",
+     "readouts": [
+      {
+       "label": "Height",
+       "unit": "ft",
+       "code": "(A:PLANE ALT ABOVE GROUND, feet)"
+      }
+     ],
+     "source": "Sim lesson \"takeoff\" (fs24-asobo-trainings-helicopter-takeoff, en-us.locpak): HeliTakeoff.Briefing.Long"
+    },
+    {
+     "text": "At 500 ft AGL level off at 70 kt and turn right onto the downwind leg.",
+     "readouts": [
+      {
+       "label": "Height",
+       "unit": "ft",
+       "code": "(A:PLANE ALT ABOVE GROUND, feet)"
+      },
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      }
+     ],
+     "source": "Sim lesson \"solo\" (fs24-asobo-trainings-helicopter-solo, en-us.locpak): Solo.Briefing.Long"
+    }
+   ],
+   "next": ""
+  },
+  "cr_steps": {
+   "type": "steps",
+   "title": "Cruise and turns",
+   "source": "Sim lesson \"basic\" (fs24-asobo-trainings-helicopter-basic, en-us.locpak): Basic.Briefing.Long",
+   "steps": [
+    {
+     "text": "The attitude of the rotor disk sets the airspeed; the collective sets the altitude.",
+     "source": "Sim lesson \"basic\" (fs24-asobo-trainings-helicopter-basic, en-us.locpak): Basic.Briefing.Long"
+    },
+    {
+     "text": "Speed up: push the cyclic forward and raise the collective to keep the altitude. Slow down: pull the cyclic back and lower the collective.",
+     "source": "Sim lesson \"basic\" (fs24-asobo-trainings-helicopter-basic, en-us.locpak): Basic.Briefing.Long"
+    },
+    {
+     "text": "Fly at 80 kt. Keep the horizon in the same place on the windshield to keep the speed.",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      }
+     ],
+     "source": "Sim lesson \"basic\" (fs24-asobo-trainings-helicopter-basic, en-us.locpak): Basic.Dlg.State1.Straight080.Reach"
+    },
+    {
+     "text": "Find the cyclic position for the attitude, then trim the force away. Use the cyclic to fly and the trim to relieve the forces, not the trim to fly.",
+     "controls": [
+      {
+       "api": "ROTOR_LATERAL_TRIM_INC"
+      },
+      {
+       "api": "ROTOR_LATERAL_TRIM_DEC"
+      },
+      {
+       "api": "ROTOR_LONGITUDINAL_TRIM_INC"
+      },
+      {
+       "api": "ROTOR_LONGITUDINAL_TRIM_DEC"
+      }
+     ],
+     "source": "Sim lesson \"basic\" (fs24-asobo-trainings-helicopter-basic, en-us.locpak): Basic.Briefing.Long"
+    },
+    {
+     "text": "Turn: apply sideward pressure on the cyclic in the direction of the turn. The pedals are not needed to turn.",
+     "source": "Sim lesson \"basic\" (fs24-asobo-trainings-helicopter-basic, en-us.locpak): Basic.Briefing.Long"
+    },
+    {
+     "text": "Keep the ball and the yaw string centered with the pedals (no slip, no skid).",
+     "source": "Sim lesson \"basic\" (fs24-asobo-trainings-helicopter-basic, en-us.locpak): Basic.Dlg.State2.Turns040.Coordinated"
+    },
+    {
+     "text": "After the bank angle is set, return the cyclic to neutral. Add forward cyclic for the speed and raise the collective for the altitude and the rotor speed.",
+     "source": "Sim lesson \"basic\" (fs24-asobo-trainings-helicopter-basic, en-us.locpak): Basic.Briefing.Long"
+    },
+    {
+     "text": "To roll out, apply cyclic pressure the opposite way.",
+     "source": "Sim lesson \"basic\" (fs24-asobo-trainings-helicopter-basic, en-us.locpak): Basic.Briefing.Long"
+    },
+    {
+     "text": "Look around before every turn.",
+     "source": "Sim lesson \"approach\" (fs24-asobo-trainings-helicopter-approach, en-us.locpak): Approach.Dlg.State1.Downwind080.ReadyToTurn"
+    }
+   ],
+   "next": ""
+  },
+  "ap_steps": {
+   "type": "steps",
+   "title": "Pattern and approach to a hover",
+   "source": "Sim lesson \"approach\" (fs24-asobo-trainings-helicopter-approach, en-us.locpak): Approach.Briefing.Long",
+   "steps": [
+    {
+     "text": "On the downwind leg keep 500 ft AGL and 70 kt.",
+     "why": "At Grenoble Le Versoud 500 ft AGL is about 1200 ft MSL; the sim's lesson says the traffic pattern altitude differs by airport.",
+     "readouts": [
+      {
+       "label": "Height",
+       "unit": "ft",
+       "code": "(A:PLANE ALT ABOVE GROUND, feet)"
+      },
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      }
+     ],
+     "source": "Sim lesson \"approach\" (fs24-asobo-trainings-helicopter-approach, en-us.locpak): Approach.Dlg.State1.Downwind040.Maintain70"
+    },
+    {
+     "text": "Abeam the helipad start to slow down to 60 kt. Lower the collective a little so that you do not climb.",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      }
+     ],
+     "source": "Sim lesson \"approach\" (fs24-asobo-trainings-helicopter-approach, en-us.locpak): Approach.Dlg.State1.Downwind070.PassingHelipad"
+    },
+    {
+     "text": "Look around, then turn right onto base. Keep the turn coordinated.",
+     "source": "Sim lesson \"approach\" (fs24-asobo-trainings-helicopter-approach, en-us.locpak): Approach.Dlg.State2.Base010.TurnRight"
+    },
+    {
+     "text": "Begin the descent. Arrive on final at 300 ft AGL and 50 kt.",
+     "readouts": [
+      {
+       "label": "Height",
+       "unit": "ft",
+       "code": "(A:PLANE ALT ABOVE GROUND, feet)"
+      },
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      }
+     ],
+     "source": "Sim lesson \"approach\" (fs24-asobo-trainings-helicopter-approach, en-us.locpak): Approach.Dlg.State2.Base030.TurnFinal"
+    },
+    {
+     "text": "On final, lower the collective enough to decelerate and descend along the approach angle. A normal approach is 7 to 12 degrees.",
+     "source": "Sim lesson \"approach\" (fs24-asobo-trainings-helicopter-approach, en-us.locpak): Approach.Briefing.Long"
+    },
+    {
+     "text": "Control the speed with the cyclic and the angle with the collective. With less collective the nose pitches down: use aft cyclic to keep 50 kt.",
+     "source": "Sim lesson \"approach\" (fs24-asobo-trainings-helicopter-approach, en-us.locpak): Approach.Briefing.Long"
+    },
+    {
+     "text": "Keep the angle constant to the helipad. If the landing zone moves up in the windshield the approach is shallow; if it moves down it is too steep.",
+     "source": "Sim lesson \"approach\" (fs24-asobo-trainings-helicopter-approach, en-us.locpak): Approach.Briefing.Long"
+    },
+    {
+     "text": "Keep at least 30 kt until the rate of descent is below 300 fpm, to avoid the vortex ring state.",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      },
+      {
+       "label": "Vertical speed",
+       "unit": "fpm",
+       "code": "(A:VERTICAL SPEED, feet per minute)"
+      }
+     ],
+     "source": "Sim lesson \"approach\" (fs24-asobo-trainings-helicopter-approach, en-us.locpak): Approach.Briefing.Long"
+    },
+    {
+     "text": "Keep decelerating with aft cyclic to the speed of a brisk walk. Lower the collective gently to keep the angle.",
+     "source": "Sim lesson \"approach\" (fs24-asobo-trainings-helicopter-approach, en-us.locpak): Approach.Briefing.Long"
+    },
+    {
+     "text": "At about 25 kt the translational lift is lost: raise the collective to prevent settling and push the cyclic forward for the right rate of closure.",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      }
+     ],
+     "source": "Sim lesson \"approach\" (fs24-asobo-trainings-helicopter-approach, en-us.locpak): Approach.Briefing.Long"
+    },
+    {
+     "text": "Arrive over the helipad with the rate of descent and the ground speed reaching zero at the same time. Refer to the ground speed.",
+     "readouts": [
+      {
+       "label": "Ground speed",
+       "unit": "kt",
+       "code": "(A:GROUND VELOCITY, knots)"
+      },
+      {
+       "label": "Vertical speed",
+       "unit": "fpm",
+       "code": "(A:VERTICAL SPEED, feet per minute)"
+      }
+     ],
+     "source": "Sim lesson \"approach\" (fs24-asobo-trainings-helicopter-approach, en-us.locpak): Approach.Briefing.Long"
+    },
+    {
+     "text": "Near 2 ft raise the collective enough to hover and apply aft cyclic to stop the forward movement.",
+     "readouts": [
+      {
+       "label": "Height",
+       "unit": "ft",
+       "code": "(A:PLANE ALT ABOVE GROUND, feet)"
+      }
+     ],
+     "source": "Sim lesson \"approach\" (fs24-asobo-trainings-helicopter-approach, en-us.locpak): Approach.Briefing.Long"
+    }
+   ],
+   "next": ""
+  },
+  "ld_steps": {
+   "type": "steps",
+   "title": "Land from a hover",
+   "source": "Sim lesson \"collective\" (fs24-asobo-trainings-helicopter-collective, en-us.locpak): Collective.Briefing.Long and Collective.Dlg.State4",
+   "steps": [
+    {
+     "text": "Stabilize the hover at 2 ft.",
+     "readouts": [
+      {
+       "label": "Height",
+       "unit": "ft",
+       "code": "(A:PLANE ALT ABOVE GROUND, feet)"
+      }
+     ],
+     "source": "Sim lesson \"collective\" (fs24-asobo-trainings-helicopter-collective, en-us.locpak): Collective.Dlg.State4.Land020.Remember"
+    },
+    {
+     "text": "Make sure there is no movement and no yawing before you touch the ground.",
+     "readouts": [
+      {
+       "label": "Ground speed",
+       "unit": "kt",
+       "code": "(A:GROUND VELOCITY, knots)"
+      }
+     ],
+     "source": "Sim lesson \"hover\" (fs24-asobo-trainings-helicopter-hover, en-us.locpak): Hover.Dlg.State4.Land040.NoMovement"
+    },
+    {
+     "text": "Lower the collective gently while you keep the heading and the position over the landing spot. Look into the distance.",
+     "source": "Sim lesson \"collective\" (fs24-asobo-trainings-helicopter-collective, en-us.locpak): Collective.Briefing.Long"
+    },
+    {
+     "text": "The helicopter hits an air cushion and wants to bob back up. Let it, and the next time it lowers, reduce the collective even more.",
+     "source": "Sim lesson \"collective\" (fs24-asobo-trainings-helicopter-collective, en-us.locpak): Collective.Briefing.Long"
+    },
+    {
+     "text": "Avoid any lateral or yaw movement on landing, and hover high enough for skid clearance: this avoids a dynamic rollover.",
+     "source": "Sim lesson \"cyclic\" (fs24-asobo-trainings-helicopter-cyclic, en-us.locpak): Cyclic.Briefing.Long"
+    },
+    {
+     "text": "When the skids are on the ground, lower the collective all the way down.",
+     "check": {
+      "code": "(A:SIM ON GROUND, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "source": "Sim lesson \"collective\" (fs24-asobo-trainings-helicopter-collective, en-us.locpak): Collective.Dlg.State4.Land030.Lower"
+    }
+   ],
+   "next": ""
+  },
+  "sd_ground": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "help": "The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, on the ground",
+     "next": "sd_steps"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "sd_air"
+    }
+   ]
+  },
+  "sd_air": {
+   "type": "info",
+   "title": "Flying",
+   "text": "Land first.",
+   "next": ""
+  },
+  "sd_steps": {
+   "type": "steps",
+   "title": "Shutdown",
+   "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.* and GAME.CHECKLIST_*",
+   "steps": [
+    {
+     "text": "Leave the collective in the most downward position.",
+     "check": {
+      "code": "(A:COLLECTIVE HANDLE POSITION, percent)",
+      "op": "<=",
+      "value": 2
+     },
+     "source": "Sim lesson \"intro\" (fs24-asobo-trainings-helicopter-intro, en-us.locpak): Intro.Dlg.State2.Cockpit057.CollectiveDown"
+    },
+    {
+     "text": "Wait for the cylinder head temperature to drop below 180 °C.",
+     "check": {
+      "code": "(A:ENG CYLINDER HEAD TEMPERATURE:1, celsius)",
+      "op": "<",
+      "value": 180
+     },
+     "readouts": [
+      {
+       "label": "CHT",
+       "unit": "°C",
+       "code": "(A:ENG CYLINDER HEAD TEMPERATURE:1, celsius)"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.WAIT_CHT_BELOW_180_C"
+    },
+    {
+     "text": "Switch the clutch off. The CLUTCH light must light off within 10 seconds of the disengagement.",
+     "controls": [
+      {
+       "api": "ROTOR_CLUTCH"
+      }
+     ],
+     "check": {
+      "code": "(A:ROTOR CLUTCH SWITCH POS, Bool)",
+      "op": "==",
+      "value": 0
+     },
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.SWITCH_CLUTCH_OFF"
+    },
+    {
+     "text": "Switch the landing and navigation lights off.",
+     "controls": [
+      {
+       "api": "LIGHTING_LANDING_LIGHT"
+      },
+      {
+       "api": "LIGHTING_NAVIGATION_LIGHT"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.SWITCH_LANDING_NAV_LIGHTS_OFF"
+    },
+    {
+     "text": "Switch the plasma and magneto switches off.",
+     "controls": [
+      {
+       "api": "ENGINE_PLASMA"
+      },
+      {
+       "api": "ENGINE_MAGNETO"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG COMBUSTION:1, Bool)",
+      "op": "==",
+      "value": 0
+     },
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.SWITCH_PLASMA_MAGNETO_SWITCHES_OFF"
+    },
+    {
+     "text": "The rotor can be braked when NR is below 150 RPM (the white mark). The rotor brake speeds up the stopping of the main rotor.",
+     "controls": [
+      {
+       "api": "ROTOR_BRAKE"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "NR",
+       "unit": "RPM",
+       "code": "(A:ROTOR RPM:1, rpm)"
+      }
+     ],
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.ROTOR_CAN_BE_BRAKED; Sim lesson \"solo\" (fs24-asobo-trainings-helicopter-solo, en-us.locpak): Solo.Dlg.State2.AfterFlight010.RotorBrake"
+    }
+   ],
+   "next": "sd_done"
+  },
+  "sd_done": {
+   "type": "end",
+   "title": "Shut down",
+   "text": "The engine is off and the rotor is stopped."
+  },
+  "qs_steps": {
+   "type": "steps",
+   "title": "Air taxi and quick stop",
+   "source": "Sim lesson \"quickstop\" (fs24-asobo-trainings-helicopter-quickstop, en-us.locpak): Quickstop.Briefing.Long",
+   "steps": [
+    {
+     "text": "Make a clearing turn to visually clear the area, then check the gauges: no warning lights, RPM in the green, fuel as required.",
+     "source": "Sim lesson \"quickstop\" (fs24-asobo-trainings-helicopter-quickstop, en-us.locpak): Quickstop.Briefing.Long"
+    },
+    {
+     "text": "From a normal hover height, push the cyclic forward. Reach 45 kt with the cyclic, stay under 10 ft with the collective and keep the heading with the pedals.",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      },
+      {
+       "label": "Height",
+       "unit": "ft",
+       "code": "(A:PLANE ALT ABOVE GROUND, feet)"
+      }
+     ],
+     "source": "Sim lesson \"quickstop\" (fs24-asobo-trainings-helicopter-quickstop, en-us.locpak): Quickstop.Briefing.Long"
+    },
+    {
+     "text": "As the speed nears 45 kt, apply gentle aft cyclic to climb, then lower the collective and level off at 30 ft. Keep 45 kt and 30 ft.",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      },
+      {
+       "label": "Height",
+       "unit": "ft",
+       "code": "(A:PLANE ALT ABOVE GROUND, feet)"
+      }
+     ],
+     "source": "Sim lesson \"quickstop\" (fs24-asobo-trainings-helicopter-quickstop, en-us.locpak): Quickstop.Briefing.Long"
+    },
+    {
+     "text": "Pick a visual reference as the place to stop.",
+     "source": "Sim lesson \"quickstop\" (fs24-asobo-trainings-helicopter-quickstop, en-us.locpak): Quickstop.Briefing.Long"
+    },
+    {
+     "text": "Apply aft cyclic and lower the collective as needed to keep the entry altitude through the deceleration. Add left pedal for the heading. The timing must be exact.",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      },
+      {
+       "label": "Height",
+       "unit": "ft",
+       "code": "(A:PLANE ALT ABOVE GROUND, feet)"
+      }
+     ],
+     "source": "Sim lesson \"quickstop\" (fs24-asobo-trainings-helicopter-quickstop, en-us.locpak): Quickstop.Briefing.Long"
+    },
+    {
+     "text": "If the helicopter balloons, lower the collective more or use less aft cyclic.",
+     "source": "Sim lesson \"quickstop\" (fs24-asobo-trainings-helicopter-quickstop, en-us.locpak): Quickstop.Dlg.State4.Quickstop020.Balooning"
+    },
+    {
+     "text": "As the speed falls the helicopter begins to settle: raise the collective slowly to control the descent.",
+     "source": "Sim lesson \"quickstop\" (fs24-asobo-trainings-helicopter-quickstop, en-us.locpak): Quickstop.Dlg.State4.Quickstop030.SlowDescent"
+    },
+    {
+     "text": "Add gentle forward cyclic to level the helicopter and keep the heading with the pedals.",
+     "source": "Sim lesson \"quickstop\" (fs24-asobo-trainings-helicopter-quickstop, en-us.locpak): Quickstop.Briefing.Long"
+    },
+    {
+     "text": "Raise the collective and add left pedal to come to a hover at 2 ft.",
+     "readouts": [
+      {
+       "label": "Height",
+       "unit": "ft",
+       "code": "(A:PLANE ALT ABOVE GROUND, feet)"
+      }
+     ],
+     "source": "Sim lesson \"quickstop\" (fs24-asobo-trainings-helicopter-quickstop, en-us.locpak): Quickstop.Briefing.Long"
+    }
+   ],
+   "next": ""
+  },
+  "st_recon": {
+   "type": "steps",
+   "title": "Reconnaissance",
+   "source": "Sim lesson \"steep\" (fs24-asobo-trainings-helicopter-steep, en-us.locpak): Steep.Briefing.Long",
+   "steps": [
+    {
+     "text": "Fly the high reconnaissance at 1000 to 1200 ft over the area, then low and slow alongside it.",
+     "source": "Sim lesson \"steep\" (fs24-asobo-trainings-helicopter-steep, en-us.locpak): Steep.Dlg.State1.Rec040.Altitude"
+    },
+    {
+     "text": "Find the wind direction and speed, a suitable touchdown point and the suitability of the landing area.",
+     "source": "Sim lesson \"steep\" (fs24-asobo-trainings-helicopter-steep, en-us.locpak): Steep.Briefing.Long"
+    },
+    {
+     "text": "Look for wires and their supporting structures, the approach and departure axes, and any obstacles on both.",
+     "source": "Sim lesson \"steep\" (fs24-asobo-trainings-helicopter-steep, en-us.locpak): Steep.Briefing.Long"
+    },
+    {
+     "text": "Find forced landing areas for an emergency.",
+     "source": "Sim lesson \"steep\" (fs24-asobo-trainings-helicopter-steep, en-us.locpak): Steep.Briefing.Long"
+    }
+   ],
+   "next": "st_app"
+  },
+  "st_app": {
+   "type": "steps",
+   "title": "Steep approach",
+   "source": "Sim lesson \"steep\" (fs24-asobo-trainings-helicopter-steep, en-us.locpak): Steep.Briefing.Long",
+   "steps": [
+    {
+     "text": "Be at 1000 ft and 50 kt when you enter the final descent.",
+     "readouts": [
+      {
+       "label": "Altitude",
+       "unit": "ft",
+       "code": "(A:INDICATED ALTITUDE, feet)"
+      },
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      }
+     ],
+     "source": "Sim lesson \"steep\" (fs24-asobo-trainings-helicopter-steep, en-us.locpak): Steep.Dlg.State2.Approach030.1000ft"
+    },
+    {
+     "text": "A steep approach is 13 to 15 degrees (a normal one 7 to 12). Lower the collective more than for a normal approach.",
+     "source": "Sim lesson \"steep\" (fs24-asobo-trainings-helicopter-steep, en-us.locpak): Steep.Briefing.Long"
+    },
+    {
+     "text": "Avoid the vortex ring state: do not go slower than 30 kt with more than 300 fpm of descent and 20 to 100 percent of the power.",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      },
+      {
+       "label": "Vertical speed",
+       "unit": "fpm",
+       "code": "(A:VERTICAL SPEED, feet per minute)"
+      }
+     ],
+     "source": "Sim lesson \"steep\" (fs24-asobo-trainings-helicopter-steep, en-us.locpak): Steep.Briefing.Long"
+    },
+    {
+     "text": "The translational lift is lost higher: raise the collective earlier and more forcefully to avoid settling.",
+     "source": "Sim lesson \"steep\" (fs24-asobo-trainings-helicopter-steep, en-us.locpak): Steep.Dlg.State2.Approach060.RaiseCollective"
+    },
+    {
+     "text": "Be ready to terminate the approach if the area suddenly looks unsafe.",
+     "source": "Sim lesson \"steep\" (fs24-asobo-trainings-helicopter-steep, en-us.locpak): Steep.Briefing.Long"
+    }
+   ],
+   "next": "st_up"
+  },
+  "st_up": {
+   "type": "steps",
+   "title": "Maximum performance takeoff",
+   "source": "Sim lesson \"steep\" (fs24-asobo-trainings-helicopter-steep, en-us.locpak): Steep.Briefing.Long",
+   "steps": [
+    {
+     "text": "Reposition to the most downwind part of the area, for a longer takeoff climb, and turn into the wind.",
+     "source": "Sim lesson \"steep\" (fs24-asobo-trainings-helicopter-steep, en-us.locpak): Steep.Briefing.Long"
+    },
+    {
+     "text": "Hover and check that you have at least 10 percent of excess power: the difference between the power available and the power to hover.",
+     "source": "Sim lesson \"steep\" (fs24-asobo-trainings-helicopter-steep, en-us.locpak): Steep.Briefing.Long"
+    },
+    {
+     "text": "The takeoff is possible when the distance between the rotor disc and the top of the obstacle is at least a third of the distance between the rotor disc and the base of the obstacle, seen from the pilot's seat.",
+     "source": "Sim lesson \"steep\" (fs24-asobo-trainings-helicopter-steep, en-us.locpak): Steep.Briefing.Long"
+    },
+    {
+     "text": "Slowly raise the collective to the maximum power available and lower the nose to gain speed. Aim for 100 percent on the MLI, not more.",
+     "source": "Sim lesson \"steep\" (fs24-asobo-trainings-helicopter-steep, en-us.locpak): Steep.Dlg.State3.Takeoff080.RaiseCollective"
+    },
+    {
+     "text": "The large collective movement needs much more pedal pressure to keep the heading.",
+     "source": "Sim lesson \"steep\" (fs24-asobo-trainings-helicopter-steep, en-us.locpak): Steep.Briefing.Long"
+    },
+    {
+     "text": "Keep the rotor RPM at its maximum. Use the cyclic to control the climb angle and keep the distance between the rotor disc and the obstacle.",
+     "source": "Sim lesson \"steep\" (fs24-asobo-trainings-helicopter-steep, en-us.locpak): Steep.Briefing.Long"
+    },
+    {
+     "text": "When the obstacle is out of view, continue with a normal climb: 90 percent on the MLI or the maximum power available, 50 kt.",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      }
+     ],
+     "source": "Sim lesson \"steep\" (fs24-asobo-trainings-helicopter-steep, en-us.locpak): Steep.Briefing.Long"
+    }
+   ],
+   "next": ""
+  },
+  "hz_steps": {
+   "type": "steps",
+   "title": "Keep in mind",
+   "source": "Sim lesson \"intro\" (fs24-asobo-trainings-helicopter-intro, en-us.locpak): Intro.Dlg.State2 and the other lessons named in each step",
+   "steps": [
+    {
+     "text": "Never exceed 130 kt. The airspeed caution range ends at 45 kt, so be careful when flying slow.",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      }
+     ],
+     "source": "Sim lesson \"intro\" (fs24-asobo-trainings-helicopter-intro, en-us.locpak): Intro.Dlg.State2.Cockpit200.AirspeedDescr"
+    },
+    {
+     "text": "Never go over 100 percent of the power on the MLI: too much collective stalls the rotor and the helicopter settles into its own downwash.",
+     "source": "Sim lesson \"collective\" (fs24-asobo-trainings-helicopter-collective, en-us.locpak): Collective.Dlg.State1.Intro120.100percent"
+    },
+    {
+     "text": "Keep the rotor RPM constant: raising the collective lowers it, lowering the collective raises it. In normal operation the correlator and the governor keep it constant, with no manual throttle adjustment.",
+     "readouts": [
+      {
+       "label": "NR",
+       "unit": "RPM",
+       "code": "(A:ROTOR RPM:1, rpm)"
+      }
+     ],
+     "source": "Sim lesson \"collective\" (fs24-asobo-trainings-helicopter-collective, en-us.locpak): Collective.Briefing.Long"
+    },
+    {
+     "text": "Vortex ring state: a descent of at least 300 fpm, with 20 to 100 percent power and a speed below translational lift (16 to 24 kt). Keep 30 kt until the descent is below 300 fpm.",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      },
+      {
+       "label": "Vertical speed",
+       "unit": "fpm",
+       "code": "(A:VERTICAL SPEED, feet per minute)"
+      }
+     ],
+     "source": "Sim lesson \"approach\" (fs24-asobo-trainings-helicopter-approach, en-us.locpak): Approach.Briefing.Long"
+    },
+    {
+     "text": "Watch the vertical speed, especially on descent.",
+     "readouts": [
+      {
+       "label": "Vertical speed",
+       "unit": "fpm",
+       "code": "(A:VERTICAL SPEED, feet per minute)"
+      }
+     ],
+     "source": "Sim lesson \"intro\" (fs24-asobo-trainings-helicopter-intro, en-us.locpak): Intro.Dlg.State2.Cockpit230.VSIDescr"
+    },
+    {
+     "text": "Dynamic rollover: once it starts it cannot be stopped by opposite cyclic alone. Avoid lateral or yaw movements on takeoff and landing, and hover high enough for skid clearance.",
+     "source": "Sim lesson \"cyclic\" (fs24-asobo-trainings-helicopter-cyclic, en-us.locpak): Cyclic.Briefing.Long"
+    },
+    {
+     "text": "Stay below 8 ft in a stationary hover or hover taxi. Above it, an engine failure without airspeed means no safe landing.",
+     "readouts": [
+      {
+       "label": "Height",
+       "unit": "ft",
+       "code": "(A:PLANE ALT ABOVE GROUND, feet)"
+      }
+     ],
+     "source": "Sim lesson \"collective\" (fs24-asobo-trainings-helicopter-collective, en-us.locpak): Collective.Dlg.State3.Col120.EngineQuits"
+    },
+    {
+     "text": "Avoid the shaded areas of the height / velocity diagram on takeoff: accelerate at a constant height below 10 ft.",
+     "source": "Sim lesson \"takeoff\" (fs24-asobo-trainings-helicopter-takeoff, en-us.locpak): HeliTakeoff.Briefing.Long"
+    },
+    {
+     "text": "Keep the fuselage streamlined: ball and yaw string centered.",
+     "source": "Sim lesson \"intro\" (fs24-asobo-trainings-helicopter-intro, en-us.locpak): Intro.Dlg.State2.Cockpit267.Centered"
+    }
+   ],
+   "next": ""
+  }
+ }
+}

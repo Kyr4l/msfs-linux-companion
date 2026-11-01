@@ -59,6 +59,8 @@ const TelemetryVar kTelemetryVars[] = {
     {"BRAKE RIGHT POSITION", "Position", &Telemetry::brakeRight},
     {"AIRSPEED INDICATED", "Knots", &Telemetry::iasKt},
     {"PLANE ALT ABOVE GROUND", "Feet", &Telemetry::altAgl},
+    {"ROTOR RPM PCT:1", "Percent Over 100", &Telemetry::rotorRpmPct},
+    {"COLLECTIVE POSITION", "Percent Over 100", &Telemetry::collective},
 };
 constexpr size_t kTelemetryCount = sizeof(kTelemetryVars) / sizeof(kTelemetryVars[0]);
 

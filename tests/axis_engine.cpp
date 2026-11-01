@@ -13,6 +13,7 @@
 #include "app/Engine.hpp"
 #include "app/Paths.hpp"
 #include "app/Profile.hpp"
+#include "haptics/RotorRules.hpp"
 #include "sim/SimBridge.hpp"
 
 using namespace lr;
@@ -853,6 +854,26 @@ int main() {
         CHECK(std::fabs(t.turningN1() - 60.0) < 1e-9);  // one stopped: the other one alone
         t.n1Eng2 = 0;
         CHECK(t.turningN1() == 0.0);
+    }
+
+    // helicopter vibration: nothing without a rotor, a steady shake that grows with the collective, a pulse when the rotor is slow in flight
+    {
+        lr::sim::Telemetry t;
+        CHECK(lr::haptics::rotorVibration(t) == 0.f && !lr::haptics::rotorLow(t));  // an aircraft without a rotor reports 0
+        t.rotorRpmPct = 1.0;
+        const float idle = lr::haptics::rotorVibration(t);
+        t.collective = 1.0;
+        const float pulled = lr::haptics::rotorVibration(t);
+        CHECK(idle > 0.1f && idle < 0.3f && pulled > idle && pulled <= 0.5f);
+        t.rotorRpmPct = 0.2;
+        CHECK(lr::haptics::rotorVibration(t) == 0.f);  // a rotor that hardly turns does not shake
+        t.rotorRpmPct = 0.7;
+        t.onGround = 1;
+        CHECK(!lr::haptics::rotorLow(t));  // the spool-up on the ground is no warning
+        t.onGround = 0;
+        CHECK(lr::haptics::rotorLow(t));
+        t.rotorRpmPct = 1.0;
+        CHECK(!lr::haptics::rotorLow(t));
     }
 
     std::printf(failures ? "\n%d check(s) FAILED\n" : "all axis checks passed\n", failures);

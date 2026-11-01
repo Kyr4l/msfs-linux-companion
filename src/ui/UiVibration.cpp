@@ -146,9 +146,9 @@ void Ui::drawVibrationTab() {
         const sim::Telemetry& t = hs.telemetry;
         if (!t.valid) ImGui::TextDisabled("No data");
         else
-            ImGui::Text("on ground %d  GS %.0f kt  IAS %.0f kt  AGL %.0f ft  G %.2f  VS %.0f fpm\nstall %d overspeed %d  gear %.2f  flaps %.2f  spoilers %.2f  N1 %.0f/%.0f  rev %.2f/%.2f  brakes %.2f/%.2f",
+            ImGui::Text("on ground %d  GS %.0f kt  IAS %.0f kt  AGL %.0f ft  G %.2f  VS %.0f fpm\nstall %d overspeed %d  gear %.2f  flaps %.2f  spoilers %.2f  N1 %.0f/%.0f  rev %.2f/%.2f  brakes %.2f/%.2f  rotor %.0f%%  collective %.0f%%",
                         t.onGround > 0.5, t.groundSpeedKt, t.iasKt, t.altAgl, t.gForce, t.verticalSpeedFpm, t.stallWarning > 0.5, t.overspeedWarning > 0.5,
-                        t.gearPct, t.flapsPct, t.spoilersHandle, t.n1Eng1, t.n1Eng2, t.reverse1, t.reverse2, t.brakeLeft, t.brakeRight);
+                        t.gearPct, t.flapsPct, t.spoilersHandle, t.n1Eng1, t.n1Eng2, t.reverse1, t.reverse2, t.brakeLeft, t.brakeRight, t.rotorRpmPct * 100.0, t.collective * 100.0);
     }
 
     if (changed) {

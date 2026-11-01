@@ -12,6 +12,7 @@
 #include <thread>
 #include <vector>
 
+#include "haptics/RotorRules.hpp"
 #include "haptics/WinwingHid.hpp"
 #include "sim/SimBridge.hpp"
 
