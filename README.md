@@ -200,6 +200,8 @@ STD on above 18000 ft and off below it (leaving the setting at 29.92), and the k
 local setting that was remembered. So the way back from STD is *G1000 baro up / down*, not a second press of the STD button. Not yet tried on a real
 cockpit.
 
+The last 1 % at each end of the travel counts as the end, so a lever that stops a little short of the range its device reports (the URSA MINOR throttles read about 99.7 % at their stop) still sends the full value.
+
 *Use travel from/to* turns the ends of the physical travel into dead zones and *Invert* flips the
 direction. `tools/virtual_joystick.py demo` creates a fake joystick to try all of this without hardware.
 

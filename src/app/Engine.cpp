@@ -154,6 +154,8 @@ double Engine::axisPosition(const AxisConfig& c, double raw01) {
     const double span = c.inMax - c.inMin;
     double t = span > 1e-6 ? (raw01 - c.inMin) / span : raw01;
     t = std::clamp(t, 0.0, 1.0);
+    if (t >= 1.0 - kEndSnap) t = 1.0;
+    else if (t <= kEndSnap) t = 0.0;
     return c.invert ? 1.0 - t : t;
 }
 

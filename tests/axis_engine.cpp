@@ -70,6 +70,20 @@ int main() {
         CHECK(Engine::axisPosition(c, 0.05) == 0.0);
         CHECK(Engine::axisPosition(c, 0.95) == 1.0);
         CHECK(std::fabs(Engine::axisPosition(c, 0.5) - 0.5) < 1e-9);
+        // a lever that stops a little short of the end of the device's range (the URSA MINOR reads 99.7 %) still sends the full value, and the
+        // same at the other end; a little further in is left as it is
+        AxisConfig full;
+        full.outMin = 0;
+        full.outMax = 16383;
+        CHECK(Engine::axisOutput(full, Engine::axisPosition(full, 0.9967)) == 16383.0);
+        CHECK(Engine::axisOutput(full, Engine::axisPosition(full, 0.004)) == 0.0);
+        CHECK(Engine::axisPosition(full, 0.985) == 0.985 && Engine::axisPosition(full, 0.02) == 0.02);
+        full.invert = true;
+        CHECK(Engine::axisPosition(full, 0.9967) == 0.0 && Engine::axisPosition(full, 0.004) == 1.0);
+        full.invert = false;
+        full.inMin = 0.1;
+        full.inMax = 0.9;  // the end is the end of the used travel
+        CHECK(Engine::axisPosition(full, 0.895) == 1.0 && Engine::axisPosition(full, 0.104) == 0.0);
         c.outMin = 100;
         c.outMax = 0;  // reversed output range
         CHECK(Engine::axisOutput(c, 0.25) == 75.0);
@@ -186,9 +200,9 @@ int main() {
     CHECK(firesNamed(eng, "Knob (-)") == 1);
     eng.onInput(axisEvent(dev, 4, 0.51f, 0.39f));       // anchor 0.60 -> 0.39 = 2.1 steps = two more
     CHECK(firesNamed(eng, "Knob (-)") == 3);
-    eng.onInput(axisEvent(dev, 4, 0.39f, 0.99f));       // anchor 0.40 -> 0.99 = 5.9 steps = five
+    eng.onInput(axisEvent(dev, 4, 0.39f, 0.985f));      // anchor 0.40 -> 0.985 = 5.85 steps = five (from 0.99 on, the position is the end: six)
     CHECK(firesNamed(eng, "Knob (+)") == 2 + 5);
-    eng.onInput(axisEvent(dev, 4, 0.99f, 0.0f));        // a huge sweep sends at most ten steps, then resynchronises
+    eng.onInput(axisEvent(dev, 4, 0.985f, 0.0f));       // a huge sweep sends at most ten steps, then resynchronises
     CHECK(firesNamed(eng, "Knob (-)") <= 3 + 10);
     CHECK(firesNamed(eng, "Knob (-)") >= 3 + 8);  // 0.9 of travel is 8-9 steps depending on float rounding
 

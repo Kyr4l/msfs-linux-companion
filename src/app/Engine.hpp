@@ -49,7 +49,10 @@ public:
     int tick();
 
     // Pure helpers (also used by the UI and the tests)
-    static double axisPosition(const AxisConfig& c, double raw01);            // 0..1 inside the used travel, inverted if asked
+    // 0..1 inside the used travel, inverted if asked. The last 1 % at each end counts as the end: a lever whose sensor stops a little short of the
+    // range the device reports (the URSA MINOR throttle reads 99.7 % at its stop) still sends the full value.
+    static constexpr double kEndSnap = 0.01;
+    static double axisPosition(const AxisConfig& c, double raw01);
     static double axisOutput(const AxisConfig& c, double position01);        // rescaled (and rounded if integer)
     // Which gate buttons are closed (only meaningful for the gates of the calibration that have a button).
     struct GateState { bool cutoff = false, idle = false, mil = false, ab = false; };
