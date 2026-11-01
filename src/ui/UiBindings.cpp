@@ -132,6 +132,10 @@ void Ui::drawAxisOptions() {
     if (ImGui::RadioButton("Value", c.mode == AxisMode::Value)) c.mode = AxisMode::Value;
     ImGui::SameLine();
     if (ImGui::RadioButton("Steps", c.mode == AxisMode::Steps)) { c.mode = AxisMode::Steps; c.detents.enabled = false; }
+    if (!gates) {  // a calibrated lever with gates is read the right way round by its calibration
+        ImGui::SameLine();
+        ImGui::Checkbox("Invert", &c.invert);
+    }
 
     if (c.mode == AxisMode::Value) {
         fieldLabel("Throttle");
@@ -187,7 +191,6 @@ void Ui::drawAxisOptions() {
     // the rarely changed settings
     if (ImGui::TreeNode("More")) {
         if (!gates) {
-            ImGui::Checkbox("Invert", &c.invert);
             float from = static_cast<float>(c.inMin * 100.0), to = static_cast<float>(c.inMax * 100.0);
             ImGui::SetNextItemWidth(fs * 8);
             if (ImGui::SliderFloat("Min travel (%)", &from, 0.0f, 98.0f, "%.0f")) c.inMin = std::min<double>(from / 100.0, c.inMax - 0.02);
