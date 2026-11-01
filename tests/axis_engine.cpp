@@ -842,6 +842,19 @@ int main() {
         }
     }
 
+    // the engine vibration reads the N1 of the engines that turn: a single-engine jet (the Vision Jet) reports 0 for engine 2
+    {
+        lr::sim::Telemetry t;
+        t.n1Eng1 = 80;
+        CHECK(std::fabs(t.turningN1() - 80.0) < 1e-9);  // one engine: not halved
+        t.n1Eng2 = 60;
+        CHECK(std::fabs(t.turningN1() - 70.0) < 1e-9);  // two engines: their mean
+        t.n1Eng1 = 0.3;
+        CHECK(std::fabs(t.turningN1() - 60.0) < 1e-9);  // one stopped: the other one alone
+        t.n1Eng2 = 0;
+        CHECK(t.turningN1() == 0.0);
+    }
+
     std::printf(failures ? "\n%d check(s) FAILED\n" : "all axis checks passed\n", failures);
     return failures ? 1 : 0;
 }

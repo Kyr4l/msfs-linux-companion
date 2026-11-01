@@ -1,0 +1,4917 @@
+{
+ "aircraft": "Microsoft_SF50",
+ "title": "Cirrus Vision Jet G2",
+ "notice": "The procedures are the sim's own checklist for this aircraft, step by step with the list and item each comes from. The guide has not been run on the aircraft and none of its controls is marked verified; the ticks read standard simulation variables that the aircraft may not drive, so a step that never ticks does not mean you did it wrong. What the sim's checklist file does not contain is said where it is named: the ENGINE START BAT TEMP, Alternate Gear Extension and STICK PUSHER FAIL checklists, the climb tables and the VREF table. It has no procedure for Safe Return (the emergency autoland) or for the CAPS parachute.",
+ "sources": [
+  "checklist.xml shipped with the aircraft (Official2024/Steam/microsoft-aircraft-sf50/html_ui/html_ui.fsarchive, airplanes/microsoft_sf50/checklist): the sim's own interactive checklist (normal, icing, abnormal and emergency procedures, CAS messages)",
+  "en-us.locpak of the same package (minimal.fsarchive): the aircraft's English tooltips and the CLUE texts of its checklist",
+  "tablet.js in the same html_ui archive: the management tablet (external power, chocks, covers, state presets)"
+ ],
+ "topics": [
+  {
+   "id": "cabin_preflight",
+   "title": "Cabin preflight",
+   "summary": "Interior checks, battery power-up, oxygen, autopilot disconnect and fuel switch tests, brake test.",
+   "start": "cp_ground"
+  },
+  {
+   "id": "walkaround",
+   "title": "Walk around the aircraft",
+   "summary": "The exterior inspection in the sim's order: engine, left wing, left side, tail, right side, right wing, nose.",
+   "start": "wa_ground"
+  },
+  {
+   "id": "engine_start",
+   "title": "Start the engine",
+   "summary": "Before engine start, the start itself, what to watch, and the checks after it.",
+   "start": "es_ground"
+  },
+  {
+   "id": "before_taxi",
+   "title": "Before taxi",
+   "summary": "Radios, altimeter, transponder, flight controls, flaps, TO/GA check, brakes.",
+   "start": "bt_ground"
+  },
+  {
+   "id": "takeoff",
+   "title": "Take off",
+   "summary": "Checks before takeoff, thrust, rotation at 85 KIAS, gear and flaps.",
+   "start": "to_ground"
+  },
+  {
+   "id": "climb_cruise",
+   "title": "Climb and cruise",
+   "summary": "Maximum continuous thrust, engine and cabin pressure monitoring, ice protection, standard altimeter setting.",
+   "start": "cc_air"
+  },
+  {
+   "id": "descent_approach",
+   "title": "Descent and approach",
+   "summary": "Landing field elevation, local altimeter setting, seat belts, approach briefing, flaps 50% and 140 KIAS.",
+   "start": "da_air"
+  },
+  {
+   "id": "landing",
+   "title": "Landing",
+   "summary": "Gear down, flaps, cabin pressure, windshield IPS off, autopilot off, VREF, brakes.",
+   "start": "ld_air"
+  },
+  {
+   "id": "go_around",
+   "title": "Go around",
+   "summary": "Takeoff thrust, TO/GA, 7° pitch, flaps 50%, gear up, VX.",
+   "start": "ga_air"
+  },
+  {
+   "id": "shutdown",
+   "title": "After landing and shutdown",
+   "summary": "Clean up after landing, then stop the engine and secure the aircraft.",
+   "start": "sd_ground"
+  },
+  {
+   "id": "icing",
+   "title": "Icing conditions",
+   "summary": "Preflight and before takeoff in icing conditions, and when to turn the ice protection on.",
+   "start": "ic_menu"
+  },
+  {
+   "id": "emergency",
+   "title": "Emergencies",
+   "summary": "Autopilot malfunction, emergency descent, and the red CAS warnings: cabin altitude and pressure, fuel.",
+   "start": "em_menu"
+  },
+  {
+   "id": "abnormal",
+   "title": "Abnormal procedures",
+   "summary": "GIA 1 failure, loss of GPS navigation, and dry motoring after a failed start.",
+   "start": "ab_menu"
+  },
+  {
+   "id": "cas",
+   "title": "Caution messages",
+   "summary": "The yellow CAS messages and advisories: fuel, bleed air, ECS and thrust.",
+   "start": "ca_menu"
+  }
+ ],
+ "nodes": {
+  "cp_ground": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "help": "The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, on the ground",
+     "next": "cp_check"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "cp_air"
+    }
+   ]
+  },
+  "cp_air": {
+   "type": "info",
+   "title": "Not on the ground",
+   "text": "This is done on the ground.",
+   "next": ""
+  },
+  "cp_check": {
+   "type": "steps",
+   "title": "Before power",
+   "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items a to o\"",
+   "steps": [
+    {
+     "text": "Remove the gust lock.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items a to o\", item 1.a"
+    },
+    {
+     "text": "Check the cabin door: hinge, latch and seal condition and operation.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items a to o\", item 1.b"
+    },
+    {
+     "text": "Check the egress window is secured and its pin removed.",
+     "controls": [
+      {
+       "api": "SF50_INT_EMERGENCY_EXIT_SAFETY_PIN"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items a to o\", item 1.c"
+    },
+    {
+     "text": "Crew seats: latched in the flight range position.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items a to o\", item 1.d(1)"
+    },
+    {
+     "text": "Passenger seats: grab the top and rock forward and aft.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items a to o\", item 1.d(2)"
+    },
+    {
+     "text": "Seat levers and latches: inspect visually.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items a to o\", item 1.d(3)"
+    },
+    {
+     "text": "Child seat latch pins: inspect visually.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items a to o\", item 1.d(4)"
+    },
+    {
+     "text": "Console and relief station (if installed): secured and locked.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items a to o\", item 1.d(5)"
+    },
+    {
+     "text": "Passenger oxygen masks: stowed.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items a to o\", item 1.e"
+    },
+    {
+     "text": "Check the required documents.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items a to o\", item 1.f"
+    },
+    {
+     "text": "Set the fuel control switch to AUTO.",
+     "controls": [
+      {
+       "api": "SF50_FUEL_CONTROL_KNOB"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items a to o\", item 1.g"
+    },
+    {
+     "text": "Inspect the cover tab of the alternate gear extension handle.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items a to o\", item 1.h"
+    },
+    {
+     "text": "Check the ELT is ARMED.",
+     "controls": [
+      {
+       "api": "SF50_SAFETY_ELT_REMOTE_SWITCH"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items a to o\", item 1.i"
+    },
+    {
+     "text": "Set the passenger oxygen switch to AUTO.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items a to o\", item 1.j"
+    },
+    {
+     "text": "Check the fire extinguisher is charged and stowed.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items a to o\", item 1.k"
+    },
+    {
+     "text": "Check and set the circuit breaker panels.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items a to o\", item 1.l"
+    },
+    {
+     "text": "Check the landing gear lever is DOWN.",
+     "controls": [
+      {
+       "api": "SF50_HANDLING_LANDING_GEAR_LEVER"
+      }
+     ],
+     "check": {
+      "code": "(A:GEAR HANDLE POSITION, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items a to o\", item 1.m"
+    },
+    {
+     "text": "Set the bolster switches to OFF.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items a to o\", item 1.n"
+    },
+    {
+     "text": "Set the engine knob to OFF.",
+     "controls": [
+      {
+       "api": "SF50_ENGINE_RUN_KNOB"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items a to o\", item 1.o"
+    }
+   ],
+   "next": "cp_power"
+  },
+  "cp_power": {
+   "type": "steps",
+   "title": "Battery power-up",
+   "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items p and q\"",
+   "steps": [
+    {
+     "text": "Set the BAT 2 switch to ON.",
+     "controls": [
+      {
+       "api": "SF50_ELECTRICAL_BATTERY_2_SWITCH"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items p and q\", item 1.p"
+    },
+    {
+     "text": "Verify the PFD, GTC 1 and GTC 2 power up.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items p and q\", item 1.p(1)"
+    },
+    {
+     "text": "Verify the MFD and GTC 3 do not power up.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items p and q\", item 1.p(2)"
+    },
+    {
+     "text": "Set the BAT 1 switch to ON.",
+     "controls": [
+      {
+       "api": "SF50_ELECTRICAL_BATTERY_1_SWITCH"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items p and q\", item 1.q"
+    },
+    {
+     "text": "Verify the ENGINE START BAT TEMP CAS message is not shown.",
+     "warn": "If it is shown, the checklist says to perform the ENGINE START BAT TEMP checklist. That checklist is not in the sim's checklist file.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items p and q\", item 1.q(1)"
+    },
+    {
+     "text": "Verify the MFD and GTC 3 power up.",
+     "why": "During the initialization the FADEC annunciators cycle on and off and between channels. That is expected.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items p and q\", item 1.q(2)"
+    }
+   ],
+   "next": "cp_test"
+  },
+  "cp_test": {
+   "type": "steps",
+   "title": "Systems tests",
+   "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items r to af\"",
+   "steps": [
+    {
+     "text": "Check the oxygen pressure.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items r to af\", item 1.r"
+    },
+    {
+     "text": "Set the OXYGEN MASTER switch to ON.",
+     "controls": [
+      {
+       "api": "SF50_PRESSURIZATION_OXYGEN_MASTER"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items r to af\", item 1.s"
+    },
+    {
+     "text": "Check the oxygen mask(s).",
+     "why": "The checklist recommends testing the oxygen flow with the press-to-test feature of the mask at least monthly.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items r to af\", item 1.t"
+    },
+    {
+     "text": "Check and set OXYGEN MIC SELECT.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items r to af\", item 1.u"
+    },
+    {
+     "text": "Set PROBE HEAT to ON, check that no CAS message appears, then set it to OFF.",
+     "controls": [
+      {
+       "api": "DEICE_PITOT_1"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items r to af\", item 1.v"
+    },
+    {
+     "text": "Turn the lights ON, check they work, then turn them OFF.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items r to af\", item 1.w"
+    },
+    {
+     "text": "Turn the autopilot ON.",
+     "controls": [
+      {
+       "api": "AUTOPILOT_AP_1"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items r to af\", item 1.x"
+    },
+    {
+     "text": "Press the AP DISC button.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items r to af\", item 1.y"
+    },
+    {
+     "text": "Confirm the AP and YD annunciations on the PFD.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items r to af\", item 1.z"
+    },
+    {
+     "text": "Confirm the aural autopilot disconnect tone.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items r to af\", item 1.aa"
+    },
+    {
+     "text": "Set the fuel control switch to LEFT.",
+     "controls": [
+      {
+       "api": "SF50_FUEL_CONTROL_KNOB"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items r to af\", item 1.ab"
+    },
+    {
+     "text": "Verify the cyan L MAN selection box is shown in the fuel section of the EIS.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items r to af\", item 1.ab(1)"
+    },
+    {
+     "text": "Verify no FUEL VALVE CAS messages are shown.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items r to af\", item 1.ab(2)"
+    },
+    {
+     "text": "Set the fuel control switch to RIGHT.",
+     "controls": [
+      {
+       "api": "SF50_FUEL_CONTROL_KNOB"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items r to af\", item 1.ac"
+    },
+    {
+     "text": "Verify the cyan MAN R selection box is shown in the fuel section of the EIS.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items r to af\", item 1.ac(1)"
+    },
+    {
+     "text": "Verify no FUEL VALVE CAS messages are shown.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items r to af\", item 1.ac(2)"
+    },
+    {
+     "text": "Set the fuel control switch to AUTO.",
+     "controls": [
+      {
+       "api": "SF50_FUEL_CONTROL_KNOB"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items r to af\", item 1.ad"
+    },
+    {
+     "text": "Verify a white L or R selection box is shown in the fuel section of the EIS.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items r to af\", item 1.ad(1)"
+    },
+    {
+     "text": "Set the BAT 1 and BAT 2 switches to OFF.",
+     "controls": [
+      {
+       "api": "SF50_ELECTRICAL_BATTERY_1_SWITCH"
+      },
+      {
+       "api": "SF50_ELECTRICAL_BATTERY_2_SWITCH"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items r to af\", item 1.ae"
+    },
+    {
+     "text": "Test the brakes by pressing the brake pedals.",
+     "warn": "Do not fly the aircraft if the brake pedals on either side feel soft or spongy.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"1. Cabin, items r to af\", item 1.af"
+    }
+   ],
+   "next": "cp_done"
+  },
+  "cp_done": {
+   "type": "end",
+   "title": "Cabin preflight done",
+   "text": "Next: walk around the aircraft, then start the engine. If flight in icing conditions is expected or possible, also do the icing preflight (the checklist asks for it after this one)."
+  },
+  "wa_ground": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "help": "The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, on the ground",
+     "next": "wa_start"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "wa_air"
+    }
+   ]
+  },
+  "wa_air": {
+   "type": "info",
+   "title": "Not on the ground",
+   "text": "This is done on the ground.",
+   "next": ""
+  },
+  "wa_start": {
+   "type": "info",
+   "title": "Before you start",
+   "text": "Make sure all required maintenance has been done, review the flight plan and work out weight and balance and performance. Throughout the walk around, check all hinges, hinge pins and bolts for security, the skin for damage, condition and delamination, all control surfaces for movement and free play, and the area around liquid reservoirs and lines for leaks. Keep equipment and loose material away from the engine exhaust and inlet. Remove every securing device: AOA cover, engine exhaust plugs or cover, probe covers, static port covers, gust locks and any aftermarket equipment. In cold weather remove all frost, ice, snow and slush from the fuselage, wing, stabilizers, control surfaces and engine inlet, and check that the wheels are free of snow and ice. The checklist warns that failing to do so may result in significant damage, loss of the aircraft and loss of life.",
+   "next": "wa_engine"
+  },
+  "wa_engine": {
+   "type": "steps",
+   "title": "2. Engine",
+   "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"2. Engine Preflight\"",
+   "steps": [
+    {
+     "text": "Engine inlet: clear, cover removed, inspect.",
+     "controls": [
+      {
+       "api": "SF50_EXT_ENGINE_COVERS"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"2. Engine Preflight\", item 2.a"
+    },
+    {
+     "text": "Engine fan and duct: inspect, clear.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"2. Engine Preflight\", item 2.b"
+    },
+    {
+     "text": "Engine inlet probes: inspect.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"2. Engine Preflight\", item 2.c"
+    }
+   ],
+   "next": "wa_lwing"
+  },
+  "wa_lwing": {
+   "type": "steps",
+   "title": "3 to 5. Left wing and left main gear",
+   "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"3. Left Forward Wing, 4. Left Wing Tip, 5. Left Wing Trailing Edge and Left Main Gear\"",
+   "steps": [
+    {
+     "text": "Left wing root vortex generator: check.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"3. Left Forward Wing, 4. Left Wing Tip, 5. Left Wing Trailing Edge and Left Main Gear\", item 3.a"
+    },
+    {
+     "text": "Left fuel collector drain: sample.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"3. Left Forward Wing, 4. Left Wing Tip, 5. Left Wing Trailing Edge and Left Main Gear\", item 3.b"
+    },
+    {
+     "text": "Left wing de-icer and leading edge: condition.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"3. Left Forward Wing, 4. Left Wing Tip, 5. Left Wing Trailing Edge and Left Main Gear\", item 3.c"
+    },
+    {
+     "text": "Left main gear: condition.",
+     "controls": [
+      {
+       "api": "SF50_EXT_LEFT_MAIN_GEAR_STRUT_CHECK"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"3. Left Forward Wing, 4. Left Wing Tip, 5. Left Wing Trailing Edge and Left Main Gear\", item 3.d"
+    },
+    {
+     "text": "Left main gear door: condition, security.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"3. Left Forward Wing, 4. Left Wing Tip, 5. Left Wing Trailing Edge and Left Main Gear\", item 3.e"
+    },
+    {
+     "text": "Left fuel tank drain: sample.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"3. Left Forward Wing, 4. Left Wing Tip, 5. Left Wing Trailing Edge and Left Main Gear\", item 3.f"
+    },
+    {
+     "text": "Left fuel cap: check the fuel level and secure the cap.",
+     "why": "The cap must not be damaged and must fit the tank securely with no movement. A latch that opens and closes with little or no resistance means the cap is not tight.",
+     "controls": [
+      {
+       "api": "SF50_EXT_FUEL_CAP_LEFT"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"3. Left Forward Wing, 4. Left Wing Tip, 5. Left Wing Trailing Edge and Left Main Gear\", item 3.g"
+    },
+    {
+     "text": "Left wing tip, strobe and navigation lights: condition and security.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"3. Left Forward Wing, 4. Left Wing Tip, 5. Left Wing Trailing Edge and Left Main Gear\", item 4.a"
+    },
+    {
+     "text": "Left pitot probe: clear, cover removed.",
+     "controls": [
+      {
+       "api": "SF50_EXT_PITOT_COVERS"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"3. Left Forward Wing, 4. Left Wing Tip, 5. Left Wing Trailing Edge and Left Main Gear\", item 4.b"
+    },
+    {
+     "text": "Left aileron and roll trim tab: condition, motion.",
+     "controls": [
+      {
+       "api": "SF50_EXT_LEFT_AILERON_CHECK"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"3. Left Forward Wing, 4. Left Wing Tip, 5. Left Wing Trailing Edge and Left Main Gear\", item 5.a"
+    },
+    {
+     "text": "T-strip: check.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"3. Left Forward Wing, 4. Left Wing Tip, 5. Left Wing Trailing Edge and Left Main Gear\", item 5.b"
+    },
+    {
+     "text": "Static wicks: check.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"3. Left Forward Wing, 4. Left Wing Tip, 5. Left Wing Trailing Edge and Left Main Gear\", item 5.c"
+    },
+    {
+     "text": "Left fuel vent: clear.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"3. Left Forward Wing, 4. Left Wing Tip, 5. Left Wing Trailing Edge and Left Main Gear\", item 5.d"
+    },
+    {
+     "text": "Left flap: condition.",
+     "controls": [
+      {
+       "api": "SF50_EXT_LEFT_FLAP_CHECK"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"3. Left Forward Wing, 4. Left Wing Tip, 5. Left Wing Trailing Edge and Left Main Gear\", item 5.e"
+    },
+    {
+     "text": "Left main gear brakes, wheel and tire: condition.",
+     "controls": [
+      {
+       "api": "SF50_EXT_LEFT_MAIN_GEAR_BRAKES_CHECK"
+      },
+      {
+       "api": "SF50_EXT_LEFT_MAIN_GEAR_TIRE_CHECK"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"3. Left Forward Wing, 4. Left Wing Tip, 5. Left Wing Trailing Edge and Left Main Gear\", item 5.f"
+    },
+    {
+     "text": "Brake pads: inspect the friction material visually.",
+     "why": "The centre channel must show a thickness greater than the wear limit, and the edges must be free of voids and large missing sections.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"3. Left Forward Wing, 4. Left Wing Tip, 5. Left Wing Trailing Edge and Left Main Gear\", item 5.f(1)"
+    },
+    {
+     "text": "Brake discs: inspect the surface condition visually.",
+     "why": "The surface must look smooth and uniform, free of large grooves, bumps and deposits from the brake pads.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"3. Left Forward Wing, 4. Left Wing Tip, 5. Left Wing Trailing Edge and Left Main Gear\", item 5.f(2)"
+    },
+    {
+     "text": "Brake lines: inspect visually.",
+     "why": "Look for chafing and distress on the flexible lines, and for leaks.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"3. Left Forward Wing, 4. Left Wing Tip, 5. Left Wing Trailing Edge and Left Main Gear\", item 5.f(3)"
+    }
+   ],
+   "next": "wa_lfus"
+  },
+  "wa_lfus": {
+   "type": "steps",
+   "title": "6. Left fuselage",
+   "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"6. Left Fuselage\"",
+   "steps": [
+    {
+     "text": "Baggage circuit breaker panel: check and set.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"6. Left Fuselage\", item 6.a"
+    },
+    {
+     "text": "Baggage: check, secure.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"6. Left Fuselage\", item 6.b"
+    },
+    {
+     "text": "Baggage door: secure.",
+     "controls": [
+      {
+       "api": "SF50_EXT_BAGGAGE_DOOR"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"6. Left Fuselage\", item 6.c"
+    },
+    {
+     "text": "External power service door: secure.",
+     "controls": [
+      {
+       "api": "SF50_EXT_EXTERNAL_POWER_SERVICE_DOOR"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"6. Left Fuselage\", item 6.d"
+    },
+    {
+     "text": "Static ports: condition, clear.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"6. Left Fuselage\", item 6.e"
+    },
+    {
+     "text": "Nacelle: inspect.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"6. Left Fuselage\", item 6.f"
+    },
+    {
+     "text": "Pylon panels: inspect.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"6. Left Fuselage\", item 6.g"
+    },
+    {
+     "text": "Pylon NACA inlet: inspect.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"6. Left Fuselage\", item 6.h"
+    },
+    {
+     "text": "Pylon louver: clear.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"6. Left Fuselage\", item 6.i"
+    },
+    {
+     "text": "Antennae: condition.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"6. Left Fuselage\", item 6.j"
+    },
+    {
+     "text": "OAT probes: condition.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"6. Left Fuselage\", item 6.k"
+    },
+    {
+     "text": "Ram scoop inlet: clear.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"6. Left Fuselage\", item 6.l"
+    },
+    {
+     "text": "Cabin pressurization static port: clear.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"6. Left Fuselage\", item 6.m"
+    }
+   ],
+   "next": "wa_tail"
+  },
+  "wa_tail": {
+   "type": "steps",
+   "title": "7. Tail",
+   "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"7. Empennage\"",
+   "steps": [
+    {
+     "text": "Engine nozzle: inspect.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"7. Empennage\", item 7.a"
+    },
+    {
+     "text": "Second LP turbine: inspect.",
+     "why": "Look for foreign object damage, overall damage, cracks, deformation and pooled liquid (water, fuel, oil). If there is an oil leak, find the cause and correct it. A flashlight may be needed.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"7. Empennage\", item 7.b"
+    },
+    {
+     "text": "Stabilizer de-icers: condition.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"7. Empennage\", item 7.c"
+    },
+    {
+     "text": "Ruddervators and pitch servo tabs: condition, motion.",
+     "controls": [
+      {
+       "api": "SF50_EXT_RUDDERVATOR_CHECK"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"7. Empennage\", item 7.d"
+    },
+    {
+     "text": "Takeoff trim setting: verify.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"7. Empennage\", item 7.e"
+    },
+    {
+     "text": "Ventral fins: condition.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"7. Empennage\", item 7.f"
+    },
+    {
+     "text": "Yaw SAS: condition, motion.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"7. Empennage\", item 7.g"
+    },
+    {
+     "text": "Static wicks: check.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"7. Empennage\", item 7.h"
+    },
+    {
+     "text": "Tail lights: condition and security.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"7. Empennage\", item 7.i"
+    }
+   ],
+   "next": "wa_rfus"
+  },
+  "wa_rfus": {
+   "type": "steps",
+   "title": "8. Right fuselage",
+   "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"8. Right Fuselage\"",
+   "steps": [
+    {
+     "text": "Engine preflight: complete.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"8. Right Fuselage\", item 8.a"
+    },
+    {
+     "text": "Pylon NACA inlet: clear.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"8. Right Fuselage\", item 8.a(1)"
+    },
+    {
+     "text": "Engine oil level: check.",
+     "controls": [
+      {
+       "api": "SF50_EXT_OIL_CHECK_PANEL_DOOR"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"8. Right Fuselage\", item 8.a(2)"
+    },
+    {
+     "text": "Oil cap: condition, security.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"8. Right Fuselage\", item 8.a(3)"
+    },
+    {
+     "text": "Static ports: condition, clear.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"8. Right Fuselage\", item 8.b(1)"
+    },
+    {
+     "text": "Overboard drains: clear, no leaks.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"8. Right Fuselage\", item 8.b(2)"
+    },
+    {
+     "text": "Cabin pressurization static port: clear.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"8. Right Fuselage\", item 8.b(3)"
+    }
+   ],
+   "next": "wa_rwing"
+  },
+  "wa_rwing": {
+   "type": "steps",
+   "title": "9 to 11. Right wing and right main gear",
+   "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"9. Right Wing Trailing Edge and Right Main Gear, 10. Right Wing Tip, 11. Right Forward Wing\"",
+   "steps": [
+    {
+     "text": "Right main gear brakes, wheel and tire: condition.",
+     "controls": [
+      {
+       "api": "SF50_EXT_RIGHT_MAIN_GEAR_BRAKES_CHECK"
+      },
+      {
+       "api": "SF50_EXT_RIGHT_MAIN_GEAR_TIRE_CHECK"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"9. Right Wing Trailing Edge and Right Main Gear, 10. Right Wing Tip, 11. Right Forward Wing\", item 9.a"
+    },
+    {
+     "text": "Brake pads: inspect the friction material visually.",
+     "why": "The centre channel must show a thickness greater than the wear limit, and the edges must be free of voids and large missing sections.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"9. Right Wing Trailing Edge and Right Main Gear, 10. Right Wing Tip, 11. Right Forward Wing\", item 9.a(1)"
+    },
+    {
+     "text": "Brake discs: inspect the surface condition visually.",
+     "why": "The surface must look smooth and uniform, free of large grooves, bumps and deposits from the brake pads.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"9. Right Wing Trailing Edge and Right Main Gear, 10. Right Wing Tip, 11. Right Forward Wing\", item 9.a(2)"
+    },
+    {
+     "text": "Brake lines: inspect visually.",
+     "why": "Look for chafing and distress on the flexible lines, and for leaks.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"9. Right Wing Trailing Edge and Right Main Gear, 10. Right Wing Tip, 11. Right Forward Wing\", item 9.a(3)"
+    },
+    {
+     "text": "Right flap: condition.",
+     "controls": [
+      {
+       "api": "SF50_EXT_RIGHT_FLAP_CHECK"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"9. Right Wing Trailing Edge and Right Main Gear, 10. Right Wing Tip, 11. Right Forward Wing\", item 9.b"
+    },
+    {
+     "text": "Static wicks: check.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"9. Right Wing Trailing Edge and Right Main Gear, 10. Right Wing Tip, 11. Right Forward Wing\", item 9.c"
+    },
+    {
+     "text": "Right fuel vent: clear.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"9. Right Wing Trailing Edge and Right Main Gear, 10. Right Wing Tip, 11. Right Forward Wing\", item 9.d"
+    },
+    {
+     "text": "Right aileron and roll servo tab: condition, movement.",
+     "controls": [
+      {
+       "api": "SF50_EXT_RIGHT_AILERON_CHECK"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"9. Right Wing Trailing Edge and Right Main Gear, 10. Right Wing Tip, 11. Right Forward Wing\", item 9.e"
+    },
+    {
+     "text": "T-strip: check.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"9. Right Wing Trailing Edge and Right Main Gear, 10. Right Wing Tip, 11. Right Forward Wing\", item 9.f"
+    },
+    {
+     "text": "Right wing tip, strobe and navigation lights: condition and security.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"9. Right Wing Trailing Edge and Right Main Gear, 10. Right Wing Tip, 11. Right Forward Wing\", item 10.a"
+    },
+    {
+     "text": "Right pitot probe: clear, cover removed.",
+     "controls": [
+      {
+       "api": "SF50_EXT_PITOT_COVERS"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"9. Right Wing Trailing Edge and Right Main Gear, 10. Right Wing Tip, 11. Right Forward Wing\", item 10.b"
+    },
+    {
+     "text": "Right fuel cap: check the fuel level and secure the cap.",
+     "why": "The cap must not be damaged and must fit the tank securely with no movement. A latch that opens and closes with little or no resistance means the cap is not tight.",
+     "controls": [
+      {
+       "api": "SF50_EXT_FUEL_CAP_RIGHT"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"9. Right Wing Trailing Edge and Right Main Gear, 10. Right Wing Tip, 11. Right Forward Wing\", item 11.a"
+    },
+    {
+     "text": "Right fuel tank drain: sample.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"9. Right Wing Trailing Edge and Right Main Gear, 10. Right Wing Tip, 11. Right Forward Wing\", item 11.b"
+    },
+    {
+     "text": "Right main gear door: condition, security.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"9. Right Wing Trailing Edge and Right Main Gear, 10. Right Wing Tip, 11. Right Forward Wing\", item 11.c"
+    },
+    {
+     "text": "Right main gear: condition.",
+     "controls": [
+      {
+       "api": "SF50_EXT_RIGHT_MAIN_GEAR_STRUT_CHECK"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"9. Right Wing Trailing Edge and Right Main Gear, 10. Right Wing Tip, 11. Right Forward Wing\", item 11.d"
+    },
+    {
+     "text": "Right wing de-icer and leading edge: condition.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"9. Right Wing Trailing Edge and Right Main Gear, 10. Right Wing Tip, 11. Right Forward Wing\", item 11.e"
+    },
+    {
+     "text": "Right fuel collector drain: sample.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"9. Right Wing Trailing Edge and Right Main Gear, 10. Right Wing Tip, 11. Right Forward Wing\", item 11.f"
+    },
+    {
+     "text": "Right wing root vortex generator: check.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 2\", section \"9. Right Wing Trailing Edge and Right Main Gear, 10. Right Wing Tip, 11. Right Forward Wing\", item 11.g"
+    }
+   ],
+   "next": "wa_nose"
+  },
+  "wa_nose": {
+   "type": "steps",
+   "title": "12 and 13. Nose",
+   "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"12. Nose, Right Side, 13. Nose\"",
+   "steps": [
+    {
+     "text": "Egress window: condition and security, handle flush.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"12. Nose, Right Side, 13. Nose\", item 12.a"
+    },
+    {
+     "text": "Air conditioning air inlet: clear.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"12. Nose, Right Side, 13. Nose\", item 12.b"
+    },
+    {
+     "text": "Windshield spray bar: clear.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"12. Nose, Right Side, 13. Nose\", item 12.c"
+    },
+    {
+     "text": "AOA vane: clear, cover removed, condition, motion.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"12. Nose, Right Side, 13. Nose\", item 12.d"
+    },
+    {
+     "text": "Lightning diverters (if equipped): condition.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"12. Nose, Right Side, 13. Nose\", item 13.a"
+    },
+    {
+     "text": "Radome spray nozzle: condition.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"12. Nose, Right Side, 13. Nose\", item 13.b"
+    },
+    {
+     "text": "EVS camera: free and clear.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"12. Nose, Right Side, 13. Nose\", item 13.c"
+    },
+    {
+     "text": "Nose gear: condition.",
+     "controls": [
+      {
+       "api": "SF50_EXT_NOSE_GEAR_STRUT_CHECK"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"12. Nose, Right Side, 13. Nose\", item 13.d"
+    },
+    {
+     "text": "Nose gear door: condition, security.",
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"12. Nose, Right Side, 13. Nose\", item 13.e"
+    },
+    {
+     "text": "Nose wheel and tire: condition.",
+     "warn": "The nose wheel must be pointing forward.",
+     "controls": [
+      {
+       "api": "SF50_EXT_NOSE_GEAR_TIRE_CHECK"
+      }
+     ],
+     "source": "checklist.xml: list \"Preflight Inspection, Pt 1\", section \"12. Nose, Right Side, 13. Nose\", item 13.f"
+    }
+   ],
+   "next": "wa_done"
+  },
+  "wa_done": {
+   "type": "end",
+   "title": "Walk around done",
+   "text": "Next: the cabin preflight if you have not done it, then start the engine."
+  },
+  "es_ground": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "help": "The engine is started on the ground. The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, on the ground",
+     "next": "es_state"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "es_air"
+    }
+   ]
+  },
+  "es_air": {
+   "type": "info",
+   "title": "Not on the ground",
+   "text": "Starting the engine is a ground procedure. The sim's checklist has no engine restart procedure for flight.",
+   "next": ""
+  },
+  "es_state": {
+   "type": "question",
+   "title": "Engine state",
+   "text": "Is the engine running?",
+   "help": "The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:GENERAL ENG COMBUSTION:1, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "off"
+     },
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "on"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "off",
+     "label": "No, it is off",
+     "next": "es_before"
+    },
+    {
+     "id": "on",
+     "label": "Yes, it is running",
+     "next": "es_running"
+    }
+   ]
+  },
+  "es_running": {
+   "type": "end",
+   "title": "Already running",
+   "text": "The engine is running. Next: before taxi."
+  },
+  "es_before": {
+   "type": "steps",
+   "title": "Before engine start",
+   "source": "checklist.xml: list \"Before Engine Start\"",
+   "steps": [
+    {
+     "text": "Complete the preflight inspection.",
+     "source": "checklist.xml: list \"Before Engine Start\", item 1"
+    },
+    {
+     "text": "Latch the door.",
+     "source": "checklist.xml: list \"Before Engine Start\", item 2"
+    },
+    {
+     "text": "Set the parking brake as required.",
+     "controls": [
+      {
+       "api": "SF50_HANDLING_PARKING_BRAKE"
+      }
+     ],
+     "source": "checklist.xml: list \"Before Engine Start\", item 3"
+    },
+    {
+     "text": "Set BAT 1 and BAT 2 to ON.",
+     "controls": [
+      {
+       "api": "SF50_ELECTRICAL_BATTERY_1_SWITCH"
+      },
+      {
+       "api": "SF50_ELECTRICAL_BATTERY_2_SWITCH"
+      }
+     ],
+     "source": "checklist.xml: list \"Before Engine Start\", item 4"
+    },
+    {
+     "text": "Set GEN 1 and GEN 2 to ON.",
+     "controls": [
+      {
+       "api": "SF50_ELECTRICAL_GEN_1_SWITCH"
+      },
+      {
+       "api": "SF50_ELECTRICAL_GEN_2_SWITCH"
+      }
+     ],
+     "source": "checklist.xml: list \"Before Engine Start\", item 5"
+    },
+    {
+     "text": "Connect external power if needed: 28 VDC, 800 A minimum, 1000 A maximum.",
+     "controls": [
+      {
+       "api": "TOGGLE_EXTERNAL_POWER"
+      }
+     ],
+     "source": "checklist.xml: list \"Before Engine Start\", item 6"
+    },
+    {
+     "text": "Verify the active FADEC channel is shown below the % thrust indication.",
+     "source": "checklist.xml: list \"Before Engine Start\", item 7"
+    }
+   ],
+   "next": "es_start"
+  },
+  "es_start": {
+   "type": "steps",
+   "title": "Start",
+   "source": "checklist.xml: list \"Engine Start\"",
+   "steps": [
+    {
+     "text": "Turn the strobe lights ON.",
+     "controls": [
+      {
+       "api": "LIGHTING_STROBE_1"
+      }
+     ],
+     "check": {
+      "code": "(A:LIGHT STROBE, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "source": "checklist.xml: list \"Engine Start\", item 1"
+    },
+    {
+     "text": "Check the CAS messages.",
+     "why": "There must be no abnormal messages for this phase of flight.",
+     "source": "checklist.xml: list \"Engine Start\", item 2; en-us.locpak: SF50.CHECKLIST.CLUE.CAS_CHECK"
+    },
+    {
+     "text": "Set the thrust lever to IDLE.",
+     "controls": [
+      {
+       "api": "SF50_ENGINE_THROTTLE"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Thrust lever",
+       "unit": "%",
+       "code": "(A:GENERAL ENG THROTTLE LEVER POSITION:1, percent)"
+      }
+     ],
+     "source": "checklist.xml: list \"Engine Start\", item 3"
+    },
+    {
+     "text": "Hold the brakes.",
+     "source": "checklist.xml: list \"Engine Start\", item 4"
+    },
+    {
+     "text": "Set the engine knob to RUN.",
+     "controls": [
+      {
+       "api": "SF50_ENGINE_RUN_KNOB"
+      }
+     ],
+     "source": "checklist.xml: list \"Engine Start\", item 5"
+    },
+    {
+     "text": "Check the fuel pump: verify the FUEL PUMP ON advisory CAS message is shown.",
+     "source": "checklist.xml: list \"Engine Start\", item 6.a"
+    },
+    {
+     "text": "Check the fuel pump: confirm by ear that the pump is on.",
+     "source": "checklist.xml: list \"Engine Start\", item 6.b"
+    },
+    {
+     "text": "Verify the ENGINE START BAT TEMP or ENGINE START VOLTS CAS message is not shown.",
+     "source": "checklist.xml: list \"Engine Start\", item 7"
+    },
+    {
+     "text": "Press the engine button.",
+     "controls": [
+      {
+       "api": "SF50_ENGINE_STARTER"
+      }
+     ],
+     "source": "checklist.xml: list \"Engine Start\", item 8"
+    },
+    {
+     "text": "Monitor the engine instruments.",
+     "warn": "At 25% N2 make sure there is a positive N1 indication, and be ready to abort the start.",
+     "readouts": [
+      {
+       "label": "N2",
+       "unit": "%",
+       "code": "(A:TURB ENG N2:1, percent)"
+      },
+      {
+       "label": "N1",
+       "unit": "%",
+       "code": "(A:TURB ENG N1:1, percent)"
+      },
+      {
+       "label": "ITT",
+       "unit": "°C",
+       "code": "(A:TURB ENG ITT:1, celsius)"
+      }
+     ],
+     "source": "checklist.xml: list \"Engine Start\", item 9"
+    }
+   ],
+   "next": "es_watch"
+  },
+  "es_watch": {
+   "type": "question",
+   "title": "How does the start go?",
+   "text": "Does the start look normal?",
+   "help": "Abort the start if ITT exceeds the limit (red line), if there is no N1 indication by 25% N2, if there is no light-off within 8 seconds, or if the oil pressure is low after the start.",
+   "auto": {
+    "code": "(A:GENERAL ENG COMBUSTION:1, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "ok"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "ok",
+     "label": "Yes, the engine is running normally",
+     "next": "es_after"
+    },
+    {
+     "id": "abort",
+     "label": "No, I must abort the start",
+     "next": "es_abort"
+    }
+   ]
+  },
+  "es_abort": {
+   "type": "steps",
+   "title": "Abort the start",
+   "source": "en-us.locpak: SF50.ENGINE_PUSH_BUTTON_ABORT_ACTION; checklist.xml: list \"Engine Start\", note after item 9",
+   "steps": [
+    {
+     "text": "Press the engine button to abort the start.",
+     "controls": [
+      {
+       "api": "SF50_ENGINE_STARTER"
+      }
+     ],
+     "source": "en-us.locpak: SF50.ENGINE_PUSH_BUTTON_ABORT_ACTION (\"Abort engine start\"); checklist.xml: list \"Engine Start\", note after item 9"
+    }
+   ],
+   "next": "ab_dry"
+  },
+  "es_after": {
+   "type": "steps",
+   "title": "After the start",
+   "source": "checklist.xml: list \"Engine Start\"",
+   "steps": [
+    {
+     "text": "Check the EIS: all normal.",
+     "source": "checklist.xml: list \"Engine Start\", item 10"
+    },
+    {
+     "text": "Set the engine IPS as required.",
+     "controls": [
+      {
+       "api": "SF50_DEICE_ENGINE"
+      }
+     ],
+     "source": "checklist.xml: list \"Engine Start\", item 11"
+    },
+    {
+     "text": "Set the ECS control panel.",
+     "source": "checklist.xml: list \"Engine Start\", item 12"
+    },
+    {
+     "text": "Disconnect the external power.",
+     "controls": [
+      {
+       "api": "TOGGLE_EXTERNAL_POWER"
+      }
+     ],
+     "source": "checklist.xml: list \"Engine Start\", item 13"
+    },
+    {
+     "text": "Verify the oxygen master switch is ON.",
+     "controls": [
+      {
+       "api": "SF50_PRESSURIZATION_OXYGEN_MASTER"
+      }
+     ],
+     "source": "checklist.xml: list \"Engine Start\", item 14"
+    },
+    {
+     "text": "Wait until all avionics initializations are complete.",
+     "source": "checklist.xml: list \"Engine Start\", item 15"
+    },
+    {
+     "text": "Remove and stow the CAPS pin.",
+     "controls": [
+      {
+       "api": "SF50_CAPS_SAFETY_PIN"
+      }
+     ],
+     "source": "checklist.xml: list \"Engine Start\", item 16"
+    },
+    {
+     "text": "Brief the passengers.",
+     "source": "checklist.xml: list \"Engine Start\", item 17"
+    },
+    {
+     "text": "Secure the seat belts.",
+     "source": "checklist.xml: list \"Engine Start\", item 18"
+    },
+    {
+     "text": "Set the BLEED switch to BLEED.",
+     "warn": "Do not set it to BLEED until BAT 1 and BAT 2 have both been ON for 2 minutes or more.",
+     "controls": [
+      {
+       "api": "SF50_PRESSURIZATION_SWITCH_AIR_BLEED"
+      }
+     ],
+     "source": "checklist.xml: list \"Engine Start\", item 19"
+    }
+   ],
+   "next": "es_done"
+  },
+  "es_done": {
+   "type": "end",
+   "title": "Engine running",
+   "text": "Next: before taxi."
+  },
+  "bt_ground": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "help": "The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, on the ground",
+     "next": "bt_steps"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "bt_air"
+    }
+   ]
+  },
+  "bt_air": {
+   "type": "info",
+   "title": "Not on the ground",
+   "text": "This is done on the ground.",
+   "next": ""
+  },
+  "bt_steps": {
+   "type": "steps",
+   "title": "Before taxi",
+   "source": "checklist.xml: list \"Before Taxi\"",
+   "steps": [
+    {
+     "text": "Set COM and NAV/GPS.",
+     "source": "checklist.xml: list \"Before Taxi\", item 1; en-us.locpak: SF50.CHECKLIST.CLUE.COM_NAV_GPS_SET"
+    },
+    {
+     "text": "Obtain the ATIS and the clearance.",
+     "source": "checklist.xml: list \"Before Taxi\", item 2; en-us.locpak: SF50.CHECKLIST.CLUE.ATIS_CLEARANCE_OBTAIN"
+    },
+    {
+     "text": "Set and check the altimeter.",
+     "readouts": [
+      {
+       "label": "Baro setting",
+       "unit": "hPa",
+       "code": "(A:KOHLSMAN SETTING MB:1, millibars)"
+      }
+     ],
+     "source": "checklist.xml: list \"Before Taxi\", item 3"
+    },
+    {
+     "text": "Set the transponder.",
+     "source": "checklist.xml: list \"Before Taxi\", item 4"
+    },
+    {
+     "text": "Set the heading bug and the initial altitude.",
+     "why": "The heading bug goes to the runway heading and the altitude preselector to the initial departure altitude.",
+     "controls": [
+      {
+       "api": "SF50_AUTOPILOT_HEADING",
+       "function": "HDG knob: up"
+      },
+      {
+       "api": "SF50_AUTOPILOT_HEADING",
+       "function": "HDG knob: down"
+      },
+      {
+       "api": "SF50_AUTOPILOT_ALTITUDE",
+       "function": "ALT knob: up"
+      },
+      {
+       "api": "SF50_AUTOPILOT_ALTITUDE",
+       "function": "ALT knob: down"
+      }
+     ],
+     "source": "checklist.xml: list \"Before Taxi\", item 5; en-us.locpak: SF50.CHECKLIST.CLUE.HEADING_BUG_SET_RUNWAY, en-us.locpak: SF50.CHECKLIST.CLUE.INITIAL_ALTITUDE_SET"
+    },
+    {
+     "text": "Check the flight controls are free and correct.",
+     "source": "checklist.xml: list \"Before Taxi\", item 6"
+    },
+    {
+     "text": "Turn the engine IPS ON if the OAT is 41 °F (5 °C) or less with visible moisture or visibility under 1 mile (1.6 km).",
+     "warn": "If the TT2 HEAT FAIL caution appears with the engine IPS ON, dispatch is not allowed.",
+     "controls": [
+      {
+       "api": "SF50_DEICE_ENGINE"
+      }
+     ],
+     "source": "checklist.xml: list \"Before Taxi\", note after item 6"
+    },
+    {
+     "text": "Set the trim.",
+     "controls": [
+      {
+       "api": "HANDLING_ELEVATORTRIM_1"
+      }
+     ],
+     "source": "checklist.xml: list \"Before Taxi\", item 7"
+    },
+    {
+     "text": "Set the flaps to 50%.",
+     "controls": [
+      {
+       "api": "SF50_HANDLING_FLAP_SELECTOR"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Flaps handle",
+       "unit": "",
+       "code": "(A:FLAPS HANDLE INDEX, number)"
+      }
+     ],
+     "source": "checklist.xml: list \"Before Taxi\", item 8"
+    },
+    {
+     "text": "Set the electric roll trim.",
+     "source": "checklist.xml: list \"Before Taxi\", item 9"
+    },
+    {
+     "text": "Press the TO/GA button.",
+     "controls": [
+      {
+       "api": "SF50_ENGINE_TOGA_PRIMARY"
+      },
+      {
+       "api": "SF50_ENGINE_TOGA_SECONDARY"
+      }
+     ],
+     "source": "checklist.xml: list \"Before Taxi\", item 10"
+    },
+    {
+     "text": "Check the flight director pitch target is 10° nose up.",
+     "source": "checklist.xml: list \"Before Taxi\", item 11; en-us.locpak: SF50.CHECKLIST.CLUE.FD_PITCH_CHECK_10_DEGREES"
+    },
+    {
+     "text": "Check the CAS messages.",
+     "source": "checklist.xml: list \"Before Taxi\", item 12; en-us.locpak: SF50.CHECKLIST.CLUE.CAS_CHECK"
+    },
+    {
+     "text": "Make sure the seats are in the normal upright position.",
+     "source": "checklist.xml: list \"Before Taxi\", item 13"
+    },
+    {
+     "text": "Release the parking brake.",
+     "controls": [
+      {
+       "api": "SF50_HANDLING_PARKING_BRAKE"
+      }
+     ],
+     "check": {
+      "code": "(A:BRAKE PARKING POSITION, Bool)",
+      "op": "==",
+      "value": 0
+     },
+     "source": "checklist.xml: list \"Before Taxi\", item 14"
+    },
+    {
+     "text": "Check the brakes.",
+     "why": "Hold them, then release them.",
+     "source": "checklist.xml: list \"Before Taxi\", item 15; en-us.locpak: SF50.CHECKLIST.CLUE.BRAKES_CHECK"
+    }
+   ],
+   "next": "bt_done"
+  },
+  "bt_done": {
+   "type": "end",
+   "title": "Ready to taxi",
+   "text": "Next: when you are at the runway, take off."
+  },
+  "to_ground": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "help": "The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, on the ground",
+     "next": "to_before"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "to_air"
+    }
+   ]
+  },
+  "to_air": {
+   "type": "info",
+   "title": "Not on the ground",
+   "text": "This is done on the ground.",
+   "next": ""
+  },
+  "to_before": {
+   "type": "steps",
+   "title": "Before takeoff",
+   "source": "checklist.xml: list \"Before Takeoff\"",
+   "steps": [
+    {
+     "text": "Complete the departure briefing.",
+     "source": "checklist.xml: list \"Before Takeoff\", item 1; en-us.locpak: SF50.CHECKLIST.CLUE.DEPARTURE_BRIEFING_COMPLETE"
+    },
+    {
+     "text": "Set the landing lights as required.",
+     "controls": [
+      {
+       "api": "SF50_LIGHTING_LANDING_LIGHTS"
+      }
+     ],
+     "source": "checklist.xml: list \"Before Takeoff\", item 2"
+    },
+    {
+     "text": "Set the PROBE HEAT switch to ON.",
+     "warn": "Above 41 °F (5 °C) the probe heat may be on for only 5 minutes in a row on the ground. Longer use in warmer temperatures may damage the composite structure next to the pitot probe.",
+     "controls": [
+      {
+       "api": "DEICE_PITOT_1"
+      }
+     ],
+     "check": {
+      "code": "(A:PITOT HEAT SWITCH:1, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "source": "checklist.xml: list \"Before Takeoff\", item 3"
+    },
+    {
+     "text": "Set the ENGINE IPS switch as required.",
+     "controls": [
+      {
+       "api": "SF50_DEICE_ENGINE"
+      }
+     ],
+     "source": "checklist.xml: list \"Before Takeoff\", item 4"
+    },
+    {
+     "text": "Set the WING/STAB IPS switch to OFF.",
+     "controls": [
+      {
+       "api": "SF50_DEICE_WINGSTAB"
+      }
+     ],
+     "check": {
+      "code": "(A:STRUCTURAL DEICE SWITCH, Bool)",
+      "op": "==",
+      "value": 0
+     },
+     "source": "checklist.xml: list \"Before Takeoff\", item 5"
+    },
+    {
+     "text": "Check the CAS messages.",
+     "source": "checklist.xml: list \"Before Takeoff\", item 6; en-us.locpak: SF50.CHECKLIST.CLUE.CAS_CHECK"
+    },
+    {
+     "text": "Set the trim.",
+     "controls": [
+      {
+       "api": "HANDLING_ELEVATORTRIM_1"
+      }
+     ],
+     "source": "checklist.xml: list \"Before Takeoff\", item 7"
+    },
+    {
+     "text": "Set the flaps to 50%.",
+     "controls": [
+      {
+       "api": "SF50_HANDLING_FLAP_SELECTOR"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Flaps handle",
+       "unit": "",
+       "code": "(A:FLAPS HANDLE INDEX, number)"
+      }
+     ],
+     "source": "checklist.xml: list \"Before Takeoff\", item 8"
+    },
+    {
+     "text": "Verify the TAKEOFF EMER BAT CAS message is not shown.",
+     "source": "checklist.xml: list \"Before Takeoff\", item 9; en-us.locpak: SF50.CHECKLIST.CLUE.TAKEOFF_EMER_BAT_CAS_NOT_DISPLAYED"
+    },
+    {
+     "text": "Configure the multi-function windows.",
+     "source": "checklist.xml: list \"Before Takeoff\", item 10; en-us.locpak: SF50.CHECKLIST.CLUE.MFD_CONFIGURE"
+    }
+   ],
+   "next": "to_roll"
+  },
+  "to_roll": {
+   "type": "steps",
+   "title": "Takeoff",
+   "source": "checklist.xml: list \"Normal Takeoff\"",
+   "steps": [
+    {
+     "text": "Hold the brakes.",
+     "source": "checklist.xml: list \"Normal Takeoff\", item 1"
+    },
+    {
+     "text": "Set the thrust lever to the takeoff setting (T/O).",
+     "controls": [
+      {
+       "api": "SF50_ENGINE_THROTTLE"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Thrust lever",
+       "unit": "%",
+       "code": "(A:GENERAL ENG THROTTLE LEVER POSITION:1, percent)"
+      }
+     ],
+     "source": "checklist.xml: list \"Normal Takeoff\", item 2; en-us.locpak: SF50.CHECKLIST.CLUE.THRUST_LEVER_TO"
+    },
+    {
+     "text": "Check the thrust setting (N1 % indicator) is aligned with the cyan takeoff bug (T).",
+     "source": "checklist.xml: list \"Normal Takeoff\", item 3; en-us.locpak: SF50.CHECKLIST.CLUE.THRUST_SETTING_ALIGNED_WITH_TO_BUG"
+    },
+    {
+     "text": "Check the engine instruments are normal.",
+     "source": "checklist.xml: list \"Normal Takeoff\", item 4"
+    },
+    {
+     "text": "Release the brakes.",
+     "source": "checklist.xml: list \"Normal Takeoff\", item 5"
+    },
+    {
+     "text": "Rotate at 85 KIAS.",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      }
+     ],
+     "source": "checklist.xml: list \"Normal Takeoff\", item 6; en-us.locpak: SF50.CHECKLIST.CLUE.ROTATE_AT_85_KIAS"
+    },
+    {
+     "text": "Hold a pitch attitude of 10° nose up.",
+     "source": "checklist.xml: list \"Normal Takeoff\", item 7; en-us.locpak: SF50.CHECKLIST.CLUE.PITCH_ATTITUDE_MAINTAIN_10_DEGREES"
+    },
+    {
+     "text": "Raise the landing gear once there is a positive rate of climb.",
+     "controls": [
+      {
+       "api": "SF50_HANDLING_LANDING_GEAR_LEVER"
+      }
+     ],
+     "check": {
+      "code": "(A:GEAR HANDLE POSITION, Bool)",
+      "op": "==",
+      "value": 0
+     },
+     "source": "checklist.xml: list \"Normal Takeoff\", item 8; en-us.locpak: SF50.CHECKLIST.CLUE.LANDING_GEAR_UP_WITH_POSITIVE_RATE"
+    },
+    {
+     "text": "Raise the flaps to UP at 115 KIAS, clear of obstacles.",
+     "controls": [
+      {
+       "api": "SF50_HANDLING_FLAP_SELECTOR"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      },
+      {
+       "label": "Flaps handle",
+       "unit": "",
+       "code": "(A:FLAPS HANDLE INDEX, number)"
+      }
+     ],
+     "source": "checklist.xml: list \"Normal Takeoff\", item 9; en-us.locpak: SF50.CHECKLIST.CLUE.FLAPS_UP_AT_115_KIAS"
+    },
+    {
+     "text": "Fly the airspeed given by the climb tables.",
+     "why": "The climb tables are not in the sim's checklist file.",
+     "source": "checklist.xml: list \"Normal Takeoff\", item 10; en-us.locpak: SF50.CHECKLIST.CLUE.AIRSPEED_PER_CLIMB_TABLES"
+    }
+   ],
+   "next": "to_done"
+  },
+  "to_done": {
+   "type": "end",
+   "title": "Airborne",
+   "text": "Next: climb and cruise."
+  },
+  "cc_air": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft flying?",
+   "help": "The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, it is flying",
+     "next": "cc_climb"
+    },
+    {
+     "id": "no",
+     "label": "No, it is on the ground",
+     "next": "cc_gnd"
+    }
+   ]
+  },
+  "cc_gnd": {
+   "type": "info",
+   "title": "Still on the ground",
+   "text": "This is done in flight.",
+   "next": ""
+  },
+  "cc_climb": {
+   "type": "steps",
+   "title": "Climb",
+   "source": "checklist.xml: list \"Climb / Cruise\", section \"Climb\"",
+   "steps": [
+    {
+     "text": "Set the thrust lever to MCT (maximum continuous thrust).",
+     "controls": [
+      {
+       "api": "SF50_ENGINE_MCT_SNAP"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Thrust lever",
+       "unit": "%",
+       "code": "(A:GENERAL ENG THROTTLE LEVER POSITION:1, percent)"
+      }
+     ],
+     "source": "checklist.xml: list \"Climb / Cruise\", section \"Climb\", item 1; en-us.locpak: SF50.CHECKLIST.CLUE.THRUST_LEVER_MCT"
+    },
+    {
+     "text": "Monitor the engine parameters.",
+     "source": "checklist.xml: list \"Climb / Cruise\", section \"Climb\", item 2"
+    },
+    {
+     "text": "Monitor the cabin pressure.",
+     "source": "checklist.xml: list \"Climb / Cruise\", section \"Climb\", item 3"
+    },
+    {
+     "text": "Set the ice protection as required.",
+     "source": "checklist.xml: list \"Climb / Cruise\", section \"Climb\", item 4"
+    },
+    {
+     "text": "At the transition altitude, set the altimeter to 29.92 inches / 1013 mb.",
+     "readouts": [
+      {
+       "label": "Baro setting",
+       "unit": "hPa",
+       "code": "(A:KOHLSMAN SETTING MB:1, millibars)"
+      }
+     ],
+     "source": "checklist.xml: list \"Climb / Cruise\", section \"Climb\", item 5; en-us.locpak: SF50.CHECKLIST.CLUE.ALTIMETER_SET_STANDARD_AT_TRANSITION"
+    }
+   ],
+   "next": "cc_cruise"
+  },
+  "cc_cruise": {
+   "type": "steps",
+   "title": "Cruise",
+   "source": "checklist.xml: list \"Climb / Cruise\", section \"Cruise\"",
+   "steps": [
+    {
+     "text": "Set the thrust lever to MCT.",
+     "controls": [
+      {
+       "api": "SF50_ENGINE_MCT_SNAP"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Thrust lever",
+       "unit": "%",
+       "code": "(A:GENERAL ENG THROTTLE LEVER POSITION:1, percent)"
+      }
+     ],
+     "source": "checklist.xml: list \"Climb / Cruise\", section \"Cruise\", item 1"
+    },
+    {
+     "text": "Set the ice protection as required.",
+     "source": "checklist.xml: list \"Climb / Cruise\", section \"Cruise\", item 2"
+    },
+    {
+     "text": "In RVSM airspace with the WING/STAB IPS on: contact ATC and notify them of non-RVSM status.",
+     "source": "checklist.xml: list \"Climb / Cruise\", section \"Cruise\", RVSM block"
+    },
+    {
+     "text": "Monitor the EIS.",
+     "source": "checklist.xml: list \"Climb / Cruise\", section \"Cruise\", item 3"
+    }
+   ],
+   "next": "cc_done"
+  },
+  "cc_done": {
+   "type": "end",
+   "title": "Cruising",
+   "text": "Next: descent and approach."
+  },
+  "da_air": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft flying?",
+   "help": "The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, it is flying",
+     "next": "da_descent"
+    },
+    {
+     "id": "no",
+     "label": "No, it is on the ground",
+     "next": "da_gnd"
+    }
+   ]
+  },
+  "da_gnd": {
+   "type": "info",
+   "title": "Still on the ground",
+   "text": "This is done in flight.",
+   "next": ""
+  },
+  "da_descent": {
+   "type": "steps",
+   "title": "Descent",
+   "source": "checklist.xml: list \"Descent / Approach\", section \"Descent\"",
+   "steps": [
+    {
+     "text": "Set the thrust lever as required.",
+     "controls": [
+      {
+       "api": "SF50_ENGINE_THROTTLE"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Thrust lever",
+       "unit": "%",
+       "code": "(A:GENERAL ENG THROTTLE LEVER POSITION:1, percent)"
+      }
+     ],
+     "source": "checklist.xml: list \"Descent / Approach\", section \"Descent\", item 1"
+    },
+    {
+     "text": "Check the landing field elevation.",
+     "why": "The CABIN LFE NOT SET caution appears when the cabin landing field elevation is not set.",
+     "source": "checklist.xml: list \"Descent / Approach\", section \"Descent\", item 2"
+    },
+    {
+     "text": "Set the ice protection as required.",
+     "source": "checklist.xml: list \"Descent / Approach\", section \"Descent\", item 3"
+    },
+    {
+     "text": "At the transition altitude, set the local altimeter setting.",
+     "readouts": [
+      {
+       "label": "Baro setting",
+       "unit": "hPa",
+       "code": "(A:KOHLSMAN SETTING MB:1, millibars)"
+      }
+     ],
+     "source": "checklist.xml: list \"Descent / Approach\", section \"Descent\", item 4"
+    },
+    {
+     "text": "Secure the seats and seat belts.",
+     "source": "checklist.xml: list \"Descent / Approach\", section \"Descent\", item 5"
+    },
+    {
+     "text": "Check the brake pressure.",
+     "source": "checklist.xml: list \"Descent / Approach\", section \"Descent\", item 6"
+    }
+   ],
+   "next": "da_approach"
+  },
+  "da_approach": {
+   "type": "steps",
+   "title": "Approach",
+   "source": "checklist.xml: list \"Descent / Approach\", section \"Approach\"",
+   "steps": [
+    {
+     "text": "Complete the approach briefing.",
+     "source": "checklist.xml: list \"Descent / Approach\", section \"Approach\", item 1"
+    },
+    {
+     "text": "Make sure all seats are in the normal upright position.",
+     "source": "checklist.xml: list \"Descent / Approach\", section \"Approach\", item 2"
+    },
+    {
+     "text": "Set the ice protection as required.",
+     "source": "checklist.xml: list \"Descent / Approach\", section \"Approach\", item 3"
+    },
+    {
+     "text": "Set the lights as required.",
+     "source": "checklist.xml: list \"Descent / Approach\", section \"Approach\", item 4"
+    },
+    {
+     "text": "Set the flaps to 50%.",
+     "controls": [
+      {
+       "api": "SF50_HANDLING_FLAP_SELECTOR"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Flaps handle",
+       "unit": "",
+       "code": "(A:FLAPS HANDLE INDEX, number)"
+      }
+     ],
+     "source": "checklist.xml: list \"Descent / Approach\", section \"Approach\", item 5"
+    },
+    {
+     "text": "Fly 140 KIAS.",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      }
+     ],
+     "source": "checklist.xml: list \"Descent / Approach\", section \"Approach\", item 6"
+    }
+   ],
+   "next": "da_done"
+  },
+  "da_done": {
+   "type": "end",
+   "title": "On approach",
+   "text": "Next: landing."
+  },
+  "ld_air": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft flying?",
+   "help": "The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, it is flying",
+     "next": "ld_before"
+    },
+    {
+     "id": "no",
+     "label": "No, it is on the ground",
+     "next": "ld_gnd"
+    }
+   ]
+  },
+  "ld_gnd": {
+   "type": "info",
+   "title": "Still on the ground",
+   "text": "This is done in flight.",
+   "next": ""
+  },
+  "ld_before": {
+   "type": "steps",
+   "title": "Before landing",
+   "source": "checklist.xml: list \"Before Landing / Landing\", section \"Before Landing\"",
+   "steps": [
+    {
+     "text": "Lower the landing gear: down and locked.",
+     "controls": [
+      {
+       "api": "SF50_HANDLING_LANDING_GEAR_LEVER"
+      }
+     ],
+     "check": {
+      "code": "(A:GEAR HANDLE POSITION, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "source": "checklist.xml: list \"Before Landing / Landing\", section \"Before Landing\", item 1"
+    },
+    {
+     "text": "Set the flaps as required.",
+     "controls": [
+      {
+       "api": "SF50_HANDLING_FLAP_SELECTOR"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Flaps handle",
+       "unit": "",
+       "code": "(A:FLAPS HANDLE INDEX, number)"
+      }
+     ],
+     "source": "checklist.xml: list \"Before Landing / Landing\", section \"Before Landing\", item 2"
+    },
+    {
+     "text": "Check the cabin pressure differential is about 0 psi.",
+     "source": "checklist.xml: list \"Before Landing / Landing\", section \"Before Landing\", item 3"
+    },
+    {
+     "text": "Set the WINDSHLD IPS switch to OFF.",
+     "why": "IPS fluid decreases the flight visibility.",
+     "controls": [
+      {
+       "api": "SF50_DEICE_WINDSHIELD"
+      }
+     ],
+     "source": "checklist.xml: list \"Before Landing / Landing\", section \"Before Landing\", item 4"
+    },
+    {
+     "text": "Turn the autopilot OFF.",
+     "controls": [
+      {
+       "api": "AUTOPILOT_AP_1"
+      }
+     ],
+     "check": {
+      "code": "(A:AUTOPILOT MASTER, Bool)",
+      "op": "==",
+      "value": 0
+     },
+     "source": "checklist.xml: list \"Before Landing / Landing\", section \"Before Landing\", item 5"
+    },
+    {
+     "text": "Fly VREF to VREF + 10.",
+     "why": "The VREF values are in the landing considerations table, which is not in the sim's checklist file.",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      }
+     ],
+     "source": "checklist.xml: list \"Before Landing / Landing\", section \"Before Landing\", item 6"
+    },
+    {
+     "text": "Check the brake pressure.",
+     "source": "checklist.xml: list \"Before Landing / Landing\", section \"Before Landing\", item 7"
+    }
+   ],
+   "next": "ld_land"
+  },
+  "ld_land": {
+   "type": "steps",
+   "title": "Landing",
+   "source": "checklist.xml: list \"Before Landing / Landing\", section \"Landing\"",
+   "steps": [
+    {
+     "text": "Set the flaps to 100%, or 50% if the airframe is ice contaminated.",
+     "controls": [
+      {
+       "api": "SF50_HANDLING_FLAP_SELECTOR"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Flaps handle",
+       "unit": "",
+       "code": "(A:FLAPS HANDLE INDEX, number)"
+      }
+     ],
+     "source": "checklist.xml: list \"Before Landing / Landing\", section \"Landing\", item 1"
+    },
+    {
+     "text": "Fly VREF.",
+     "why": "Refer to the landing considerations table, which is not in the sim's checklist file.",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      }
+     ],
+     "source": "checklist.xml: list \"Before Landing / Landing\", section \"Landing\", item 2"
+    },
+    {
+     "text": "Set the thrust lever as required.",
+     "controls": [
+      {
+       "api": "SF50_ENGINE_THROTTLE"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Thrust lever",
+       "unit": "%",
+       "code": "(A:GENERAL ENG THROTTLE LEVER POSITION:1, percent)"
+      }
+     ],
+     "source": "checklist.xml: list \"Before Landing / Landing\", section \"Landing\", item 3"
+    },
+    {
+     "text": "After landing: use the brakes as required.",
+     "source": "checklist.xml: list \"Before Landing / Landing\", section \"Landing\", item 4"
+    }
+   ],
+   "next": "ld_done"
+  },
+  "ld_done": {
+   "type": "end",
+   "title": "Landed",
+   "text": "Next: after landing and shutdown."
+  },
+  "ga_air": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Are you flying?",
+   "help": "The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, it is flying",
+     "next": "ga_steps"
+    },
+    {
+     "id": "no",
+     "label": "No, it is on the ground",
+     "next": "ga_gnd"
+    }
+   ]
+  },
+  "ga_gnd": {
+   "type": "info",
+   "title": "Still on the ground",
+   "text": "This is done in flight.",
+   "next": ""
+  },
+  "ga_steps": {
+   "type": "steps",
+   "title": "Go-around",
+   "source": "checklist.xml: list \"Go-Around\"",
+   "steps": [
+    {
+     "text": "Set the thrust lever to the takeoff setting (T/O).",
+     "controls": [
+      {
+       "api": "SF50_ENGINE_THROTTLE"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Thrust lever",
+       "unit": "%",
+       "code": "(A:GENERAL ENG THROTTLE LEVER POSITION:1, percent)"
+      }
+     ],
+     "source": "checklist.xml: list \"Go-Around\", item 1"
+    },
+    {
+     "text": "Press the TO/GA button.",
+     "controls": [
+      {
+       "api": "SF50_ENGINE_TOGA_PRIMARY"
+      },
+      {
+       "api": "SF50_ENGINE_TOGA_SECONDARY"
+      }
+     ],
+     "source": "checklist.xml: list \"Go-Around\", item 2"
+    },
+    {
+     "text": "Hold a pitch attitude of 7°.",
+     "source": "checklist.xml: list \"Go-Around\", item 3"
+    },
+    {
+     "text": "Set the flaps to 50%.",
+     "controls": [
+      {
+       "api": "SF50_HANDLING_FLAP_SELECTOR"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Flaps handle",
+       "unit": "",
+       "code": "(A:FLAPS HANDLE INDEX, number)"
+      }
+     ],
+     "source": "checklist.xml: list \"Go-Around\", item 4"
+    },
+    {
+     "text": "Raise the landing gear once there is a positive rate of climb.",
+     "controls": [
+      {
+       "api": "SF50_HANDLING_LANDING_GEAR_LEVER"
+      }
+     ],
+     "check": {
+      "code": "(A:GEAR HANDLE POSITION, Bool)",
+      "op": "==",
+      "value": 0
+     },
+     "source": "checklist.xml: list \"Go-Around\", item 5"
+    },
+    {
+     "text": "Fly VX.",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      }
+     ],
+     "source": "checklist.xml: list \"Go-Around\", item 6"
+    },
+    {
+     "text": "Raise the flaps to UP at 115 KIAS, clear of obstacles.",
+     "controls": [
+      {
+       "api": "SF50_HANDLING_FLAP_SELECTOR"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      },
+      {
+       "label": "Flaps handle",
+       "unit": "",
+       "code": "(A:FLAPS HANDLE INDEX, number)"
+      }
+     ],
+     "source": "checklist.xml: list \"Go-Around\", item 7"
+    },
+    {
+     "text": "Resume the normal climb out.",
+     "source": "checklist.xml: list \"Go-Around\", item 8"
+    }
+   ],
+   "next": "ga_done"
+  },
+  "ga_done": {
+   "type": "end",
+   "title": "Climbing out",
+   "text": "Next: climb and cruise, or another approach."
+  },
+  "sd_ground": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "help": "The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, on the ground",
+     "next": "sd_after"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "sd_air"
+    }
+   ]
+  },
+  "sd_air": {
+   "type": "info",
+   "title": "Not on the ground",
+   "text": "This is done on the ground.",
+   "next": ""
+  },
+  "sd_after": {
+   "type": "steps",
+   "title": "After landing",
+   "source": "checklist.xml: list \"After Landing\"",
+   "steps": [
+    {
+     "text": "Raise the flaps to UP.",
+     "controls": [
+      {
+       "api": "SF50_HANDLING_FLAP_SELECTOR"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Flaps handle",
+       "unit": "",
+       "code": "(A:FLAPS HANDLE INDEX, number)"
+      }
+     ],
+     "source": "checklist.xml: list \"After Landing\", item 1"
+    },
+    {
+     "text": "Set the WING/STAB IPS switch to OFF.",
+     "controls": [
+      {
+       "api": "SF50_DEICE_WINGSTAB"
+      }
+     ],
+     "check": {
+      "code": "(A:STRUCTURAL DEICE SWITCH, Bool)",
+      "op": "==",
+      "value": 0
+     },
+     "source": "checklist.xml: list \"After Landing\", item 2"
+    },
+    {
+     "text": "Set the ENGINE IPS switch as required.",
+     "controls": [
+      {
+       "api": "SF50_DEICE_ENGINE"
+      }
+     ],
+     "source": "checklist.xml: list \"After Landing\", item 3"
+    },
+    {
+     "text": "Set the PROBE HEAT switch to OFF.",
+     "warn": "Above 41 °F (5 °C) the probe heat may be on for only 5 minutes in a row on the ground. Longer use in warmer temperatures may damage the composite structure next to the pitot probe.",
+     "controls": [
+      {
+       "api": "DEICE_PITOT_1"
+      }
+     ],
+     "check": {
+      "code": "(A:PITOT HEAT SWITCH:1, Bool)",
+      "op": "==",
+      "value": 0
+     },
+     "source": "checklist.xml: list \"After Landing\", item 4"
+    },
+    {
+     "text": "Set the external lights as required.",
+     "source": "checklist.xml: list \"After Landing\", item 5"
+    },
+    {
+     "text": "Check the brakes.",
+     "source": "checklist.xml: list \"After Landing\", item 6"
+    }
+   ],
+   "next": "sd_shut"
+  },
+  "sd_shut": {
+   "type": "steps",
+   "title": "Shutdown",
+   "source": "checklist.xml: list \"Shutdown\"",
+   "steps": [
+    {
+     "text": "Set the thrust lever to IDLE.",
+     "controls": [
+      {
+       "api": "SF50_ENGINE_THROTTLE"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Thrust lever",
+       "unit": "%",
+       "code": "(A:GENERAL ENG THROTTLE LEVER POSITION:1, percent)"
+      }
+     ],
+     "source": "checklist.xml: list \"Shutdown\", item 1"
+    },
+    {
+     "text": "Set the ENGINE IPS switch to OFF.",
+     "controls": [
+      {
+       "api": "SF50_DEICE_ENGINE"
+      }
+     ],
+     "check": {
+      "code": "(A:ENG ANTI ICE:1, Bool)",
+      "op": "==",
+      "value": 0
+     },
+     "source": "checklist.xml: list \"Shutdown\", item 2"
+    },
+    {
+     "text": "Set the BLEED switch to FRESH.",
+     "controls": [
+      {
+       "api": "SF50_PRESSURIZATION_SWITCH_AIR_BLEED"
+      }
+     ],
+     "source": "checklist.xml: list \"Shutdown\", item 3"
+    },
+    {
+     "text": "Set the OXYGEN MASTER switch to OFF.",
+     "controls": [
+      {
+       "api": "SF50_PRESSURIZATION_OXYGEN_MASTER"
+      }
+     ],
+     "source": "checklist.xml: list \"Shutdown\", item 4"
+    },
+    {
+     "text": "Turn the lights OFF.",
+     "source": "checklist.xml: list \"Shutdown\", item 5"
+    },
+    {
+     "text": "Set GEN 1 and GEN 2 to OFF.",
+     "warn": "To avoid unnecessary FADEC faults, do not remove aircraft power until N2 is less than 24%.",
+     "controls": [
+      {
+       "api": "SF50_ELECTRICAL_GEN_1_SWITCH"
+      },
+      {
+       "api": "SF50_ELECTRICAL_GEN_2_SWITCH"
+      }
+     ],
+     "source": "checklist.xml: list \"Shutdown\", item 6"
+    },
+    {
+     "text": "Set the engine knob to OFF.",
+     "controls": [
+      {
+       "api": "SF50_ENGINE_RUN_KNOB"
+      }
+     ],
+     "source": "checklist.xml: list \"Shutdown\", item 7"
+    },
+    {
+     "text": "Press the engine button.",
+     "controls": [
+      {
+       "api": "SF50_ENGINE_STARTER"
+      }
+     ],
+     "source": "checklist.xml: list \"Shutdown\", item 8"
+    },
+    {
+     "text": "Wait until N2 is below 24%.",
+     "check": {
+      "code": "(A:TURB ENG N2:1, percent)",
+      "op": "<",
+      "value": 24
+     },
+     "readouts": [
+      {
+       "label": "N2",
+       "unit": "%",
+       "code": "(A:TURB ENG N2:1, percent)"
+      }
+     ],
+     "source": "checklist.xml: list \"Shutdown\", item 9; en-us.locpak: SF50.CHECKLIST.CLUE.MONITOR_N2_BELOW_24%"
+    },
+    {
+     "text": "Replace the CAPS pin.",
+     "controls": [
+      {
+       "api": "SF50_CAPS_SAFETY_PIN"
+      }
+     ],
+     "source": "checklist.xml: list \"Shutdown\", item 10"
+    },
+    {
+     "text": "Set BAT 1 and BAT 2 to OFF.",
+     "controls": [
+      {
+       "api": "SF50_ELECTRICAL_BATTERY_1_SWITCH"
+      },
+      {
+       "api": "SF50_ELECTRICAL_BATTERY_2_SWITCH"
+      }
+     ],
+     "source": "checklist.xml: list \"Shutdown\", item 11"
+    },
+    {
+     "text": "Set the parking brake as required.",
+     "controls": [
+      {
+       "api": "SF50_HANDLING_PARKING_BRAKE"
+      }
+     ],
+     "source": "checklist.xml: list \"Shutdown\", item 12"
+    },
+    {
+     "text": "Replace the egress door pin.",
+     "controls": [
+      {
+       "api": "SF50_INT_EMERGENCY_EXIT_SAFETY_PIN"
+      }
+     ],
+     "source": "checklist.xml: list \"Shutdown\", item 13"
+    },
+    {
+     "text": "Secure the airplane.",
+     "source": "checklist.xml: list \"Shutdown\", item 14"
+    }
+   ],
+   "next": "sd_done"
+  },
+  "sd_done": {
+   "type": "end",
+   "title": "Shut down",
+   "text": "The aircraft is secured."
+  },
+  "ic_menu": {
+   "type": "question",
+   "title": "Icing conditions",
+   "text": "What do you need?",
+   "choices": [
+    {
+     "id": "pre",
+     "label": "Preflight in icing conditions",
+     "next": "ic_pre_cabin"
+    },
+    {
+     "id": "to",
+     "label": "Before takeoff in icing conditions",
+     "next": "ic_to"
+    },
+    {
+     "id": "ips",
+     "label": "Turn the ice protection on",
+     "next": "ic_ips_q"
+    }
+   ]
+  },
+  "ic_pre_cabin": {
+   "type": "steps",
+   "title": "Cabin",
+   "source": "checklist.xml: list \"Icing Conditions: Preflight Inspection\", section \"1. Cabin\"",
+   "steps": [
+    {
+     "text": "Set the circuit breakers.",
+     "warn": "In cold weather remove all frost, ice, snow and slush from the fuselage, wing, stabilizers, control surfaces and engine inlet before flight. The checklist warns that failing to do so may result in significant damage, loss of the aircraft and loss of life.",
+     "source": "checklist.xml: list \"Icing Conditions: Preflight Inspection\", section \"1. Cabin\", item 1.a"
+    },
+    {
+     "text": "Set BAT 1 and BAT 2 to ON.",
+     "controls": [
+      {
+       "api": "SF50_ELECTRICAL_BATTERY_1_SWITCH"
+      },
+      {
+       "api": "SF50_ELECTRICAL_BATTERY_2_SWITCH"
+      }
+     ],
+     "source": "checklist.xml: list \"Icing Conditions: Preflight Inspection\", section \"1. Cabin\", item 1.b"
+    },
+    {
+     "text": "Press and hold the WINDSHLD IPS MAX switch until fluid comes out of the spray bar.",
+     "controls": [
+      {
+       "api": "SF50_DEICE_WINDSHIELD_HIGH"
+      }
+     ],
+     "source": "checklist.xml: list \"Icing Conditions: Preflight Inspection\", section \"1. Cabin\", item 1.c"
+    },
+    {
+     "text": "Verify the IPS fluid quantity.",
+     "why": "The minimum quantity for dispatch is 1 US gallon (4 L).",
+     "source": "checklist.xml: list \"Icing Conditions: Preflight Inspection\", section \"1. Cabin\", item 1.d"
+    },
+    {
+     "text": "Turn the ICE light ON.",
+     "controls": [
+      {
+       "api": "LIGHTING_WING_1"
+      }
+     ],
+     "source": "checklist.xml: list \"Icing Conditions: Preflight Inspection\", section \"1. Cabin\", item 1.e"
+    }
+   ],
+   "next": "ic_pre_ext"
+  },
+  "ic_pre_ext": {
+   "type": "steps",
+   "title": "Exterior",
+   "source": "checklist.xml: list \"Icing Conditions: Preflight Inspection\", section \"2. Exterior\"",
+   "steps": [
+    {
+     "text": "Check the ICE light.",
+     "source": "checklist.xml: list \"Icing Conditions: Preflight Inspection\", section \"2. Exterior\", item 2.a"
+    },
+    {
+     "text": "Nose section: verify evidence of IPS fluid.",
+     "why": "The fluid sprays clear of the airframe.",
+     "source": "checklist.xml: list \"Icing Conditions: Preflight Inspection\", section \"2. Exterior\", item 2.b"
+    },
+    {
+     "text": "Inspect the engine inlet.",
+     "source": "checklist.xml: list \"Icing Conditions: Preflight Inspection\", section \"2. Exterior\", item 2.c"
+    }
+   ],
+   "next": "ic_pre_cabin2"
+  },
+  "ic_pre_cabin2": {
+   "type": "steps",
+   "title": "Back in the cabin",
+   "source": "checklist.xml: list \"Icing Conditions: Preflight Inspection\", section \"3. Cabin\"",
+   "steps": [
+    {
+     "text": "Set PROBE HEAT to ON, check that no CAS message appears, then set it to OFF.",
+     "controls": [
+      {
+       "api": "DEICE_PITOT_1"
+      }
+     ],
+     "source": "checklist.xml: list \"Icing Conditions: Preflight Inspection\", section \"3. Cabin\", item 3.a"
+    },
+    {
+     "text": "Turn the ICE light OFF.",
+     "controls": [
+      {
+       "api": "LIGHTING_WING_1"
+      }
+     ],
+     "source": "checklist.xml: list \"Icing Conditions: Preflight Inspection\", section \"3. Cabin\", item 3.b"
+    },
+    {
+     "text": "Set BAT 1 and BAT 2 to OFF.",
+     "controls": [
+      {
+       "api": "SF50_ELECTRICAL_BATTERY_1_SWITCH"
+      },
+      {
+       "api": "SF50_ELECTRICAL_BATTERY_2_SWITCH"
+      }
+     ],
+     "source": "checklist.xml: list \"Icing Conditions: Preflight Inspection\", section \"3. Cabin\", item 3.c"
+    }
+   ],
+   "next": "ic_done"
+  },
+  "ic_done": {
+   "type": "end",
+   "title": "Icing preflight done",
+   "text": "Next: the other preflight checks, then start the engine."
+  },
+  "ic_to": {
+   "type": "steps",
+   "title": "Before takeoff",
+   "source": "checklist.xml: list \"Icing Conditions: Before Takeoff\"",
+   "steps": [
+    {
+     "text": "Set ENGINE IPS to ON, check it works and no CAS message appears, then set it as required.",
+     "controls": [
+      {
+       "api": "SF50_DEICE_ENGINE"
+      }
+     ],
+     "source": "checklist.xml: list \"Icing Conditions: Before Takeoff\", item 1"
+    },
+    {
+     "text": "Set WING/STAB IPS to ON, check it works and no CAS message appears, then set it to OFF.",
+     "controls": [
+      {
+       "api": "SF50_DEICE_WINGSTAB"
+      }
+     ],
+     "source": "checklist.xml: list \"Icing Conditions: Before Takeoff\", item 2"
+    }
+   ],
+   "next": "ic_to_warn"
+  },
+  "ic_to_warn": {
+   "type": "info",
+   "title": "Do not take off with contamination",
+   "text": "Takeoff is prohibited with any frost (polished or not), ice, snow or slush on the wings, stabilizers, control surfaces, engine inlet or the fuselage forward of the engine inlet. In ground icing conditions a touch inspection must be done no more than 5 minutes before takeoff.",
+   "next": ""
+  },
+  "ic_ips_q": {
+   "type": "question",
+   "title": "Which case?",
+   "text": "When do you turn the ice protection on?",
+   "choices": [
+    {
+     "id": "cond",
+     "label": "OAT 41 °F (5 °C) or less with visible moisture, or visibility under 1 mile (1.6 km)",
+     "next": "ic_ips_where"
+    },
+    {
+     "id": "ice",
+     "label": "At the first sign of ice",
+     "next": "ic_ips_ice"
+    }
+   ]
+  },
+  "ic_ips_where": {
+   "type": "question",
+   "title": "In flight or on the ground?",
+   "text": "Where is the aircraft?",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "air"
+     },
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "gnd"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "air",
+     "label": "In flight",
+     "next": "ic_ips_air"
+    },
+    {
+     "id": "gnd",
+     "label": "On the ground",
+     "next": "ic_ips_gnd"
+    }
+   ]
+  },
+  "ic_ips_air": {
+   "type": "steps",
+   "title": "In flight",
+   "source": "checklist.xml: list \"Icing Conditions: IPS Activation\", section \"OAT 41 °F (5 °C) or less with visible moisture or visibility under 1 mile, in flight\"",
+   "steps": [
+    {
+     "text": "Set PROBE HEAT to ON.",
+     "controls": [
+      {
+       "api": "DEICE_PITOT_1"
+      }
+     ],
+     "check": {
+      "code": "(A:PITOT HEAT SWITCH:1, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "source": "checklist.xml: list \"Icing Conditions: IPS Activation\", section \"OAT 41 °F (5 °C) or less with visible moisture or visibility under 1 mile, in flight\", item 1"
+    },
+    {
+     "text": "Set ENGINE IPS to ON.",
+     "controls": [
+      {
+       "api": "SF50_DEICE_ENGINE"
+      }
+     ],
+     "check": {
+      "code": "(A:ENG ANTI ICE:1, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "source": "checklist.xml: list \"Icing Conditions: IPS Activation\", section \"OAT 41 °F (5 °C) or less with visible moisture or visibility under 1 mile, in flight\", item 2"
+    },
+    {
+     "text": "Set WING/STAB IPS to OFF.",
+     "controls": [
+      {
+       "api": "SF50_DEICE_WINGSTAB"
+      }
+     ],
+     "check": {
+      "code": "(A:STRUCTURAL DEICE SWITCH, Bool)",
+      "op": "==",
+      "value": 0
+     },
+     "source": "checklist.xml: list \"Icing Conditions: IPS Activation\", section \"OAT 41 °F (5 °C) or less with visible moisture or visibility under 1 mile, in flight\", item 3"
+    },
+    {
+     "text": "Set WINDSHLD IPS to OFF.",
+     "controls": [
+      {
+       "api": "SF50_DEICE_WINDSHIELD"
+      }
+     ],
+     "source": "checklist.xml: list \"Icing Conditions: IPS Activation\", section \"OAT 41 °F (5 °C) or less with visible moisture or visibility under 1 mile, in flight\", item 4"
+    }
+   ],
+   "next": "ic_done_cond"
+  },
+  "ic_ips_gnd": {
+   "type": "steps",
+   "title": "On the ground",
+   "source": "checklist.xml: list \"Icing Conditions: IPS Activation\", section \"OAT 41 °F (5 °C) or less with visible moisture or visibility under 1 mile, on the ground\"",
+   "steps": [
+    {
+     "text": "Set PROBE HEAT to ON.",
+     "warn": "Above 41 °F (5 °C) the probe heat may be on for only 5 minutes in a row on the ground. Longer use in warmer temperatures may damage the composite structure next to the pitot probe.",
+     "controls": [
+      {
+       "api": "DEICE_PITOT_1"
+      }
+     ],
+     "check": {
+      "code": "(A:PITOT HEAT SWITCH:1, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "source": "checklist.xml: list \"Icing Conditions: IPS Activation\", section \"OAT 41 °F (5 °C) or less with visible moisture or visibility under 1 mile, on the ground\", item 1"
+    },
+    {
+     "text": "Set ENGINE IPS to ON.",
+     "controls": [
+      {
+       "api": "SF50_DEICE_ENGINE"
+      }
+     ],
+     "check": {
+      "code": "(A:ENG ANTI ICE:1, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "source": "checklist.xml: list \"Icing Conditions: IPS Activation\", section \"OAT 41 °F (5 °C) or less with visible moisture or visibility under 1 mile, on the ground\", item 2"
+    }
+   ],
+   "next": "ic_done_cond"
+  },
+  "ic_ips_ice": {
+   "type": "steps",
+   "title": "At the first sign of ice",
+   "source": "checklist.xml: list \"Icing Conditions: IPS Activation\", section \"At first sign of ice\"",
+   "steps": [
+    {
+     "text": "Set PROBE HEAT to ON.",
+     "warn": "Ice on the lifting surfaces may make the stall warning inoperative or inadequate and cause an inadvertent stall and loss of control. WING/STAB IPS must stay ON until the whole wing is free of ice and ice is no longer forming. The stall warning offset must stay ON until the whole airframe is free of ice.",
+     "controls": [
+      {
+       "api": "DEICE_PITOT_1"
+      }
+     ],
+     "check": {
+      "code": "(A:PITOT HEAT SWITCH:1, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "source": "checklist.xml: list \"Icing Conditions: IPS Activation\", section \"At first sign of ice\", item 1"
+    },
+    {
+     "text": "Set ENGINE IPS to ON.",
+     "warn": "On the ground, for every 10 minutes in falling or blowing snow or any freezing moisture, a static engine run-up to 70% N2 for 30 seconds is required to keep the engine intake, Tt2 probes and Pt2 probes clear of ice. Leave the inlet IPS on for at least 2 minutes before turning it off again.",
+     "controls": [
+      {
+       "api": "SF50_DEICE_ENGINE"
+      }
+     ],
+     "check": {
+      "code": "(A:ENG ANTI ICE:1, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "source": "checklist.xml: list \"Icing Conditions: IPS Activation\", section \"At first sign of ice\", item 2"
+    },
+    {
+     "text": "Set WING/STAB IPS to ON.",
+     "why": "Verify the STALL SPEED HIGH CAS advisory is shown. In RVSM airspace, contact ATC and notify them of non-RVSM status. The left wing leading edge is the main reference for judging whether ice is building up; ice may also show on the forward windshield.",
+     "controls": [
+      {
+       "api": "SF50_DEICE_WINGSTAB"
+      }
+     ],
+     "check": {
+      "code": "(A:STRUCTURAL DEICE SWITCH, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "source": "checklist.xml: list \"Icing Conditions: IPS Activation\", section \"At first sign of ice\", item 3"
+    },
+    {
+     "text": "Set WINDSHLD IPS to ON.",
+     "controls": [
+      {
+       "api": "SF50_DEICE_WINDSHIELD"
+      }
+     ],
+     "source": "checklist.xml: list \"Icing Conditions: IPS Activation\", section \"At first sign of ice\", item 4"
+    }
+   ],
+   "next": "ic_done2"
+  },
+  "ic_done_cond": {
+   "type": "end",
+   "title": "Ice protection set",
+   "text": "If ice starts to form, use the \"first sign of ice\" steps."
+  },
+  "ic_done2": {
+   "type": "end",
+   "title": "Ice protection set",
+   "text": "Watch the left wing leading edge. Keep WING/STAB IPS ON until the whole wing is free of ice and no more ice is forming."
+  },
+  "proc_done": {
+   "type": "end",
+   "title": "Procedure complete",
+   "text": "That is the end of this procedure."
+  },
+  "em_menu": {
+   "type": "question",
+   "title": "Which emergency?",
+   "text": "Pick the procedure.",
+   "choices": [
+    {
+     "id": "ap",
+     "label": "Automatic flight control malfunction",
+     "next": "em_ap"
+    },
+    {
+     "id": "desc",
+     "label": "Emergency descent",
+     "next": "em_desc"
+    },
+    {
+     "id": "alt",
+     "label": "CABIN ALTITUDE HIGH",
+     "next": "em_alt"
+    },
+    {
+     "id": "diff",
+     "label": "CABIN DIFF PRESSURE HIGH",
+     "next": "em_diff"
+    },
+    {
+     "id": "imb",
+     "label": "FUEL IMBALANCE",
+     "next": "em_imb"
+    },
+    {
+     "id": "low",
+     "label": "FUEL LOW LEFT / RIGHT / TOTAL",
+     "next": "em_low"
+    },
+    {
+     "id": "press",
+     "label": "FUEL PRESSURE LOW",
+     "next": "em_press"
+    },
+    {
+     "id": "temp",
+     "label": "FUEL TEMP LOW",
+     "next": "em_temp"
+    },
+    {
+     "id": "valves",
+     "label": "FUEL VALVES BOTH FAIL",
+     "next": "em_valves"
+    }
+   ]
+  },
+  "em_ap": {
+   "type": "steps",
+   "title": "Automatic flight control malfunction",
+   "source": "checklist.xml: list \"Emergency Procedures: Automatic Flight Control Malfunction\"",
+   "steps": [
+    {
+     "text": "Grip the side stick firmly.",
+     "source": "checklist.xml: list \"Emergency Procedures: Automatic Flight Control Malfunction\", item 1"
+    },
+    {
+     "text": "Press and hold the AP DISC button.",
+     "source": "checklist.xml: list \"Emergency Procedures: Automatic Flight Control Malfunction\", item 2"
+    },
+    {
+     "text": "Maintain control of the aircraft.",
+     "source": "checklist.xml: list \"Emergency Procedures: Automatic Flight Control Malfunction\", item 3"
+    },
+    {
+     "text": "Pull the AP SERVOS circuit breaker (A3).",
+     "source": "checklist.xml: list \"Emergency Procedures: Automatic Flight Control Malfunction\", item 4"
+    },
+    {
+     "text": "Release the AP DISC button.",
+     "source": "checklist.xml: list \"Emergency Procedures: Automatic Flight Control Malfunction\", item 5"
+    },
+    {
+     "text": "In RVSM airspace: maintain control of the aircraft and leave RVSM airspace.",
+     "source": "checklist.xml: list \"Automatic Flight Control Malfunction\", note after item 5"
+    },
+    {
+     "text": "Land as soon as practicable.",
+     "warn": "If you see wrong AOA indications, the green donut airspeed reference is not available or not reliable. Do not rely on the low speed awareness marks on the airspeed tape.",
+     "source": "checklist.xml: list \"Emergency Procedures: Automatic Flight Control Malfunction\", item 6"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "em_desc": {
+   "type": "steps",
+   "title": "Emergency descent",
+   "source": "checklist.xml: list \"Emergency Procedures: Emergency Descent\"",
+   "steps": [
+    {
+     "text": "Press and release AP DISC.",
+     "source": "checklist.xml: list \"Emergency Procedures: Emergency Descent\", item 1"
+    },
+    {
+     "text": "Set the thrust lever to IDLE.",
+     "controls": [
+      {
+       "api": "SF50_ENGINE_THROTTLE"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Thrust lever",
+       "unit": "%",
+       "code": "(A:GENERAL ENG THROTTLE LEVER POSITION:1, percent)"
+      }
+     ],
+     "source": "checklist.xml: list \"Emergency Procedures: Emergency Descent\", item 2"
+    },
+    {
+     "text": "Pitch about 20° nose down.",
+     "source": "checklist.xml: list \"Emergency Procedures: Emergency Descent\", item 3"
+    },
+    {
+     "text": "Increase the airspeed to the maximum: Vmo (250 KIAS) or Mmo (0.53 Mach).",
+     "warn": "If significant turbulence is expected, do not descend at indicated airspeeds greater than Vo.",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      }
+     ],
+     "source": "checklist.xml: list \"Emergency Procedures: Emergency Descent\", item 4"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "em_alt": {
+   "type": "steps",
+   "title": "Cabin altitude high",
+   "source": "checklist.xml: list \"Emergency CAS Procedures: CABIN ALTITUDE HIGH Warning\"",
+   "steps": [
+    {
+     "text": "Verify the BLEED switch is on BLEED.",
+     "controls": [
+      {
+       "api": "SF50_PRESSURIZATION_SWITCH_AIR_BLEED"
+      }
+     ],
+     "source": "checklist.xml: list \"Emergency CAS Procedures: CABIN ALTITUDE HIGH Warning\", item 1"
+    }
+   ],
+   "next": "em_alt_q"
+  },
+  "em_alt_q": {
+   "type": "question",
+   "title": "Emergency descent?",
+   "text": "Do you need an emergency descent? The checklist says \"as required\".",
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes",
+     "next": "em_alt_ed"
+    },
+    {
+     "id": "no",
+     "label": "No",
+     "next": "em_alt_3"
+    }
+   ]
+  },
+  "em_alt_ed": {
+   "type": "steps",
+   "title": "Emergency descent",
+   "source": "checklist.xml: list \"Emergency Procedures: Emergency Descent\"",
+   "steps": [
+    {
+     "text": "Press and release AP DISC.",
+     "source": "checklist.xml: list \"Emergency Procedures: Emergency Descent\", item 1"
+    },
+    {
+     "text": "Set the thrust lever to IDLE.",
+     "controls": [
+      {
+       "api": "SF50_ENGINE_THROTTLE"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Thrust lever",
+       "unit": "%",
+       "code": "(A:GENERAL ENG THROTTLE LEVER POSITION:1, percent)"
+      }
+     ],
+     "source": "checklist.xml: list \"Emergency Procedures: Emergency Descent\", item 2"
+    },
+    {
+     "text": "Pitch about 20° nose down.",
+     "source": "checklist.xml: list \"Emergency Procedures: Emergency Descent\", item 3"
+    },
+    {
+     "text": "Increase the airspeed to the maximum: Vmo (250 KIAS) or Mmo (0.53 Mach).",
+     "warn": "If significant turbulence is expected, do not descend at indicated airspeeds greater than Vo.",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      }
+     ],
+     "source": "checklist.xml: list \"Emergency Procedures: Emergency Descent\", item 4"
+    }
+   ],
+   "next": "em_alt_3"
+  },
+  "em_alt_3": {
+   "type": "steps",
+   "title": "Squawk",
+   "source": "checklist.xml: list \"Emergency CAS Procedures: CABIN ALTITUDE HIGH Warning\"",
+   "steps": [
+    {
+     "text": "Squawk 7700 on the transponder.",
+     "source": "checklist.xml: list \"Emergency CAS Procedures: CABIN ALTITUDE HIGH Warning\", item 3"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "em_diff": {
+   "type": "steps",
+   "title": "Cabin differential pressure high",
+   "source": "checklist.xml: list \"Emergency CAS Procedures: CABIN DIFF PRESSURE HIGH Warning\"",
+   "steps": [
+    {
+     "text": "Set the BLEED switch to FRESH.",
+     "controls": [
+      {
+       "api": "SF50_PRESSURIZATION_SWITCH_AIR_BLEED"
+      }
+     ],
+     "source": "checklist.xml: list \"Emergency CAS Procedures: CABIN DIFF PRESSURE HIGH Warning\", item 1"
+    }
+   ],
+   "next": "em_diff_q"
+  },
+  "em_diff_q": {
+   "type": "question",
+   "title": "Emergency descent?",
+   "text": "Do you need an emergency descent? The checklist says \"as required\".",
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes",
+     "next": "em_diff_ed"
+    },
+    {
+     "id": "no",
+     "label": "No",
+     "next": "em_diff_p"
+    }
+   ]
+  },
+  "em_diff_ed": {
+   "type": "steps",
+   "title": "Emergency descent",
+   "source": "checklist.xml: list \"Emergency Procedures: Emergency Descent\"",
+   "steps": [
+    {
+     "text": "Press and release AP DISC.",
+     "source": "checklist.xml: list \"Emergency Procedures: Emergency Descent\", item 1"
+    },
+    {
+     "text": "Set the thrust lever to IDLE.",
+     "controls": [
+      {
+       "api": "SF50_ENGINE_THROTTLE"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Thrust lever",
+       "unit": "%",
+       "code": "(A:GENERAL ENG THROTTLE LEVER POSITION:1, percent)"
+      }
+     ],
+     "source": "checklist.xml: list \"Emergency Procedures: Emergency Descent\", item 2"
+    },
+    {
+     "text": "Pitch about 20° nose down.",
+     "source": "checklist.xml: list \"Emergency Procedures: Emergency Descent\", item 3"
+    },
+    {
+     "text": "Increase the airspeed to the maximum: Vmo (250 KIAS) or Mmo (0.53 Mach).",
+     "warn": "If significant turbulence is expected, do not descend at indicated airspeeds greater than Vo.",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      }
+     ],
+     "source": "checklist.xml: list \"Emergency Procedures: Emergency Descent\", item 4"
+    }
+   ],
+   "next": "em_diff_p"
+  },
+  "em_diff_p": {
+   "type": "question",
+   "title": "Does the message stay?",
+   "text": "Does the message persist?",
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes",
+     "next": "em_diff_t"
+    },
+    {
+     "id": "no",
+     "label": "No",
+     "next": "proc_done"
+    }
+   ]
+  },
+  "em_diff_t": {
+   "type": "steps",
+   "title": "Message stays",
+   "source": "checklist.xml: list \"Emergency CAS Procedures: CABIN DIFF PRESSURE HIGH Warning\", section \"If message persists\"",
+   "steps": [
+    {
+     "text": "Reduce the thrust lever.",
+     "controls": [
+      {
+       "api": "SF50_ENGINE_THROTTLE"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Thrust lever",
+       "unit": "%",
+       "code": "(A:GENERAL ENG THROTTLE LEVER POSITION:1, percent)"
+      }
+     ],
+     "source": "checklist.xml: list \"Emergency CAS Procedures: CABIN DIFF PRESSURE HIGH Warning\", section \"If message persists\", item a"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "em_imb": {
+   "type": "steps",
+   "title": "Fuel imbalance",
+   "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL IMBALANCE Warning\"",
+   "steps": [
+    {
+     "text": "Compare the fuel quantity and the fuel remaining.",
+     "why": "Use the fuel quantity on the EIS (based on the level sensors).",
+     "warn": "If there is no roll trim imbalance when the autopilot is disconnected, the fuel imbalance or the fuel quantity indication may be wrong.",
+     "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL IMBALANCE Warning\", item 1"
+    },
+    {
+     "text": "Set the fuel control switch to the fullest tank.",
+     "controls": [
+      {
+       "api": "SF50_FUEL_CONTROL_KNOB"
+      }
+     ],
+     "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL IMBALANCE Warning\", item 2"
+    },
+    {
+     "text": "Maintain an airspeed that gives adequate roll control.",
+     "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL IMBALANCE Warning\", item 3"
+    }
+   ],
+   "next": "em_imb_q"
+  },
+  "em_imb_q": {
+   "type": "question",
+   "title": "What does the message do?",
+   "text": "Does the message go out, or does the imbalance decrease?",
+   "help": "The message means the fuel imbalance is 50 gallons or more. To keep the fuel balanced, watch the fuel quantity and alternate between LEFT and RIGHT as needed.",
+   "choices": [
+    {
+     "id": "ok",
+     "label": "Yes, it goes out or the imbalance decreases",
+     "next": "em_imb_ok"
+    },
+    {
+     "id": "bad",
+     "label": "No, it stays or the imbalance increases",
+     "next": "em_imb_bad"
+    }
+   ]
+  },
+  "em_imb_ok": {
+   "type": "steps",
+   "title": "Message gone or imbalance decreasing",
+   "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL IMBALANCE Warning\", section \"If the message extinguishes or the imbalance decreases\"",
+   "steps": [
+    {
+     "text": "Continue the flight.",
+     "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL IMBALANCE Warning\", section \"If the message extinguishes or the imbalance decreases\", item a"
+    },
+    {
+     "text": "Set the fuel control switch to AUTO.",
+     "controls": [
+      {
+       "api": "SF50_FUEL_CONTROL_KNOB"
+      }
+     ],
+     "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL IMBALANCE Warning\", section \"If the message extinguishes or the imbalance decreases\", item b"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "em_imb_bad": {
+   "type": "steps",
+   "title": "Message stays or imbalance increases",
+   "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL IMBALANCE Warning\", section \"If the message persists or the imbalance increases\"",
+   "steps": [
+    {
+     "text": "Land as soon as possible.",
+     "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL IMBALANCE Warning\", section \"If the message persists or the imbalance increases\", item a"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "em_low": {
+   "type": "steps",
+   "title": "Fuel low",
+   "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL LOW LEFT/RIGHT/TOTAL Warning\"",
+   "steps": [
+    {
+     "text": "Check the fuel quantity.",
+     "why": "The warning comes when the total fuel is 25 US gallons (95 L) or less, or the left or right tank is 5 US gallons (19 L) or less.",
+     "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL LOW LEFT/RIGHT/TOTAL Warning\", item 1"
+    },
+    {
+     "text": "Set the fuel control switch to the fullest tank.",
+     "controls": [
+      {
+       "api": "SF50_FUEL_CONTROL_KNOB"
+      }
+     ],
+     "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL LOW LEFT/RIGHT/TOTAL Warning\", item 2"
+    },
+    {
+     "text": "Land as soon as possible.",
+     "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL LOW LEFT/RIGHT/TOTAL Warning\", item 3"
+    },
+    {
+     "text": "Avoid excessive pitch attitudes and sideways acceleration.",
+     "why": "They can uncover the fuel inlet lines and interrupt the fuel flow.",
+     "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL LOW LEFT/RIGHT/TOTAL Warning\", item 4"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "em_press": {
+   "type": "steps",
+   "title": "Fuel pressure low",
+   "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL PRESSURE LOW Warning\"",
+   "steps": [
+    {
+     "text": "Switch the fuel control switch to the other tank.",
+     "why": "The EIS shows the tank selected: AUTO in white, LEFT or RIGHT in cyan. Selecting LEFT or RIGHT turns the electric pump ON; cycling to LEFT or RIGHT and back to AUTO removes the pump latch.",
+     "controls": [
+      {
+       "api": "SF50_FUEL_CONTROL_KNOB"
+      }
+     ],
+     "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL PRESSURE LOW Warning\", item 1"
+    }
+   ],
+   "next": "em_press_q"
+  },
+  "em_press_q": {
+   "type": "question",
+   "title": "Does the message go out?",
+   "text": "Does the message go out?",
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes",
+     "next": "em_press_ok"
+    },
+    {
+     "id": "no",
+     "label": "No",
+     "next": "em_press_bad"
+    }
+   ]
+  },
+  "em_press_ok": {
+   "type": "steps",
+   "title": "Message gone",
+   "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL PRESSURE LOW Warning\", section \"If message extinguishes\"",
+   "steps": [
+    {
+     "text": "Continue the flight.",
+     "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL PRESSURE LOW Warning\", section \"If message extinguishes\", item a"
+    },
+    {
+     "text": "Keep the fuel quantity balanced.",
+     "why": "To keep the fuel balanced, watch the fuel quantity and alternate between LEFT and RIGHT as needed.",
+     "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL PRESSURE LOW Warning\", section \"If message extinguishes\", item b"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "em_press_bad": {
+   "type": "steps",
+   "title": "Message stays",
+   "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL PRESSURE LOW Warning\", section \"If message persists\"",
+   "steps": [
+    {
+     "text": "Land as soon as possible.",
+     "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL PRESSURE LOW Warning\", section \"If message persists\", item a"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "em_temp": {
+   "type": "steps",
+   "title": "Fuel temperature low",
+   "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL TEMP LOW Warning\"",
+   "steps": [
+    {
+     "text": "Check the fuel temperature (L / R).",
+     "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL TEMP LOW Warning\", item 1"
+    }
+   ],
+   "next": "em_temp_where"
+  },
+  "em_temp_where": {
+   "type": "question",
+   "title": "In flight or on the ground?",
+   "text": "Where is the aircraft?",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "air"
+     },
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "gnd"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "air",
+     "label": "In flight",
+     "next": "em_temp_air"
+    },
+    {
+     "id": "gnd",
+     "label": "On the ground",
+     "next": "em_temp_gnd"
+    }
+   ]
+  },
+  "em_temp_air": {
+   "type": "steps",
+   "title": "In flight",
+   "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL TEMP LOW Warning\", section \"If in flight\"",
+   "steps": [
+    {
+     "text": "Climb or descend to warmer conditions.",
+     "why": "Changing altitude changes the OAT and so the fuel temperature. With a temperature inversion, warmer air may be higher up.",
+     "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL TEMP LOW Warning\", section \"If in flight\", item a"
+    }
+   ],
+   "next": "em_temp_q"
+  },
+  "em_temp_q": {
+   "type": "question",
+   "title": "Does the message go out?",
+   "text": "Does the message go out?",
+   "choices": [
+    {
+     "id": "ok",
+     "label": "Yes",
+     "next": "em_temp_ok"
+    },
+    {
+     "id": "bad",
+     "label": "No, it stays",
+     "next": "em_temp_bad"
+    }
+   ]
+  },
+  "em_temp_ok": {
+   "type": "steps",
+   "title": "Message gone",
+   "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL TEMP LOW Warning\", section \"If in flight, if message extinguishes\"",
+   "steps": [
+    {
+     "text": "Monitor the fuel temperature.",
+     "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL TEMP LOW Warning\", section \"If in flight, if message extinguishes\", item (1)"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "em_temp_bad": {
+   "type": "steps",
+   "title": "Message stays",
+   "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL TEMP LOW Warning\", section \"If in flight, if message persists\"",
+   "steps": [
+    {
+     "text": "Land as soon as practicable.",
+     "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL TEMP LOW Warning\", section \"If in flight, if message persists\", item (1)"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "em_temp_gnd": {
+   "type": "steps",
+   "title": "On the ground",
+   "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL TEMP LOW Warning\", section \"If on ground\"",
+   "steps": [
+    {
+     "text": "Warm the aircraft to raise the fuel temperature.",
+     "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL TEMP LOW Warning\", section \"If on ground\", item a"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "em_valves": {
+   "type": "steps",
+   "title": "Both fuel valves failed",
+   "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL VALVES BOTH FAIL Warning\"",
+   "steps": [
+    {
+     "text": "Check the fuel quantity.",
+     "why": "Valves that fail together cause a fuel imbalance that grows as the flight goes on. Both valves stay in the last commanded position.",
+     "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL VALVES BOTH FAIL Warning\", item 1"
+    },
+    {
+     "text": "Maintain an airspeed that gives adequate roll control.",
+     "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL VALVES BOTH FAIL Warning\", item 2"
+    },
+    {
+     "text": "Land as soon as possible.",
+     "source": "checklist.xml: list \"Emergency CAS Procedures: FUEL VALVES BOTH FAIL Warning\", item 3"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "ab_menu": {
+   "type": "question",
+   "title": "Which procedure?",
+   "text": "Pick the procedure.",
+   "choices": [
+    {
+     "id": "gia",
+     "label": "GIA 1 failure",
+     "next": "ab_gia"
+    },
+    {
+     "id": "gps",
+     "label": "Loss of GPS navigation",
+     "next": "ab_gps"
+    },
+    {
+     "id": "dry",
+     "label": "Dry motoring after a failed start",
+     "next": "ab_dry"
+    }
+   ]
+  },
+  "ab_gia": {
+   "type": "steps",
+   "title": "GIA 1 failure",
+   "source": "checklist.xml: list \"Abnormal Procedures: GIA 1 Failure\"",
+   "steps": [
+    {
+     "text": "Avoid stalls, low airspeed, and uncoordinated or abrupt control inputs.",
+     "warn": "GIA 1 feeds many systems, so many CAS messages and amber X's appear at once. Treat it as one failure, not many. The clearest sign is the loss of COM1/NAV1 and GPS1 together with several system messages.",
+     "source": "checklist.xml: list \"Abnormal Procedures: GIA 1 Failure\", item 1"
+    },
+    {
+     "text": "Select GPS 2 or NAV 2 for navigation.",
+     "source": "checklist.xml: list \"Abnormal Procedures: GIA 1 Failure\", item 2"
+    },
+    {
+     "text": "Tune COM 2 and select it as active.",
+     "source": "checklist.xml: list \"Abnormal Procedures: GIA 1 Failure\", item 3"
+    },
+    {
+     "text": "Assess and acknowledge the CAS messages.",
+     "why": "FUEL VALVES BOTH FAIL, PROBE HEAT OFF, IPS WING/STAB FAIL, IPS ENGINE INLET OFF and CABIN PRESSURE CTRL FAIL may come from the loss of monitoring, not from a loss of function, and their procedures are not required for a GIA 1 failure. Other messages may show depending on the configuration (OXYGEN PASSENGER FAIL, FLAPS ICE, FLAPS FAIL, LDG GEAR SELECTOR FAIL, FUEL VALVE AUTO FAIL, STICK PUSHER FAIL, SFD NO COMPARE, STALL SPEED HIGH); they need no action unless a step here says so.",
+     "source": "checklist.xml: list \"Abnormal Procedures: GIA 1 Failure\", item 4"
+    },
+    {
+     "text": "Maintain the fuel balance: check the fuel quantity.",
+     "source": "checklist.xml: list \"Abnormal Procedures: GIA 1 Failure\", item 5.a"
+    },
+    {
+     "text": "Maintain the fuel balance: set the fuel control switch to the fullest tank.",
+     "why": "To keep the fuel balanced, watch the fuel quantity and alternate between LEFT and RIGHT as needed.",
+     "controls": [
+      {
+       "api": "SF50_FUEL_CONTROL_KNOB"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal Procedures: GIA 1 Failure\", item 5.b"
+    },
+    {
+     "text": "Set the altitude as required.",
+     "source": "checklist.xml: list \"Abnormal Procedures: GIA 1 Failure\", item 6"
+    },
+    {
+     "text": "Avoid flight into icing conditions.",
+     "why": "The systems show several FAIL annunciations that come from data loss, not from system failure. If you must go through ice, operate the systems normally. The STALL SPEED HIGH advisory will show, so use the ice-contaminated approach speeds at the current flap setting. FLAPS ICE shows if the flaps were at 100% at the time of the failure.",
+     "source": "checklist.xml: list \"Abnormal Procedures: GIA 1 Failure\", item 7"
+    },
+    {
+     "text": "Perform the Alternate Gear Extension checklist.",
+     "why": "That checklist is not in the sim's checklist file.",
+     "source": "checklist.xml: list \"Abnormal Procedures: GIA 1 Failure\", item 8"
+    },
+    {
+     "text": "Press the CABIN PRESSURE DUMP button (below 1500 ft AGL).",
+     "readouts": [
+      {
+       "label": "Height above ground",
+       "unit": "ft",
+       "code": "(A:PLANE ALT ABOVE GROUND, feet)"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal Procedures: GIA 1 Failure\", item 9"
+    },
+    {
+     "text": "Land as soon as practicable.",
+     "source": "checklist.xml: list \"Abnormal Procedures: GIA 1 Failure\", item 10"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "ab_gps": {
+   "type": "steps",
+   "title": "Loss of GPS navigation",
+   "source": "checklist.xml: list \"Abnormal Procedures: Loss of GPS Navigation\"",
+   "steps": [
+    {
+     "text": "Navigate visually, or select VOR and/or DME.",
+     "warn": "The stick pusher is inoperative.",
+     "source": "checklist.xml: list \"Abnormal Procedures: Loss of GPS Navigation\", item 1"
+    },
+    {
+     "text": "Perform the STICK PUSHER FAIL caution checklist.",
+     "why": "That checklist is not in the sim's checklist file.",
+     "source": "checklist.xml: list \"Abnormal Procedures: Loss of GPS Navigation\", item 2"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "ab_dry": {
+   "type": "steps",
+   "title": "Dry motoring",
+   "source": "checklist.xml: list \"Abnormal Procedures: Dry Motoring Engine - Failed Engine Start\"",
+   "steps": [
+    {
+     "text": "Set the thrust lever to IDLE.",
+     "controls": [
+      {
+       "api": "SF50_ENGINE_THROTTLE"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Thrust lever",
+       "unit": "%",
+       "code": "(A:GENERAL ENG THROTTLE LEVER POSITION:1, percent)"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal Procedures: Dry Motoring Engine - Failed Engine Start\", item 1"
+    },
+    {
+     "text": "Set the engine knob to OFF.",
+     "why": "The engine knob at OFF stops the electric fuel pump.",
+     "controls": [
+      {
+       "api": "SF50_ENGINE_RUN_KNOB"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal Procedures: Dry Motoring Engine - Failed Engine Start\", item 2"
+    },
+    {
+     "text": "Set the BLEED switch to FRESH.",
+     "why": "Heavy bleed air extraction during an engine start gives a hotter ITT and a slower start.",
+     "controls": [
+      {
+       "api": "SF50_PRESSURIZATION_SWITCH_AIR_BLEED"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal Procedures: Dry Motoring Engine - Failed Engine Start\", item 3"
+    },
+    {
+     "text": "Press and hold the engine button for 15 to 30 seconds.",
+     "warn": "Battery damage may occur if the motoring goes on too long.",
+     "controls": [
+      {
+       "api": "SF50_ENGINE_STARTER"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal Procedures: Dry Motoring Engine - Failed Engine Start\", item 4"
+    },
+    {
+     "text": "Before another start, inspect the engine: no fuel pooled and the exhaust dry.",
+     "why": "Dry motoring clears residual fuel after a failed start.",
+     "source": "checklist.xml: list \"Dry Motoring Engine - Failed Engine Start\", first note"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "ca_menu": {
+   "type": "question",
+   "title": "Which group?",
+   "text": "Pick the group of the message.",
+   "choices": [
+    {
+     "id": "fuel",
+     "label": "Fuel",
+     "next": "cf_menu"
+    },
+    {
+     "id": "other",
+     "label": "Bleed, ECS, cabin pressure and thrust",
+     "next": "co_menu"
+    }
+   ]
+  },
+  "cf_menu": {
+   "type": "question",
+   "title": "Which fuel message?",
+   "text": "Pick the message.",
+   "choices": [
+    {
+     "id": "imb",
+     "label": "FUEL IMBALANCE",
+     "next": "cf_imb"
+    },
+    {
+     "id": "low",
+     "label": "FUEL LOW LEFT / RIGHT / TOTAL",
+     "next": "cf_low"
+    },
+    {
+     "id": "pumpfail",
+     "label": "FUEL PUMP FAIL",
+     "next": "cf_pumpfail"
+    },
+    {
+     "id": "pumpon",
+     "label": "FUEL PUMP ON (caution)",
+     "next": "cf_pumpon"
+    },
+    {
+     "id": "pumpadv",
+     "label": "FUEL PUMP ON (advisory)",
+     "next": "cf_pumpadv"
+    },
+    {
+     "id": "qty",
+     "label": "FUEL QTY MISCOMPARE",
+     "next": "cf_qty"
+    },
+    {
+     "id": "selector",
+     "label": "FUEL SELECTOR FAIL",
+     "next": "cf_selector"
+    },
+    {
+     "id": "shutoff",
+     "label": "FUEL SHUTOFF FAIL",
+     "next": "cf_shutoff"
+    },
+    {
+     "id": "balanced",
+     "label": "FUEL TANK BALANCED",
+     "next": "cf_balanced"
+    },
+    {
+     "id": "temp",
+     "label": "FUEL TEMP LOW",
+     "next": "cf_temp"
+    },
+    {
+     "id": "v1",
+     "label": "FUEL VALVE #1 FAIL",
+     "next": "cf_v1"
+    },
+    {
+     "id": "v2",
+     "label": "FUEL VALVE #2 FAIL",
+     "next": "cf_v2"
+    }
+   ]
+  },
+  "co_menu": {
+   "type": "question",
+   "title": "Which message?",
+   "text": "Pick the message.",
+   "choices": [
+    {
+     "id": "bleedoff",
+     "label": "BLEED OFF",
+     "next": "co_bleedoff"
+    },
+    {
+     "id": "lfe",
+     "label": "CABIN LFE NOT SET",
+     "next": "co_lfe"
+    },
+    {
+     "id": "hot",
+     "label": "ECS BLEED HOT",
+     "next": "co_hot"
+    },
+    {
+     "id": "over",
+     "label": "ECS BLEED OVERHEAT",
+     "next": "co_over"
+    },
+    {
+     "id": "backup",
+     "label": "ECS TEMP BACKUP",
+     "next": "co_backup"
+    },
+    {
+     "id": "toff",
+     "label": "TAKEOFF THRUST",
+     "next": "co_toff"
+    },
+    {
+     "id": "tcv",
+     "label": "TCV CONTROL FAIL",
+     "next": "co_tcv"
+    }
+   ]
+  },
+  "cf_imb": {
+   "type": "steps",
+   "title": "Fuel imbalance",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL IMBALANCE Caution\"",
+   "steps": [
+    {
+     "text": "Set the fuel control switch to AUTO.",
+     "controls": [
+      {
+       "api": "SF50_FUEL_CONTROL_KNOB"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL IMBALANCE Caution\", item 1"
+    },
+    {
+     "text": "Compare the fuel quantity and the fuel remaining.",
+     "why": "Use the fuel quantity on the EIS (based on the level sensors).",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL IMBALANCE Caution\", item 2"
+    },
+    {
+     "text": "Set the fuel control switch to the fullest tank.",
+     "controls": [
+      {
+       "api": "SF50_FUEL_CONTROL_KNOB"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL IMBALANCE Caution\", item 3"
+    },
+    {
+     "text": "Maintain an airspeed that gives adequate roll control.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL IMBALANCE Caution\", item 4"
+    }
+   ],
+   "next": "cf_imb_q"
+  },
+  "cf_imb_q": {
+   "type": "question",
+   "title": "What does the message do?",
+   "text": "Does the message go out, or does the imbalance decrease?",
+   "help": "The message means the fuel imbalance is 15 gallons or more. To keep the fuel balanced, watch the fuel quantity and alternate between LEFT and RIGHT as needed.",
+   "choices": [
+    {
+     "id": "ok",
+     "label": "Yes, it goes out or the imbalance decreases",
+     "next": "cf_imb_ok"
+    },
+    {
+     "id": "bad",
+     "label": "No, it stays or the imbalance increases",
+     "next": "cf_imb_bad"
+    }
+   ]
+  },
+  "cf_imb_ok": {
+   "type": "steps",
+   "title": "Message gone or imbalance decreasing",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL IMBALANCE Caution\", section \"If the message extinguishes or the imbalance decreases\"",
+   "steps": [
+    {
+     "text": "Continue the flight.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL IMBALANCE Caution\", section \"If the message extinguishes or the imbalance decreases\", item a"
+    },
+    {
+     "text": "Set the fuel control switch to AUTO.",
+     "controls": [
+      {
+       "api": "SF50_FUEL_CONTROL_KNOB"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL IMBALANCE Caution\", section \"If the message extinguishes or the imbalance decreases\", item b"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "cf_imb_bad": {
+   "type": "steps",
+   "title": "Message stays or imbalance increases",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL IMBALANCE Caution\", section \"If the message persists or the imbalance increases\"",
+   "steps": [
+    {
+     "text": "Land as soon as possible.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL IMBALANCE Caution\", section \"If the message persists or the imbalance increases\", item a"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "cf_low": {
+   "type": "steps",
+   "title": "Fuel low",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL LOW LEFT/RIGHT/TOTAL Caution\"",
+   "steps": [
+    {
+     "text": "Check the fuel quantity.",
+     "why": "The left tank, the right tank or the total fuel is low. AUTO fuel control keeps balancing the fuel consumption during this caution.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL LOW LEFT/RIGHT/TOTAL Caution\", item 1"
+    },
+    {
+     "text": "Reduce the thrust lever to the minimum required.",
+     "controls": [
+      {
+       "api": "SF50_ENGINE_THROTTLE"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Thrust lever",
+       "unit": "%",
+       "code": "(A:GENERAL ENG THROTTLE LEVER POSITION:1, percent)"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL LOW LEFT/RIGHT/TOTAL Caution\", item 2"
+    },
+    {
+     "text": "Land as soon as practicable.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL LOW LEFT/RIGHT/TOTAL Caution\", item 3"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "cf_pumpfail": {
+   "type": "steps",
+   "title": "Fuel pump failed",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL PUMP FAIL Caution\"",
+   "steps": [
+    {
+     "text": "Avoid abrupt thrust lever movements.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL PUMP FAIL Caution\", item 1"
+    },
+    {
+     "text": "Land as soon as practicable.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL PUMP FAIL Caution\", item 2"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "cf_pumpon": {
+   "type": "steps",
+   "title": "Fuel pump on",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL PUMP ON Caution\"",
+   "steps": [
+    {
+     "text": "Switch the fuel control switch to the other tank.",
+     "why": "The EIS shows the tank selected: AUTO in white, LEFT or RIGHT in cyan.",
+     "controls": [
+      {
+       "api": "SF50_FUEL_CONTROL_KNOB"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL PUMP ON Caution\", item 1"
+    },
+    {
+     "text": "Set the fuel control switch to AUTO.",
+     "why": "The message means the pump was latched ON because of low fuel pressure. Setting LEFT or RIGHT and then AUTO removes the latch.",
+     "controls": [
+      {
+       "api": "SF50_FUEL_CONTROL_KNOB"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL PUMP ON Caution\", item 2"
+    }
+   ],
+   "next": "cf_pumpon_q"
+  },
+  "cf_pumpon_q": {
+   "type": "question",
+   "title": "Does the message come back?",
+   "text": "Does the message go out and stay out?",
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, it stays out",
+     "next": "cf_pumpon_ok"
+    },
+    {
+     "id": "no",
+     "label": "No, it stays or comes back",
+     "next": "cf_pumpon_bad"
+    }
+   ]
+  },
+  "cf_pumpon_ok": {
+   "type": "steps",
+   "title": "Message gone",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL PUMP ON Caution\", section \"If message extinguishes and does not reappear\"",
+   "steps": [
+    {
+     "text": "Continue the flight.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL PUMP ON Caution\", section \"If message extinguishes and does not reappear\", item a"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "cf_pumpon_bad": {
+   "type": "steps",
+   "title": "Message stays or comes back",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL PUMP ON Caution\", section \"If message persists or reappears\"",
+   "steps": [
+    {
+     "text": "Set the fuel control switch to the fullest tank.",
+     "controls": [
+      {
+       "api": "SF50_FUEL_CONTROL_KNOB"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL PUMP ON Caution\", section \"If message persists or reappears\", item a"
+    },
+    {
+     "text": "Keep the fuel quantity balanced.",
+     "why": "To keep the fuel balanced, watch the fuel quantity and alternate between LEFT and RIGHT as needed.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL PUMP ON Caution\", section \"If message persists or reappears\", item b"
+    },
+    {
+     "text": "Land as soon as practicable.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL PUMP ON Caution\", section \"If message persists or reappears\", item c"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "cf_pumpadv": {
+   "type": "info",
+   "title": "FUEL PUMP ON advisory",
+   "text": "Advisory only. No further action required. The pump is on for normal operation: you selected the L or R tank, or the avionics started it on entering the start mode.",
+   "next": "proc_done"
+  },
+  "cf_qty": {
+   "type": "steps",
+   "title": "Fuel quantity miscompare",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL QTY MISCOMPARE Caution\"",
+   "steps": [
+    {
+     "text": "Compare the fuel quantity and the fuel remaining.",
+     "why": "Use the fuel quantity on the EIS (based on the level sensors).",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL QTY MISCOMPARE Caution\", item 1"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "cf_selector": {
+   "type": "steps",
+   "title": "Fuel selector failed",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL SELECTOR FAIL Caution\"",
+   "steps": [
+    {
+     "text": "Check the fuel control switch in LEFT, AUTO and RIGHT.",
+     "warn": "A failed fuel control switch causes a fuel imbalance that grows as the flight goes on.",
+     "controls": [
+      {
+       "api": "SF50_FUEL_CONTROL_KNOB"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL SELECTOR FAIL Caution\", item 1"
+    }
+   ],
+   "next": "cf_selector_q"
+  },
+  "cf_selector_q": {
+   "type": "question",
+   "title": "Does the switch work?",
+   "text": "Which positions work?",
+   "choices": [
+    {
+     "id": "none",
+     "label": "None of them",
+     "next": "cf_selector_none"
+    },
+    {
+     "id": "lr",
+     "label": "LEFT and RIGHT work",
+     "next": "cf_selector_lr"
+    }
+   ]
+  },
+  "cf_selector_none": {
+   "type": "steps",
+   "title": "Control inoperable",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL SELECTOR FAIL Caution\", section \"If control is inoperable in all switch positions\"",
+   "steps": [
+    {
+     "text": "Land as soon as possible.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL SELECTOR FAIL Caution\", section \"If control is inoperable in all switch positions\", item a"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "cf_selector_lr": {
+   "type": "steps",
+   "title": "LEFT and RIGHT work",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL SELECTOR FAIL Caution\", section \"If LEFT and RIGHT switch positions are operable\"",
+   "steps": [
+    {
+     "text": "Check the fuel quantity.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL SELECTOR FAIL Caution\", section \"If LEFT and RIGHT switch positions are operable\", item a"
+    },
+    {
+     "text": "Set the fuel control switch to the fullest tank (LEFT or RIGHT only).",
+     "controls": [
+      {
+       "api": "SF50_FUEL_CONTROL_KNOB"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL SELECTOR FAIL Caution\", section \"If LEFT and RIGHT switch positions are operable\", item b"
+    },
+    {
+     "text": "Keep the fuel quantity balanced.",
+     "why": "To keep the fuel balanced, watch the fuel quantity and alternate between LEFT and RIGHT as needed.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL SELECTOR FAIL Caution\", section \"If LEFT and RIGHT switch positions are operable\", item c"
+    },
+    {
+     "text": "Land as soon as possible.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL SELECTOR FAIL Caution\", section \"If LEFT and RIGHT switch positions are operable\", item d"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "cf_shutoff": {
+   "type": "steps",
+   "title": "Fuel shutoff failed",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL SHUTOFF FAIL Caution\", section \"If during normal flight and engine is running\"",
+   "steps": [
+    {
+     "text": "In normal flight with the engine running: land as soon as practicable.",
+     "why": "The fuel shutoff valve is not in the commanded position.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL SHUTOFF FAIL Caution\", section \"If during normal flight and engine is running\", item a"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "cf_balanced": {
+   "type": "steps",
+   "title": "Fuel tanks balanced",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL TANK BALANCED Advisory\"",
+   "steps": [
+    {
+     "text": "Set the fuel control switch to AUTO.",
+     "why": "The fuel tank quantities are balanced.",
+     "controls": [
+      {
+       "api": "SF50_FUEL_CONTROL_KNOB"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL TANK BALANCED Advisory\", item 1"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "cf_temp": {
+   "type": "steps",
+   "title": "Fuel temperature low",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL TEMP LOW Caution\"",
+   "steps": [
+    {
+     "text": "Check the fuel temperature (L / R).",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL TEMP LOW Caution\", item 1"
+    }
+   ],
+   "next": "cf_temp_where"
+  },
+  "cf_temp_where": {
+   "type": "question",
+   "title": "In flight or on the ground?",
+   "text": "Where is the aircraft?",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "air"
+     },
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "gnd"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "air",
+     "label": "In flight",
+     "next": "cf_temp_air"
+    },
+    {
+     "id": "gnd",
+     "label": "On the ground",
+     "next": "cf_temp_gnd"
+    }
+   ]
+  },
+  "cf_temp_air": {
+   "type": "steps",
+   "title": "In flight",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL TEMP LOW Caution\", section \"If in flight\"",
+   "steps": [
+    {
+     "text": "Climb or descend to warmer conditions.",
+     "why": "Changing altitude changes the OAT and so the fuel temperature. With a temperature inversion, warmer air may be higher up.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL TEMP LOW Caution\", section \"If in flight\", item a"
+    },
+    {
+     "text": "Monitor the fuel temperature.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL TEMP LOW Caution\", section \"If in flight\", item a (second)"
+    }
+   ],
+   "next": "cf_temp_q"
+  },
+  "cf_temp_q": {
+   "type": "question",
+   "title": "Does the message go out?",
+   "text": "Does the message go out?",
+   "choices": [
+    {
+     "id": "ok",
+     "label": "Yes",
+     "next": "proc_done"
+    },
+    {
+     "id": "bad",
+     "label": "No, it stays",
+     "next": "cf_temp_bad"
+    }
+   ]
+  },
+  "cf_temp_bad": {
+   "type": "steps",
+   "title": "Message stays",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL TEMP LOW Caution\", section \"If in flight, if message persists\"",
+   "steps": [
+    {
+     "text": "Land as soon as practicable.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL TEMP LOW Caution\", section \"If in flight, if message persists\", item (1)"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "cf_temp_gnd": {
+   "type": "steps",
+   "title": "On the ground",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL TEMP LOW Caution\", section \"If on ground\"",
+   "steps": [
+    {
+     "text": "Warm the aircraft to raise the fuel temperature.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL TEMP LOW Caution\", section \"If on ground\", item a"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "cf_v1": {
+   "type": "steps",
+   "title": "Fuel valve 1 failed",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL VALVE #1 FAIL Caution\"",
+   "steps": [
+    {
+     "text": "Check the fuel quantity.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL VALVE #1 FAIL Caution\", item 1"
+    },
+    {
+     "text": "Set the fuel control switch to the fullest tank.",
+     "warn": "Avoid AUTO: it draws fuel through fuel valve #1, which has failed.",
+     "controls": [
+      {
+       "api": "SF50_FUEL_CONTROL_KNOB"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL VALVE #1 FAIL Caution\", item 2"
+    },
+    {
+     "text": "Keep the fuel quantity balanced.",
+     "why": "To keep the fuel balanced, watch the fuel quantity and alternate between LEFT and RIGHT as needed.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL VALVE #1 FAIL Caution\", item 3"
+    },
+    {
+     "text": "Land as soon as practicable.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL VALVE #1 FAIL Caution\", item 4"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "cf_v2": {
+   "type": "steps",
+   "title": "Fuel valve 2 failed",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL VALVE #2 FAIL Caution\"",
+   "steps": [
+    {
+     "text": "Check the fuel quantity.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL VALVE #2 FAIL Caution\", item 1"
+    },
+    {
+     "text": "Set the fuel control switch to AUTO.",
+     "why": "Keep it in AUTO: that draws fuel through fuel valve #1, which works. Avoid LEFT and RIGHT: they turn the electric fuel pump on and draw fuel through fuel valve #2, which has failed.",
+     "controls": [
+      {
+       "api": "SF50_FUEL_CONTROL_KNOB"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL VALVE #2 FAIL Caution\", item 2"
+    },
+    {
+     "text": "Land as soon as practicable.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: FUEL VALVE #2 FAIL Caution\", item 3"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "co_bleedoff": {
+   "type": "question",
+   "title": "Bleed off",
+   "text": "BLEED OFF means bleed air is switched to OFF/FRESH. Do you want it off?",
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, bleed off is wanted",
+     "next": "proc_done"
+    },
+    {
+     "id": "no",
+     "label": "No, I want bleed air",
+     "next": "co_bleedoff_fix"
+    }
+   ]
+  },
+  "co_bleedoff_fix": {
+   "type": "steps",
+   "title": "Bleed wanted",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: BLEED OFF Caution\", section \"If bleed is not desired OFF\"",
+   "steps": [
+    {
+     "text": "Cycle the BLEED switch to BLEED.",
+     "controls": [
+      {
+       "api": "SF50_PRESSURIZATION_SWITCH_AIR_BLEED"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: BLEED OFF Caution\", section \"If bleed is not desired OFF\", item a"
+    },
+    {
+     "text": "Verify the message is out.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: BLEED OFF Caution\", section \"If bleed is not desired OFF\", item b"
+    }
+   ],
+   "next": "co_bleedoff_q"
+  },
+  "co_bleedoff_q": {
+   "type": "question",
+   "title": "Does the message stay?",
+   "text": "Does the message persist?",
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes",
+     "next": "co_bleedoff_p"
+    },
+    {
+     "id": "no",
+     "label": "No",
+     "next": "proc_done"
+    }
+   ]
+  },
+  "co_bleedoff_p": {
+   "type": "steps",
+   "title": "Message stays",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: BLEED OFF Caution\", section \"If message persists\"",
+   "steps": [
+    {
+     "text": "Monitor the cabin altitude.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: BLEED OFF Caution\", section \"If message persists\", item (1)"
+    },
+    {
+     "text": "Monitor for the CABIN ALTITUDE HIGH warning.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: BLEED OFF Caution\", section \"If message persists\", item (2)"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "co_lfe": {
+   "type": "steps",
+   "title": "Cabin LFE not set",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: CABIN LFE NOT SET Caution\"",
+   "steps": [
+    {
+     "text": "Monitor the cabin altitude.",
+     "why": "The CPCS controller has failed. If the cabin pressure controller fails, the CPCS keeps the current cabin altitude.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: CABIN LFE NOT SET Caution\", item 1"
+    },
+    {
+     "text": "Monitor for the CABIN ALTITUDE HIGH warning.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: CABIN LFE NOT SET Caution\", item 2"
+    },
+    {
+     "text": "Land as soon as practicable.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: CABIN LFE NOT SET Caution\", item 3"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "co_hot": {
+   "type": "steps",
+   "title": "ECS bleed hot",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: ECS BLEED HOT Caution\"",
+   "steps": [
+    {
+     "text": "Turn the cabin temperature knob to FULL COLD.",
+     "why": "The message shows when the bleed supply temperature reaches 250 °F (121 °C).",
+     "controls": [
+      {
+       "api": "SF50_CABIN_ECS_TEMP_KNOB_FORWARD"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: ECS BLEED HOT Caution\", item 1"
+    }
+   ],
+   "next": "co_hot_q"
+  },
+  "co_hot_q": {
+   "type": "question",
+   "title": "Does the message go out?",
+   "text": "Does the message go out?",
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes",
+     "next": "proc_done"
+    },
+    {
+     "id": "no",
+     "label": "No",
+     "next": "co_hot_p"
+    }
+   ]
+  },
+  "co_hot_p": {
+   "type": "steps",
+   "title": "Message stays",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: ECS BLEED HOT Caution\", section \"If message persists\"",
+   "steps": [
+    {
+     "text": "Select TEMP BACKUP.",
+     "controls": [
+      {
+       "api": "SF50_CABIN_ECS_TEMP_BACKUP"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: ECS BLEED HOT Caution\", section \"If message persists\", item a"
+    },
+    {
+     "text": "Verify the message is out.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: ECS BLEED HOT Caution\", section \"If message persists\", item b"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "co_over": {
+   "type": "steps",
+   "title": "ECS bleed overheat",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: ECS BLEED OVERHEAT Caution\"",
+   "steps": [
+    {
+     "text": "Turn the cabin temperature knob to FULL COLD.",
+     "why": "The message shows when the bleed supply temperature reaches 270 °F (132 °C).",
+     "controls": [
+      {
+       "api": "SF50_CABIN_ECS_TEMP_KNOB_FORWARD"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: ECS BLEED OVERHEAT Caution\", item 1"
+    }
+   ],
+   "next": "co_over_q1"
+  },
+  "co_over_q1": {
+   "type": "question",
+   "title": "Does the message go out?",
+   "text": "Does the message go out?",
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes",
+     "next": "proc_done"
+    },
+    {
+     "id": "no",
+     "label": "No",
+     "next": "co_over_p1"
+    }
+   ]
+  },
+  "co_over_p1": {
+   "type": "steps",
+   "title": "Message stays",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: ECS BLEED OVERHEAT Caution\", section \"If message persists\"",
+   "steps": [
+    {
+     "text": "Select TEMP BACKUP.",
+     "controls": [
+      {
+       "api": "SF50_CABIN_ECS_TEMP_BACKUP"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: ECS BLEED OVERHEAT Caution\", section \"If message persists\", item a"
+    },
+    {
+     "text": "Verify the message is out.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: ECS BLEED OVERHEAT Caution\", section \"If message persists\", item b"
+    }
+   ],
+   "next": "co_over_q2"
+  },
+  "co_over_q2": {
+   "type": "question",
+   "title": "Does the message go out?",
+   "text": "Does the message go out?",
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes",
+     "next": "proc_done"
+    },
+    {
+     "id": "no",
+     "label": "No",
+     "next": "co_over_p2"
+    }
+   ]
+  },
+  "co_over_p2": {
+   "type": "steps",
+   "title": "Message still stays",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: ECS BLEED OVERHEAT Caution\", section \"If message persists, after TEMP BACKUP\"",
+   "steps": [
+    {
+     "text": "Reduce the thrust lever as far as practical.",
+     "controls": [
+      {
+       "api": "SF50_ENGINE_THROTTLE"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Thrust lever",
+       "unit": "%",
+       "code": "(A:GENERAL ENG THROTTLE LEVER POSITION:1, percent)"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: ECS BLEED OVERHEAT Caution\", section \"If message persists, after TEMP BACKUP\", item (1)"
+    },
+    {
+     "text": "Verify the message is out.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: ECS BLEED OVERHEAT Caution\", section \"If message persists, after TEMP BACKUP\", item (2)"
+    }
+   ],
+   "next": "co_over_q3"
+  },
+  "co_over_q3": {
+   "type": "question",
+   "title": "Does it stay, or TCV CONTROL FAIL?",
+   "text": "Does the message persist, or is TCV CONTROL FAIL shown?",
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes",
+     "next": "co_over_p3"
+    },
+    {
+     "id": "no",
+     "label": "No",
+     "next": "proc_done"
+    }
+   ]
+  },
+  "co_over_p3": {
+   "type": "steps",
+   "title": "Message stays",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: ECS BLEED OVERHEAT Caution\", section \"If message persists or TCV CONTROL FAIL is displayed\"",
+   "steps": [
+    {
+     "text": "Set the BLEED switch to FRESH.",
+     "controls": [
+      {
+       "api": "SF50_PRESSURIZATION_SWITCH_AIR_BLEED"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: ECS BLEED OVERHEAT Caution\", section \"If message persists or TCV CONTROL FAIL is displayed\", item (a)"
+    },
+    {
+     "text": "Monitor the cabin altitude.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: ECS BLEED OVERHEAT Caution\", section \"If message persists or TCV CONTROL FAIL is displayed\", item (b)"
+    },
+    {
+     "text": "Monitor for the CABIN ALTITUDE HIGH warning.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: ECS BLEED OVERHEAT Caution\", section \"If message persists or TCV CONTROL FAIL is displayed\", item (c)"
+    },
+    {
+     "text": "Land as soon as practicable.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: ECS BLEED OVERHEAT Caution\", section \"If message persists or TCV CONTROL FAIL is displayed\", item (d)"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "co_backup": {
+   "type": "question",
+   "title": "How was TEMP BACKUP engaged?",
+   "text": "Did you engage the temperature backup mode yourself?",
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, on purpose",
+     "next": "co_backup_on"
+    },
+    {
+     "id": "no",
+     "label": "No, it came on by itself",
+     "next": "co_backup_off"
+    }
+   ]
+  },
+  "co_backup_on": {
+   "type": "steps",
+   "title": "Engaged on purpose",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: ECS TEMP BACKUP Caution\", section \"If TEMP BACKUP mode engaged intentionally\"",
+   "steps": [
+    {
+     "text": "Adjust the cabin temperature knob for comfort.",
+     "controls": [
+      {
+       "api": "SF50_CABIN_ECS_TEMP_KNOB_FORWARD"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: ECS TEMP BACKUP Caution\", section \"If TEMP BACKUP mode engaged intentionally\", item a"
+    },
+    {
+     "text": "Monitor for the ECS BLEED HOT or ECS BLEED OVERHEAT cautions.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: ECS TEMP BACKUP Caution\", section \"If TEMP BACKUP mode engaged intentionally\", item b"
+    }
+   ],
+   "next": "co_backup_q"
+  },
+  "co_backup_q": {
+   "type": "question",
+   "title": "Which caution came up?",
+   "text": "Which caution is shown?",
+   "choices": [
+    {
+     "id": "hot",
+     "label": "ECS BLEED HOT",
+     "next": "co_hot"
+    },
+    {
+     "id": "over",
+     "label": "ECS BLEED OVERHEAT",
+     "next": "co_over"
+    },
+    {
+     "id": "none",
+     "label": "Neither",
+     "next": "proc_done"
+    }
+   ]
+  },
+  "co_backup_off": {
+   "type": "steps",
+   "title": "Engaged by itself",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: ECS TEMP BACKUP Caution\", section \"If TEMP BACKUP mode engaged unintentionally\"",
+   "steps": [
+    {
+     "text": "Deselect TEMP BACKUP.",
+     "controls": [
+      {
+       "api": "SF50_CABIN_ECS_TEMP_BACKUP"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: ECS TEMP BACKUP Caution\", section \"If TEMP BACKUP mode engaged unintentionally\", item a"
+    },
+    {
+     "text": "Adjust the ECS controls as required.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: ECS TEMP BACKUP Caution\", section \"If TEMP BACKUP mode engaged unintentionally\", item b"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "co_toff": {
+   "type": "steps",
+   "title": "Takeoff thrust",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: TAKEOFF THRUST Caution\"",
+   "steps": [
+    {
+     "text": "Set the thrust lever to MCT.",
+     "why": "The 5 minute takeoff thrust limit was exceeded.",
+     "controls": [
+      {
+       "api": "SF50_ENGINE_MCT_SNAP"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Thrust lever",
+       "unit": "%",
+       "code": "(A:GENERAL ENG THROTTLE LEVER POSITION:1, percent)"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: TAKEOFF THRUST Caution\", item 1"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "co_tcv": {
+   "type": "steps",
+   "title": "TCV control failed",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: TCV CONTROL FAIL Caution\"",
+   "steps": [
+    {
+     "text": "Monitor the cabin temperature.",
+     "why": "The TCV usually fails open, which gives colder cabin temperatures than normal. If it does not open, the duct air may be hotter than wanted and a DUCT OVERHEAT caution may follow. An ECS BLEED HOT or ECS BLEED OVERHEAT caution may also follow.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: TCV CONTROL FAIL Caution\", item 1"
+    }
+   ],
+   "next": "co_tcv_q"
+  },
+  "co_tcv_q": {
+   "type": "question",
+   "title": "Does the message stay?",
+   "text": "Is the message still shown, and is the cabin warmer or colder than acceptable?",
+   "choices": [
+    {
+     "id": "warm",
+     "label": "It stays and the cabin is too warm",
+     "next": "co_tcv_warm"
+    },
+    {
+     "id": "cold",
+     "label": "It stays and the cabin is too cold",
+     "next": "co_tcv_cold"
+    },
+    {
+     "id": "no",
+     "label": "No problem",
+     "next": "proc_done"
+    }
+   ]
+  },
+  "co_tcv_warm": {
+   "type": "steps",
+   "title": "Too warm",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: TCV CONTROL FAIL Caution\", section \"If message persists and cabin temperature is warmer than acceptable\"",
+   "steps": [
+    {
+     "text": "Descend below 10,000 ft if practical.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: TCV CONTROL FAIL Caution\", section \"If message persists and cabin temperature is warmer than acceptable\", item a"
+    },
+    {
+     "text": "Set the BLEED switch to FRESH.",
+     "controls": [
+      {
+       "api": "SF50_PRESSURIZATION_SWITCH_AIR_BLEED"
+      }
+     ],
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: TCV CONTROL FAIL Caution\", section \"If message persists and cabin temperature is warmer than acceptable\", item b"
+    },
+    {
+     "text": "Land as soon as practicable.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: TCV CONTROL FAIL Caution\", section \"If message persists and cabin temperature is warmer than acceptable\", item c"
+    }
+   ],
+   "next": "proc_done"
+  },
+  "co_tcv_cold": {
+   "type": "steps",
+   "title": "Too cold",
+   "source": "checklist.xml: list \"Abnormal CAS Procedures: TCV CONTROL FAIL Caution\", section \"If message persists and cabin temperature is colder than acceptable\"",
+   "steps": [
+    {
+     "text": "Descend to a warmer outside air temperature if practical.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: TCV CONTROL FAIL Caution\", section \"If message persists and cabin temperature is colder than acceptable\", item a"
+    },
+    {
+     "text": "Land as soon as practicable.",
+     "source": "checklist.xml: list \"Abnormal CAS Procedures: TCV CONTROL FAIL Caution\", section \"If message persists and cabin temperature is colder than acceptable\", item b"
+    }
+   ],
+   "next": "proc_done"
+  }
+ }
+}

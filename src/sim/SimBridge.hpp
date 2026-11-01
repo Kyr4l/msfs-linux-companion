@@ -51,6 +51,13 @@ struct Telemetry {
     double onGround = 0, groundSpeedKt = 0, gForce = 1, stallWarning = 0, overspeedWarning = 0, gearPct = 1, flapsPct = 0,
            spoilersHandle = 0, n1Eng1 = 0, n1Eng2 = 0, reverse1 = 0, reverse2 = 0, accelBodyY = 0, verticalSpeedFpm = 0,
            brakeLeft = 0, brakeRight = 0, iasKt = 0, altAgl = 0;
+
+    // N1 of the engines that turn. A single-engine aircraft (the Vision Jet) reports 0 for engine 2, which must not halve engine 1.
+    double turningN1() const {
+        const double a = n1Eng1 > 1.0 ? n1Eng1 : 0.0, b = n1Eng2 > 1.0 ? n1Eng2 : 0.0;
+        const int turning = (a > 0.0) + (b > 0.0);
+        return turning ? (a + b) / turning : 0.0;
+    }
 };
 
 // What the sim reports about the cockpit of the loaded aircraft (see SimBridge::liveSnapshot()).

@@ -333,7 +333,7 @@
    "note": "Behaviour taken from the control's name, not tried on a real aircraft."
   },
   {
-   "panel": "Engine and thrust",
+   "panel": "Engine",
    "section": "Start",
    "function": "Engine button",
    "api": "SF50_ENGINE_STARTER",
@@ -345,7 +345,7 @@
    "note": "Tooltip in the aircraft: \"Start engine\", \"Stop engine\", \"Abort engine start\" and \"Press and hold to dry motor engine\" (one button; the Engine Knob decides). Not tried: whether a hold needs a release event is not known."
   },
   {
-   "panel": "Engine and thrust",
+   "panel": "Engine",
    "section": "Start",
    "function": "Engine knob (RUN / OFF)",
    "api": "SF50_ENGINE_RUN_KNOB",
@@ -357,7 +357,7 @@
    "note": "Tooltip in the aircraft: \"Toggle engine RUN/STOP mode\"; Name in the sim's checklist: Engine Knob, RUN or OFF. Which value is RUN is not confirmed."
   },
   {
-   "panel": "Engine and thrust",
+   "panel": "Engine",
    "section": "Thrust lever",
    "function": "TO/GA button (primary)",
    "api": "SF50_ENGINE_TOGA_PRIMARY",
@@ -369,7 +369,7 @@
    "note": "Not tried; the aircraft has a primary and a secondary TO/GA event, which is which is not known."
   },
   {
-   "panel": "Engine and thrust",
+   "panel": "Engine",
    "section": "Thrust lever",
    "function": "TO/GA button (secondary)",
    "api": "SF50_ENGINE_TOGA_SECONDARY",
@@ -381,7 +381,7 @@
    "note": "Not tried; the aircraft has a primary and a secondary TO/GA event, which is which is not known."
   },
   {
-   "panel": "Engine and thrust",
+   "panel": "Engine",
    "section": "Thrust lever",
    "function": "Thrust lever (cockpit event)",
    "api": "SF50_ENGINE_THROTTLE",
@@ -393,7 +393,7 @@
    "note": "Not tried; the range this event takes is not known. For an axis use the thrust lever of the Control list (THROTTLE1_AXIS_SET_EX1, THROTTLE1_SET)."
   },
   {
-   "panel": "Engine and thrust",
+   "panel": "Engine",
    "section": "Thrust lever",
    "function": "Thrust lever to MCT",
    "api": "SF50_ENGINE_MCT_SNAP",
@@ -730,7 +730,7 @@
    "note": "Name in the sim's checklist: PROBE HEAT Switch, ON or OFF. Standard event name; the CJ4's takes set 1 / set 0. Not tried."
   },
   {
-   "panel": "Gear, flaps, brakes and trim",
+   "panel": "Handling",
    "section": "Brakes",
    "function": "Parking brake",
    "api": "SF50_HANDLING_PARKING_BRAKE",
@@ -742,7 +742,7 @@
    "note": "Name in the sim's checklist: Parking Brake, set or release. Not tried."
   },
   {
-   "panel": "Gear, flaps, brakes and trim",
+   "panel": "Handling",
    "section": "Flaps",
    "function": "Flap selector (UP / 50% / 100%)",
    "api": "SF50_HANDLING_FLAP_SELECTOR",
@@ -755,7 +755,7 @@
    "note": "Name in the sim's checklist: Flaps, UP, 50% or 100%. Which value is which position is not confirmed."
   },
   {
-   "panel": "Gear, flaps, brakes and trim",
+   "panel": "Handling",
    "section": "Landing gear",
    "function": "Landing gear lever",
    "api": "SF50_HANDLING_LANDING_GEAR_LEVER",
@@ -767,7 +767,7 @@
    "note": "Name in the sim's checklist: Landing Gear, UP or DOWN. Which value is which position is not confirmed."
   },
   {
-   "panel": "Gear, flaps, brakes and trim",
+   "panel": "Handling",
    "section": "Side stick",
    "function": "Hide copilot side stick",
    "api": "HANDLING_YOKE_HIDER_2",
@@ -779,7 +779,7 @@
    "note": "Cosmetic: hides the stick. Not tried."
   },
   {
-   "panel": "Gear, flaps, brakes and trim",
+   "panel": "Handling",
    "section": "Side stick",
    "function": "Hide pilot side stick",
    "api": "HANDLING_YOKE_HIDER_1",
@@ -791,7 +791,7 @@
    "note": "Cosmetic: hides the stick. Not tried."
   },
   {
-   "panel": "Gear, flaps, brakes and trim",
+   "panel": "Handling",
    "section": "Stability",
    "function": "ESP pitch control axis",
    "api": "ESP_PITCH_CONTROL_AXIS",
@@ -803,7 +803,7 @@
    "note": "An axis of the electronic stability and protection system; its range is not known and it was not tried. Do not bind the pitch axis here: use the elevator axis of the Control list."
   },
   {
-   "panel": "Gear, flaps, brakes and trim",
+   "panel": "Handling",
    "section": "Stability",
    "function": "ESP roll control axis",
    "api": "ESP_ROLL_CONTROL_AXIS",
@@ -815,7 +815,7 @@
    "note": "An axis of the electronic stability and protection system; its range is not known and it was not tried. Do not bind the roll axis here: use the aileron axis of the Control list."
   },
   {
-   "panel": "Gear, flaps, brakes and trim",
+   "panel": "Handling",
    "section": "Trim",
    "function": "Pitch trim",
    "api": "HANDLING_ELEVATORTRIM_1",
@@ -827,7 +827,7 @@
    "note": "Standard event name. On the CJ4 the trims want a value of 2 or more (up) or 0 or less (down); not tried here."
   },
   {
-   "panel": "Gear, flaps, brakes and trim",
+   "panel": "Handling",
    "section": "Trim",
    "function": "Rudder trim",
    "api": "HANDLING_RUDDERTRIM_1",
@@ -839,7 +839,7 @@
    "note": "Standard event name; the checklist calls the trim switch \"Electric Roll Trim\", so which trim this moves is not known. Not tried."
   },
   {
-   "panel": "Gear, flaps, brakes and trim",
+   "panel": "Handling",
    "section": "Trim",
    "function": "Trim disconnect 1",
    "api": "HANDLING_TRIM_DISCONNECT_1",
@@ -851,7 +851,7 @@
    "note": "Standard event name. Not tried."
   },
   {
-   "panel": "Gear, flaps, brakes and trim",
+   "panel": "Handling",
    "section": "Trim",
    "function": "Trim disconnect 2",
    "api": "HANDLING_TRIM_DISCONNECT_2",
@@ -863,7 +863,7 @@
    "note": "Standard event name. Not tried."
   },
   {
-   "panel": "Pressurization and cabin",
+   "panel": "Cabin and ECS",
    "section": "Air supply",
    "function": "BLEED / FRESH switch",
    "api": "SF50_PRESSURIZATION_SWITCH_AIR_BLEED",
@@ -875,7 +875,7 @@
    "note": "Tooltip in the aircraft: \"Toggle air supply source\" (Bleed Air, Fresh Air); Name in the sim's checklist: BLEED Switch, BLEED or FRESH. Which value is which is not confirmed."
   },
   {
-   "panel": "Pressurization and cabin",
+   "panel": "Cabin and ECS",
    "section": "ECS",
    "function": "Aft temperature control",
    "api": "SF50_CABIN_ECS_AFT_CONTROL",
@@ -887,7 +887,7 @@
    "note": "Tooltip in the aircraft: \"Toggle aft temperature control\". Not tried."
   },
   {
-   "panel": "Pressurization and cabin",
+   "panel": "Cabin and ECS",
    "section": "ECS",
    "function": "Cabin temperature knob, aft",
    "api": "SF50_CABIN_ECS_TEMP_KNOB_AFT",
@@ -899,7 +899,7 @@
    "note": "Tooltip in the aircraft: \"Adjust set temperature\". Not tried; its range is not known."
   },
   {
-   "panel": "Pressurization and cabin",
+   "panel": "Cabin and ECS",
    "section": "ECS",
    "function": "Cabin temperature knob, forward",
    "api": "SF50_CABIN_ECS_TEMP_KNOB_FORWARD",
@@ -911,7 +911,7 @@
    "note": "Tooltip in the aircraft: \"Adjust set temperature\" (\"Adjust temperature control valve position\" in backup mode). Not tried; its range is not known."
   },
   {
-   "panel": "Pressurization and cabin",
+   "panel": "Cabin and ECS",
    "section": "ECS",
    "function": "ECS disable",
    "api": "SF50_CABIN_ECS_DISABLE",
@@ -923,7 +923,7 @@
    "note": "Tooltip in the aircraft: \"Toggle ECS disable\". Not tried."
   },
   {
-   "panel": "Pressurization and cabin",
+   "panel": "Cabin and ECS",
    "section": "ECS",
    "function": "Fan knob, aft",
    "api": "SF50_CABIN_ECS_FAN_KNOB_AFT",
@@ -935,7 +935,7 @@
    "note": "Tooltip in the aircraft: \"Adjust fan speed\". Not tried; its range is not known."
   },
   {
-   "panel": "Pressurization and cabin",
+   "panel": "Cabin and ECS",
    "section": "ECS",
    "function": "Fan knob, forward",
    "api": "SF50_CABIN_ECS_FAN_KNOB_FORWARD",
@@ -947,7 +947,7 @@
    "note": "Tooltip in the aircraft: \"Adjust fan speed\". Not tried; its range is not known."
   },
   {
-   "panel": "Pressurization and cabin",
+   "panel": "Cabin and ECS",
    "section": "ECS",
    "function": "Temperature backup",
    "api": "SF50_CABIN_ECS_TEMP_BACKUP",
@@ -959,7 +959,7 @@
    "note": "Tooltip in the aircraft: \"Toggle temperature backup mode\"; the checklist's TEMP BACKUP. Not tried."
   },
   {
-   "panel": "Pressurization and cabin",
+   "panel": "Cabin and ECS",
    "section": "ECS",
    "function": "Windshield defog",
    "api": "SF50_CABIN_ECS_DEFOG",
@@ -971,7 +971,7 @@
    "note": "Tooltip in the aircraft: \"Toggle windshield defog\". Not tried."
   },
   {
-   "panel": "Pressurization and cabin",
+   "panel": "Cabin and ECS",
    "section": "Management tablet",
    "function": "Noise cancelling headset (tablet)",
    "api": "SF50_ANR_On",
@@ -984,7 +984,7 @@
    "values": "0|1"
   },
   {
-   "panel": "Pressurization and cabin",
+   "panel": "Cabin and ECS",
    "section": "Oxygen",
    "function": "OXYGEN MASTER switch",
    "api": "SF50_PRESSURIZATION_OXYGEN_MASTER",
@@ -1488,7 +1488,7 @@
    "note": "From the G3000 touch controller (GTC.xml); the aircraft's own event name differs from that file's, so which hardware control it is is read from the name. Not tried. The GTC's tooltip names the three softkeys PFD, MFD and NAV/COM."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Covers and caps",
    "function": "Engine covers",
    "api": "SF50_EXT_ENGINE_COVERS",
@@ -1500,7 +1500,7 @@
    "note": "Tooltip in the aircraft: \"Remove/replace cover\". Not tried."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Covers and caps",
    "function": "Fuel cap, left",
    "api": "SF50_EXT_FUEL_CAP_LEFT",
@@ -1512,7 +1512,7 @@
    "note": "Tooltip in the aircraft: \"Open/close fuel cap\". Not tried."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Covers and caps",
    "function": "Fuel cap, right",
    "api": "SF50_EXT_FUEL_CAP_RIGHT",
@@ -1524,7 +1524,7 @@
    "note": "Tooltip in the aircraft: \"Open/close fuel cap\". Not tried."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Covers and caps",
    "function": "Pitot covers",
    "api": "SF50_EXT_PITOT_COVERS",
@@ -1536,7 +1536,7 @@
    "note": "Tooltip in the aircraft: \"Remove/replace cover\". Not tried."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Covers and caps",
    "function": "Wheel chocks",
    "api": "SF50_EXT_WHEEL_CHOCKS",
@@ -1548,7 +1548,7 @@
    "note": "Tooltip in the aircraft: \"Remove/replace chocks\". Not tried."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Doors",
    "function": "Baggage door",
    "api": "SF50_EXT_BAGGAGE_DOOR",
@@ -1560,7 +1560,7 @@
    "note": "Checklist: Baggage Door, SECURE. Not tried."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Doors",
    "function": "Cabin door, inside",
    "api": "SF50_INT_CABIN_DOOR",
@@ -1572,7 +1572,7 @@
    "note": "Tooltip in the aircraft: \"Open/Close Door\". Not tried."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Doors",
    "function": "Cabin door, outside",
    "api": "SF50_EXT_CABIN_DOOR",
@@ -1584,7 +1584,7 @@
    "note": "Tooltip in the aircraft: \"Open/Close Door\". Opening it from the cockpit can take you out of the aircraft. Not tried."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Doors",
    "function": "Egress door pin",
    "api": "SF50_INT_EMERGENCY_EXIT_SAFETY_PIN",
@@ -1596,7 +1596,7 @@
    "note": "Tooltip in the aircraft: \"Emergency Exit Safety Pin\"; Name in the sim's checklist: Egress Door Pin, REPLACE at shutdown. Not tried."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Doors",
    "function": "Enter the cockpit",
    "api": "SF50_EXT_PILOT_SIT",
@@ -1608,7 +1608,7 @@
    "note": "Tooltip in the aircraft: \"Cabin Door Entrance: Enter cockpit and sit down\". Not tried."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Doors",
    "function": "External power door",
    "api": "SF50_EXT_EXTERNAL_POWER_SERVICE_DOOR",
@@ -1620,7 +1620,7 @@
    "note": "Tooltip in the aircraft: \"External Power Service Door\". Not tried."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Doors",
    "function": "Leave the cockpit",
    "api": "SF50_INT_PILOT_EXIT",
@@ -1632,7 +1632,7 @@
    "note": "Tooltip in the aircraft: \"Cabin Door Exit: Exit aircraft\". It takes the pilot out of the aircraft. Not tried."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Doors",
    "function": "Oil check door",
    "api": "SF50_EXT_OIL_CHECK_PANEL_DOOR",
@@ -1644,7 +1644,7 @@
    "note": "Tooltip in the aircraft: \"Oil Check Panel Door\". Not tried."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Logic",
    "function": "Cabin door auto close (logic)",
    "api": "SF50_ACCESS_CABIN_DOOR_AUTO_CLOSE_LOGIC",
@@ -1656,7 +1656,7 @@
    "note": "Internal logic of the aircraft, not a cockpit control; no tooltip. Not tried."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Logic",
    "function": "Cabin door open (logic)",
    "api": "SF50_ACCESS_CABIN_DOOR_OPEN_LOGIC",
@@ -1668,7 +1668,7 @@
    "note": "Internal logic of the aircraft, not a cockpit control; no tooltip. Not tried."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Logic",
    "function": "Cabin door sound (logic)",
    "api": "SF50_ACCESS_CABIN_DOOR_SOUND_LOGIC",
@@ -1680,7 +1680,7 @@
    "note": "Internal logic of the aircraft, not a cockpit control; no tooltip. Not tried."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Management tablet",
    "function": "Aircraft state: cold and dark",
    "api": "SF50_Management_Status_Type",
@@ -1694,7 +1694,7 @@
    "value": 1
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Management tablet",
    "function": "Aircraft state: takeoff",
    "api": "SF50_Management_Status_Type",
@@ -1708,7 +1708,7 @@
    "value": 3
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Management tablet",
    "function": "Aircraft state: taxi",
    "api": "SF50_Management_Status_Type",
@@ -1722,7 +1722,7 @@
    "value": 2
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Management tablet",
    "function": "Covers (tablet)",
    "api": "SF50_Covers_Enabled",
@@ -1735,7 +1735,7 @@
    "values": "0|1"
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Management tablet",
    "function": "External power: toggle",
    "api": "TOGGLE_EXTERNAL_POWER",
@@ -1748,7 +1748,7 @@
    "value": 1
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Management tablet",
    "function": "Luggage door (tablet)",
    "api": "SF50_Luggage_Door_Open",
@@ -1761,7 +1761,7 @@
    "values": "0|1"
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Management tablet",
    "function": "Luggage: family",
    "api": "SF50_Management_Luggage_Type",
@@ -1775,7 +1775,7 @@
    "value": 1
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Management tablet",
    "function": "Luggage: golf",
    "api": "SF50_Management_Luggage_Type",
@@ -1789,7 +1789,7 @@
    "value": 2
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Management tablet",
    "function": "Luggage: none",
    "api": "SF50_Management_Luggage_Type",
@@ -1803,7 +1803,7 @@
    "value": 0
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Management tablet",
    "function": "Luggage: snowboard",
    "api": "SF50_Management_Luggage_Type",
@@ -1817,7 +1817,7 @@
    "value": 3
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Management tablet",
    "function": "Registration shadow (tablet)",
    "api": "SF50_Registration_Shadow_Enabled",
@@ -1830,7 +1830,7 @@
    "values": "0|1"
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Management tablet",
    "function": "Seating: complete",
    "api": "SF50_Management_Config_Type",
@@ -1844,7 +1844,7 @@
    "value": 1
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Management tablet",
    "function": "Seating: executive",
    "api": "SF50_Management_Config_Type",
@@ -1858,7 +1858,7 @@
    "value": 0
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Management tablet",
    "function": "Seating: family",
    "api": "SF50_Management_Config_Type",
@@ -1872,7 +1872,7 @@
    "value": 2
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Management tablet",
    "function": "Storage cover (tablet)",
    "api": "SF50_Storage_Cover_Enabled",
@@ -1885,7 +1885,7 @@
    "values": "0|1"
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Management tablet",
    "function": "Tablet open",
    "api": "SF50_Tablet_Open",
@@ -1898,7 +1898,7 @@
    "values": "0|1"
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Management tablet",
    "function": "Wheel chocks (tablet)",
    "api": "SF50_Chocks_Enabled",
@@ -1911,7 +1911,7 @@
    "values": "0|1"
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Walkaround",
    "function": "Check left aileron",
    "api": "SF50_EXT_LEFT_AILERON_CHECK",
@@ -1923,7 +1923,7 @@
    "note": "A point of the interactive preflight walkaround; the sim's checklist item is \"LH Aileron, Roll Trim Tab: CONDITION, MOTION\". Not tried."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Walkaround",
    "function": "Check left brakes",
    "api": "SF50_EXT_LEFT_MAIN_GEAR_BRAKES_CHECK",
@@ -1935,7 +1935,7 @@
    "note": "A point of the interactive preflight walkaround; the sim's checklist item is \"LH MLG Brakes, Wheel and Tire: CONDITION\". Not tried."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Walkaround",
    "function": "Check left flap",
    "api": "SF50_EXT_LEFT_FLAP_CHECK",
@@ -1947,7 +1947,7 @@
    "note": "A point of the interactive preflight walkaround; the sim's checklist item is \"LH Flap: CONDITION\". Not tried."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Walkaround",
    "function": "Check left main gear strut",
    "api": "SF50_EXT_LEFT_MAIN_GEAR_STRUT_CHECK",
@@ -1959,7 +1959,7 @@
    "note": "A point of the interactive preflight walkaround; the sim's checklist item is \"LH MLG: CONDITION\". Not tried."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Walkaround",
    "function": "Check left main gear tire",
    "api": "SF50_EXT_LEFT_MAIN_GEAR_TIRE_CHECK",
@@ -1971,7 +1971,7 @@
    "note": "A point of the interactive preflight walkaround; the sim's checklist item is \"LH MLG Brakes, Wheel and Tire: CONDITION\". Not tried."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Walkaround",
    "function": "Check nose gear strut",
    "api": "SF50_EXT_NOSE_GEAR_STRUT_CHECK",
@@ -1983,7 +1983,7 @@
    "note": "A point of the interactive preflight walkaround; the sim's checklist item is \"NLG: CONDITION\". Not tried."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Walkaround",
    "function": "Check nose gear tire",
    "api": "SF50_EXT_NOSE_GEAR_TIRE_CHECK",
@@ -1995,7 +1995,7 @@
    "note": "A point of the interactive preflight walkaround; the sim's checklist item is \"NLG Wheel, Tire: CONDITION\". Not tried."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Walkaround",
    "function": "Check right aileron",
    "api": "SF50_EXT_RIGHT_AILERON_CHECK",
@@ -2007,7 +2007,7 @@
    "note": "A point of the interactive preflight walkaround; the sim's checklist item is \"RH Aileron, Roll Servo Tab: CONDITION, MOVEMENT\". Not tried."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Walkaround",
    "function": "Check right brakes",
    "api": "SF50_EXT_RIGHT_MAIN_GEAR_BRAKES_CHECK",
@@ -2019,7 +2019,7 @@
    "note": "A point of the interactive preflight walkaround; the sim's checklist item is \"RH MLG Brakes, Wheel and Tire: CONDITION\". Not tried."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Walkaround",
    "function": "Check right flap",
    "api": "SF50_EXT_RIGHT_FLAP_CHECK",
@@ -2031,7 +2031,7 @@
    "note": "A point of the interactive preflight walkaround; the sim's checklist item is \"RH Flap: CONDITION\". Not tried."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Walkaround",
    "function": "Check right main gear strut",
    "api": "SF50_EXT_RIGHT_MAIN_GEAR_STRUT_CHECK",
@@ -2043,7 +2043,7 @@
    "note": "A point of the interactive preflight walkaround; the sim's checklist item is \"RH MLG: CONDITION\". Not tried."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Walkaround",
    "function": "Check right main gear tire",
    "api": "SF50_EXT_RIGHT_MAIN_GEAR_TIRE_CHECK",
@@ -2055,7 +2055,7 @@
    "note": "A point of the interactive preflight walkaround; the sim's checklist item is \"RH MLG Brakes, Wheel and Tire: CONDITION\". Not tried."
   },
   {
-   "panel": "Walkaround and doors",
+   "panel": "Walkaround",
    "section": "Walkaround",
    "function": "Check ruddervators",
    "api": "SF50_EXT_RUDDERVATOR_CHECK",

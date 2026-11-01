@@ -28,16 +28,16 @@ SOURCES = [
 ]
 
 P_AP = "Autopilot"
-P_ENG = "Engine and thrust"
+P_ENG = "Engine"
 P_FUEL = "Fuel"
 P_ELEC = "Electrical"
 P_LIGHT = "Lights"
 P_ICE = "Ice protection"
-P_HAND = "Gear, flaps, brakes and trim"
-P_CABIN = "Pressurization and cabin"
+P_HAND = "Handling"
+P_CABIN = "Cabin and ECS"
 P_SAFE = "Safety"
 P_GTC = "G3000 touch controllers"
-P_EXT = "Walkaround and doors"
+P_EXT = "Walkaround"
 P_OTHER = "Other"
 PANEL_ORDER = [P_AP, P_ENG, P_FUEL, P_ELEC, P_LIGHT, P_ICE, P_HAND, P_CABIN, P_SAFE, P_GTC, P_EXT, P_OTHER]
 
