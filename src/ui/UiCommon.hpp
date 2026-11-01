@@ -97,8 +97,8 @@ inline void fieldLabel(const char* text) {
 
 inline bool actionKindCombo(const char* label, ActionKind& kind) {
     static const ActionKind kinds[] = {ActionKind::SimEvent, ActionKind::InputEvent, ActionKind::InputEventToggle, ActionKind::HEvent,
-                                       ActionKind::LVarSet, ActionKind::LVarToggle, ActionKind::CalcCode, ActionKind::Delay};
-    constexpr int n = 8;
+                                       ActionKind::LVarSet, ActionKind::LVarToggle, ActionKind::CalcCode, ActionKind::Delay, ActionKind::Plugin};
+    constexpr int n = 9;
     int idx = 0;
     for (int i = 0; i < n; ++i)
         if (kinds[i] == kind) idx = i;

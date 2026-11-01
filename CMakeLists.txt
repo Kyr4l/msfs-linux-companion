@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 Kyr4l
 cmake_minimum_required(VERSION 3.20)
-project(msfs-linux-companion VERSION 0.8.3 LANGUAGES CXX)
+project(msfs-linux-companion VERSION 0.8.4 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -25,7 +25,9 @@ if(NOT EXISTS ${IMGUI_DIR}/imgui.h)
   message(FATAL_ERROR "Dear ImGui submodule missing. Run: git submodule update --init --recursive")
 endif()
 
-add_library(imgui STATIC
+# An object library: every function of Dear ImGui ends up in the program (a static archive would only bring in what the program itself
+# calls), so a plugin can call any of them.
+add_library(imgui OBJECT
   ${IMGUI_DIR}/imgui.cpp
   ${IMGUI_DIR}/imgui_draw.cpp
   ${IMGUI_DIR}/imgui_tables.cpp
@@ -65,9 +67,12 @@ add_executable(msfs-linux-companion
   src/ui/UiGuides.cpp
   src/ui/UiSettings.cpp
   src/ui/UiVibration.cpp
+  src/plugin/PluginManager.cpp
 )
 target_include_directories(msfs-linux-companion PRIVATE src third_party)
-target_link_libraries(msfs-linux-companion PRIVATE imgui Threads::Threads)
+target_link_libraries(msfs-linux-companion PRIVATE imgui Threads::Threads ${CMAKE_DL_LIBS})
+# Plugins (src/plugin/Plugin.hpp) are loaded into the program and use its functions: they are exported.
+set_target_properties(msfs-linux-companion PROPERTIES ENABLE_EXPORTS ON)
 target_compile_definitions(msfs-linux-companion PRIVATE
   COMPANION_VERSION="${PROJECT_VERSION}"
   COMPANION_SOURCE_DATA_DIR="${CMAKE_SOURCE_DIR}/data"
@@ -88,6 +93,7 @@ endif()
 
 install(TARGETS msfs-linux-companion RUNTIME DESTINATION bin)
 install(DIRECTORY data/ DESTINATION share/msfs-linux-companion/data)
+install(DIRECTORY DESTINATION lib/msfs-linux-companion/plugins)
 install(FILES packaging/msfs-linux-companion.desktop DESTINATION share/applications)
 install(FILES LICENSE THIRD_PARTY_NOTICES.md DESTINATION share/licenses/msfs-linux-companion)
 install(FILES third_party/imgui/LICENSE.txt DESTINATION share/licenses/msfs-linux-companion RENAME LICENSE.imgui)
@@ -134,4 +140,12 @@ if(COMPANION_BUILD_TESTS)
   add_test(NAME idle_cost COMMAND bash ${CMAKE_SOURCE_DIR}/tests/idle_cost.sh $<TARGET_FILE:msfs-linux-companion> ${CMAKE_SOURCE_DIR})
   add_test(NAME cli_options COMMAND bash ${CMAKE_SOURCE_DIR}/tests/cli_options.sh $<TARGET_FILE:msfs-linux-companion>
            ${CMAKE_SOURCE_DIR}/tests/fixtures/config_v1.json)
+  # the example plugin and two broken ones, loaded by the real binary
+  include(cmake/CompanionPlugin.cmake)
+  companion_add_plugin(hello examples/plugins/hello/hello.cpp)
+  companion_add_plugin(bad_api tests/bad_plugin.cpp)
+  target_compile_definitions(bad_api PRIVATE BAD_API)
+  companion_add_plugin(bad_load tests/bad_plugin.cpp)
+  add_test(NAME plugins COMMAND bash ${CMAKE_SOURCE_DIR}/tests/plugins.sh $<TARGET_FILE:msfs-linux-companion> ${CMAKE_SOURCE_DIR}
+           $<TARGET_FILE:hello> $<TARGET_FILE:bad_api> $<TARGET_FILE:bad_load>)
 endif()

@@ -28,6 +28,7 @@ const char* actionKindName(ActionKind k) {
         case ActionKind::InputEvent: return "input_event";
         case ActionKind::InputEventToggle: return "input_event_toggle";
         case ActionKind::Delay: return "delay";
+        case ActionKind::Plugin: return "plugin";
     }
     return "sim_event";
 }
@@ -42,20 +43,21 @@ const char* actionKindLabel(ActionKind k) {
         case ActionKind::InputEvent: return "B: set input";
         case ActionKind::InputEventToggle: return "B: toggle input";
         case ActionKind::Delay: return "Wait";
+        case ActionKind::Plugin: return "Plugin command";
     }
     return "?";
 }
 
 bool actionKindFromName(const std::string& s, ActionKind& out) {
     for (ActionKind k : {ActionKind::SimEvent, ActionKind::HEvent, ActionKind::LVarSet, ActionKind::LVarToggle, ActionKind::CalcCode,
-                         ActionKind::InputEvent, ActionKind::InputEventToggle, ActionKind::Delay}) {
+                         ActionKind::InputEvent, ActionKind::InputEventToggle, ActionKind::Delay, ActionKind::Plugin}) {
         if (s == actionKindName(k)) { out = k; return true; }
     }
     return false;
 }
 
 bool actionNeedsMobiFlight(ActionKind k) {
-    return k != ActionKind::SimEvent && k != ActionKind::InputEvent && k != ActionKind::InputEventToggle && k != ActionKind::Delay;
+    return k != ActionKind::SimEvent && k != ActionKind::InputEvent && k != ActionKind::InputEventToggle && k != ActionKind::Delay && k != ActionKind::Plugin;
 }
 
 static std::string num(double v) {
@@ -75,6 +77,7 @@ std::string Action::describe() const {
         case ActionKind::InputEvent: return "B:" + name + " = " + num(value);
         case ActionKind::InputEventToggle: return "B:" + name + (value > 2 ? " cycle " + num(value) : std::string(" toggle"));
         case ActionKind::Delay: return "wait " + num(value) + " ms";
+        case ActionKind::Plugin: return "plugin: " + name + (value != 0 ? " " + num(value) : "");
     }
     return name;
 }
@@ -316,6 +319,13 @@ bool loadSettings(const std::string& path, Settings& out, std::string& err) {
                 s.haptics.devices[key] = dc;
             }
         }
+        if (j.contains("plugins") && j["plugins"].is_object()) {
+            const json& pl = j["plugins"];
+            for (const auto& id : pl.value("disabled", json::array()))
+                if (id.is_string()) s.disabledPlugins.push_back(id.get<std::string>());
+            const json settings = pl.value("settings", json::object());
+            for (const auto& [id, v] : settings.items()) s.pluginSettings[id] = v.dump();
+        }
         for (const auto& pj : j.value("profiles", json::array())) {
             Profile p;
             p.name = pj.value("name", "Profile");
@@ -371,6 +381,14 @@ bool saveSettings(const std::string& path, const Settings& s, std::string& err) 
            {"active_profile", s.activeProfile}, {"profiles", profiles}, {"calibrations", calibrations},
            {"bindings_view", {{"group_by", s.bindingsGroupBy == BindingsGroupBy::Device ? "device" : s.bindingsGroupBy == BindingsGroupBy::InputType ? "type" : s.bindingsGroupBy == BindingsGroupBy::Custom ? "custom" : "none"}, {"auto_sort", s.bindingsAutoSort}}},
            {"haptics", {{"enabled", s.haptics.enabled}, {"master", s.haptics.master}, {"rules", rules}, {"devices", devices}}}};
+    if (!s.disabledPlugins.empty() || !s.pluginSettings.empty()) {  // left out when there is nothing: files without plugins stay as before
+        json settings = json::object();
+        for (const auto& [id, text] : s.pluginSettings) {
+            json v = json::parse(text, nullptr, false);
+            if (!v.is_discarded()) settings[id] = std::move(v);
+        }
+        j["plugins"] = json{{"disabled", s.disabledPlugins}, {"settings", settings}};
+    }
     try {
         // First save over a file written by an older schema: keep a copy of it once, untouched, so an
         // upgrade can always be rolled back (config.json.v1.bak).

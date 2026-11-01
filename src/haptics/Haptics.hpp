@@ -7,6 +7,8 @@
 #include <chrono>
 #include <map>
 #include <condition_variable>
+#include <deque>
+#include <functional>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -28,7 +30,21 @@ struct RuleInfo {
     const char* label;
     const char* description;
 };
-const std::vector<RuleInfo>& ruleInfos();
+const std::vector<RuleInfo>& ruleInfos();  // the built-in rules
+
+// A rule added by a plugin: flight data -> level 0..1, configured (switch, gain) like the built-in ones under its id.
+struct ExtraRule {
+    std::string id, label, description;
+    std::function<float(const sim::Telemetry&)> level;
+};
+
+// What every output (a plugin that vibrates something else) is handed on each turn of the haptics thread.
+struct HapticsOutputFrame {
+    bool enabled = false, flying = false, fresh = false;
+    float left = 0, right = 0;  // after the master strength; 0 while vibration is off
+    std::map<std::string, float> contrib;
+    sim::Telemetry telemetry;
+};
 
 struct DeviceConfig {
     bool enabled = true;
@@ -65,6 +81,11 @@ public:
     HapticsConfig config() const;
     HapticsStatus status() const;
 
+    // Plugins, before start(): more rules, and more things to vibrate.
+    void addRule(ExtraRule rule);
+    void addOutput(std::function<void(const HapticsOutputFrame&)> output);
+    std::vector<RuleInfo> rules() const;  // the built-in rules, then those of the plugins (valid while the engine lives)
+
     // Manual pulse (test buttons): level 0..1 for ms on the given motors.
     void pulse(const std::string& deviceKey, float left, float right, int ms);
     void stopAll();
@@ -87,6 +108,9 @@ private:
     std::vector<Pulse> globalPulses_;
     std::thread thread_;
     std::atomic<bool> running_{false};
+    std::deque<ExtraRule> extraRules_;  // fixed once the thread runs; deque: RuleInfo points into the strings
+    std::vector<std::function<void(const HapticsOutputFrame&)>> outputs_;
+    std::vector<bool> brokenRules_, brokenOutputs_;  // threw once: not called again (haptics thread)
 
     // rule state (guarded by m_)
     void resetRuleState();

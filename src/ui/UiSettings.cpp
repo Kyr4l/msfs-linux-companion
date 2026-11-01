@@ -13,6 +13,7 @@
 #include <imgui_stdlib.h>
 
 #include "app/Paths.hpp"
+#include "plugin/PluginManager.hpp"
 #include "util/Log.hpp"
 
 namespace lr::app {
@@ -98,9 +99,66 @@ void Ui::drawSettingsTab() {
     if (ctx_.catalogs.empty()) ImGui::TextUnformatted("Catalog: (none)");
     if (ImGui::Button("Save")) ctx_.save();
 
+    drawPluginsSection();
+
     ImGui::SeparatorText("About");
     ImGui::Text("msfs-linux-companion %s (Dear ImGui %s)", COMPANION_VERSION, IMGUI_VERSION);
     ImGui::TextDisabled("GPL-3.0-only. github.com/Kyr4l/msfs-linux-companion");
+}
+
+void Ui::drawPluginsSection() {
+    ImGui::SeparatorText("Plugins");
+    Settings& s = ctx_.settings;
+    const auto* pm = ctx_.plugins;
+    if (!pm || pm->plugins().empty()) ImGui::TextDisabled("None");
+    if (pm && !pm->plugins().empty() && ImGui::BeginTable("plugins", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp)) {
+        ImGui::TableSetupColumn("On", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFontSize() * 2);
+        ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch, 1.0f);
+        ImGui::TableSetupColumn("Version", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFontSize() * 6);
+        ImGui::TableSetupColumn("Status", ImGuiTableColumnFlags_WidthStretch, 1.0f);
+        ImGui::TableHeadersRow();
+        for (const auto& r : pm->plugins()) {
+            ImGui::PushID(r.folder.c_str());
+            ImGui::PushID(r.id.c_str());
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            auto& off = s.disabledPlugins;
+            bool on = std::find(off.begin(), off.end(), r.id) == off.end();
+            if (ImGui::Checkbox("##on", &on)) {
+                if (on) off.erase(std::remove(off.begin(), off.end(), r.id), off.end());
+                else off.push_back(r.id);
+                pluginsChanged_ = true;
+                ctx_.dirty = true;
+            }
+            ImGui::TableSetColumnIndex(1);
+            ImGui::TextUnformatted(r.name.c_str());
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("%s%s%s", r.description.c_str(), r.description.empty() ? "" : "\n", r.library.empty() ? r.folder.c_str() : r.library.c_str());
+            ImGui::TableSetColumnIndex(2);
+            ImGui::TextUnformatted(r.version.c_str());
+            ImGui::TableSetColumnIndex(3);
+            switch (r.state) {
+                case plugin::PluginState::Loaded: ImGui::TextColored(kGreen, r.library.empty() ? "Data" : "Loaded"); break;
+                case plugin::PluginState::Disabled: ImGui::TextDisabled("Off"); break;
+                case plugin::PluginState::Failed:
+                    ImGui::TextColored(kRed, "Error");
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", r.error.c_str());
+                    break;
+            }
+            ImGui::PopID();
+            ImGui::PopID();
+        }
+        ImGui::EndTable();
+    }
+    if (pluginsChanged_) ImGui::TextColored(kYellow, "Restart to apply");
+    ImGui::TextDisabled("Folder: %s/plugins", configDir().c_str());
+    if (pm)
+        for (const auto& h : pm->settingsSections()) {
+            ImGui::PushID(h.plugin.c_str());
+            ImGui::SeparatorText(h.name.c_str());
+            plugin::PluginManager::draw(h);
+            ImGui::PopID();
+        }
 }
 
 }  // namespace lr::app

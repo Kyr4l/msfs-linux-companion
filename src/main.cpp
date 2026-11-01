@@ -28,7 +28,9 @@
 #include "haptics/Haptics.hpp"
 #include "haptics/WinwingHid.hpp"
 #include "input/Evdev.hpp"
+#include "plugin/PluginManager.hpp"
 #include "sim/SimBridge.hpp"
+#include "util/Isolated.hpp"
 #include "ui/AppIcon.hpp"
 #include "ui/Ui.hpp"
 #ifdef COMPANION_UI_LINT
@@ -68,7 +70,9 @@ void usage() {
         "  --profile NAME         activate this profile for the session\n"
         "  --config FILE          config file (default $XDG_CONFIG_HOME/msfs-linux-companion/config.json)\n"
         "  --catalog FILE         extra action catalog JSON (all data/*_catalog.json are loaded automatically)\n"
-        "  --tab NAME             start on a tab: Bindings, Devices, Guides, Catalog, Cockpit, Vibration, Log, Settings\n"
+        "  --tab NAME             start on a tab: Bindings, Devices, Guides, Catalog, Cockpit, Vibration, Log, Settings, or a plugin's tab\n"
+        "  --plugin PATH          load this plugin too (a .so, a plugin folder, or a folder of plugins); see docs/PLUGINS.md\n"
+        "  --no-plugins           do not load the plugins of the user's and the installed plugin folders\n"
         "  --quiet                do not echo the log to stderr\n"
         "  --probe-winwing        list Winwing HID devices and the controllers behind them, then exit\n"
         "  --motor-sweep [DEV]    buzz every SET_LEDX index (0..31) on each controller (or only device byte DEV, e.g. 0x04)\n"
@@ -104,6 +108,8 @@ int main(int argc, char** argv) {
     std::vector<std::string> paramNames;
     int sweepDevice = -1;
     std::string hostOverride, profileOverride, configPath, catalogPath, startTab;
+    std::vector<std::string> pluginPaths;
+    bool noPlugins = false;
     int portOverride = 0;
     for (int i = 1; i < argc; ++i) {
         std::string a = argv[i];
@@ -141,6 +147,8 @@ int main(int argc, char** argv) {
         else if (a == "--config") next(configPath);
         else if (a == "--catalog") next(catalogPath);
         else if (a == "--tab") next(startTab);
+        else if (a == "--plugin") { std::string v; next(v); pluginPaths.push_back(v); }
+        else if (a == "--no-plugins") noPlugins = true;
         else if (a == "--quiet" || a == "-q") Log::instance().echoToStderr = false;
         else if (a == "--version") {
             std::printf("msfs-linux-companion %s\nLicense GPL-3.0-only: free software, no warranty. Source: https://github.com/Kyr4l/msfs-linux-companion\n", COMPANION_VERSION);
@@ -219,6 +227,19 @@ int main(int argc, char** argv) {
     haptics::WinwingHidManager winwing;
     haptics::HapticsEngine hapticsEngine(bridge, winwing);
     app::AppContext ctx(bridge, engine, input, hapticsEngine, winwing);
+    plugin::PluginManager plugins;
+    ctx.plugins = &plugins;
+    // Whichever way main() ends from here on: the threads that call into the plugins stop first, then the plugins' shutdown hooks run.
+    struct PluginShutdown {
+        input::InputManager& input;
+        haptics::HapticsEngine& haptics;
+        plugin::PluginManager& plugins;
+        ~PluginShutdown() {
+            input.stop();
+            haptics.stop();
+            plugins.shutdown();
+        }
+    } pluginShutdown{input, hapticsEngine, plugins};
     ctx.configPath = configPath.empty() ? app::configFile() : configPath;
     ctx.startTab = startTab;
 
@@ -255,6 +276,10 @@ int main(int argc, char** argv) {
         }
         LOG_INFO("Config: %s (profile \"%s\", %zu bindings)", ctx.configPath.c_str(), ctx.settings.activeProfile.c_str(), ctx.settings.ensureActive().bindings.size());
     }
+    // before the data files are read (a plugin may bring aircraft) and before the threads start (a plugin may add vibration rules)
+    plugins.load(ctx, pluginPaths, !noPlugins && !isolatedRun());  // a test run only loads the plugins it names
+    app::setPluginDataDirs(plugins.dataDirs());
+    engine.setPluginRunner([&plugins](const std::string& name, double value, const std::string& origin) { return plugins.runCommand(name, value, origin); });
     {
         std::vector<std::string> paths = app::listDataFiles("_catalog.json");
         if (!catalogPath.empty()) paths.push_back(catalogPath);  // --catalog adds (or replaces, same aircraft) one more
@@ -296,7 +321,8 @@ int main(int argc, char** argv) {
     hapticsEngine.start();
     engine.setProbes([&input](const std::string& dev, int code) { return input.buttonDown(dev, code); },
                      [&input](const std::string& dev, int code) { return input.axisValue(dev, code); });
-    input.start([&engine](const input::InputEvent& ev) { engine.onInput(ev); }, [&engine] { return engine.tick(); });
+    input.start([&engine, &plugins](const input::InputEvent& ev) { plugins.onInput(ev); engine.onInput(ev); }, [&engine] { return engine.tick(); });
+    plugins.start();
 
     if (!fireSpecs.empty() || !readNames.empty() || !readInputs.empty() || listControls || !paramNames.empty() || !scriptPath.empty()) {
         // One-shot scripting mode: wait for the sim (and the MobiFlight module when needed), act, exit.
@@ -344,6 +370,7 @@ int main(int argc, char** argv) {
             const int failed = app::runScript(bridge, scriptPath);
             input.stop();
             hapticsEngine.stop();
+            plugins.shutdown();
             bridge.stop();
             return failed == 0 ? 0 : 1;
         }
@@ -453,6 +480,7 @@ int main(int argc, char** argv) {
         }
         input.stop();
         hapticsEngine.stop();
+        plugins.shutdown();
         bridge.stop();
         return exitCode;
     }
@@ -579,6 +607,7 @@ int main(int argc, char** argv) {
 
     input.stop();
     hapticsEngine.stop();
+    plugins.shutdown();
     bridge.stop();
     if (ctx.dirty) ctx.save();
     return 0;

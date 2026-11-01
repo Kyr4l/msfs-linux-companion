@@ -26,7 +26,7 @@ void Ui::drawVibrationTab() {
     const haptics::HapticsStatus hs = ctx_.haptics.status();
     bool changed = false;
 
-    ImGui::TextDisabled("Vibration for Winwing devices, driven by flight data.");
+    ImGui::TextDisabled("Vibration driven by flight data.");
     changed |= ImGui::Checkbox("Enabled", &cfg.enabled);
     ImGui::SameLine();
     ImGui::SetNextItemWidth(200);
@@ -122,7 +122,7 @@ void Ui::drawVibrationTab() {
         ImGui::TableSetupColumn("Gain", ImGuiTableColumnFlags_WidthFixed, 200);
         ImGui::TableSetupColumn("Now", ImGuiTableColumnFlags_WidthFixed, 120);
         ImGui::TableHeadersRow();
-        for (const auto& info : haptics::ruleInfos()) {
+        for (const auto& info : ctx_.haptics.rules()) {
             ImGui::PushID(info.id);
             haptics::RuleConfig& rc = cfg.rules[info.id];
             ImGui::TableNextRow();

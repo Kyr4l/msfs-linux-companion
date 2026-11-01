@@ -1,0 +1,6 @@
+{
+  "id": "my-aircraft",
+  "name": "My aircraft",
+  "version": "1.0",
+  "description": "Example data plugin: a catalog for one more aircraft"
+}

@@ -13,6 +13,7 @@
 #include <imgui_stdlib.h>
 
 #include "app/Paths.hpp"
+#include "plugin/PluginManager.hpp"
 #include "util/Log.hpp"
 
 namespace lr::app {
@@ -88,11 +89,25 @@ void Ui::draw() {
         tab("Catalog", &Ui::drawCatalogTab);
         tab("Cockpit", &Ui::drawCockpitTab);
         tab("Vibration", &Ui::drawVibrationTab);
+        if (ctx_.plugins)
+            for (const auto& h : ctx_.plugins->tabs()) {
+                ImGuiTabItemFlags flags = 0;
+                if (!startTab_.empty() && startTab_ == h.name) { flags = ImGuiTabItemFlags_SetSelected; startTab_.clear(); }
+                ImGui::PushID(h.plugin.c_str());  // two plugins may both have a tab called "Settings"
+                if (ImGui::BeginTabItem(h.name.c_str(), nullptr, flags)) { plugin::PluginManager::draw(h); ImGui::EndTabItem(); }
+                ImGui::PopID();
+            }
         tab("Log", &Ui::drawLogTab);
         tab("Settings", &Ui::drawSettingsTab);
         ImGui::EndTabBar();
     }
     ImGui::End();
+    if (ctx_.plugins)
+        for (const auto& h : ctx_.plugins->windows()) {
+            ImGui::PushID(h.plugin.c_str());
+            plugin::PluginManager::draw(h);
+            ImGui::PopID();
+        }
 
     if (cockpit_.running() && !cockpitDrawn_) stopCockpitWatch();  // the tab was left: no more reading of every input event
     if (!splashDone_) drawSplash();
@@ -139,6 +154,12 @@ void Ui::drawMenuBar() {
         if (ImGui::MenuItem("Detect MobiFlight")) ctx_.bridge.probeMobiFlight();
         ImGui::EndMenu();
     }
+    if (ctx_.plugins)
+        for (const auto& h : ctx_.plugins->menus()) {
+            ImGui::PushID(h.plugin.c_str());
+            if (ImGui::BeginMenu(h.name.c_str())) { plugin::PluginManager::draw(h); ImGui::EndMenu(); }
+            ImGui::PopID();
+        }
     ImGui::EndMenuBar();
     if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_S)) ctx_.save();
 }
@@ -192,6 +213,15 @@ void Ui::drawStatusBar() {
     if (ImGui::Checkbox("Bindings active", &enabled)) ctx_.engine.setEnabled(enabled);
     if (ctx_.dirty) { ImGui::SameLine(0, 30); ImGui::TextColored(kYellow, "Unsaved"); }
     if (!ctx_.lastSaveError.empty()) { ImGui::SameLine(); ImGui::TextColored(kRed, "Save failed: %s", ctx_.lastSaveError.c_str()); }
+    if (ctx_.plugins)
+        for (const auto& h : ctx_.plugins->statusItems()) {
+            ImGui::SameLine(0, 30);
+            ImGui::PushID(h.plugin.c_str());
+            ImGui::BeginGroup();
+            plugin::PluginManager::draw(h);
+            ImGui::EndGroup();
+            ImGui::PopID();
+        }
 }
 
 // ---------------------------------------------------------------- Splash

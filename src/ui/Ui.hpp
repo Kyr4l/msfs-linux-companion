@@ -21,6 +21,8 @@
 #include "sim/SimBridge.hpp"
 #include "util/Log.hpp"
 
+namespace lr::plugin { class PluginManager; }
+
 namespace lr::app {
 
 struct AppContext {
@@ -37,6 +39,7 @@ struct AppContext {
     input::InputManager& input;
     haptics::HapticsEngine& haptics;
     haptics::WinwingHidManager& winwing;
+    plugin::PluginManager* plugins = nullptr;  // what the plugins added (tabs, menus, commands ...); set by main()
     bool dirty = false;
     std::string startTab;  // --tab NAME: tab selected on the first frame
     bool quitRequested = false;
@@ -80,6 +83,8 @@ private:
     std::optional<double> readProbe(const GuideProbe& p) const;
     void drawLogTab();
     void drawSettingsTab();
+    void drawPluginsSection();
+    bool pluginsChanged_ = false;  // a plugin was switched on or off: takes effect at the next start
     void drawVibrationTab();
     void drawSplash();
     void drawBindingEditor();

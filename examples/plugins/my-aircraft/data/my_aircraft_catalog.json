@@ -1,0 +1,14 @@
+{
+  "aircraft": "My_Aircraft",
+  "title": "My Aircraft (example)",
+  "sources": ["Standard SimConnect key events (every aircraft has them)"],
+  "axis_controls": true,
+  "entries": [
+    {"panel": "Pedestal", "section": "Gear", "function": "Landing gear", "api": "GEAR_TOGGLE", "kind": "sim_event", "type": "K: EVENT"},
+    {"panel": "Pedestal", "section": "Brakes", "function": "Parking brake", "api": "PARKING_BRAKES", "kind": "sim_event", "type": "K: EVENT"},
+    {"panel": "Pedestal", "section": "Flaps", "function": "Flaps up one notch", "api": "FLAPS_DECR", "kind": "sim_event", "type": "K: EVENT"},
+    {"panel": "Pedestal", "section": "Flaps", "function": "Flaps down one notch", "api": "FLAPS_INCR", "kind": "sim_event", "type": "K: EVENT"},
+    {"panel": "Overhead", "section": "Lights", "function": "Landing lights", "api": "LANDING_LIGHTS_TOGGLE", "kind": "sim_event", "type": "K: EVENT"},
+    {"panel": "Plugins", "section": "Hello", "function": "Count (hello plugin)", "api": "hello.count", "kind": "plugin", "value": 1}
+  ]
+}

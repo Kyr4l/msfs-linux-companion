@@ -33,6 +33,24 @@ const std::vector<RuleInfo>& ruleInfos() {
 HapticsEngine::HapticsEngine(sim::SimBridge& bridge, WinwingHidManager& hid) : bridge_(bridge), hid_(hid) {}
 HapticsEngine::~HapticsEngine() { stop(); }
 
+void HapticsEngine::addRule(ExtraRule rule) {
+    if (running_) { LOG_ERROR("Vibration rule %s added after the start: ignored", rule.id.c_str()); return; }
+    extraRules_.push_back(std::move(rule));
+    brokenRules_.push_back(false);
+}
+
+void HapticsEngine::addOutput(std::function<void(const HapticsOutputFrame&)> output) {
+    if (running_) { LOG_ERROR("Vibration output added after the start: ignored"); return; }
+    outputs_.push_back(std::move(output));
+    brokenOutputs_.push_back(false);
+}
+
+std::vector<RuleInfo> HapticsEngine::rules() const {
+    std::vector<RuleInfo> out = ruleInfos();
+    for (const auto& r : extraRules_) out.push_back({r.id.c_str(), r.label.c_str(), r.description.c_str()});
+    return out;
+}
+
 void HapticsEngine::start() {
     if (running_) return;
     running_ = true;
@@ -154,6 +172,16 @@ void HapticsEngine::evaluate(const sim::Telemetry& t, float& left, float& right,
     const double brake = std::max(t.brakeLeft, t.brakeRight);
     if (onGround && t.groundSpeedKt > 15 && brake > 0.25) add("brakes", 0.1 + 0.3 * brake);
 
+    for (size_t i = 0; i < extraRules_.size(); ++i) {  // the rules of the plugins
+        if (brokenRules_[i]) continue;
+        try {
+            add(extraRules_[i].id.c_str(), extraRules_[i].level(t));
+        } catch (const std::exception& e) {
+            brokenRules_[i] = true;
+            LOG_ERROR("Vibration rule %s threw (%s): switched off until the program is restarted", extraRules_[i].id.c_str(), e.what());
+        }
+    }
+
     // --- pulses ---
     const RuleConfig td = cfg_.rule("touchdown");
     for (size_t i = 0; i < globalPulses_.size();) {
@@ -203,7 +231,9 @@ void HapticsEngine::threadMain() {
         // The sim is asked for flight data (every third frame) only while vibration is enabled and a device is plugged in.
         const auto devices = hid_.devices();
         const bool haveDevice = !devices.empty();
-        const bool wantTelemetry = cfg.enabled && haveDevice;
+        // a plugin's output counts as a device, and it gets the flight data even while vibration is off (it may not be about vibration)
+        const bool haveOutput = haveDevice || !outputs_.empty();
+        const bool wantTelemetry = (cfg.enabled && haveDevice) || !outputs_.empty();
         if (wantTelemetry != telemetryOn) {
             bridge_.setTelemetryEnabled(wantTelemetry);
             telemetryOn = wantTelemetry;
@@ -244,6 +274,25 @@ void HapticsEngine::threadMain() {
         }
         for (auto it = lastSent.begin(); it != lastSent.end();)  // a device that was unplugged no longer keeps the loop busy
             it = std::any_of(devices.begin(), devices.end(), [&](const WinwingDeviceInfo& d) { return d.key == it->first; }) ? std::next(it) : lastSent.erase(it);
+        if (!outputs_.empty()) {
+            HapticsOutputFrame frame;
+            frame.enabled = cfg.enabled;
+            frame.flying = flying;
+            frame.fresh = fresh;
+            frame.left = cfg.enabled ? left : 0.f;
+            frame.right = cfg.enabled ? right : 0.f;
+            frame.contrib = contrib;
+            frame.telemetry = t;
+            for (size_t i = 0; i < outputs_.size(); ++i) {
+                if (brokenOutputs_[i]) continue;
+                try {
+                    outputs_[i](frame);
+                } catch (const std::exception& e) {
+                    brokenOutputs_[i] = true;
+                    LOG_ERROR("Vibration output %zu of a plugin threw (%s): not called again until the program is restarted", i, e.what());
+                }
+            }
+        }
         {
             std::lock_guard<std::mutex> lock(m_);
             status_.left = left;
@@ -262,10 +311,10 @@ void HapticsEngine::threadMain() {
             std::lock_guard<std::mutex> lock(m_);
             pulsing = !pulses_.empty() || !globalPulses_.empty();
         }
-        const bool busy = (cfg.enabled && fresh) || motorsOn || pulsing;
+        const bool busy = ((cfg.enabled || !outputs_.empty()) && fresh) || motorsOn || pulsing;
         {
             std::unique_lock<std::mutex> lock(m_);
-            if (running_) cv_.wait_for(lock, std::chrono::milliseconds(busy ? 33 : (haveDevice ? 250 : 500)));
+            if (running_) cv_.wait_for(lock, std::chrono::milliseconds(busy ? 33 : (haveOutput ? 250 : 500)));
         }
     }
     hid_.allOff();

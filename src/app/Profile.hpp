@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Kyr4l
 #pragma once
 // Data model for bindings/profiles plus JSON (de)serialization of the config file.
+#include <map>
 #include <string>
 #include <vector>
 
@@ -10,7 +11,8 @@
 
 namespace lr::app {
 
-enum class ActionKind { SimEvent, HEvent, LVarSet, LVarToggle, CalcCode, InputEvent, InputEventToggle, Delay };  // Delay: value = milliseconds; what follows in the list waits
+// Delay: value = milliseconds; what follows in the list waits. Plugin: a command of a plugin, name "<plugin id>.<command>" (see plugin/Plugin.hpp).
+enum class ActionKind { SimEvent, HEvent, LVarSet, LVarToggle, CalcCode, InputEvent, InputEventToggle, Delay, Plugin };
 
 const char* actionKindName(ActionKind k);   // "sim_event" ... (stable, used in JSON)
 const char* actionKindLabel(ActionKind k);  // "K: event" ... (UI)
@@ -20,7 +22,7 @@ bool actionNeedsMobiFlight(ActionKind k);
 struct Action {
     ActionKind kind = ActionKind::SimEvent;
     std::string name;   // event name / L var / H event / RPN code
-    double value = 0;   // event parameter, L var / input event value; for input_event_toggle the number of positions (default 2); for delay the milliseconds
+    double value = 0;   // event parameter, L var / input event value, plugin command value; for input_event_toggle the number of positions (default 2); for delay the milliseconds
     std::string describe() const;
 };
 
@@ -112,6 +114,8 @@ struct Settings {
     std::vector<AxisCalibration> calibrations;  // one per calibrated axis, shared by every profile
     BindingsGroupBy bindingsGroupBy = BindingsGroupBy::None;
     bool bindingsAutoSort = false;  // sorted by group and input instead of in the order of the file (which is the manual, dragged order)
+    std::vector<std::string> disabledPlugins;              // ids of the plugins not to load
+    std::map<std::string, std::string> pluginSettings;     // each plugin's own settings by id, as JSON text (see plugin::Host::settings)
 
     const AxisCalibration* calibrationFor(const input::InputId& axis) const;
     void setCalibration(const AxisCalibration& c);  // replaces the one of the same axis

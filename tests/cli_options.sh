@@ -20,6 +20,7 @@ check() {  # description, args...
 }
 check "headless + config + host + port + profile + catalog + quiet" \
     --headless --config "$TMP/config.json" --host 127.0.0.1 --port 1 --profile A32NX --catalog "$(dirname "$CFG")/../../data/a32nx_catalog.json" --quiet
+check "plugin + no-plugins" --headless --config "$TMP/config.json" --port 1 --no-plugins --plugin "$TMP" --quiet
 check "motor-sweep with and without device" --headless --config "$TMP/config.json" --motor-sweep 0x04 --quiet
 check "probe-winwing" --probe-winwing --quiet
 check "dump-winwing-config" --dump-winwing-config --quiet

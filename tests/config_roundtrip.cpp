@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
+#include <unistd.h>
 #include <fstream>
 #include <limits>
 #include <sstream>
@@ -241,6 +242,25 @@ int main(int argc, char** argv) {
         CHECK(engineFingerprint(p, none) != first);
         std::vector<AxisCalibration> cals(1);
         CHECK(engineFingerprint(p, cals) != engineFingerprint(p, none));
+    }
+
+    {   // the plugins' part of the config: which are off, and each one's own settings, unchanged through a save
+        const fs::path work = fs::temp_directory_path() / ("plugins_roundtrip_" + std::to_string(getpid()) + ".json");
+        Settings s;
+        s.profiles.push_back(Profile{});
+        s.disabledPlugins = {"hello"};
+        s.pluginSettings["hello"] = R"({"greet":false,"list":[1,2]})";
+        std::string err;
+        CHECK(saveSettings(work.string(), s, err));
+        Settings t;
+        CHECK(loadSettings(work.string(), t, err));
+        CHECK(t.disabledPlugins == s.disabledPlugins);
+        CHECK(t.pluginSettings.size() == 1 && t.pluginSettings["hello"] == R"({"greet":false,"list":[1,2]})");
+        Settings none;
+        none.profiles.push_back(Profile{});
+        CHECK(saveSettings(work.string(), none, err));
+        CHECK(slurp(work).find("\"plugins\"") == std::string::npos);  // a config without plugins is written as before
+        fs::remove(work);
     }
 
     std::printf(failures ? "\n%d check(s) FAILED\n" : "\nall checks passed\n", failures);

@@ -54,6 +54,10 @@ Action CatalogEntry::toAction() const {
     } else if (kind == "calc_code") {
         a.kind = ActionKind::CalcCode;
         a.name = name;
+    } else if (kind == "plugin") {  // a command of a plugin ("<plugin id>.<command>"), listed by the plugin's own catalog
+        a.kind = ActionKind::Plugin;
+        a.name = name;
+        a.value = hasValue ? value : 0;
     } else {
         a.kind = ActionKind::SimEvent;
         a.name = name;

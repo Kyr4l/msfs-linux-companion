@@ -205,6 +205,7 @@ std::vector<Action> Engine::withValue(const std::vector<Action>& actions, double
         switch (a.kind) {
             case ActionKind::SimEvent:
             case ActionKind::InputEvent:
+            case ActionKind::Plugin:
             case ActionKind::LVarSet: a.value = v; break;
             case ActionKind::CalcCode: {
                 size_t pos = 0;
@@ -306,11 +307,18 @@ void Engine::setActionObserver(std::function<void(const Action&, const std::stri
     observer_ = std::move(observer);
 }
 
+void Engine::setPluginRunner(std::function<bool(const std::string&, double, const std::string&)> runner) {
+    std::lock_guard<std::mutex> lock(m_);
+    pluginRunner_ = std::move(runner);
+}
+
 void Engine::runActions(const std::vector<Action>& actions, size_t from, const std::string& origin, int binding, uint64_t generation) {
     std::function<void(const Action&, const std::string&)> observer;
+    std::function<bool(const std::string&, double, const std::string&)> pluginRunner;
     {
         std::lock_guard<std::mutex> lock(m_);
         observer = observer_;
+        pluginRunner = pluginRunner_;
     }
     for (size_t k = from; k < actions.size(); ++k) {
         const Action& a = actions[k];
@@ -323,6 +331,9 @@ void Engine::runActions(const std::vector<Action>& actions, size_t from, const s
             case ActionKind::InputEvent: bridge_.setInputEvent(a.name, a.value, origin); break;
             case ActionKind::InputEventToggle: bridge_.toggleInputEvent(a.name, a.value >= 2 ? static_cast<int>(a.value) : 2, origin); break;
             case ActionKind::CalcCode: bridge_.execCalculatorCode(a.name, origin); break;
+            case ActionKind::Plugin:
+                if (!pluginRunner || !pluginRunner(a.name, a.value, origin)) LOG_WARN("No plugin has the command %s (%s)", a.name.c_str(), origin.c_str());
+                break;
             case ActionKind::Delay: {
                 // the rest of the list runs later, from tick(); nothing here ever sleeps
                 Scheduled item;

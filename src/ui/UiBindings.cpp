@@ -15,6 +15,7 @@
 
 #include "app/BindingView.hpp"
 #include "app/Paths.hpp"
+#include "plugin/PluginManager.hpp"
 #include "util/Log.hpp"
 
 namespace lr::app {
@@ -618,6 +619,23 @@ void Ui::drawActionList(const char* id, std::vector<Action>& actions, int listIn
             ImGui::InputDouble("##value", &a.value, 0, 0, "%g");
             ImGui::SameLine();
             ImGui::TextDisabled("ms");
+        } else if (a.kind == ActionKind::Plugin) {
+            // the commands of the loaded plugins; a name no plugin has (its plugin is off or gone) is kept and shown as it is
+            const plugin::Command* cur = ctx_.plugins ? ctx_.plugins->findCommand(a.name) : nullptr;
+            ImGui::SetNextItemWidth(fs * 22);
+            if (ImGui::BeginCombo("##command", cur ? cur->label.c_str() : a.name.empty() ? "Command" : a.name.c_str())) {
+                if (ctx_.plugins)
+                    for (const auto& c : ctx_.plugins->commands()) {
+                        if (ImGui::Selectable(c.label.c_str(), &c == cur)) a.name = c.name;
+                        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", c.name.c_str());
+                    }
+                if (!ctx_.plugins || ctx_.plugins->commands().empty()) ImGui::TextDisabled("None");
+                ImGui::EndCombo();
+            }
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(fs * 6);
+            ImGui::InputDouble("##value", &a.value, 0, 0, "%g");
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Value");
         } else {
             ImGui::SetNextItemWidth(fs * 22);
             const char* hint = a.kind == ActionKind::SimEvent ? "A32NX.FCU_AP_1_PUSH or GEAR_UP" :

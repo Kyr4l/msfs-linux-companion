@@ -77,7 +77,7 @@ ninja -C build
 ```
 
 Options: `--wayland` / `--x11` (force a platform), `--headless` (no window, run the active profile),
-`--host`, `--port`, `--profile NAME`, `--config FILE`, `--catalog FILE`, `--quiet`,
+`--host`, `--port`, `--profile NAME`, `--config FILE`, `--catalog FILE`, `--plugin PATH`, `--no-plugins`, `--quiet`,
 `--probe-winwing`, `--motor-sweep [DEV]`, `--dump-winwing-config`,
 `--fire KIND:NAME[=V]` (one-shot action, e.g. `--fire lvar_toggle:A32NX_OVHD_APU_MASTER_SW_PB_IS_ON`),
 `--read NAME` (print an `L:` var), `--read-input NAME` (print a cockpit input event), `--list-controls` (print the loaded aircraft's input events and L: variables).
@@ -318,6 +318,13 @@ flowchart: pick a topic ("Start the engines"), answer a few questions, follow th
   technique rather than a documented procedure says so. `tools/validate_guides.py` refuses guides whose controls are not
   in the catalog, whose steps have no source, or whose flow has dead ends. The format is in `docs/GUIDES.md`.
 
+## Plugins
+
+Plugins add to the program without changing it. A folder with a `data/` folder adds aircraft (catalogs, guides) without code; a C++
+library can add tabs, menus, commands for your bindings, vibration rules, other things to vibrate, or anything else, since it runs
+inside the program. Put them in `~/.config/msfs-linux-companion/plugins/<name>/`; **Settings > Plugins** lists them.
+How to write one: [docs/PLUGINS.md](docs/PLUGINS.md), with an example of each kind in [`examples/plugins/`](examples/plugins).
+
 ## Vibration (Winwing URSA MINOR and friends)
 
 Vibration only runs while you fly: not in a menu or a loading screen (MSFS 2024 keeps sending the values of the menu's aircraft there, with warnings and
@@ -424,7 +431,7 @@ then `sudo udevadm control --reload && sudo udevadm trigger` and re-plug the dev
 * `tools/build_aircraft_catalog.py asobo_cj4` regenerates `data/asobo_cj4_catalog.json` from the event list stored in `tools/aircraft_rules/` and the rules module next to it; it refuses to run when an event has no rule. New aircraft are added by dumping their events with `--dump-controls FILE` and writing a rules module.
 * `--script FILE` checks controls on a running aircraft (`set`, `toggle`, `press`, `get`, `code`, `expect`, `expectb`, `sleep`; see `src/app/Script.hpp`). It prints `ok` / `FAIL` lines and a count, and exits non-zero on failures. Restore what you changed: it does not.
 * `tools/build_keypad_layout.py <flybywire-aircraft-a320-neo package> --preview FILE.png` regenerates `data/a32nx_keypads.json` (the MCDU key positions, read from the aircraft's 3D model) and writes a picture of it.
-* `ctest --test-dir build` runs the config compatibility, command-line option, axis, live-catalog, curated-catalog, guide, idle-cost and live-control tests. The scripts set `MSFS_LINUX_COMPANION_ISOLATED=1`, which makes the program skip the search for a running simulator's port and the opening of joysticks and Winwing devices: a test run next to a real simulator (or with a stick in your hand) can neither reach the sim nor be disturbed by your input.
+* `ctest --test-dir build` runs the config compatibility, command-line option, axis, live-catalog, curated-catalog, guide, plugin, idle-cost and live-control tests. The scripts set `MSFS_LINUX_COMPANION_ISOLATED=1`, which makes the program skip the search for a running simulator's port and the opening of joysticks and Winwing devices: a test run next to a real simulator (or with a stick in your hand) can neither reach the sim nor be disturbed by your input.
 * `tools/virtual_joystick.py` is a uinput joystick for exercising bindings without hardware.
 * `cmake -DCOMPANION_UI_LINT=ON` builds a variant that checks the way the windows are drawn on every frame (`src/ui/UiLint.hpp`): two widgets that share an identifier (Dear ImGui only complains about that when the widget is hovered, and a conflicting widget cannot be clicked) and the errors it repairs by itself (a `Begin` without `End`) are written once each to stderr as `[ui-lint] ...`. Run it on a virtual display, with `MSFS_LINUX_COMPANION_ISOLATED=1`, through the screens and popups you changed.
 * `_cpr/` is git-ignored: put copies of files from the (read-only) MSFS install there if you need

@@ -91,17 +91,26 @@ static fs::path exeDir() {
     return fs::path(buf).parent_path();
 }
 
+static std::vector<std::string> g_pluginDataDirs;  // set once by main() before anything is read
+
+void setPluginDataDirs(std::vector<std::string> dirs) { g_pluginDataDirs = std::move(dirs); }
+
+std::string installedPluginDir() { return (exeDir() / ".." / "lib" / "msfs-linux-companion" / "plugins").lexically_normal().string(); }
+
 static std::vector<fs::path> dataDirs() {
     const fs::path exe = exeDir();
-    return {
-        fs::path(configDir()),                               // user override
+    std::vector<fs::path> dirs{fs::path(configDir())};  // user override
+    for (const auto& d : g_pluginDataDirs) dirs.emplace_back(d);
+    for (fs::path d : {
         exe / "data",                                        // run from build dir with data copied
         exe / ".." / "share" / "msfs-linux-companion" / "data",  // installed
 #ifdef COMPANION_SOURCE_DATA_DIR
         fs::path(COMPANION_SOURCE_DATA_DIR),               // dev build
 #endif
         fs::current_path() / "data",
-    };
+    })
+        dirs.push_back(std::move(d));
+    return dirs;
 }
 
 std::vector<std::string> listDataFiles(const std::string& suffix) {

@@ -72,6 +72,8 @@ public:
     std::vector<FiredRecord> recentFires() const;
     void fire(const std::vector<Action>& actions, const std::string& origin);  // a Delay action holds back what follows it in the list
     bool hasScheduled() const;  // actions are waiting for a Delay: call tick() when they are due
+    // Runs the actions of the kind Plugin (the plugin manager); returns false for a command no plugin has. Without one they are only logged.
+    void setPluginRunner(std::function<bool(const std::string& name, double value, const std::string& origin)> runner);
     // Called with every action the engine carries out (after its Delay), for the tests.
     void setActionObserver(std::function<void(const Action&, const std::string& origin)> observer);
 
@@ -133,6 +135,7 @@ private:
     };
     std::vector<Scheduled> scheduled_;
     std::function<void(const Action&, const std::string&)> observer_;
+    std::function<bool(const std::string&, double, const std::string&)> pluginRunner_;
     void runActions(const std::vector<Action>& actions, size_t from, const std::string& origin, int binding, uint64_t generation);
     std::vector<Scheduled> takeDue(int& waitMs);  // under m_: what is due now (stale ones dropped), and the wait until the next
     int nextScheduledMs() const;                  // under m_: milliseconds until the next waiting Delay tail is due, -1 when none
