@@ -36,7 +36,7 @@ void Ui::drawVibrationTab() {
     if (cfg.enabled) {
         ImGui::SameLine();
         if (hs.telemetryFresh) ImGui::TextColored(kGreen, "Live");
-        else ImGui::TextColored(kYellow, status_.state == sim::ConnState::Connected ? "Waiting for data" : "No simulator");
+        else ImGui::TextColored(kYellow, status_.state != sim::ConnState::Connected ? "No simulator" : hs.flying ? "Waiting for data" : "Not flying");
     }
     ImGui::ProgressBar(hs.left, ImVec2(220, 0), "left motor");
     ImGui::SameLine();

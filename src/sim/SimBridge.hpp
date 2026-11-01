@@ -141,6 +141,9 @@ public:
     void probeMobiFlight();
 
     SimStatus status() const;
+    // The user is flying: connected, the sim reports that the aircraft is under the user's control (not a menu or a loading screen) and is not paused.
+    // The data of the sim objects keeps coming in a menu on MSFS 2024 (with whatever the menu's aircraft reports), so it is not a sign of a flight.
+    bool inFlight() const;
     Telemetry telemetry() const;
     void setTelemetryEnabled(bool on);  // subscribe to flight data (needed for vibration)
 

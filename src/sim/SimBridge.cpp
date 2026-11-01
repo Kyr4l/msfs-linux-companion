@@ -377,6 +377,11 @@ SimStatus SimBridge::status() const {
     return status_;
 }
 
+bool SimBridge::inFlight() const {
+    std::lock_guard<std::mutex> lock(m_);
+    return status_.state == ConnState::Connected && status_.simRunning && !status_.paused;
+}
+
 Telemetry SimBridge::telemetry() const {
     std::lock_guard<std::mutex> lock(m_);
     return telemetry_;
@@ -1000,9 +1005,17 @@ void SimBridge::handleMessage(const RecvMessage& m) {
         }
         case RecvId::Event: {
             RecvEvent e = SimConnectClient::parseEvent(m);
-            std::lock_guard<std::mutex> lock(m_);
-            if (e.eventId == EV_SYS_SIM) status_.simRunning = e.data != 0;
-            else if (e.eventId == EV_SYS_PAUSE) status_.paused = e.data != 0;
+            bool simChanged = false;
+            {
+                std::lock_guard<std::mutex> lock(m_);
+                if (e.eventId == EV_SYS_SIM) {
+                    simChanged = status_.simRunning != (e.data != 0);
+                    status_.simRunning = e.data != 0;
+                } else if (e.eventId == EV_SYS_PAUSE) {
+                    status_.paused = e.data != 0;
+                }
+            }
+            if (simChanged) LOG_INFO("Simulator: %s", e.data != 0 ? "in a flight" : "in a menu");
             break;
         }
         case RecvId::EventFilename: {
@@ -1020,11 +1033,13 @@ void SimBridge::handleMessage(const RecvMessage& m) {
         case RecvId::SystemState: {
             RecvSystemState s = SimConnectClient::parseSystemState(m);
             std::string aircraftFromState;
+            bool simStateKnown = false;
             {
                 std::lock_guard<std::mutex> lock(m_);
                 if (s.requestId == REQ_SYS_AIRCRAFT_LOADED) { status_.aircraft = s.dataString; aircraftFromState = s.dataString; }
-                else if (s.requestId == REQ_SYS_SIM) status_.simRunning = s.dataInteger != 0;
+                else if (s.requestId == REQ_SYS_SIM) { simStateKnown = true; status_.simRunning = s.dataInteger != 0; }
             }
+            if (simStateKnown) LOG_INFO("Simulator: %s", s.dataInteger != 0 ? "in a flight" : "in a menu");
             if (!aircraftFromState.empty()) onAircraftPath(aircraftFromState);
             break;
         }

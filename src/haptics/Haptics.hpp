@@ -49,6 +49,7 @@ struct HapticsStatus {
     float left = 0, right = 0;             // last computed level 0..1 (before device gain)
     std::map<std::string, float> contrib;  // per rule 0..1
     bool telemetryFresh = false;
+    bool flying = false;                   // not in a menu or a loading screen, not paused
     sim::Telemetry telemetry;
 };
 

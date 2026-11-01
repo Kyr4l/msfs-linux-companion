@@ -150,7 +150,7 @@ void Ui::drawStatusBar() {
     else if (status_.state != sim::ConnState::Disconnected) c = kYellow;
     dot(c);
     if (status_.state == sim::ConnState::Connected) {
-        ImGui::Text("MSFS%s: connected%s", status_.edition ? (status_.edition == 2024 ? " 2024" : " 2020") : "", status_.paused ? " (paused)" : "");
+        ImGui::Text("MSFS%s: connected%s", status_.edition ? (status_.edition == 2024 ? " 2024" : " 2020") : "", status_.paused ? " (paused)" : !status_.simRunning ? " (menu)" : "");
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s %s", status_.simName.c_str(), status_.simVersion.c_str());
         if (status_.detectedPort) {
             ImGui::SameLine();

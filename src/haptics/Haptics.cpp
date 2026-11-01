@@ -203,7 +203,10 @@ void HapticsEngine::threadMain() {
             telemetryOn = wantTelemetry;
         }
         const sim::Telemetry t = bridge_.telemetry();
-        const bool fresh = t.valid && (now - t.time) < std::chrono::seconds(2);
+        // The sim keeps sending the values of its sim objects in a menu on MSFS 2024 (the menu's own aircraft: an overspeed warning, a ground
+        // speed), so a flight is what the sim says it is, not what the data looks like.
+        const bool flying = bridge_.inFlight();
+        const bool fresh = flying && t.valid && (now - t.time) < std::chrono::seconds(2);
 
         float left = 0, right = 0;
         std::map<std::string, float> contrib;
@@ -241,6 +244,7 @@ void HapticsEngine::threadMain() {
             status_.right = right;
             status_.contrib = contrib;
             status_.telemetryFresh = fresh;
+            status_.flying = flying;
             status_.telemetry = t;
         }
         // 33 ms while something is vibrating or flight data is arriving (it comes about 20 times a second); otherwise a quarter of a second (a new pulse or

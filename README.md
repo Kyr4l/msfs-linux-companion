@@ -318,6 +318,9 @@ flowchart: pick a topic ("Start the engines"), answer a few questions, follow th
 
 ## Vibration (Winwing URSA MINOR and friends)
 
+Vibration only runs while you fly: not in a menu or a loading screen (MSFS 2024 keeps sending the values of the menu's aircraft there, with warnings and
+touchdowns that never happened) and not while the sim is paused. The status bar says *(menu)* or *(paused)*, and the log notes each change (*Simulator: in a flight* / *in a menu*).
+
 MSFS only vibrates XInput gamepads and DirectInput force-feedback devices; the Winwing kernel
 driver does not expose the URSA MINOR motors as force feedback, so under Proton the game cannot
 reach them. Instead, this tool subscribes to flight data (ground speed, touchdown, stall,
