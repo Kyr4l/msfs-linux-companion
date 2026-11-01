@@ -43,6 +43,17 @@ const std::vector<AxisTarget>& axisTargets() {
         {"Brakes", "Left brake", "AXIS_LEFT_BRAKE_SET", -16383, 16383, "-16383 = released, 16383 = full", false},
         {"Brakes", "Right brake", "AXIS_RIGHT_BRAKE_SET", -16383, 16383, "-16383 = released, 16383 = full", false},
 
+        // the helicopter axes the sim's own helicopter control profiles bind (Packages/asobo-input-profiles-pc, Categories/Helicopter, KEY_AXIS_*).
+        // The SDK does not state their range; like every AXIS_*_SET event they are taken as -16383..16383 until tried on a running helicopter.
+        {"Helicopter", "Collective", "AXIS_COLLECTIVE_SET", -16383, 16383, "Collective lever. The range is not confirmed", false},
+        {"Helicopter", "Cyclic fore / aft", "AXIS_CYCLIC_LONGITUDINAL_SET", -16383, 16383, "Pitch. The range is not confirmed", false},
+        {"Helicopter", "Cyclic left / right", "AXIS_CYCLIC_LATERAL_SET", -16383, 16383, "Roll. The range is not confirmed", false},
+        {"Helicopter", "Anti-torque pedals", "AXIS_TAIL_ROTOR_SET", -16383, 16383, "Pedals. The range is not confirmed", false},
+        {"Helicopter", "Helicopter throttle", "AXIS_HELICOPTER_THROTTLE_SET", -16383, 16383, "Twist grip, all engines. The range is not confirmed", false},
+        {"Helicopter", "Helicopter throttle 1", "AXIS_HELICOPTER_THROTTLE1_SET", -16383, 16383, "Twist grip, engine 1. The range is not confirmed", false},
+        {"Helicopter", "Helicopter throttle 2", "AXIS_HELICOPTER_THROTTLE2_SET", -16383, 16383, "Twist grip, engine 2. The range is not confirmed", false},
+        {"Helicopter", "Rotor brake", "AXIS_ROTOR_BRAKE_SET", -16383, 16383, "Rotor brake lever. The range is not confirmed", false},
+
         // the events the sim's own controls menu binds to its axes (Input/*.xml): same levers, other events
         {"MSFS controls menu axes", "Throttle (all engines), with reverse", "THROTTLE_AXIS_SET_EX1", 0, 16383,
          "Same axis as the MSFS controls menu", false},

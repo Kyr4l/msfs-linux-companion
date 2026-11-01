@@ -336,6 +336,64 @@ int main(int argc, char** argv) {
         CHECK(thrustAxis);
     }
 
+    // ---- the Guimbal Cabri G2 (a helicopter): the event list is what the running MSFS 2024 reported; labels come from the aircraft's tooltips and
+    // checklist wording and from the Asobo behaviour files of the install, nothing claimed as tried
+    {
+        Catalog cab;
+        if (!cab.load(root + "/data/asobo_cabri_g2_catalog.json", err)) { std::printf("cannot load the Cabri catalog: %s\n", err.c_str()); return 1; }
+        CHECK(cab.aircraft == "Asobo_Cabri_G2" && cab.curated && cab.axisControls);
+        std::ifstream in(root + "/tools/aircraft_rules/asobo_cabri_g2_events.json");
+        nlohmann::json j;
+        in >> j;
+        std::set<std::string> have;
+        for (const auto& e : cab.entries) have.insert(e.name);
+        size_t missing = 0;
+        for (const auto& n : j["input_events"]) if (!have.count(n.get<std::string>())) { std::printf("  no entry for %s\n", n.get<std::string>().c_str()); ++missing; }
+        CHECK(missing == 0 && j["input_events"].size() == 97);
+        for (const auto& e : cab.entries) {
+            CHECK(!e.function.empty() && !e.note.empty());
+            CHECK(!e.verified);
+        }
+        // the switches the sim's checklist names flip between their positions
+        for (const char* n : {"ENGINE_PLASMA", "ENGINE_MAGNETO", "ENGINE_GOVERNOR", "ROTOR_CLUTCH", "ELECTRICAL_ALTERNATOR", "FUEL_VALVE", "BREAKER_BREAKER_PFD"}) {
+            const auto* e = find(cab, n, "latched");
+            CHECK(e && e->toAction().kind == lr::app::ActionKind::InputEventToggle && e->toAction().value == 2);
+        }
+        const auto* carb = find(cab, "DEICE_CARB_HEAT", "latched");
+        CHECK(carb && carb->positions == 3 && carb->toAction().value == 3);  // COLD / AUTO / HOT
+        const auto* xpdr = find(cab, "AS_21_MODE", "latched");
+        CHECK(xpdr && xpdr->positions == 5);  // OFF / STBY / GRND / ON / ALT (AS21.xml)
+        // the radio knobs: the sign of the value picks the direction (AS650.xml)
+        const auto* mhz = find(cab, "AS_650_FREQ_MHZ", "knob_up");
+        CHECK(mhz && mhz->toAction().value == 1 && find(cab, "AS_650_FREQ_MHZ", "knob_down")->toAction().value == -1);
+        // levers whose range is not known are listed without a behaviour, with a note, so nothing sets a wrong value
+        for (const char* n : {"ROTOR_COLLECTIVE", "ROTOR_BRAKE", "ENGINE_THROTTLE"}) {
+            const auto* e = find(cab, n, "");
+            CHECK(e && e->behavior.empty() && e->note.find("Not tried") != std::string::npos);
+        }
+        // the sim's own helicopter trim and autostart events
+        for (const char* n : {"ROTOR_LATERAL_TRIM_INC", "ROTOR_TRIM_RESET", "ENGINE_AUTO_START"}) {
+            const auto* e = find(cab, n, "press");
+            CHECK(e && e->kind == "sim_event" && e->toAction().kind == lr::app::ActionKind::SimEvent);
+        }
+        const auto* cover = find(cab, "XMLVAR_ROTORCRAFT_Clutch_Cover_Opened", "");
+        CHECK(cover && cover->kind == "lvar" && cover->toAction().kind == lr::app::ActionKind::LVarToggle);
+        // a refresh adds the ranged axis events: the helicopter axes next to the aircraft's own entries
+        CatalogSet set;
+        Catalog std_;
+        std_.aircraft = kStandardCatalogId;
+        set.addShipped(std_);
+        set.addShipped(cab);
+        set.refreshStandard();
+        const Catalog* withAxes = set.find("Asobo_Cabri_G2");
+        size_t heli = 0;
+        for (const auto& e : withAxes->entries)
+            if (e.kind == "sim_event" && e.hasAxisRange && e.axisMin == -16383 && e.axisMax == 16383 &&
+                (e.name == "AXIS_COLLECTIVE_SET" || e.name == "AXIS_CYCLIC_LONGITUDINAL_SET" || e.name == "AXIS_CYCLIC_LATERAL_SET" || e.name == "AXIS_TAIL_ROTOR_SET"))
+                ++heli;
+        CHECK(heli == 4);
+    }
+
     std::printf(failures ? "\n%d check(s) FAILED\n" : "all curated catalog checks passed\n", failures);
     return failures ? 1 : 0;
 }

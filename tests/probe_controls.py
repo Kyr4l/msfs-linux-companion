@@ -58,6 +58,9 @@ check([e["name"] for e in pc.make_script(doors, pc.DEFAULT_SKIP, None)[1]] == ["
 # the parachute handle and the emergency autoland of the Vision Jet cannot be put back
 risky = [{"name": n, "value": 0.0} for n in ("SF50_CAPS_HANDLE", "SF50_SAFE_RETURN_ACTIVATE_BUTTON", "SF50_SAFE_RETURN_AUTOPILOT_INTERCEPTS", "SF50_CAPS_SAFETY_PIN")]
 check([e["name"] for e in pc.make_script(risky, pc.DEFAULT_SKIP, None)[1]] == ["SF50_CAPS_SAFETY_PIN"], "CAPS handle and Safe Return are not probed")
+# the Cabri's autostart / shutdown procedure starts and stops the engine
+auto = [{"name": n, "value": 0.0} for n in ("PROCEDURE_AUTO_START_SHUTDOWN", "ROTOR_CLUTCH", "ENGINE_STARTER")]
+check([e["name"] for e in pc.make_script(auto, pc.DEFAULT_SKIP, None)[1]] == ["ROTOR_CLUTCH"], "the autostart / shutdown procedure is not probed")
 # a control that moves but does not take the value (altimeter: set 0..1, read 955..1060 hPa) gets its fraction
 alt = {"name": "INSTRUMENT_ALTIMETER_CALIBRATION_0", "initial": 1013.25, "restored": False, "high": {"requested": pc.HIGH, "actual": 1060.0},
        "low": {"requested": pc.LOW, "actual": 955.0}}

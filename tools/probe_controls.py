@@ -33,8 +33,9 @@ HIGH = 100000.0
 LOW = -100000.0
 # never probed by default: they start the engine, change a display page that cannot be put back, are animation points without a cockpit control,
 # or open a door, a window or a hatch (opening the cabin door of a C172 in MSFS 2024 took the pilot out of the cockpit),
-# or cannot be undone: the airframe parachute (CAPS) and the emergency autoland (Safe Return) of the Vision Jet
-DEFAULT_SKIP = (r"AUTOSTART|MAGNETO|STARTER|IGNITION|DOOR|WINDOW|HATCH|CANOPY|EXIT|CARGO|STAIR|^UNKNOWN_|CAPS_HANDLE|SAFE_RETURN|"
+# or cannot be undone: the airframe parachute (CAPS) and the emergency autoland (Safe Return) of the Vision Jet; the Cabri's
+# PROCEDURE_AUTO_START_SHUTDOWN starts and stops the engine by the sim's procedure
+DEFAULT_SKIP = (r"AUTOSTART|AUTO_START|MAGNETO|STARTER|IGNITION|DOOR|WINDOW|HATCH|CANOPY|EXIT|CARGO|STAIR|^UNKNOWN_|CAPS_HANDLE|SAFE_RETURN|"
                 r"^AS1000_.*(SOFTKEY|PUSH|MENU|FPL|PROC|ENT|CLR|DIRECTTO|RANGE)|_(MFD|PFD|MIDCOM)$")
 WAIT_MS = 1200
 
