@@ -34,45 +34,43 @@ void Ui::drawDetentOptions() {
     if (ok) {
         std::string gates;
         const int codes[4] = {cal->cutoffBtn, cal->idleBtn, cal->milBtn, cal->abBtn};
-        const char* names[4] = {"cut-off", "idle", "end of the dry range", "afterburner"};
+        const char* names[4] = {"cut-off", "idle", "max", "afterburner"};
         for (int g = 0; g < 4; ++g)
             if (codes[g] >= 0) gates += std::string(gates.empty() ? "" : ", ") + names[g] + " = " + ctx_.input.describe({draft_.input.device, input::InputKind::Button, codes[g], 0});
         ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + fs * 40);
-        ImGui::TextColored(kGreen, "Calibrated.%s%s", gates.empty() ? "" : " The gates are read from buttons: ", gates.c_str());
+        ImGui::TextColored(kGreen, "Calibrated%s%s", gates.empty() ? "" : ": ", gates.c_str());
         ImGui::PopTextWrapPos();
         const float now = axisNow(draft_.input);
         drawGateBar(*cal, now, fs * 36);
         if (now >= 0) {
             const auto r = Engine::detentOutput(d, *cal, now, AxisZone::Dry, gateStateNow(*cal));
-            ImGui::TextDisabled("The lever is in the %s.", r.zone == AxisZone::Cutoff ? "cut-off gate" : r.zone == AxisZone::Afterburner ? "afterburner gate" : "dry range (idle up to military power)");
+            ImGui::TextDisabled("Lever: %s", r.zone == AxisZone::Cutoff ? "cut-off" : r.zone == AxisZone::Afterburner ? "afterburner" : "normal");
         }
     } else {
-        ImGui::TextColored(kYellow, "This axis is not calibrated%s: until it is, the lever acts as a plain axis.", cal ? " properly" : " yet");
+        ImGui::TextColored(kYellow, "Not calibrated");
     }
-    if (ImGui::Button(ok ? "Calibrate again..." : "Calibrate this axis...")) openCalibration(draft_.input);
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Teach the program where the gates of this lever are. Done once per axis; every profile uses it.");
+    if (ImGui::Button("Calibrate")) openCalibration(draft_.input);
 
     ImGui::Spacing();
-    ImGui::TextUnformatted("Value sent");
+    ImGui::TextUnformatted("Values");
     ImGui::SameLine();
-    ImGui::TextDisabled("at the cut-off");
+    ImGui::TextDisabled("cut-off");
     ImGui::SameLine();
     ImGui::SetNextItemWidth(fs * 5);
     ImGui::InputDouble("##outCutoff", &d.outCutoff, 0, 0, "%g");
     ImGui::SameLine();
-    ImGui::TextDisabled("at idle");
+    ImGui::TextDisabled("idle");
     ImGui::SameLine();
     ImGui::SetNextItemWidth(fs * 5);
     ImGui::InputDouble("##outIdle", &d.outIdle, 0, 0, "%g");
     ImGui::SameLine();
-    ImGui::TextDisabled("at the end of the dry range");
+    ImGui::TextDisabled("max");
     ImGui::SameLine();
     ImGui::SetNextItemWidth(fs * 5);
     ImGui::InputDouble("##outMil", &d.outMil, 0, 0, "%g");
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Also the value while the lever is in the afterburner gate. Between idle and here the value follows the lever.");
     const bool fractional = d.outIdle != std::round(d.outIdle) || d.outMil != std::round(d.outMil) || d.outCutoff != std::round(d.outCutoff);
     if (c.integer && fractional) {
-        ImGui::TextColored(kYellow, "These values would be rounded to whole numbers.");
+        ImGui::TextColored(kYellow, "Values are rounded.");
         ImGui::SameLine();
         if (ImGui::SmallButton("Allow decimals")) c.integer = false;
     }
@@ -80,10 +78,10 @@ void Ui::drawDetentOptions() {
     // the presets only mean something for that one aircraft: out of the way (folded) for every other
     ImGui::Spacing();
     const bool forFa18 = sim::sameAircraft(ctx_.settings.ensureActive().aircraft, "Asobo_FA18E");
-    const bool showPresets = ImGui::TreeNodeEx("Presets for the F/A-18E throttles", forFa18 ? ImGuiTreeNodeFlags_DefaultOpen : ImGuiTreeNodeFlags_None);
+    const bool showPresets = ImGui::TreeNodeEx("F/A-18E presets", forFa18 ? ImGuiTreeNodeFlags_DefaultOpen : ImGuiTreeNodeFlags_None);
     for (int engine = 1; showPresets && engine <= 2; ++engine) {
         if (engine == 2) ImGui::SameLine();
-        if (ImGui::Button(engine == 1 ? "Left throttle (1)" : "Right throttle (2)")) {
+        if (ImGui::Button(engine == 1 ? "Throttle 1" : "Throttle 2")) {
             // Asobo F/A-18E (the cockpit's own template, read from the sim files and checked on the aircraft): the throttle input event is a
             // fraction of the lever travel; the sim's own Idle preset sets 0 and military power is 0.8.
             //  * The cut-off needs the throttle at exactly 0 when STOP is set, and a fast pull from above lands on the idle gate (10 %) first,
@@ -108,11 +106,6 @@ void Ui::drawDetentOptions() {
             draft_.onAfterburnerLeave = {event(thr + "_Afterburner", 0)};
             if (draft_.label.empty()) draft_.label = engine == 1 ? "Left throttle" : "Right throttle";
         }
-        if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("Sets the values 0 (idle, as the sim's own Idle) / 0.8 (military power) on ENGINE_Throttle_%d and the actions the aircraft needs at the gates:\n"
-                              "cut-off: throttle 0, wait, 0 again, wait, STOP (the aircraft refuses STOP unless the throttle is at exactly 0); leaving it clears STOP;\n"
-                              "afterburner: XMLVAR_LastAB%dThrottleSet = 1 first (otherwise the afterburner drops the throttle to idle), then the afterburner.\n"
-                              "It replaces the actions of this binding.", engine, engine);
     }
     if (showPresets) ImGui::TreePop();
     ImGui::Unindent(fs);
@@ -122,50 +115,47 @@ void Ui::drawDetentOptions() {
 void Ui::drawAxisOptions() {
     AxisConfig& c = draft_.axis;
     const float fs = ImGui::GetFontSize();
-    ImGui::SeparatorText("The axis");
+    ImGui::SeparatorText("Axis");
     const float now = axisNow(draft_.input);
     const AxisCalibration* cal = c.detents.enabled && c.mode == AxisMode::Value ? ctx_.settings.calibrationFor(draft_.input) : nullptr;
     const bool gates = cal && cal->valid();  // the lever's gates decide the output instead of the range
     double shown = Engine::axisOutput(c, Engine::axisPosition(c, now >= 0 ? now : 0.0f));
     if (gates && now >= 0) shown = Engine::detentOutput(c.detents, *cal, now, AxisZone::Dry, gateStateNow(*cal)).value;
     char overlay[96];
-    if (now < 0) snprintf(overlay, sizeof overlay, "device not connected");
-    else if (c.mode == AxisMode::Value) snprintf(overlay, sizeof overlay, "%d%% of travel  ->  sends %s", static_cast<int>(now * 100 + 0.5f), Engine::formatValue(shown, c.integer && !gates).c_str());
-    else snprintf(overlay, sizeof overlay, "%d%% of travel", static_cast<int>(now * 100 + 0.5f));
-    fieldLabel("Position now");
+    if (now < 0) snprintf(overlay, sizeof overlay, "No device");
+    else if (c.mode == AxisMode::Value) snprintf(overlay, sizeof overlay, "%d%%  ->  %s", static_cast<int>(now * 100 + 0.5f), Engine::formatValue(shown, c.integer && !gates).c_str());
+    else snprintf(overlay, sizeof overlay, "%d%%", static_cast<int>(now * 100 + 0.5f));
+    fieldLabel("Position");
     ImGui::ProgressBar(now < 0 ? 0.0f : now, ImVec2(fs * 26, 0), overlay);
 
-    fieldLabel("It sends");
-    if (ImGui::RadioButton("its position, as a value", c.mode == AxisMode::Value)) c.mode = AxisMode::Value;
+    fieldLabel("Mode");
+    if (ImGui::RadioButton("Value", c.mode == AxisMode::Value)) c.mode = AxisMode::Value;
     ImGui::SameLine();
-    if (ImGui::RadioButton("a step up or down (a knob)", c.mode == AxisMode::Steps)) { c.mode = AxisMode::Steps; c.detents.enabled = false; }
+    if (ImGui::RadioButton("Steps", c.mode == AxisMode::Steps)) { c.mode = AxisMode::Steps; c.detents.enabled = false; }
 
     if (c.mode == AxisMode::Value) {
-        fieldLabel("Throttle lever");
-        ImGui::Checkbox("with gates: cut-off, idle, afterburner", &c.detents.enabled);
-        if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("For a throttle whose lever has gates. After a calibration the value sent follows them: flat at idle, following the lever\nin the dry range, fixed in the afterburner, with actions you choose when the lever reaches or leaves a gate.");
+        fieldLabel("Throttle");
+        ImGui::Checkbox("Gates", &c.detents.enabled);
         if (c.detents.enabled) drawDetentOptions();
     }
 
     if (c.mode == AxisMode::Steps) {
         float step = static_cast<float>(c.stepPercent);
-        fieldLabel("One step every");
+        fieldLabel("Step size");
         ImGui::SetNextItemWidth(fs * 12);
-        if (ImGui::SliderFloat("##step", &step, 1.0f, 50.0f, "%.0f %% of the travel")) c.stepPercent = step;
-        ImGui::TextDisabled("Example: 5%% = 20 steps over the full travel. Sweeping fast sends at most 10 steps per movement.");
+        if (ImGui::SliderFloat("##step", &step, 1.0f, 50.0f, "%.0f%%")) c.stepPercent = step;
     } else if (!gates) {
         struct Preset { const char* label; double lo, hi; bool integer; };
         static const Preset presets[] = {
-            {"0 to 100 (percent)", 0, 100, true},
-            {"-16384 to 16383 (sim axis event, with reverse)", -16384, 16383, true},
-            {"0 to 16383 (sim axis event, no reverse)", 0, 16383, true},
+            {"0 to 100", 0, 100, true},
+            {"-16384 to 16383", -16384, 16383, true},
+            {"0 to 16383", 0, 16383, true},
             {"0 to 1", 0, 1, false},
         };
         const char* current = "Custom";
         for (const auto& pr : presets)
             if (c.outMin == pr.lo && c.outMax == pr.hi) current = pr.label;
-        fieldLabel("Values sent");
+        fieldLabel("Range");
         ImGui::SetNextItemWidth(fs * 24);
         if (ImGui::BeginCombo("##range", current)) {
             for (const auto& pr : presets)
@@ -185,30 +175,29 @@ void Ui::drawAxisOptions() {
         double lo, hi;
         if (ctx_.suggestedAxisRange(draft_, lo, hi)) {
             if (axisRangeLooksWrong(c, lo, hi)) {
-                ImGui::TextColored(kYellow, "This event expects %g to %g, but the values sent are %g to %g: the control would barely move.", lo, hi, c.outMin, c.outMax);
+                ImGui::TextColored(kYellow, "Range should be %g to %g", lo, hi);
                 ImGui::SameLine();
-                if (ImGui::SmallButton("Use the right range")) { c.outMin = lo; c.outMax = hi; c.integer = true; }
+                if (ImGui::SmallButton("Fix")) { c.outMin = lo; c.outMax = hi; c.integer = true; }
             } else {
-                ImGui::TextDisabled("This event expects %g to %g.", lo, hi);
+                ImGui::TextDisabled("Event range: %g to %g", lo, hi);
             }
         }
     }
 
     // the rarely changed settings
-    if (ImGui::TreeNode("More settings of the axis")) {
+    if (ImGui::TreeNode("More")) {
         if (!gates) {
-            ImGui::Checkbox("Reverse the direction", &c.invert);
+            ImGui::Checkbox("Invert", &c.invert);
             float from = static_cast<float>(c.inMin * 100.0), to = static_cast<float>(c.inMax * 100.0);
             ImGui::SetNextItemWidth(fs * 8);
-            if (ImGui::SliderFloat("Ignore the first part of the travel (%)", &from, 0.0f, 98.0f, "%.0f")) c.inMin = std::min<double>(from / 100.0, c.inMax - 0.02);
+            if (ImGui::SliderFloat("Min travel (%)", &from, 0.0f, 98.0f, "%.0f")) c.inMin = std::min<double>(from / 100.0, c.inMax - 0.02);
             ImGui::SetNextItemWidth(fs * 8);
-            if (ImGui::SliderFloat("Use the travel up to (%)", &to, 2.0f, 100.0f, "%.0f")) c.inMax = std::max<double>(to / 100.0, c.inMin + 0.02);
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("What lies outside the part of the travel you use is dead zone: it reads as the minimum or the maximum.");
+            if (ImGui::SliderFloat("Max travel (%)", &to, 2.0f, 100.0f, "%.0f")) c.inMax = std::max<double>(to / 100.0, c.inMin + 0.02);
         }
         if (c.mode == AxisMode::Value) {
-            ImGui::Checkbox("Round the values to whole numbers", &c.integer);
+            ImGui::Checkbox("Round to integers", &c.integer);
             ImGui::SetNextItemWidth(fs * 6);
-            ImGui::InputInt("Shortest time between two values (ms)", &c.minIntervalMs, 0, 0);
+            ImGui::InputInt("Min interval (ms)", &c.minIntervalMs, 0, 0);
             c.minIntervalMs = std::clamp(c.minIntervalMs, 5, 1000);
         }
         ImGui::TreePop();
@@ -304,9 +293,8 @@ void Ui::drawBindingsTab() {
         }
         ImGui::EndCombo();
     }
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Which aircraft this profile is for. It decides which catalog the editor offers; existing bindings are never changed.");
     ImGui::SameLine();
-    if (ImGui::Button("New profile")) {
+    if (ImGui::Button("New")) {
         newProfileName_ = "New profile";
         newProfileAircraft_ = p.aircraft;
         const std::string det = detectAircraft(status_.aircraft);
@@ -357,7 +345,7 @@ void Ui::drawBindingsTab() {
         ImGui::EndPopup();
     }
     if (ImGui::BeginPopup("confirm_delete_profile")) {
-        ImGui::Text("Delete profile \"%s\" and its %zu bindings?", p.name.c_str(), p.bindings.size());
+        ImGui::Text("Delete \"%s\"?", p.name.c_str());
         if (ImGui::Button("Delete")) {
             std::string name = p.name;
             s.profiles.erase(std::remove_if(s.profiles.begin(), s.profiles.end(), [&](const Profile& x) { return x.name == name; }), s.profiles.end());
@@ -376,18 +364,18 @@ void Ui::drawBindingsTab() {
             const sim::AircraftId loaded = sim::identifyAircraft(status_.aircraft);
             const Catalog* profCat = ctx_.catalogFor(p.aircraft);
             const std::string profLabel = (profCat && sim::sameAircraft(profCat->aircraft, p.aircraft)) ? profCat->label() : p.aircraft;
-            ImGui::TextColored(kYellow, "The loaded aircraft is the %s, this profile is for the %s.", loaded.label.c_str(), profLabel.c_str());
+            ImGui::TextColored(kYellow, "Loaded: %s. Profile: %s.", loaded.label.c_str(), profLabel.c_str());
             ImGui::SameLine();
             const Profile* match = nullptr;
             for (const auto& prof : s.profiles)
                 if (sim::sameAircraft(prof.aircraft, det)) { match = &prof; break; }
             if (match) {
-                if (ImGui::SmallButton((std::string("Switch to \"") + match->name + "\"").c_str())) {
+                if (ImGui::SmallButton((std::string("Use ") + match->name).c_str())) {
                     s.activeProfile = match->name;
                     viewAircraft_.clear();
                     ctx_.markDirty();
                 }
-            } else if (ImGui::SmallButton("Create a profile for it")) {
+            } else if (ImGui::SmallButton("New profile")) {
                 newProfileName_ = sim::identifyAircraft(status_.aircraft).label;
                 newProfileAircraft_ = ctx_.catalogs.canonicalId(det);
                 renamingProfile_ = false;
@@ -402,48 +390,39 @@ void Ui::drawBindingsTab() {
             if (b.input.kind == input::InputKind::Axis && ctx_.suggestedAxisRange(b, lo, hi) && axisRangeLooksWrong(b.axis, lo, hi)) ++wrong;
         }
         if (wrong) {
-            ImGui::TextColored(kYellow, "%d axis binding%s in this profile send%s an axis event with a percent-style output range, so the control barely moves.",
-                               wrong, wrong == 1 ? "" : "s", wrong == 1 ? "s" : "");
+            ImGui::TextColored(kYellow, "%d axis binding%s with the wrong range", wrong, wrong == 1 ? "" : "s");
             ImGui::SameLine();
-            if (ImGui::SmallButton("Fix the ranges")) ctx_.fixAxisRanges(p);
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Sets the output range of those bindings to what the event expects (for example -16383 to 16384 for a throttle axis).");
+            if (ImGui::SmallButton("Fix")) ctx_.fixAxisRanges(p);
         }
     }
     ImGui::Separator();
     Profile& prof = s.ensureActive();
-    if (ImGui::Button("+ Add binding")) openEditor(-1);
+    if (ImGui::Button("Add binding")) openEditor(-1);
     ImGui::SameLine();
     {   // how the list is arranged: one list, grouped, sorted automatically, or in the order made by dragging rows
-        const BindingsGroupBy by = s.bindingsGroupBy;
-        std::string label = std::string("View: ") + (by == BindingsGroupBy::Device ? "by device" : by == BindingsGroupBy::InputType ? "by input type" : by == BindingsGroupBy::Custom ? "by my groups" : "one list") +
-                            (s.bindingsAutoSort ? ", sorted" : "") + " ...";
-        if (ImGui::Button(label.c_str())) ImGui::OpenPopup("bindings_view");
+        if (ImGui::Button("View")) ImGui::OpenPopup("bindings_view");
         if (ImGui::BeginPopup("bindings_view")) {
-            ImGui::TextDisabled("Show the bindings");
+            ImGui::TextDisabled("Group by");
             int pick = static_cast<int>(s.bindingsGroupBy);
-            const char* options[] = {"in one list", "grouped by device", "grouped by input type (axes, buttons, hats)", "grouped by my own groups"};
+            const char* options[] = {"None", "Device", "Input type", "My groups"};
             for (int i = 0; i < 4; ++i)
                 if (ImGui::RadioButton(options[i], pick == i)) { s.bindingsGroupBy = static_cast<BindingsGroupBy>(i); ctx_.dirty = true; }
             ImGui::Separator();
-            if (ImGui::Checkbox("Sort them automatically", &s.bindingsAutoSort)) ctx_.dirty = true;
-            ImGui::TextDisabled(s.bindingsAutoSort ? "By name of group, then by device and input." : "In your order: drag a row onto another to move it.");
+            if (ImGui::Checkbox("Sort", &s.bindingsAutoSort)) ctx_.dirty = true;
             if (s.bindingsGroupBy == BindingsGroupBy::Custom) {
                 ImGui::Separator();
-                ImGui::TextDisabled("A group is set in each binding's editor, or by dragging a row onto a group.");
-                if (ImGui::Button("Give the ungrouped bindings a group")) {
+                if (ImGui::Button("Auto-group")) {
                     if (autoGroupBindings(prof, ctx_.catalogFor(prof.aircraft)) > 0) ctx_.markDirty();
                 }
-                if (ImGui::IsItemHovered())
-                    ImGui::SetTooltip("Throttle for throttle levers and events, otherwise the panel section of the control in the catalog, otherwise Axes or Other.\nGroups you set yourself are left alone.");
             }
             ImGui::EndPopup();
         }
     }
     ImGui::SameLine();
     ImGui::SetNextItemWidth(ImGui::GetFontSize() * 14);
-    ImGui::InputTextWithHint("##binding_filter", "filter the list ...", &bindingFilter_);
+    ImGui::InputTextWithHint("##binding_filter", "Filter", &bindingFilter_);
     ImGui::SameLine();
-    ImGui::TextDisabled("Leave the buttons you bind here unassigned in the MSFS controls menu.");
+    ImGui::TextDisabled("Unbind these buttons in MSFS.");
 
     const std::vector<std::string> filterWords = searchWords(bindingFilter_);
     const BindingsGroupBy by = s.bindingsGroupBy;
@@ -455,9 +434,9 @@ void Ui::drawBindingsTab() {
         ImGui::TableSetupScrollFreeze(0, 1);
         ImGui::TableSetupColumn("On", ImGuiTableColumnFlags_WidthFixed, 30);
         ImGui::TableSetupColumn("Input", ImGuiTableColumnFlags_WidthStretch, 1.2f);
-        ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch, 1.0f);
-        ImGui::TableSetupColumn("On press", ImGuiTableColumnFlags_WidthStretch, 2.0f);
-        ImGui::TableSetupColumn("On release", ImGuiTableColumnFlags_WidthStretch, 1.5f);
+        ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch, 1.0f);
+        ImGui::TableSetupColumn("Press", ImGuiTableColumnFlags_WidthStretch, 2.0f);
+        ImGui::TableSetupColumn("Release", ImGuiTableColumnFlags_WidthStretch, 1.5f);
         ImGui::TableSetupColumn("Repeat", ImGuiTableColumnFlags_WidthFixed, 60);
         ImGui::TableSetupColumn("##actions", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFontSize() * 21);
         ImGui::TableHeadersRow();
@@ -529,7 +508,7 @@ void Ui::drawBindingsTab() {
                     if (b.input.kind == input::InputKind::Axis) {
                         const float now = axisNow(b.input);
                         ImGui::TextDisabled("%s  %s%s%s", deviceDisplayName(b.input.device).c_str(), b.axis.mode == AxisMode::Steps ? "steps" : b.axis.detents.enabled ? "value, gates" : "value",
-                                            now >= 0 ? "  now " : "", now >= 0 ? (std::to_string(static_cast<int>(now * 100 + 0.5f)) + "%").c_str() : "");
+                                            now >= 0 ? "  " : "", now >= 0 ? (std::to_string(static_cast<int>(now * 100 + 0.5f)) + "%").c_str() : "");
                     } else {
                         ImGui::TextDisabled("%s", deviceDisplayName(b.input.device).c_str());
                     }
@@ -541,7 +520,7 @@ void Ui::drawBindingsTab() {
                         if (b.input.kind == input::InputKind::Axis && ctx_.suggestedAxisRange(b, lo, hi) && axisRangeLooksWrong(b.axis, lo, hi)) {
                             ImGui::SameLine();
                             ImGui::TextColored(kYellow, "(!)");
-                            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Output range %g..%g, but the event expects %g..%g.", b.axis.outMin, b.axis.outMax, lo, hi);
+                            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Range should be %g to %g", lo, hi);
                         }
                     }
                     auto actionLine = [&](const Action& a) {
@@ -549,13 +528,13 @@ void Ui::drawBindingsTab() {
                         if (a.kind == ActionKind::InputEvent || a.kind == ActionKind::InputEventToggle) {
                             if (auto v = ctx_.bridge.inputEventValue(a.name)) {
                                 ImGui::SameLine();
-                                ImGui::TextColored(*v != 0 ? kGreen : kGrey, "[now %g]", *v);
+                                ImGui::TextColored(*v != 0 ? kGreen : kGrey, "[%g]", *v);
                             }
                         }
                         if (a.kind == ActionKind::LVarSet || a.kind == ActionKind::LVarToggle) {
                             if (auto v = ctx_.bridge.lvarValue(a.name)) {
                                 ImGui::SameLine();
-                                ImGui::TextColored(*v != 0 ? kGreen : kGrey, "[now %g]", *v);
+                                ImGui::TextColored(*v != 0 ? kGreen : kGrey, "[%g]", *v);
                             }
                         }
                     };
@@ -564,13 +543,12 @@ void Ui::drawBindingsTab() {
                     ImGui::TableSetColumnIndex(4);
                     for (const auto& a : b.onRelease) actionLine(a);
                     ImGui::TableSetColumnIndex(5);
-                    if (b.input.kind == input::InputKind::Axis) ImGui::TextDisabled("%s", b.axis.mode == AxisMode::Steps ? (std::to_string(static_cast<int>(b.axis.stepPercent + 0.5)) + "% step").c_str() : "axis");
+                    if (b.input.kind == input::InputKind::Axis) { if (b.axis.mode == AxisMode::Steps) ImGui::TextDisabled("%d%%", static_cast<int>(b.axis.stepPercent + 0.5)); }
                     else if (b.repeat) ImGui::Text("%d ms", b.repeatIntervalMs);
                     ImGui::TableSetColumnIndex(6);
                     if (ImGui::SmallButton("Edit")) openEditor(i);
                     ImGui::SameLine();
                     if (ImGui::SmallButton("Copy")) openEditorCopy(i);
-                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("A new binding that does the same: you choose its button or axis next");
                     ImGui::SameLine();
                     if (ImGui::SmallButton("Test")) {
                         if (b.input.kind == input::InputKind::Axis && b.axis.mode == AxisMode::Value) {
@@ -581,7 +559,6 @@ void Ui::drawBindingsTab() {
                             ctx_.engine.fire(b.onPress, "test " + b.label);
                         }
                     }
-                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Fire the press actions now");
                     ImGui::SameLine();
                     ImGui::BeginDisabled(!canReorder);
                     if (ImGui::SmallButton("Up") && pos > 0) { moveFrom = i; moveTo = shown[pos - 1]; }
@@ -594,7 +571,7 @@ void Ui::drawBindingsTab() {
                         ImGui::Text("Delete \"%s\"?", b.label.empty() ? ctx_.input.describe(b.input).c_str() : b.label.c_str());
                         if (ImGui::Button("Delete")) { toDelete = i; ImGui::CloseCurrentPopup(); }
                         ImGui::SameLine();
-                        if (ImGui::Button("Keep it")) ImGui::CloseCurrentPopup();
+                        if (ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
                         ImGui::EndPopup();
                     }
                     ImGui::PopID();
@@ -605,7 +582,7 @@ void Ui::drawBindingsTab() {
         if (rowsShown == 0 && !filterWords.empty()) {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(1);
-            ImGui::TextDisabled("No binding of this profile matches \"%s\".", bindingFilter_.c_str());
+            ImGui::TextDisabled("No matches");
         }
         ImGui::EndTable();
         if (toDelete >= 0) { prof.bindings.erase(prof.bindings.begin() + toDelete); ctx_.markDirty(); }
@@ -636,9 +613,8 @@ void Ui::drawActionList(const char* id, std::vector<Action>& actions, int listIn
         if (a.kind == ActionKind::Delay) {
             ImGui::SetNextItemWidth(fs * 6);
             ImGui::InputDouble("##value", &a.value, 0, 0, "%g");
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("The actions after this one run this many milliseconds later (the program does not stand still while it waits)");
             ImGui::SameLine();
-            ImGui::TextDisabled("ms, then the next one");
+            ImGui::TextDisabled("ms");
         } else {
             ImGui::SetNextItemWidth(fs * 22);
             const char* hint = a.kind == ActionKind::SimEvent ? "A32NX.FCU_AP_1_PUSH or GEAR_UP" :
@@ -652,27 +628,27 @@ void Ui::drawActionList(const char* id, std::vector<Action>& actions, int listIn
                 ImGui::SetNextItemWidth(fs * 6);
                 ImGui::InputDouble("##value", &a.value, 0, 0, "%g");
                 if (ImGui::IsItemHovered())
-                    ImGui::SetTooltip(a.kind == ActionKind::SimEvent ? "Event parameter (0 for plain push buttons)"
-                                      : a.kind == ActionKind::LVarSet ? "Value written to the L: variable"
-                                      : a.kind == ActionKind::InputEvent ? "Value the cockpit control is set to (switch position)"
-                                                                         : "Number of positions to cycle through (2 = on/off, 3 = a three-position switch)");
+                    ImGui::SetTooltip(a.kind == ActionKind::SimEvent ? "Parameter"
+                                      : a.kind == ActionKind::LVarSet ? "Value"
+                                      : a.kind == ActionKind::InputEvent ? "Value"
+                                                                         : "Positions");
             }
         }
         ImGui::SameLine();
-        if (ImGui::SmallButton("remove")) toDelete = i;
+        if (ImGui::SmallButton("Remove")) toDelete = i;
         ImGui::PopID();
     }
     if (toDelete >= 0) actions.erase(actions.begin() + toDelete);
-    if (actions.empty()) ImGui::TextDisabled("Nothing yet.");
-    if (ImGui::SmallButton("+ Add an action")) actions.push_back(Action{});
+    if (actions.empty()) ImGui::TextDisabled("No actions");
+    if (ImGui::SmallButton("Add action")) actions.push_back(Action{});
     ImGui::SameLine();
     // One open-flag per list: BeginPopupModal() writes false into its p_open whenever its popup is not open, so a
     // flag shared by several lists was cleared every frame by the lists that were not open.
     bool& popupOpen = catalogPopupOpen_[std::clamp(listIndex, 0, 5)];
-    if (ImGui::SmallButton("+ Pick from the catalog")) { catalogTarget_ = listIndex; popupOpen = true; ImGui::OpenPopup("catalog_pick"); }
+    if (ImGui::SmallButton("From catalog")) { catalogTarget_ = listIndex; popupOpen = true; ImGui::OpenPopup("catalog_pick"); }
     ImGui::SameLine();
     ImGui::BeginDisabled(actions.empty());
-    if (ImGui::SmallButton("Run now")) {
+    if (ImGui::SmallButton("Run")) {
         if (draft_.input.kind == input::InputKind::Axis && draft_.axis.mode == AxisMode::Value && listIndex == 0) {
             const float now = axisNow(draft_.input);
             const double out = Engine::axisOutput(draft_.axis, Engine::axisPosition(draft_.axis, now >= 0 ? now : 0.5f));
@@ -682,9 +658,8 @@ void Ui::drawActionList(const char* id, std::vector<Action>& actions, int listIn
         }
     }
     ImGui::EndDisabled();
-    if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) ImGui::SetTooltip("Carry out this list now, as a test (needs the simulator)");
     ImGui::SetNextWindowSize(ImVec2(ImGui::GetMainViewport()->WorkSize.x * 0.85f, ImGui::GetMainViewport()->WorkSize.y * 0.8f), ImGuiCond_Appearing);
-    if (ImGui::BeginPopupModal("Pick from the catalog###catalog_pick", &popupOpen, ImGuiWindowFlags_NoSavedSettings)) {
+    if (ImGui::BeginPopupModal("Catalog###catalog_pick", &popupOpen, ImGuiWindowFlags_NoSavedSettings)) {
         drawCatalogBrowser("picker", true);
         ImGui::EndPopup();
     }
@@ -699,7 +674,7 @@ void Ui::drawAxisTargetPicker() {
     if (draft_.onPress.size() == 1 && draft_.onPress[0].kind == ActionKind::SimEvent) current = findAxisTarget(draft_.onPress[0].name);
     fieldLabel("Control");
     ImGui::SetNextItemWidth(fs * 20);
-    if (ImGui::BeginCombo("##axis_target", current ? current->label : "Pick what this axis moves...", ImGuiComboFlags_HeightLargest)) {
+    if (ImGui::BeginCombo("##axis_target", current ? current->label : "Select", ImGuiComboFlags_HeightLargest)) {
         const char* group = nullptr;
         for (const auto& t : axisTargets()) {
             if (!group || std::strcmp(group, t.group) != 0) {
@@ -716,18 +691,15 @@ void Ui::drawAxisTargetPicker() {
                 draft_.axis.integer = true;
                 if (draft_.label.empty()) draft_.label = t.label;
             }
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s\n\nEvent K:%s, values %g to %g", t.note, t.event, t.lo, t.hi);
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("K:%s, %g to %g", t.event, t.lo, t.hi);
         }
         ImGui::EndCombo();
     }
-    ImGui::SameLine();
-    ImGui::TextDisabled("or build the action yourself below");
-    if (current) ImGui::TextDisabled("%s", current->note);
 }
 
 void Ui::drawBindingEditor() {
     ImGui::SetNextWindowSize(ImVec2(920, 640), ImGuiCond_FirstUseEver);
-    const char* title = editIndex_ >= 0 ? "Edit binding###binding_editor" : draftIsCopy_ ? "New binding (a copy)###binding_editor" : "New binding###binding_editor";
+    const char* title = editIndex_ >= 0 ? "Edit binding###binding_editor" : draftIsCopy_ ? "Copy binding###binding_editor" : "New binding###binding_editor";
     if (!ImGui::Begin(title, &editorOpen_)) { ImGui::End(); return; }
     const float fs = ImGui::GetFontSize();
 
@@ -746,35 +718,33 @@ void Ui::drawBindingEditor() {
     }
     fieldLabel("Input");
     if (!draft_.input.device.empty() || !capturing) {  // while listening for it, the prompt on this line says what is wanted
-        if (draft_.input.device.empty()) ImGui::TextColored(kYellow, "none yet");
-        else ImGui::Text("%s  on  %s", ctx_.input.describe(draft_.input).c_str(), deviceDisplayName(draft_.input.device).c_str());
+        if (draft_.input.device.empty()) ImGui::TextColored(kYellow, "None");
+        else ImGui::Text("%s (%s)", ctx_.input.describe(draft_.input).c_str(), deviceDisplayName(draft_.input.device).c_str());
         ImGui::SameLine();
     }
     if (!capturing) {
-        if (ImGui::Button("Choose by pressing it")) ctx_.engine.beginCapture();
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Then press the button, move the hat, or move the axis about a quarter of its travel.");
+        if (ImGui::Button("Detect")) ctx_.engine.beginCapture();
     } else {
-        ImGui::TextColored(kYellow, "Press the button, move the hat or move the axis a quarter of its travel...");
+        ImGui::TextColored(kYellow, "Press a button or move an axis...");
         ImGui::SameLine();
         if (ImGui::Button("Cancel##listen")) ctx_.engine.cancelCapture();
     }
     fieldLabel("Name");
     ImGui::SetNextItemWidth(fs * 16);
-    ImGui::InputTextWithHint("##label", "e.g. AP1 push", &draft_.label);
+    ImGui::InputTextWithHint("##label", "Name", &draft_.label);
     ImGui::SameLine();
     ImGui::TextDisabled("Group");
     ImGui::SameLine();
     ImGui::SetNextItemWidth(fs * 11);
-    ImGui::InputTextWithHint("##group", "optional", &draft_.group);
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("For the \"My groups\" view of the list of bindings (for example Throttle).");
+    ImGui::InputTextWithHint("##group", "", &draft_.group);
     ImGui::SameLine();
-    if (ImGui::SmallButton("pick...")) ImGui::OpenPopup("group_pick");
+    if (ImGui::SmallButton("Pick")) ImGui::OpenPopup("group_pick");
     if (ImGui::BeginPopup("group_pick")) {
         std::set<std::string> names;
         for (const auto& b : ctx_.settings.ensureActive().bindings)
             if (!b.group.empty()) names.insert(b.group);
         names.insert("Throttle");
-        if (ImGui::Selectable("(no group)")) draft_.group.clear();
+        if (ImGui::Selectable("None")) draft_.group.clear();
         for (const auto& n : names)
             if (ImGui::Selectable(n.c_str(), n == draft_.group)) draft_.group = n;
         ImGui::EndPopup();
@@ -785,33 +755,30 @@ void Ui::drawBindingEditor() {
     if (isAxis) drawAxisOptions();
 
     if (!isAxis) {
-        ImGui::SeparatorText("When pressed");
+        ImGui::SeparatorText("On press");
         drawActionList("press", draft_.onPress, 0);
-        ImGui::SeparatorText("When released");
-        ImGui::TextDisabled("Useful for 2-position switches: set a value when pressed, another when released.");
+        ImGui::SeparatorText("On release");
         drawActionList("release", draft_.onRelease, 1);
     } else if (axisValue) {
-        ImGui::SeparatorText("What it sends");
+        ImGui::SeparatorText("Action");
         if (!draft_.axis.detents.enabled) drawAxisTargetPicker();
-        ImGui::TextDisabled("The value of the axis goes in as the parameter of a sim event, the value of an L: variable, or {v} in RPN code.");
         drawActionList("press", draft_.onPress, 0);
         if (draft_.axis.detents.enabled) {
-            ImGui::SeparatorText("At the gates");
-            ImGui::TextDisabled("Run once when the lever reaches a gate or leaves it. What follows a Wait runs later.");
+            ImGui::SeparatorText("Gates");
             if (ImGui::BeginTabBar("gates")) {
                 if (ImGui::BeginTabItem("Cut-off")) {
-                    ImGui::TextUnformatted("When the lever reaches the cut-off");
+                    ImGui::TextUnformatted("Enter cut-off");
                     drawActionList("cutoff", draft_.onCutoff, 2);
                     ImGui::Spacing();
-                    ImGui::TextUnformatted("When it leaves the cut-off");
+                    ImGui::TextUnformatted("Leave cut-off");
                     drawActionList("cutoff_leave", draft_.onCutoffLeave, 3);
                     ImGui::EndTabItem();
                 }
                 if (ImGui::BeginTabItem("Afterburner")) {
-                    ImGui::TextUnformatted("When the lever reaches the afterburner");
+                    ImGui::TextUnformatted("Enter afterburner");
                     drawActionList("afterburner", draft_.onAfterburner, 4);
                     ImGui::Spacing();
-                    ImGui::TextUnformatted("When it leaves the afterburner");
+                    ImGui::TextUnformatted("Leave afterburner");
                     drawActionList("afterburner_leave", draft_.onAfterburnerLeave, 5);
                     ImGui::EndTabItem();
                 }
@@ -819,25 +786,25 @@ void Ui::drawBindingEditor() {
             }
         }
     } else {
-        ImGui::SeparatorText("When the axis moves up (+)");
+        ImGui::SeparatorText("Up (+)");
         drawActionList("press", draft_.onPress, 0);
-        ImGui::SeparatorText("When it moves down (-)");
+        ImGui::SeparatorText("Down (-)");
         drawActionList("release", draft_.onRelease, 1);
     }
 
     ImGui::SeparatorText("Options");
-    if (!isAxis) ImGui::Checkbox("Repeat the press actions while the button is held", &draft_.repeat);
+    if (!isAxis) ImGui::Checkbox("Repeat while held", &draft_.repeat);
     if (!isAxis && draft_.repeat) {
         ImGui::SameLine();
         ImGui::SetNextItemWidth(fs * 6);
-        ImGui::InputInt("first after (ms)", &draft_.repeatDelayMs);
+        ImGui::InputInt("Delay (ms)", &draft_.repeatDelayMs);
         ImGui::SameLine();
         ImGui::SetNextItemWidth(fs * 6);
-        ImGui::InputInt("then every (ms)", &draft_.repeatIntervalMs);
+        ImGui::InputInt("Interval (ms)", &draft_.repeatIntervalMs);
         draft_.repeatDelayMs = std::max(0, draft_.repeatDelayMs);
         draft_.repeatIntervalMs = std::max(10, draft_.repeatIntervalMs);
     }
-    ImGui::Checkbox("This binding is on", &draft_.enabled);
+    ImGui::Checkbox("Enabled", &draft_.enabled);
 
     ImGui::Separator();
     const bool canSave = !draft_.input.device.empty();
@@ -854,7 +821,7 @@ void Ui::drawBindingEditor() {
     if (!canSave) ImGui::EndDisabled();
     ImGui::SameLine();
     if (ImGui::Button("Cancel", ImVec2(fs * 9, 0))) { editorOpen_ = false; ctx_.engine.cancelCapture(); }
-    if (!canSave) { ImGui::SameLine(); ImGui::TextDisabled("Choose the input first."); }
+    if (!canSave) { ImGui::SameLine(); ImGui::TextDisabled("No input"); }
     ImGui::End();
     if (!editorOpen_) ctx_.engine.cancelCapture();
 }

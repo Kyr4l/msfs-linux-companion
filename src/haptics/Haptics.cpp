@@ -13,17 +13,17 @@ using clock = std::chrono::steady_clock;
 
 const std::vector<RuleInfo>& ruleInfos() {
     static const std::vector<RuleInfo> infos = {
-        {"ground_roll", "Ground roll", "Rumble proportional to ground speed while on the ground"},
-        {"touchdown", "Touchdown", "Short jolt when the wheels touch, scaled by sink rate"},
-        {"stall", "Stall warning", "Pulsing buffet while the stall warning is active"},
-        {"overspeed", "Overspeed", "Steady vibration while the overspeed warning is active"},
-        {"gear", "Gear transit", "Light vibration while the gear moves, bump when it locks"},
-        {"flaps", "Flaps moving", "Light vibration while flaps/slats are in motion"},
-        {"speedbrake", "Speed brake", "Airflow buffet from deployed spoilers in flight"},
-        {"reverse", "Reverse thrust", "Vibration while the reversers are deployed"},
-        {"engine", "Takeoff thrust", "Rumble from high N1 while on the ground"},
-        {"turbulence", "Turbulence / G", "Vibration from vertical load factor changes in flight"},
-        {"brakes", "Wheel braking", "Vibration while braking at speed"},
+        {"ground_roll", "Ground roll", "On the ground, by speed"},
+        {"touchdown", "Touchdown", "Wheels touch the ground"},
+        {"stall", "Stall warning", "Stall warning on"},
+        {"overspeed", "Overspeed", "Overspeed warning on"},
+        {"gear", "Gear transit", "Gear moving or locking"},
+        {"flaps", "Flaps moving", "Flaps or slats moving"},
+        {"speedbrake", "Speed brake", "Spoilers out in flight"},
+        {"reverse", "Reverse thrust", "Reversers deployed"},
+        {"engine", "Takeoff thrust", "High thrust on the ground"},
+        {"turbulence", "Turbulence / G", "G-force changes in flight"},
+        {"brakes", "Wheel braking", "Braking at speed"},
     };
     return infos;
 }

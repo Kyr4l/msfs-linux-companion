@@ -138,14 +138,14 @@ automatically whenever the sim is (re)started.
 
 1. Start MSFS (any point, even the main menu) and this tool.
 2. **Devices** tab: press buttons on the HOTAS to see their numbers.
-3. **Bindings** tab: *Add binding* → *Listen for input* → press the button → add actions by hand or
-   *from catalog* → *Save binding*. *Test* fires the press actions immediately.
+3. **Bindings** tab: *Add binding* → *Detect* → press the button → add actions by hand or
+   *From catalog* → *Save*. *Test* fires the press actions immediately.
 4. Leave the same buttons **unassigned in the MSFS controls menu**, otherwise both fire.
 
-**Which input is this control? (Cockpit tab).** Press *Start watching*, keep your hands off the cockpit for three seconds (what changes by itself, such
+**Which input is this control? (Cockpit tab).** Press *Start*, keep your hands off the cockpit for three seconds (what changes by itself, such
 as a clock or a needle, is learned and hidden), then click or turn a control in the simulator with the mouse: the cockpit input events (B:) whose value
-changes are listed, newest first, with what they changed from and to. *Bind to a button* opens a new binding that sets the event to that value and
-waits for the button, *Toggle* does the same for a switch with whole positions (0 to N-1) and steps through them at each press, *Copy name* puts the
+changes are listed, newest first, with what they changed from and to. *Bind* opens a new binding that sets the event to that value and
+waits for the button, *Toggle* does the same for a switch with whole positions (0 to N-1) and steps through them at each press, *Copy* puts the
 name on the clipboard. The sim is asked to announce every change (`SimConnect_SubscribeInputEvent`, all events), and every value is also read back
 about four times a second, so a change is found even if one of the two does not work on your sim (the tab says which found how many). Watching stops
 when you leave the tab. Only B: input events are watched: the L: variables of some aircraft (the A32NX) are too many to read back, and K: events or H
@@ -156,17 +156,17 @@ its group, its repeat) and waits for you to press the button or move the axis it
 right after the original, when you save it. *Delete* asks first. The box next to *View* filters the list: every word you type has to be in the row's name, its
 input, its device, its group or one of its actions.
 
-**Arranging the list of bindings.** *Group by* above the table arranges it: *Device* (one group per stick or throttle),
+**Arranging the list of bindings.** *View* above the table arranges it: *Device* (one group per stick or throttle),
 *Input type* (axes, buttons, hats) or *My groups*, where each binding has its own group name (the *Group* field of the
-editor; *Fill in the empty groups* gives every ungrouped binding one: Throttle for throttle levers and events, otherwise the
+editor; *Auto-group* gives every ungrouped binding one: Throttle for throttle levers and events, otherwise the
 panel section of its control in the catalog). Rows are in the order you made: **drag a row** onto another to put it in
-its place (in *My groups* also onto a group's header to move it into that group), or use *Up* / *Down*. *Sort automatically*
+its place (in *My groups* also onto a group's header to move it into that group), or use *Up* / *Down*. *Sort*
 sorts the groups by name and the rows by device and input instead; dragging then only changes a binding's group. Groups
 fold with their arrow. The choices are saved with the config.
 
 ### Axes
 
-Move an axis while *Listen for input* is on (about a quarter of its travel; small drift is ignored) and
+Move an axis while *Detect* is on (about a quarter of its travel; small drift is ignored) and
 the binding becomes an axis binding. The **Devices** tab shows every axis live, which is the easy way to
 find out which one is which. Two modes:
 
@@ -193,12 +193,12 @@ checklists, whose copilot sets the lever with a parameter and then reads the lev
 its mixture: `MIXTURE1_SET` 0 lean, 16383 rich; the Pitts' propeller: `AXIS_PROPELLER_SET` -16383 to 16383); an entry whose range the SDK
 does not give says so. None of them is marked verified on a running aircraft yet. The same controls are listed in the Catalog tab
 of aircraft without a catalog of their own, and in the curated catalogs that ask for them, together with a few named buttons every
-aircraft can use: **Baro setting up / down** (`KOHLSMAN_INC` / `KOHLSMAN_DEC`, the events the sim's controls menu binds), **STD baro (set standard
-pressure)** (`BAROMETRIC_STD_PRESSURE`) and **Baro: local pressure** (`BAROMETRIC`), and for the Garmin G1000 two H events of its baro knob. They are
-findable by "baro", "std" or "qnh". None of them is a toggle: according to the public source of the G1000 NXi (the C172's, DA40's avionics),
-`BAROMETRIC_STD_PRESSURE` only switches STD on, `BAROMETRIC` switches STD on above 18000 ft and off below it (leaving the setting at 29.92), and the knob
-steps `AS1000_PFD_BARO_INC` / `_DEC` leave STD and put back the local setting that was remembered. So the way back from STD is the knob entries
-(*G1000 baro knob up / down*, they need the MobiFlight module), not a second press of the STD button. Not yet tried on a real cockpit.
+aircraft can use: **Baro up / down** (`KOHLSMAN_INC` / `KOHLSMAN_DEC`), **STD baro** (`BAROMETRIC_STD_PRESSURE`), **Baro: local** (`BAROMETRIC`) and,
+for the Garmin G1000, **G1000 baro up / down** (H events, they need the MobiFlight module). Find them with "baro", "std" or "qnh". None of them is a toggle:
+according to the public source of the G1000 NXi (the C172's and DA40's avionics), `BAROMETRIC_STD_PRESSURE` only switches STD on, `BAROMETRIC` switches
+STD on above 18000 ft and off below it (leaving the setting at 29.92), and the knob steps `AS1000_PFD_BARO_INC` / `_DEC` leave STD and put back the
+local setting that was remembered. So the way back from STD is *G1000 baro up / down*, not a second press of the STD button. Not yet tried on a real
+cockpit.
 
 *Use travel from/to* turns the ends of the physical travel into dead zones and *Invert* flips the
 direction. `tools/virtual_joystick.py demo` creates a fake joystick to try all of this without hardware.
@@ -209,7 +209,7 @@ Some throttles have mechanical gates on the lever: the Winwing URSA MINOR has a 
 detent and an afterburner gate at the front. The sim's own calibration cannot teach an aircraft those points
 (some aircraft have no throttle calibration at all), so the program does it:
 
-1. **Calibrate the axis once** (Devices tab, *Calibrate...* next to the axis, or from the binding editor).
+1. **Calibrate the axis once** (Devices tab, *Calibrate* next to the axis, or from the binding editor).
    * **Gate buttons**: many throttles have a switch at each gate, which closes while the lever is in it (on the URSA MINOR
      Combat Throttle, for example, buttons 13 / 18 / 17 / 16 for the cut-off, idle, end of the dry range and afterburner of one lever
      and 23 / 22 / 21 / 20 for the other; on the unit this was developed with the two levers read as the Rx and Ry axes, and X and Y were something else: the *Devices* tab shows which axis moves). Press *Listen* for a gate and
@@ -223,7 +223,7 @@ detent and an afterburner gate at the front. The sim's own calibration cannot te
      when the gates are far enough apart.
    The result is stored in the config and shared by every profile; the bindings are paused while the window is open. A
    lever that reads the other way round is detected.
-2. **Tick *Lever with gates*** in the binding of that axis and give the values the sim should get: at the cut-off, at
+2. **Tick *Gates*** in the binding of that axis and give the values the sim should get: at the cut-off, at
    idle (exactly that value while the idle gate is closed) and at the end of the dry
    range. Between idle and the end of the dry range the value follows the lever linearly; in the afterburner zone it
    stays at the last value.

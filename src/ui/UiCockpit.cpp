@@ -48,12 +48,11 @@ void Ui::drawCockpitTab() {
         }
     }
 
-    ImGui::TextWrapped("Click or turn a control in the cockpit with the mouse, in the simulator: the cockpit input events (B:) of the loaded aircraft whose value changes are "
-                       "listed here, the latest first, ready to be bound to a button. Watching stops when you leave this tab.");
+    ImGui::TextDisabled("Click a control in the sim to see its input event.");
 
     if (!cockpit_.running()) {
         ImGui::BeginDisabled(!connected);
-        if (ImGui::Button("Start watching")) {
+        if (ImGui::Button("Start")) {
             cockpit_.start(now);
             cockpitSerial_ = 0;
             ctx_.bridge.clearInputChanges();
@@ -62,42 +61,41 @@ void Ui::drawCockpitTab() {
         ImGui::EndDisabled();
         if (!connected) {
             ImGui::SameLine();
-            ImGui::TextColored(kYellow, "The simulator is not connected.");
+            ImGui::TextColored(kYellow, "Not connected");
         }
     } else {
-        if (ImGui::Button("Stop watching")) stopCockpitWatch();
+        if (ImGui::Button("Stop")) stopCockpitWatch();
         ImGui::SameLine();
-        if (ImGui::Button("Clear the list")) cockpit_.clear();
+        if (ImGui::Button("Clear")) cockpit_.clear();
         ImGui::SameLine();
         const size_t noisy = cockpit_.noisyCount();
         ImGui::BeginDisabled(noisy == 0);
-        ImGui::Checkbox(("Also the " + std::to_string(noisy) + " that change by themselves").c_str(), &cockpitShowNoisy_);
+        ImGui::Checkbox(("Show noisy (" + std::to_string(noisy) + ")").c_str(), &cockpitShowNoisy_);
         ImGui::EndDisabled();
     }
 
     if (cockpit_.running()) {
         const sim::TraceStatus ts = ctx_.bridge.traceStatus();
         if (cockpit_.learning(now)) {
-            ImGui::TextColored(kYellow, "Keep your hands off the cockpit for %.0f s: learning which controls change by themselves (clocks, needles).", cockpit_.learnSecondsLeft(now) + 0.5);
+            ImGui::TextColored(kYellow, "Don't touch the cockpit (%.0f s)", cockpit_.learnSecondsLeft(now) + 0.5);
         } else {
-            ImGui::TextColored(kGreen, "Watching %zu input events: click or turn a control now.", ts.events);
+            ImGui::TextColored(kGreen, "Watching %zu events", ts.events);
         }
-        ImGui::TextDisabled("%s  |  changes announced by the sim: %llu, found by reading the values back: %llu", ts.refused ? "the sim refused the subscription: reading back only" : ts.subscribed ? "subscribed to the sim's announcements" : "not subscribed yet",
-                            static_cast<unsigned long long>(ts.pushed), static_cast<unsigned long long>(ts.polled));
+        ImGui::TextDisabled("Push: %llu  Poll: %llu%s", static_cast<unsigned long long>(ts.pushed), static_cast<unsigned long long>(ts.polled), ts.refused ? "  (push refused)" : "");
     }
 
     const auto rows = cockpit_.rows(cockpitShowNoisy_);
     if (!cockpit_.running() && rows.empty()) {
         ImGui::Spacing();
-        ImGui::TextDisabled("Press Start watching, wait three seconds, then click a control in the simulator.");
+        ImGui::TextDisabled("Press Start, then click a control in the sim.");
         return;
     }
-    if (rows.empty() && !cockpit_.learning(now)) ImGui::TextDisabled("Nothing has changed yet.");
+    if (rows.empty() && !cockpit_.learning(now)) ImGui::TextDisabled("No changes yet");
 
     if (ImGui::BeginTable("cockpit_changes", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_SizingStretchProp, ImVec2(0, 0))) {
         ImGui::TableSetupScrollFreeze(0, 1);
-        ImGui::TableSetupColumn("Input event", ImGuiTableColumnFlags_WidthStretch, 2.5f);
-        ImGui::TableSetupColumn("Changed from / to", ImGuiTableColumnFlags_WidthStretch, 1.2f);
+        ImGui::TableSetupColumn("Event", ImGuiTableColumnFlags_WidthStretch, 2.5f);
+        ImGui::TableSetupColumn("Change", ImGuiTableColumnFlags_WidthStretch, 1.2f);
         ImGui::TableSetupColumn("When", ImGuiTableColumnFlags_WidthStretch, 0.9f);
         ImGui::TableSetupColumn("##actions", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFontSize() * 22);
         ImGui::TableHeadersRow();
@@ -109,21 +107,20 @@ void Ui::drawCockpitTab() {
             if (now - r.last < std::chrono::milliseconds(1500)) ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ImVec4(0.2f, 0.45f, 0.2f, 0.6f)));
             ImGui::TableSetColumnIndex(0);
             ImGui::TextUnformatted(r.name.c_str());
-            if (r.noisy) { ImGui::SameLine(); ImGui::TextDisabled("(changes by itself)"); }
+            if (r.noisy) { ImGui::SameLine(); ImGui::TextDisabled("(noisy)"); }
             ImGui::TableSetColumnIndex(1);
             ImGui::Text("%s  ->  %s", formatChange(r.before).c_str(), formatChange(r.now).c_str());
             if (r.changes > 1) { ImGui::SameLine(); ImGui::TextDisabled("x%zu", r.changes); }
             ImGui::TableSetColumnIndex(2);
             ImGui::TextUnformatted(ago(now - r.last).c_str());
             ImGui::TableSetColumnIndex(3);
-            if (ImGui::SmallButton("Bind to a button")) {
+            if (ImGui::SmallButton("Bind")) {
                 Action a;
                 a.kind = ActionKind::InputEvent;
                 a.name = r.name;
                 a.value = r.now;
                 openEditorWith({a}, r.name);
             }
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("A new binding that sets %s to %s; then press the button it is for.", r.name.c_str(), formatChange(r.now).c_str());
             // a switch with whole positions 0..N-1 can also be flipped through them with one button
             const bool whole = r.lowest == 0 && r.highest >= 1 && r.highest <= 12 && r.highest == std::round(r.highest);
             if (whole) {
@@ -135,10 +132,9 @@ void Ui::drawCockpitTab() {
                     a.value = r.highest + 1;
                     openEditorWith({a}, r.name);
                 }
-                if (ImGui::IsItemHovered()) ImGui::SetTooltip("A new binding that steps %s through its %d positions (0 to %d) at each press.", r.name.c_str(), static_cast<int>(r.highest) + 1, static_cast<int>(r.highest));
             }
             ImGui::SameLine();
-            if (ImGui::SmallButton("Copy name")) ImGui::SetClipboardText(r.name.c_str());
+            if (ImGui::SmallButton("Copy")) ImGui::SetClipboardText(r.name.c_str());
             ImGui::PopID();
         }
         ImGui::EndTable();

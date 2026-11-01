@@ -61,8 +61,7 @@ std::string Ui::editionCaveat(const std::string& aircraftId, bool guide) const {
     if (aircraftId == "A32NX" || aircraftId == "A380X" || aircraftId == kStandardCatalogId) return {};
     const Catalog* c = ctx_.catalogs.find(aircraftId);
     if (!c || !c->curated) return {};
-    return std::string("Connected to MSFS 2024: this ") + (guide ? "guide and its catalog were" : "catalog was") +
-           " made and checked on MSFS 2020. The 2024 version of the aircraft may differ, so a control marked verified is verified on 2020 only.";
+    return std::string(guide ? "Guide" : "Catalog") + " made on MSFS 2020: it may differ on 2024.";
 }
 
 std::vector<Action> Ui::catalogActions(const CatalogEntry& e) const {
@@ -96,7 +95,7 @@ std::vector<Action>& Ui::catalogTargetList() {
 }
 
 const char* Ui::catalogTargetName(int target) {
-    static const char* names[] = {"PRESS", "RELEASE", "CUT-OFF (enters)", "CUT-OFF (leaves)", "AFTERBURNER (enters)", "AFTERBURNER (leaves)"};
+    static const char* names[] = {"PRESS", "RELEASE", "ENTER CUT-OFF", "LEAVE CUT-OFF", "ENTER AFTERBURNER", "LEAVE AFTERBURNER"};
     return names[target >= 0 && target < 6 ? target : 0];
 }
 
@@ -112,11 +111,11 @@ void Ui::newBindingFrom(const CatalogEntry& e) {
 
 namespace {
 std::string behaviorText(const CatalogEntry& e) {
-    if (e.behavior == "latched") return e.positions >= 3 ? "switch with " + std::to_string(e.positions) + " positions: toggled / cycled" : "switch: toggled on / off";
-    if (e.behavior == "knob_up") return "knob: one click up per press (hold to repeat)";
-    if (e.behavior == "knob_down") return "knob: one click down per press (hold to repeat)";
-    if (e.behavior == "press") return "push button: one event per press, nothing on release";
-    if (e.behavior == "level") return "level: set from an axis" + (e.hasAxisRange ? " (" + std::to_string(static_cast<int>(e.axisMin)) + " to " + std::to_string(static_cast<int>(e.axisMax)) + ")" : std::string());
+    if (e.behavior == "latched") return e.positions >= 3 ? "Switch, " + std::to_string(e.positions) + " positions" : "Switch";
+    if (e.behavior == "knob_up") return "Knob up";
+    if (e.behavior == "knob_down") return "Knob down";
+    if (e.behavior == "press") return "Push button";
+    if (e.behavior == "level") return "Axis" + (e.hasAxisRange ? " (" + std::to_string(static_cast<int>(e.axisMin)) + " to " + std::to_string(static_cast<int>(e.axisMax)) + ")" : std::string());
     return e.behavior;
 }
 
@@ -272,7 +271,7 @@ void Ui::drawPanelsView(const Catalog& cat, bool pickMode, const std::vector<std
                 const bool clicked = ImGui::InvisibleButton("photos", ImVec2(photoW + pad * 0.5f, headH - 4));
                 const bool hov = ImGui::IsItemHovered();
                 dl->AddText(ImVec2(p1.x - photoW, p0.y + (headH - fs) * 0.5f), hov ? ImGui::GetColorU32(ImVec4(0.45f, 0.75f, 1.0f, 1.0f)) : colDim, "photos >");
-                if (hov) ImGui::SetTooltip("Open the real photos of this panel (FlyByWire docs) in your browser:\n%s", v.card->reference.c_str());
+                if (hov) ImGui::SetTooltip("Open photos in the browser");
                 if (clicked && !openDocsUrl(v.card->reference)) LOG_WARN("Could not open %s (is xdg-open installed?)", v.card->reference.c_str());
                 ImGui::PopID();
             }
@@ -326,11 +325,11 @@ void Ui::drawPanelsView(const Catalog& cat, bool pickMode, const std::vector<std
                     if (!pe.behavior.empty()) {
                         ImGui::Spacing();
                         ImGui::TextDisabled("%s", behaviorText(pe).c_str());
-                        if (pe.verified) ImGui::TextColored(kGreen, "verified on the real simulator");
-                        else if (pe.kind == "input_event" && !pe.note.empty()) ImGui::TextColored(kYellow, "not verified: %s", pe.note.c_str());
-                        else if (pe.kind == "input_event") ImGui::TextColored(kYellow, "not verified yet");
+                        if (pe.verified) ImGui::TextColored(kGreen, "Verified");
+                        else if (pe.kind == "input_event" && !pe.note.empty()) ImGui::TextColored(kYellow, "Not verified: %s", pe.note.c_str());
+                        else if (pe.kind == "input_event") ImGui::TextColored(kYellow, "Not verified");
                     }
-                    ImGui::TextDisabled("Click to select, double-click to create a binding");
+                    ImGui::TextDisabled("Double-click to bind");
                     ImGui::EndTooltip();
                 }
                 if (clicked) catalogSelected_ = g.preferred;
@@ -354,7 +353,7 @@ void Ui::drawPanelsView(const Catalog& cat, bool pickMode, const std::vector<std
         ImGui::SetCursorScreenPos(origin);
         ImGui::Dummy(ImVec2(availW, maxH));
     }
-    if (!anything) ImGui::TextDisabled("Nothing matches the filter.");
+    if (!anything) ImGui::TextDisabled("No matches");
     ImGui::EndChild();
 
     // the other ways to drive the selected control
@@ -366,7 +365,7 @@ void Ui::drawPanelsView(const Catalog& cat, bool pickMode, const std::vector<std
                 if (std::find(g.entries.begin(), g.entries.end(), catalogSelected_) != g.entries.end()) group = &g;
         if (group && group->entries.size() > 1) {
             ImGui::AlignTextToFramePadding();
-            ImGui::TextDisabled("%s - ways to drive it:", sel.function.c_str());
+            ImGui::TextDisabled("%s:", sel.function.c_str());
             for (int idx : group->entries) {
                 const CatalogEntry& e = cat.entries[static_cast<size_t>(idx)];
                 ImGui::SameLine();
@@ -385,7 +384,7 @@ void Ui::drawPanelsView(const Catalog& cat, bool pickMode, const std::vector<std
 void Ui::drawCatalogBrowser(const char* id, bool pickMode) {
     ImGui::PushID(id);
     ImGui::SetNextItemWidth(400);
-    ImGui::InputTextWithHint("##filter", "filter: fcu ap, autobrake, chrono, efis ...", &catalogFilter_);
+    ImGui::InputTextWithHint("##filter", "Filter", &catalogFilter_);
     ImGui::SameLine();
     ImGui::TextDisabled("%zu entries", currentCatalog().entries.size());
     ImGui::SameLine();
@@ -394,7 +393,7 @@ void Ui::drawCatalogBrowser(const char* id, bool pickMode) {
     if (ImGui::RadioButton("List", catalogView_ == CatalogView::List)) catalogView_ = CatalogView::List;
     if (pickMode) {
         ImGui::SameLine();
-        ImGui::Text("-> adding to the %s list", catalogTargetName(catalogTarget_));
+        ImGui::Text("Adding to: %s", catalogTargetName(catalogTarget_));
     }
 
     const std::vector<std::string> words = searchWords(catalogFilter_);
@@ -449,18 +448,17 @@ void Ui::drawCatalogBrowser(const char* id, bool pickMode) {
         const std::vector<Action> acts = catalogActions(*sel);
         std::string desc;
         for (size_t i = 0; i < acts.size(); ++i) desc += (i ? "  +  " : "") + acts[i].describe();
-        ImGui::Text("Selected: %s", desc.c_str());
-        if (actionNeedsMobiFlight(acts[0].kind)) { ImGui::SameLine(); ImGui::TextColored(kYellow, "(needs MobiFlight WASM module)"); }
+        ImGui::Text("%s", desc.c_str());
+        if (actionNeedsMobiFlight(acts[0].kind)) { ImGui::SameLine(); ImGui::TextColored(kYellow, "(needs MobiFlight)"); }
         if (!sel->description.empty()) ImGui::TextWrapped("%s", sel->description.c_str());
         if (!sel->behavior.empty()) {
             ImGui::TextDisabled("%s", behaviorText(*sel).c_str());
-            if (sel->verified) { ImGui::SameLine(); ImGui::TextColored(kGreen, "verified on the real simulator"); }
-            else if (sel->kind == "input_event") { ImGui::SameLine(); ImGui::TextColored(kYellow, "not verified yet%s%s", sel->note.empty() ? "" : ": ", sel->note.c_str()); }
+            if (sel->verified) { ImGui::SameLine(); ImGui::TextColored(kGreen, "Verified"); }
+            else if (sel->kind == "input_event") { ImGui::SameLine(); ImGui::TextColored(kYellow, "Not verified%s%s", sel->note.empty() ? "" : ": ", sel->note.c_str()); }
         }
         if (sel->isCaptainSide() && !sel->firstOfficerApi().empty()) {
-            ImGui::Checkbox("Both sides: also add the first officer (R) twin", &catalogBothSides_);
+            ImGui::Checkbox("Both sides (L and R)", &catalogBothSides_);
         }
-        if (sel->isIncDec()) ImGui::TextDisabled("+/- entry: a new binding from it gets 'repeat while held' so a button acts like turning the knob.");
         if (pickMode) {
             if (ImGui::Button("Add to press")) {
                 for (const auto& a : acts) draft_.onPress.push_back(a);
@@ -471,13 +469,13 @@ void Ui::drawCatalogBrowser(const char* id, bool pickMode) {
             if (ImGui::Button("Add to release")) { for (const auto& a : acts) draft_.onRelease.push_back(a); ImGui::CloseCurrentPopup(); }
             ImGui::SameLine();
         }
-        if (ImGui::Button("Fire now (test)")) ctx_.engine.fire(acts, "catalog test");
+        if (ImGui::Button("Test")) ctx_.engine.fire(acts, "catalog test");
         if (!pickMode) {
             ImGui::SameLine();
-            if (ImGui::Button("New binding with this action")) newBindingFrom(*sel);
+            if (ImGui::Button("New binding")) newBindingFrom(*sel);
         }
     } else {
-        ImGui::TextDisabled("Select an entry.");
+        ImGui::TextDisabled("Select an entry");
     }
     if (pickMode) {
         if (ImGui::Button("Close")) ImGui::CloseCurrentPopup();
@@ -487,7 +485,7 @@ void Ui::drawCatalogBrowser(const char* id, bool pickMode) {
 
 void Ui::drawCatalogTab() {
     if (ctx_.catalogs.empty()) {
-        ImGui::TextColored(kYellow, "No catalog loaded. Expected data/*_catalog.json (see tools/build_catalog.py).");
+        ImGui::TextColored(kYellow, "No catalog loaded");
         return;
     }
     {
@@ -510,9 +508,9 @@ void Ui::drawCatalogTab() {
         if (const std::string caveat = editionCaveat(shown, false); !caveat.empty()) ImGui::TextColored(kYellow, "%s", caveat.c_str());
         if (active && shown != active->aircraft) {
             ImGui::SameLine();
-            ImGui::TextColored(kYellow, "browsing only: the active profile is for %s", active->aircraft.c_str());
+            ImGui::TextColored(kYellow, "Not the profile's aircraft (%s)", active->aircraft.c_str());
             ImGui::SameLine();
-            if (ImGui::SmallButton("show the profile's aircraft")) { viewAircraft_.clear(); catalogSelected_ = -1; }
+            if (ImGui::SmallButton("Back")) { viewAircraft_.clear(); catalogSelected_ = -1; }
         }
     }
     {
@@ -526,26 +524,24 @@ void Ui::drawCatalogTab() {
             if (e.live && e.kind == "lvar") ++nLVar;
         }
         if (shownCat.aircraft == kStandardCatalogId) {
-            ImGui::TextDisabled("K: events that cockpits fire, found in the MSFS installation (names only). 'cockpit only' ones are not in the MSFS controls menu. "
-                                "Every aircraft without a curated catalog includes these.");
+            ImGui::TextDisabled("K: events for every aircraft");
         } else {
-            ImGui::TextDisabled("%zu cockpit input events and %zu L: variables reported by the sim%s.", nInput, nLVar, isLoaded ? " for the loaded aircraft" : " (cached from an earlier session)");
+            ImGui::TextDisabled("%zu input events, %zu L: variables%s", nInput, nLVar, isLoaded ? "" : " (cached)");
             ImGui::SameLine();
-            if (ImGui::SmallButton("Refresh from the sim")) ctx_.bridge.requestLiveRefresh();
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Asks the running sim for the controls of the loaded aircraft again. Variables appear as the cockpit is used: press Refresh after exercising a system.");
+            if (ImGui::SmallButton("Refresh")) ctx_.bridge.requestLiveRefresh();
             if (nInput + nLVar > 0) {
                 ImGui::SameLine();
-                if (ImGui::SmallButton("Forget the cached list")) { ctx_.forgetLive(shownCat.aircraft); catalogSelected_ = -1; }
+                if (ImGui::SmallButton("Forget")) { ctx_.forgetLive(shownCat.aircraft); catalogSelected_ = -1; }
             }
             if (isLoaded && live.inputEventsDone && nInput == 0)
-                ImGui::TextColored(kYellow, "The sim listed no cockpit input events for this aircraft yet. Wait until the flight has loaded, then Refresh.");
+                ImGui::TextColored(kYellow, "No input events yet. Wait for the flight to load, then Refresh.");
             if (isLoaded && status_.mobiflight == sim::ModuleState::NotFound)
-                ImGui::TextColored(kYellow, "L: variables are listed by the MobiFlight WASM module, which was not found.");
+                ImGui::TextColored(kYellow, "L: variables need MobiFlight");
             if (!shownCat.curated && nInput + nLVar == 0 && !isLoaded)
-                ImGui::TextColored(kYellow, "Nothing reported by the sim for this aircraft yet. Load it in MSFS with this tool running.");
+                ImGui::TextColored(kYellow, "Load this aircraft in MSFS to list its controls");
         }
     }
-    ImGui::TextDisabled("Double-click an entry to create a binding for it. Cockpit input events (B:) are the switches the controls menu cannot bind.");
+    ImGui::TextDisabled("Double-click an entry to bind it.");
     drawCatalogBrowser("tab", false);
 }
 

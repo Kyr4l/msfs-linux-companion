@@ -35,13 +35,13 @@ const char* actionKindName(ActionKind k) {
 const char* actionKindLabel(ActionKind k) {
     switch (k) {
         case ActionKind::SimEvent: return "K: sim event";
-        case ActionKind::HEvent: return "H: event (MobiFlight)";
-        case ActionKind::LVarSet: return "L: set variable (MobiFlight)";
-        case ActionKind::LVarToggle: return "L: toggle variable (MobiFlight)";
-        case ActionKind::CalcCode: return "RPN code (MobiFlight)";
-        case ActionKind::InputEvent: return "B: set a cockpit control";
-        case ActionKind::InputEventToggle: return "B: toggle or cycle a cockpit control";
-        case ActionKind::Delay: return "Wait (milliseconds)";
+        case ActionKind::HEvent: return "H: event";
+        case ActionKind::LVarSet: return "L: set variable";
+        case ActionKind::LVarToggle: return "L: toggle variable";
+        case ActionKind::CalcCode: return "Calculator code";
+        case ActionKind::InputEvent: return "B: set input";
+        case ActionKind::InputEventToggle: return "B: toggle input";
+        case ActionKind::Delay: return "Wait";
     }
     return "?";
 }

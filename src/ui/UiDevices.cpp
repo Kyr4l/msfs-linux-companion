@@ -26,19 +26,19 @@ void Ui::drawDevicesTab() {
     ImGui::SameLine();
     if (auto last = ctx_.engine.lastInput()) {
         if (last->id.kind == input::InputKind::Axis)
-            ImGui::Text("Last input: %s on %s (moved to %d%%)", ctx_.input.describe(last->id).c_str(), deviceDisplayName(last->id.device).c_str(), static_cast<int>(last->axis * 100 + 0.5f));
+            ImGui::Text("Last: %s (%s) %d%%", ctx_.input.describe(last->id).c_str(), deviceDisplayName(last->id.device).c_str(), static_cast<int>(last->axis * 100 + 0.5f));
         else
-            ImGui::Text("Last input: %s on %s (%s)", ctx_.input.describe(last->id).c_str(), deviceDisplayName(last->id.device).c_str(), last->pressed ? "pressed" : "released");
+            ImGui::Text("Last: %s (%s) %s", ctx_.input.describe(last->id).c_str(), deviceDisplayName(last->id.device).c_str(), last->pressed ? "pressed" : "released");
     } else {
-        ImGui::TextDisabled("Press a button or move an axis to see it here.");
+        ImGui::TextDisabled("No input yet");
     }
     if (devices_.empty()) {
-        ImGui::TextColored(kYellow, "No joystick found under /dev/input. Check the Log tab for permission errors.");
+        ImGui::TextColored(kYellow, "No devices found");
     }
     for (const auto& d : devices_) {
         ImGui::PushID(d.key.c_str());
         if (ImGui::CollapsingHeader(d.name.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
-            ImGui::TextDisabled("%s   id %04x:%04x   %zu buttons, %d hats, %d axes   key: %s", d.path.c_str(), d.vendor, d.product, d.buttonCodes.size(), d.hatCount, d.axisCount, d.key.c_str());
+            ImGui::TextDisabled("%s  %04x:%04x  %zu buttons, %d hats, %d axes", d.path.c_str(), d.vendor, d.product, d.buttonCodes.size(), d.hatCount, d.axisCount);
             const float cell = ImGui::GetTextLineHeight() * 1.9f;
             const int perRow = std::max(1, static_cast<int>(ImGui::GetContentRegionAvail().x / (cell + 4)));
             for (size_t i = 0; i < d.buttonCodes.size(); ++i) {
@@ -48,7 +48,7 @@ void Ui::drawDevicesTab() {
                 char label[32];
                 snprintf(label, sizeof label, "%zu", i + 1);
                 ImGui::Button(label, ImVec2(cell, cell));
-                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Button %zu (evdev code %d)", i + 1, d.buttonCodes[i]);
+                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Button %zu (code %d)", i + 1, d.buttonCodes[i]);
                 ImGui::PopStyleColor();
             }
             for (size_t a = 0; a < d.axisCodes.size(); ++a) {
@@ -64,19 +64,18 @@ void Ui::drawDevicesTab() {
                 ImGui::SameLine();
                 const input::InputId axisId{d.key, input::InputKind::Axis, d.axisCodes[a], 0};
                 const AxisCalibration* cal = ctx_.settings.calibrationFor(axisId);
-                if (ImGui::SmallButton(cal ? "Calibrate again..." : "Calibrate...")) openCalibration(axisId);
-                if (ImGui::IsItemHovered()) ImGui::SetTooltip("For a lever with gates (the URSA MINOR throttle: cut-off, idle, afterburner): teach the program where they are.");
+                if (ImGui::SmallButton("Calibrate")) openCalibration(axisId);
                 if (cal) {
                     ImGui::SameLine();
                     if (cal->valid()) {
                         std::string gates;
                         const int codes[4] = {cal->cutoffBtn, cal->idleBtn, cal->milBtn, cal->abBtn};
-                        const char* names[4] = {"cut-off", "idle", "dry end", "afterburner"};
+                        const char* names[4] = {"cut-off", "idle", "max", "afterburner"};
                         for (int g = 0; g < 4; ++g)
                             if (codes[g] >= 0) gates += std::string(gates.empty() ? "" : ", ") + names[g] + " " + ctx_.input.describe({d.key, input::InputKind::Button, codes[g], 0});
-                        ImGui::TextColored(kGreen, "calibrated: idle ends at %.0f%%, dry range to %.0f%%%s%s", cal->idle * 100, cal->mil * 100, gates.empty() ? "" : "; gate buttons: ", gates.c_str());
+                        ImGui::TextColored(kGreen, "Calibrated%s%s", gates.empty() ? "" : ": ", gates.c_str());
                     }
-                    else ImGui::TextColored(kYellow, "calibration unusable");
+                    else ImGui::TextColored(kYellow, "Invalid calibration");
                 }
                 ImGui::PopID();
             }

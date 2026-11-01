@@ -114,7 +114,7 @@ void Ui::drawMenuBar() {
     if (!ImGui::BeginMenuBar()) return;
     if (ImGui::BeginMenu("File")) {
         if (ImGui::MenuItem("Save", "Ctrl+S")) ctx_.save();
-        if (ImGui::MenuItem("Reload config")) {
+        if (ImGui::MenuItem("Reload")) {
             Settings s;
             std::string err;
             if (loadSettings(ctx_.configPath, s, err)) {
@@ -134,9 +134,9 @@ void Ui::drawMenuBar() {
         ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Simulator")) {
-        if (ImGui::MenuItem("Connect now")) ctx_.bridge.connectNow();
+        if (ImGui::MenuItem("Connect")) ctx_.bridge.connectNow();
         if (ImGui::MenuItem("Disconnect")) ctx_.bridge.disconnect();
-        if (ImGui::MenuItem("Re-probe MobiFlight module")) ctx_.bridge.probeMobiFlight();
+        if (ImGui::MenuItem("Detect MobiFlight")) ctx_.bridge.probeMobiFlight();
         ImGui::EndMenu();
     }
     ImGui::EndMenuBar();
@@ -150,11 +150,11 @@ void Ui::drawStatusBar() {
     else if (status_.state != sim::ConnState::Disconnected) c = kYellow;
     dot(c);
     if (status_.state == sim::ConnState::Connected) {
-        ImGui::Text("MSFS%s: connected (%s %s)%s", status_.edition ? (status_.edition == 2024 ? " 2024" : " 2020") : "", status_.simName.c_str(),
-                    status_.simVersion.c_str(), status_.paused ? " [paused]" : "");
+        ImGui::Text("MSFS%s: connected%s", status_.edition ? (status_.edition == 2024 ? " 2024" : " 2020") : "", status_.paused ? " (paused)" : "");
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s %s", status_.simName.c_str(), status_.simVersion.c_str());
         if (status_.detectedPort) {
             ImGui::SameLine();
-            ImGui::TextDisabled("via auto-detected %s:%u", status_.detectedHost.c_str(), status_.detectedPort);
+            ImGui::TextDisabled("%s:%u", status_.detectedHost.c_str(), status_.detectedPort);
         }
     } else {
         ImGui::Text("MSFS: %s (%s:%u)", connStateText(status_.state), status_.host.c_str(), status_.port);
@@ -166,13 +166,13 @@ void Ui::drawStatusBar() {
     ImGui::SameLine(0, 30);
     // MobiFlight
     switch (status_.mobiflight) {
-        case sim::ModuleState::Detected: dot(kGreen); ImGui::TextUnformatted("MobiFlight WASM: detected"); break;
-        case sim::ModuleState::Probing: dot(kYellow); ImGui::TextUnformatted("MobiFlight WASM: probing..."); break;
-        case sim::ModuleState::NotFound: dot(kRed); ImGui::TextUnformatted("MobiFlight WASM: not found"); break;
-        default: dot(kGrey); ImGui::TextUnformatted("MobiFlight WASM: unknown"); break;
+        case sim::ModuleState::Detected: dot(kGreen); ImGui::TextUnformatted("MobiFlight: detected"); break;
+        case sim::ModuleState::Probing: dot(kYellow); ImGui::TextUnformatted("MobiFlight: detecting"); break;
+        case sim::ModuleState::NotFound: dot(kRed); ImGui::TextUnformatted("MobiFlight: not found"); break;
+        default: dot(kGrey); ImGui::TextUnformatted("MobiFlight: unknown"); break;
     }
     if (ImGui::IsItemHovered())
-        ImGui::SetTooltip("H: events, L: vars and calculator code need the MobiFlight WASM module\nin the MSFS Community folder. K: events (including A32NX.* custom events) work without it.");
+        ImGui::SetTooltip("H: events, L: variables and calculator code need MobiFlight.");
     ImGui::SameLine(0, 30);
     {
         // the loaded aircraft by name ("Asobo CJ4"), not by the file name every aircraft shares ("aircraft.CFG")
@@ -190,8 +190,8 @@ void Ui::drawStatusBar() {
     ImGui::SameLine(0, 30);
     bool enabled = ctx_.engine.enabled();
     if (ImGui::Checkbox("Bindings active", &enabled)) ctx_.engine.setEnabled(enabled);
-    if (ctx_.dirty) { ImGui::SameLine(0, 30); ImGui::TextColored(kYellow, "unsaved"); }
-    if (!ctx_.lastSaveError.empty()) { ImGui::SameLine(); ImGui::TextColored(kRed, "save failed: %s", ctx_.lastSaveError.c_str()); }
+    if (ctx_.dirty) { ImGui::SameLine(0, 30); ImGui::TextColored(kYellow, "Unsaved"); }
+    if (!ctx_.lastSaveError.empty()) { ImGui::SameLine(); ImGui::TextColored(kRed, "Save failed: %s", ctx_.lastSaveError.c_str()); }
 }
 
 // ---------------------------------------------------------------- Splash
@@ -218,7 +218,7 @@ void Ui::drawSplash() {
     ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * 1.6f);
     ImGui::TextUnformatted("MSFS Linux Companion");
     ImGui::PopFont();
-    ImGui::TextDisabled("version %s - starting up", COMPANION_VERSION);
+    ImGui::TextDisabled("Version %s", COMPANION_VERSION);
     ImGui::Spacing();
     auto line = [&](bool done, const char* what, const char* pending) {
         dot(done ? kGreen : kYellow);
@@ -226,13 +226,13 @@ void Ui::drawSplash() {
     };
     char joy[96];
     snprintf(joy, sizeof joy, "Joysticks: %zu found", devices_.size());
-    line(inputDone, joy, "Joysticks: scanning /dev/input ...");
+    line(inputDone, joy, "Joysticks: scanning");
     const auto ww = ctx_.winwing.devices();
     char wwText[96];
     snprintf(wwText, sizeof wwText, "Winwing devices: %zu found", ww.size());
-    line(winwingDone, wwText, "Winwing devices: discovering controllers over hidraw ...");
+    line(winwingDone, wwText, "Winwing devices: scanning");
     const bool simUp = status_.state == sim::ConnState::Connected;
-    line(simUp, "Simulator: connected", status_.state == sim::ConnState::Disconnected ? "Simulator: not running yet (will keep retrying)" : "Simulator: connecting ...");
+    line(simUp, "Simulator: connected", status_.state == sim::ConnState::Disconnected ? "Simulator: waiting" : "Simulator: connecting");
     ImGui::Spacing();
     // Indeterminate progress bar.
     const float w = ImGui::GetContentRegionAvail().x;

@@ -38,7 +38,7 @@ void Ui::drawGateBar(const AxisCalibration& cal, float now, float width, const b
             dl->AddRectFilled(ImVec2(p0.x + x, p0.y), ImVec2(p0.x + x + 1, p0.y + h), ImGui::GetColorU32(col));
         }
     }
-    const char* names[4] = {"cut-off", "idle ends", "dry range ends", "afterburner"};
+    const char* names[4] = {"cut-off", "idle", "max", "afterburner"};
     const double at[4] = {cal.cutoff, cal.idle, cal.mil, cal.ab};
     for (int i = 0; i < 4; ++i) {
         if (gateSet && !gateSet[i]) continue;
@@ -84,12 +84,12 @@ void Ui::openCalibration(const input::InputId& axis) {
 
 void Ui::drawCalibrationWizard() {
     if (!calOpen_) return;
-    if (calJustOpened_) { ImGui::OpenPopup("Calibrate axis"); calJustOpened_ = false; }
+    if (calJustOpened_) { ImGui::OpenPopup("Calibrate"); calJustOpened_ = false; }
     bool open = true;
     bool close = false;
     const float fs = ImGui::GetFontSize();
     ImGui::SetNextWindowSize(ImVec2(fs * 50, 0), ImGuiCond_Appearing);
-    if (ImGui::BeginPopupModal("Calibrate axis", &open, ImGuiWindowFlags_NoSavedSettings)) {
+    if (ImGui::BeginPopupModal("Calibrate", &open, ImGuiWindowFlags_NoSavedSettings)) {
         const float now = axisNow(calAxis_);
         int* buttons[4] = {&calDraft_.cutoffBtn, &calDraft_.idleBtn, &calDraft_.milBtn, &calDraft_.abBtn};
         double* positions[4] = {&calDraft_.cutoff, &calDraft_.idle, &calDraft_.mil, &calDraft_.ab};
@@ -102,7 +102,7 @@ void Ui::drawCalibrationWizard() {
                     calMessage_.clear();
                     calListening_ = -1;
                 } else {
-                    calMessage_ = "That button is on another device.";
+                    calMessage_ = "Button is on another device";
                     ctx_.engine.beginCapture(true);
                 }
             }
@@ -113,18 +113,14 @@ void Ui::drawCalibrationWizard() {
         for (int g = 0; g < 4; ++g)
             if (learned[static_cast<size_t>(g)] && *buttons[g] >= 0) { *positions[g] = *learned[static_cast<size_t>(g)]; calSet_[g] = true; }
 
-        ImGui::Text("%s on %s", ctx_.input.describe(calAxis_).c_str(), deviceDisplayName(calAxis_.device).c_str());
-        ImGui::TextDisabled("Bindings are paused while this window is open.");
-        if (now < 0) ImGui::TextColored(kYellow, "The device is not connected.");
+        ImGui::Text("%s (%s)", ctx_.input.describe(calAxis_).c_str(), deviceDisplayName(calAxis_.device).c_str());
+        ImGui::TextDisabled("Bindings are paused.");
+        if (now < 0) ImGui::TextColored(kYellow, "No device");
         drawGateBar(calDraft_, now, fs * 44, calSet_);
 
         // 1. the buttons that mark the gates
-        ImGui::SeparatorText("1. The button of each gate");
-        ImGui::PushTextWrapPos(fs * 48);
-        ImGui::TextDisabled("Many throttles have a switch at each gate. Press Listen, then move the lever into that gate: the program notices which "
-                            "button closes. A gate without a button can be left alone; it is then judged from the position of the lever.");
-        ImGui::PopTextWrapPos();
-        const char* gateName[4] = {"Cut-off", "Idle", "End of the dry range", "Afterburner"};
+        ImGui::SeparatorText("1. Gate buttons");
+        const char* gateName[4] = {"Cut-off", "Idle", "Max", "Afterburner"};
         for (int g = 0; g < 4; ++g) {
             ImGui::PushID(g);
             const bool hasButton = *buttons[g] >= 0;
@@ -138,11 +134,11 @@ void Ui::drawCalibrationWizard() {
                 dot(closed ? kGreen : kGrey);
                 ImGui::TextDisabled("%s", closed ? "closed" : "open");
             } else {
-                ImGui::TextDisabled("no button");
+                ImGui::TextDisabled("None");
             }
             ImGui::SameLine(fs * 25);
             const bool listening = calListening_ == g;
-            if (ImGui::SmallButton(listening ? "Stop" : "Listen")) {
+            if (ImGui::SmallButton(listening ? "Stop" : "Detect")) {
                 if (listening) { calListening_ = -1; ctx_.engine.cancelCapture(); }
                 else { calListening_ = g; calMessage_.clear(); ctx_.engine.beginCapture(true); }
             }
@@ -163,21 +159,16 @@ void Ui::drawCalibrationWizard() {
                 for (const auto& d : devices_)
                     if (d.key == calAxis_.device) *buttons[g] = number >= 1 && number <= static_cast<int>(d.buttonCodes.size()) ? d.buttonCodes[static_cast<size_t>(number - 1)] : -1;
             }
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Or type the number of the button as the Devices tab shows it (0 = none).");
             if (listening) {
                 ImGui::SameLine();
-                ImGui::TextColored(kYellow, "move the lever into this gate...");
+                ImGui::TextColored(kYellow, "Move the lever to this gate");
             }
             ImGui::PopID();
         }
         if (!calMessage_.empty()) ImGui::TextColored(kYellow, "%s", calMessage_.c_str());
 
         // 2. the two positions the linear part needs
-        ImGui::SeparatorText("2. The part of the travel in between");
-        ImGui::PushTextWrapPos(fs * 48);
-        ImGui::TextDisabled("Move the lever up from idle to the end of the dry range once: the program notices where the idle gate ends and where "
-                            "the dry range stops. Or put the lever at the spot and press Set.");
-        ImGui::PopTextWrapPos();
+        ImGui::SeparatorText("2. Positions");
         auto positionRow = [&](int g, const char* label) {
             ImGui::PushID(100 + g);
             ImGui::AlignTextToFramePadding();
@@ -188,20 +179,20 @@ void Ui::drawCalibrationWizard() {
             if (ImGui::DragFloat("##pct", &pct, 0.1f, 0.0f, 100.0f, "%.1f %%")) { *positions[g] = pct / 100.0; calSet_[g] = true; }
             ImGui::SameLine();
             ImGui::BeginDisabled(now < 0);
-            if (ImGui::SmallButton("Set from the lever")) { *positions[g] = now; calSet_[g] = true; }
+            if (ImGui::SmallButton("Set")) { *positions[g] = now; calSet_[g] = true; }
             ImGui::EndDisabled();
             ImGui::SameLine();
-            if (calSet_[g]) ImGui::TextColored(kGreen, "set"); else ImGui::TextDisabled("not set yet");
+            if (calSet_[g]) ImGui::TextColored(kGreen, "set"); else ImGui::TextDisabled("not set");
             ImGui::PopID();
         };
-        positionRow(1, "Idle gate ends at");
-        positionRow(2, "Dry range ends at");
+        positionRow(1, "Idle ends at");
+        positionRow(2, "Max starts at");
 
         // the gates that have no button are judged from their position
         if (calDraft_.cutoffBtn < 0 || calDraft_.abBtn < 0 || calDraft_.idleBtn < 0) {
-            ImGui::SeparatorText("Gates without a button");
-            if (calDraft_.cutoffBtn < 0) positionRow(0, "Cut-off stop at");
-            if (calDraft_.abBtn < 0) positionRow(3, "Afterburner starts at");
+            ImGui::SeparatorText("Gates without button");
+            if (calDraft_.cutoffBtn < 0) positionRow(0, "Cut-off at");
+            if (calDraft_.abBtn < 0) positionRow(3, "Afterburner at");
             if (calDraft_.idleBtn < 0) {
                 float snapPct = static_cast<float>(calDraft_.snap * 100.0);
                 ImGui::AlignTextToFramePadding();
@@ -209,19 +200,18 @@ void Ui::drawCalibrationWizard() {
                 ImGui::SameLine(fs * 12);
                 ImGui::SetNextItemWidth(fs * 7);
                 if (ImGui::SliderFloat("##snap", &snapPct, 0.0f, 5.0f, "%.1f %%")) calDraft_.snap = snapPct / 100.0;
-                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Inside this band around the idle gate the value stays exactly at idle, so a lever resting in its detent never wobbles.");
             }
         }
 
         ImGui::Separator();
         const bool allSet = (calDraft_.cutoffBtn >= 0 || calSet_[0]) && calSet_[1] && calSet_[2] && (calDraft_.abBtn >= 0 || calSet_[3]);
         const bool valid = calDraft_.valid();
-        if (!allSet) ImGui::TextDisabled("Still to do: the two positions above (and a position for each gate without a button).");
+        if (!allSet) ImGui::TextDisabled("Set the positions above");
         else if (!valid) {
             ImGui::PushTextWrapPos(fs * 48);
-            ImGui::TextColored(kYellow, "The positions are not in order: idle must come first, then the end of the dry range (at least 5%% further); a gate without a button must lie beyond them.");
+            ImGui::TextColored(kYellow, "Positions are out of order");
             ImGui::PopTextWrapPos();
-        } else ImGui::TextColored(kGreen, "Ready to save.");
+        } else ImGui::TextColored(kGreen, "Ready");
         ImGui::Spacing();
         ImGui::BeginDisabled(!(allSet && valid));
         if (ImGui::Button("Save", ImVec2(fs * 9, 0))) {
@@ -234,7 +224,7 @@ void Ui::drawCalibrationWizard() {
         if (ImGui::Button("Cancel", ImVec2(fs * 9, 0))) close = true;
         if (ctx_.settings.calibrationFor(calAxis_)) {
             ImGui::SameLine();
-            if (ImGui::Button("Remove this calibration")) {
+            if (ImGui::Button("Remove")) {
                 ctx_.settings.clearCalibration(calAxis_);
                 ctx_.markDirty();
                 close = true;

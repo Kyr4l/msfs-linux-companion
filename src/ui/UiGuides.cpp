@@ -74,7 +74,7 @@ void Ui::drawGuideCard(const Catalog& cat, const std::vector<int>& targets) {
         const bool clicked = ImGui::InvisibleButton("photos", ImVec2(photoW + pad * 0.5f, headH - 4));
         const bool hov = ImGui::IsItemHovered();
         dl->AddText(ImVec2(p1.x - photoW, p0.y + (headH - fs) * 0.5f), hov ? ImGui::GetColorU32(ImVec4(0.45f, 0.75f, 1.0f, 1.0f)) : ImGui::GetColorU32(ImGuiCol_TextDisabled), "photos >");
-        if (hov) ImGui::SetTooltip("Open the real photos of this panel (FlyByWire docs) in your browser:\n%s", card->reference.c_str());
+        if (hov) ImGui::SetTooltip("Open photos in the browser");
         if (clicked && !openDocsUrl(card->reference)) LOG_WARN("Could not open %s (is xdg-open installed?)", card->reference.c_str());
         ImGui::PopID();
         ImGui::SetCursorScreenPos(p0);
@@ -190,7 +190,7 @@ void Ui::drawKeypad(const Keypad& pad, const std::vector<std::string>& sequence)
         }
         if (ImGui::IsMouseHoveringRect(a, b)) {
             if (pad.hEventPrefix.empty()) ImGui::SetTooltip("%s", key.label.c_str());
-            else ImGui::SetTooltip("%s\nsends H:%s%s", key.label.c_str(), pad.hEventPrefix.c_str(), key.id.c_str());
+            else ImGui::SetTooltip("%s (H:%s%s)", key.label.c_str(), pad.hEventPrefix.c_str(), key.id.c_str());
         }
     }
     ImGui::Dummy(size);
@@ -198,7 +198,7 @@ void Ui::drawKeypad(const Keypad& pad, const std::vector<std::string>& sequence)
 
 void Ui::drawGuidesTab() {
     if (ctx_.guides.empty()) {
-        ImGui::TextDisabled("No guide found (expected data/<aircraft>_guide.json).");
+        ImGui::TextDisabled("No guides");
         return;
     }
     const Guide* g = ctx_.guideFor(guideAircraft_);
@@ -222,11 +222,7 @@ void Ui::drawGuidesTab() {
         ImGui::EndCombo();
     }
     ImGui::SameLine();
-    if (ImGui::Checkbox("Autodetect answers", &ctx_.settings.guideAutodetect)) ctx_.markDirty();
-    if (ImGui::IsItemHovered())
-        ImGui::SetTooltip("When the simulator tells the answer to a question (on the ground? engines running?), the guide takes it\nand moves on. The next page lists what was detected; Back returns to the question so you can change it.");
-    ImGui::SameLine();
-    ImGui::TextDisabled("Ticks come from the simulator when it reports the state; you can always tick by hand.");
+    if (ImGui::Checkbox("Auto-answer", &ctx_.settings.guideAutodetect)) ctx_.markDirty();
     ImGui::Separator();
 
     const Catalog* cat = ctx_.catalogFor(g->aircraft);
@@ -249,7 +245,7 @@ void Ui::drawGuidesTab() {
             ImGui::PopTextWrapPos();
             ImGui::Spacing();
         }
-        ImGui::TextDisabled("What do you want to do?");
+        ImGui::TextDisabled("Topics");
         ImGui::Spacing();
         const float w = std::min(ImGui::GetContentRegionAvail().x, ImGui::GetFontSize() * 34);
         for (const auto& t : g->topics) {
@@ -297,13 +293,13 @@ void Ui::drawGuideNode(const Guide& g, const Catalog* cat) {
     }
 
     const GuideTopic* topic = g.topic(guideRun_.topic());
-    if (ImGui::Button("< Back") && guideRun_.canGoBack()) guideRun_.back();
+    if (ImGui::Button("Back") && guideRun_.canGoBack()) guideRun_.back();
     ImGui::SameLine();
     if (ImGui::Button("Restart")) { guideRun_.restart(); guideTicked_.clear(); guideDetected_.clear(); }
     ImGui::SameLine();
-    if (ImGui::Button("All topics")) { guideRun_ = GuideRun{}; return; }
+    if (ImGui::Button("Topics")) { guideRun_ = GuideRun{}; return; }
     ImGui::SameLine();
-    ImGui::TextDisabled("%s  -  page %zu", topic ? topic->title.c_str() : "", guideRun_.depth());
+    ImGui::TextDisabled("%s (%zu)", topic ? topic->title.c_str() : "", guideRun_.depth());
     ImGui::Separator();
     ImGui::Spacing();
     const float wrap = std::min(ImGui::GetContentRegionAvail().x, ImGui::GetFontSize() * 60);
@@ -314,7 +310,7 @@ void Ui::drawGuideNode(const Guide& g, const Catalog* cat) {
                                             [&](const auto& e) { return e.first == node->id || std::find(hist.begin(), hist.end(), e.first) == hist.end(); }),
                              guideDetected_.end());
         if (!guideDetected_.empty()) {
-            ImGui::TextDisabled("Detected from the simulator (Back to change):");
+            ImGui::TextDisabled("Detected:");
             for (const auto& e : guideDetected_) ImGui::TextColored(kGreen, "  %s", e.second.c_str());
             ImGui::Spacing();
         }
@@ -326,10 +322,10 @@ void Ui::drawGuideNode(const Guide& g, const Catalog* cat) {
         ImGui::SetWindowFontScale(1.0f);
         ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + wrap);
         if (!node->text.empty()) ImGui::TextUnformatted(node->text.c_str());
-        else ImGui::TextUnformatted("You reached the end of this guide.");
+        else ImGui::TextUnformatted("End of the guide");
         ImGui::PopTextWrapPos();
         ImGui::Spacing();
-        if (ImGui::Button("Back to the topics")) guideRun_ = GuideRun{};
+        if (ImGui::Button("Topics")) guideRun_ = GuideRun{};
         return;
     }
 
@@ -356,8 +352,8 @@ void Ui::drawGuideNode(const Guide& g, const Catalog* cat) {
         if (node->autoProbe.valid() && !suggested) {
             const bool asking = ctx_.settings.guideAutodetect && guideRun_.autoAllowed() && status_.state == sim::ConnState::Connected &&
                                 ImGui::GetTime() - guideNodeSince_ < 3.0;
-            if (asking) ImGui::TextDisabled("Asking the simulator...");
-            else ImGui::TextDisabled("The simulator did not report this (not connected, or the MobiFlight module is missing): answer by hand.");
+            if (asking) ImGui::TextDisabled("Asking the sim");
+            else ImGui::TextDisabled("Not available: answer manually");
         }
         const float bw = std::min(ImGui::GetContentRegionAvail().x, ImGui::GetFontSize() * 30);
         for (const auto& c : node->choices) {
@@ -366,7 +362,7 @@ void Ui::drawGuideNode(const Guide& g, const Catalog* cat) {
             if (hint) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.18f, 0.45f, 0.25f, 1.0f));
             const bool clicked = ImGui::Button(c.label.c_str(), ImVec2(bw, ImGui::GetFrameHeight() * 1.5f));
             if (hint) ImGui::PopStyleColor();
-            if (hint) { ImGui::SameLine(); ImGui::TextColored(kGreen, "the simulator says this"); }
+            if (hint) { ImGui::SameLine(); ImGui::TextColored(kGreen, "from the sim"); }
             if (!c.hint.empty()) ImGui::TextDisabled("%s", c.hint.c_str());
             if (clicked) { guideRun_.choose(c.id); ImGui::PopID(); return; }
             ImGui::PopID();
@@ -403,14 +399,14 @@ void Ui::drawGuideNode(const Guide& g, const Catalog* cat) {
             else if (done[i]) ImGui::TextDisabled("%zu. %s", i + 1, s.text.c_str());
             else ImGui::Text("%zu. %s", i + 1, s.text.c_str());
             ImGui::PopTextWrapPos();
-            if (sim && *sim) { ImGui::SameLine(); ImGui::TextColored(kGreen, "confirmed by the simulator"); }
-            else if (byHand) { ImGui::SameLine(); ImGui::TextDisabled("(ticked by hand)"); }
+            if (sim && *sim) { ImGui::SameLine(); ImGui::TextColored(kGreen, "done"); }
+            else if (byHand) { ImGui::SameLine(); ImGui::TextDisabled("(manual)"); }
             if (i == current || (!done[i] && node->steps.size() <= 3)) {
                 ImGui::Indent(ImGui::GetFontSize() * 1.6f);
                 ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + wrap - ImGui::GetFontSize() * 1.6f);
                 if (!s.where.empty()) ImGui::TextDisabled("Where: %s", s.where.c_str());
                 if (!s.why.empty()) ImGui::TextDisabled("%s", s.why.c_str());
-                if (!s.warn.empty()) ImGui::TextColored(kYellow, "Caution: %s", s.warn.c_str());
+                if (!s.warn.empty()) ImGui::TextColored(kYellow, "Warning: %s", s.warn.c_str());
                 ImGui::PopTextWrapPos();
                 for (const auto& r : s.readouts) {
                     const auto v = readProbe(r.probe);
@@ -456,8 +452,8 @@ void Ui::drawGuideNode(const Guide& g, const Catalog* cat) {
         }
         ImGui::Separator();
         const bool last = node->next.empty();
-        if (ImGui::Button(last ? "Finish" : "Next >", ImVec2(ImGui::GetFontSize() * 9, ImGui::GetFrameHeight() * 1.4f))) guideRun_.advance();
-        if (current < node->steps.size()) { ImGui::SameLine(); ImGui::TextDisabled("%zu step(s) not confirmed yet", node->steps.size() - current); }
+        if (ImGui::Button(last ? "Finish" : "Next", ImVec2(ImGui::GetFontSize() * 9, ImGui::GetFrameHeight() * 1.4f))) guideRun_.advance();
+        if (current < node->steps.size()) { ImGui::SameLine(); ImGui::TextDisabled("%zu left", node->steps.size() - current); }
         return;
     }
 
@@ -467,7 +463,7 @@ void Ui::drawGuideNode(const Guide& g, const Catalog* cat) {
     ImGui::PopTextWrapPos();
     if (!node->source.empty()) ImGui::TextDisabled("Source: %s", node->source.c_str());
     ImGui::Spacing();
-    if (ImGui::Button(node->type == "end" || node->next.empty() ? "Finish" : "Next >", ImVec2(ImGui::GetFontSize() * 9, ImGui::GetFrameHeight() * 1.4f))) guideRun_.advance();
+    if (ImGui::Button(node->type == "end" || node->next.empty() ? "Finish" : "Next", ImVec2(ImGui::GetFontSize() * 9, ImGui::GetFrameHeight() * 1.4f))) guideRun_.advance();
 }
 
 }  // namespace lr::app
