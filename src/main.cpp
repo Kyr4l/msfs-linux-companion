@@ -32,6 +32,7 @@
 #include "sim/SimBridge.hpp"
 #include "util/Isolated.hpp"
 #include "ui/AppIcon.hpp"
+#include "ui/Theme.hpp"
 #include "ui/Ui.hpp"
 #ifdef COMPANION_UI_LINT
 #include "ui/UiLint.hpp"
@@ -534,13 +535,10 @@ int main(int argc, char** argv) {
         static std::string iniPath = app::imguiIniFile();
         io.IniFilename = iniPath.c_str();
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-        ImGui::StyleColorsDark();
         float xs = 1.f, ys = 1.f;
         glfwGetWindowContentScale(window, &xs, &ys);
-        ImGui::GetStyle().ScaleAllSizes(xs);
-#if IMGUI_VERSION_NUM >= 19200
-        ImGui::GetStyle().FontScaleDpi = xs;
-#endif
+        ui::loadFonts();
+        ui::applyTheme(xs, static_cast<float>(ctx.settings.uiScale));
         // Note when the user does something: only then (and for a second after) is the window redrawn at full rate. These
         // callbacks go in first; the ImGui backend installs its own on top and calls ours.
         glfwSetCursorPosCallback(window, [](GLFWwindow*, double, double) { noteActivity(0); });

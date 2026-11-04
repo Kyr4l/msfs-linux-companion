@@ -35,14 +35,22 @@ void Ui::drawDevicesTab() {
     if (devices_.empty()) {
         ImGui::TextColored(kYellow, "No devices found");
     }
+    const float fs = ImGui::GetFontSize();
+    const float right = ImGui::GetCursorScreenPos().x + ImGui::GetContentRegionAvail().x;
+    // Stays on the current line when an item of this width still fits before the right edge, else starts a new line.
+    auto sameLineIfFits = [right](float width) {
+        const float next = ImGui::GetItemRectMax().x + ImGui::GetStyle().ItemSpacing.x;
+        if (next + width <= right) ImGui::SameLine();
+    };
     for (const auto& d : devices_) {
         ImGui::PushID(d.key.c_str());
         if (ImGui::CollapsingHeader(d.name.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
-            ImGui::TextDisabled("%s  %04x:%04x  %zu buttons, %d hats, %d axes", d.path.c_str(), d.vendor, d.product, d.buttonCodes.size(), d.hatCount, d.axisCount);
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+            ImGui::TextWrapped("%s  %04x:%04x  %zu buttons, %d hats, %d axes", d.path.c_str(), d.vendor, d.product, d.buttonCodes.size(), d.hatCount, d.axisCount);
+            ImGui::PopStyleColor();
             const float cell = ImGui::GetTextLineHeight() * 1.9f;
-            const int perRow = std::max(1, static_cast<int>(ImGui::GetContentRegionAvail().x / (cell + 4)));
             for (size_t i = 0; i < d.buttonCodes.size(); ++i) {
-                if (i % static_cast<size_t>(perRow) != 0) ImGui::SameLine();
+                if (i != 0) sameLineIfFits(cell);
                 const bool on = d.buttonState[i];
                 ImGui::PushStyleColor(ImGuiCol_Button, on ? ImVec4(0.2f, 0.7f, 0.3f, 1) : ImVec4(0.25f, 0.25f, 0.28f, 1));
                 char label[32];
@@ -56,24 +64,27 @@ void Ui::drawDevicesTab() {
                 snprintf(label, sizeof label, "Axis %zu (%s)", a + 1, input::axisName(d.axisCodes[a]));
                 snprintf(overlay, sizeof overlay, "%d%%", static_cast<int>(d.axisValue[a] * 100 + 0.5f));
                 ImGui::PushID(static_cast<int>(a));
-                ImGui::SetNextItemWidth(70);
+                const float labelX = ImGui::GetCursorPosX();
                 ImGui::AlignTextToFramePadding();
                 ImGui::TextUnformatted(label);
-                ImGui::SameLine(130);
-                ImGui::ProgressBar(d.axisValue[a], ImVec2(300, 0), overlay);
-                ImGui::SameLine();
+                ImGui::SameLine(labelX + std::max(fs * 10, ImGui::GetItemRectSize().x + ImGui::GetStyle().ItemSpacing.x));
+                const float barWidth = std::clamp(ImGui::GetContentRegionAvail().x, fs * 6, fs * 22);
+                ImGui::ProgressBar(d.axisValue[a], ImVec2(barWidth, 0), overlay);
                 const input::InputId axisId{d.key, input::InputKind::Axis, d.axisCodes[a], 0};
                 const AxisCalibration* cal = ctx_.settings.calibrationFor(axisId);
+                sameLineIfFits(ImGui::CalcTextSize("Calibrate").x + ImGui::GetStyle().FramePadding.x * 2);
                 if (ImGui::SmallButton("Calibrate")) openCalibration(axisId);
                 if (cal) {
-                    ImGui::SameLine();
+                    sameLineIfFits(fs * 8);
                     if (cal->valid()) {
                         std::string gates;
                         const int codes[4] = {cal->cutoffBtn, cal->idleBtn, cal->milBtn, cal->abBtn};
                         const char* names[4] = {"cut-off", "idle", "max", "afterburner"};
                         for (int g = 0; g < 4; ++g)
                             if (codes[g] >= 0) gates += std::string(gates.empty() ? "" : ", ") + names[g] + " " + ctx_.input.describe({d.key, input::InputKind::Button, codes[g], 0});
-                        ImGui::TextColored(kGreen, "Calibrated%s%s", gates.empty() ? "" : ": ", gates.c_str());
+                        ImGui::PushStyleColor(ImGuiCol_Text, kGreen);
+                        ImGui::TextWrapped("Calibrated%s%s", gates.empty() ? "" : ": ", gates.c_str());
+                        ImGui::PopStyleColor();
                     }
                     else ImGui::TextColored(kYellow, "Invalid calibration");
                 }

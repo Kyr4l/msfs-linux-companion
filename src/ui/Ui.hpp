@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Kyr4l
 #pragma once
 #include <deque>
+#include <map>
 #include <optional>
 #include <set>
 // Dear ImGui front-end. Everything here runs on the main (GLFW) thread.
@@ -15,6 +16,7 @@
 #include "app/Keypad.hpp"
 #include "app/Engine.hpp"
 #include "app/Profile.hpp"
+#include "app/SimPackages.hpp"
 #include "haptics/Haptics.hpp"
 #include "haptics/WinwingHid.hpp"
 #include "input/Evdev.hpp"
@@ -55,6 +57,11 @@ struct AppContext {
     void loadLiveCaches();                                          // ~/.config/msfs-linux-companion/live/*.json from earlier sessions
     void syncLive();                                                // folds the sim's current lists into the catalog, saves the cache
     void forgetLive(const std::string& aircraft);
+    // An aircraft without a hand-made catalog: labels its controls from their names and its package's tooltips, and makes a guide from
+    // its package's checklist when there is one (app/AutoCatalog.hpp)
+    void autoLabel(const std::string& aircraft);
+    std::optional<std::vector<std::string>> packageRoots;                    // found on first use (app/SimPackages.hpp)
+    std::map<std::string, std::shared_ptr<const PackageText>> packageTexts;  // by aircraft key; null when the package was not found
     uint64_t liveSeen = ~0ull;
     std::string pushedFingerprint_;  // what the engine was last given (see engineFingerprint)
     void pushProfileToEngine();
@@ -71,6 +78,9 @@ public:
 private:
     void drawMenuBar();
     void drawStatusBar();
+    void drawSidebar();  // the list of pages on the left
+    // the page shown: a built-in one by name ("Bindings"), or a plugin's tab (pagePlugin_ = its plugin id)
+    std::string page_ = "Bindings", pagePlugin_;
     void drawBindingsTab();
     void drawDevicesTab();
     void drawCatalogTab();
@@ -100,7 +110,10 @@ private:
     std::string editionCaveat(const std::string& aircraftId, bool guide) const;  // shown when connected to MSFS 2024 and the data was made on MSFS 2020
     void drawAxisOptions();
     void drawAxisTargetPicker();  // quick setup: one of the flight controls every aircraft has, with its range
-    void drawDetentOptions();  // lever with gates: calibration state, values at the gates, presets
+    void drawDetentOptions();  // lever with gates: calibration state, range, stages, presets
+    // The output of a lever over its travel, with the zones, the stages (dragged to move them) and the live position; true when a stage moved.
+    bool drawLeverGraph(AxisDetents& d, const AxisCalibration& cal, float now, float width, float height);
+    int leverDrag_ = -1;  // the stage being dragged in the lever graph
     void drawGateBar(const AxisCalibration& cal, float now, float width, const bool* gateSet = nullptr);  // the zones of a calibrated lever with its live position
     Engine::GateState gateStateNow(const AxisCalibration& cal) const;  // which gate buttons of a calibrated lever are closed right now
     void openCalibration(const input::InputId& axis);

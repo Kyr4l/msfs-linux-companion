@@ -36,9 +36,25 @@ enum class AxisMode { Value, Steps };
 // at those points is per binding, here. Between idle and the end of the dry range the output runs linearly from outIdle to outMil;
 // in the cut-off zone it is outCutoff and in the afterburner zone outMil. Value mode only; the dead zone and range of AxisConfig
 // are then ignored.
+//
+// The range of the lever that is used ends either at the max gate (`LeverTop::Max`: what lies beyond is the afterburner zone and sends
+// outMil, the F/A-18E) or at the end of the travel (`LeverTop::Full`: an aircraft without afterburner uses everything above idle). Stages
+// put named points on that range (an Airbus: CL, FLX/MCT): at a stage the output is the stage's value, held flat over +-band, and linear
+// between stages. `at` and `band` are fractions of the used range (0 = idle, 1 = top), so they survive a new calibration of the gates.
+enum class LeverTop { Max, Full };
+
+struct LeverStage {
+    std::string name;
+    double at = 0.5;
+    double value = 0;
+    double band = 0.03;
+};
+
 struct AxisDetents {
     bool enabled = false;
-    double outCutoff = 0.0, outIdle = 0.1, outMil = 0.8;
+    double outCutoff = 0.0, outIdle = 0.1, outMil = 0.8;  // outMil: the value at the top of the range
+    LeverTop top = LeverTop::Max;
+    std::vector<LeverStage> stages;
 };
 
 struct AxisConfig {
@@ -94,10 +110,11 @@ struct Profile {
     std::vector<Binding> bindings;
 };
 
-// Config schema: 1 = original, 2 = profiles carry an "aircraft", 3 = input event (B:) actions, 4 = axis calibrations and lever gates. Newer files stay readable by older
+// Config schema: 1 = original, 2 = profiles carry an "aircraft", 3 = input event (B:) actions, 4 = axis calibrations and lever gates, 5 = lever
+// range to the end of the travel, lever stages, text size. Newer files stay readable by older
 // builds (unknown fields are ignored; an action of a kind they do not know is skipped). The first save over a file of an older schema keeps a copy of it
 // (config.json.v<N>.bak); a file that cannot be read at all is kept aside by main() before the defaults take its place.
-constexpr int kConfigVersion = 4;
+constexpr int kConfigVersion = 5;
 
 // How the Bindings tab arranges the bindings of a profile (see BindingView.hpp).
 enum class BindingsGroupBy { None, Device, InputType, Custom };
@@ -108,6 +125,7 @@ struct Settings {
     int port = 500;
     bool autoConnect = true;
     bool guideAutodetect = true;  // guides: take the answer the simulator reports instead of asking
+    double uiScale = 1.0;         // text and widget size, on top of the screen's own scale (Settings tab)
     std::string activeProfile;
     std::vector<Profile> profiles;
     haptics::HapticsConfig haptics;

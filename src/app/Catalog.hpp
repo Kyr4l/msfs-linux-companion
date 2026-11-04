@@ -29,6 +29,8 @@ struct CatalogEntry {
     std::string behavior;
     int positions = 2;               // latched: number of switch positions
     bool verified = false;           // behaviour checked against the real simulator (set, then read the sim's own state)
+    bool automatic = false;          // labelled by the program (app/AutoCatalog.hpp), not by hand
+    bool autoTwin = false;           // automatic: the second direction of a knob, made from the live entry before it (never cached)
     std::string note;                // what was seen, or why it is not verified
     bool hasAxisRange = false;       // an axis-style event: the docs give the parameter range it expects
     double axisMin = 0, axisMax = 0;
@@ -101,6 +103,9 @@ public:
     bool empty() const { return items.empty(); }
     size_t size() const { return items.size(); }
 };
+
+// Recomputes searchKey after the texts of an entry changed.
+void refreshSearchKey(CatalogEntry& e);
 
 // Builds catalog entries for what the sim reports about the loaded aircraft.
 CatalogEntry makeInputEventEntry(const std::string& name, bool isString);

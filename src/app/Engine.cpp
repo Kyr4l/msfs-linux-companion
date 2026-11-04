@@ -3,6 +3,7 @@
 #include "app/Engine.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 
 #include "util/Log.hpp"
@@ -164,27 +165,92 @@ double Engine::axisOutput(const AxisConfig& c, double t) {
     return c.integer ? std::round(v) : v;
 }
 
+// The lever's gates in the direction where the cut-off is the low end, and where its used range starts and ends.
+namespace {
+struct LeverFrame {
+    bool reversed;
+    double cutoff, idle, mil, ab, dryStart, top;
+    double n(double x) const { return reversed ? 1.0 - x : x; }
+};
+LeverFrame leverFrame(const AxisDetents& d, const AxisCalibration& cal) {
+    LeverFrame f;
+    f.reversed = cal.idle > cal.mil;
+    f.cutoff = f.n(cal.cutoff);
+    f.idle = f.n(cal.idle);
+    f.mil = f.n(cal.mil);
+    f.ab = f.n(cal.ab);
+    f.dryStart = cal.idleBtn >= 0 ? f.idle : f.idle + cal.snap;  // above this the output leaves the idle value
+    f.top = d.top == LeverTop::Full ? std::max(f.ab, f.mil) : f.mil;
+    if (f.top <= f.dryStart + 1e-6) f.top = f.dryStart + 1e-6;
+    return f;
+}
+}  // namespace
+
+Engine::DetentResult Engine::leverCurve(const AxisDetents& d, double at) {
+    // knots: idle, the stages in the order of their place, the top; a stage is flat over its band, and a band never reaches into the one below
+    struct Knot { double lo, hi, v; int stage; };
+    constexpr size_t kMaxStages = 16;
+    std::array<Knot, kMaxStages + 2> k{};
+    std::array<int, kMaxStages> order{};
+    const size_t n = std::min(d.stages.size(), kMaxStages);
+    for (size_t i = 0; i < n; ++i) order[i] = static_cast<int>(i);
+    for (size_t i = 1; i < n; ++i)  // insertion sort by place: a handful of stages, and nothing allocated on the input thread
+        for (size_t j = i; j > 0 && d.stages[static_cast<size_t>(order[j])].at < d.stages[static_cast<size_t>(order[j - 1])].at; --j) std::swap(order[j], order[j - 1]);
+    size_t count = 0;
+    k[count++] = {0.0, 0.0, d.outIdle, -1};
+    for (size_t i = 0; i < n; ++i) {
+        const LeverStage& st = d.stages[static_cast<size_t>(order[i])];
+        const double place = std::clamp(st.at, 0.0, 1.0), band = std::clamp(st.band, 0.0, 0.5);
+        const double lo = std::max(place - band, k[count - 1].hi);
+        k[count++] = {lo, std::max(lo, std::min(place + band, 1.0)), st.value, order[i]};
+    }
+    k[count] = {1.0, 1.0, d.outMil, -1};
+    ++count;
+    const double t = std::clamp(at, 0.0, 1.0);
+    for (size_t i = 1; i + 1 < count; ++i)  // a stage wins over idle and the top where they meet
+        if (t >= k[i].lo && t <= k[i].hi) return {k[i].v, AxisZone::Dry, k[i].stage, t};
+    if (t <= k[0].hi) return {k[0].v, AxisZone::Dry, -1, t};
+    if (t >= k[count - 1].lo) return {k[count - 1].v, AxisZone::Dry, -1, t};
+    for (size_t i = 0; i + 1 < count; ++i)
+        if (t >= k[i].hi && t <= k[i + 1].lo) {
+            const double span = k[i + 1].lo - k[i].hi;
+            const double f = span > 1e-12 ? (t - k[i].hi) / span : 1.0;
+            return {k[i].v + f * (k[i + 1].v - k[i].v), AxisZone::Dry, -1, t};
+        }
+    return {d.outMil, AxisZone::Dry, -1, t};
+}
+
+double Engine::leverAt(const AxisDetents& d, const AxisCalibration& cal, double raw01) {
+    const LeverFrame f = leverFrame(d, cal);
+    return std::clamp((f.n(raw01) - f.dryStart) / (f.top - f.dryStart), 0.0, 1.0);
+}
+
+double Engine::leverRaw(const AxisDetents& d, const AxisCalibration& cal, double at) {
+    const LeverFrame f = leverFrame(d, cal);
+    return f.n(f.dryStart + std::clamp(at, 0.0, 1.0) * (f.top - f.dryStart));
+}
+
 Engine::DetentResult Engine::detentOutput(const AxisDetents& d, const AxisCalibration& cal, double raw01, AxisZone previous, const GateState& gates) {
     // mirrored so that the cut-off is always the low end
-    const bool reversed = cal.idle > cal.mil;
-    auto n = [reversed](double x) { return reversed ? 1.0 - x : x; };
-    const double r = n(raw01), cutoff = n(cal.cutoff), idle = n(cal.idle), mil = n(cal.mil), ab = n(cal.ab);
-    const double cutLimit = (cutoff + idle) / 2, abLimit = (mil + ab) / 2, hysteresis = 0.01;
+    const LeverFrame f = leverFrame(d, cal);
+    const double r = f.n(raw01);
+    const double cutLimit = (f.cutoff + f.idle) / 2, abLimit = (f.mil + f.ab) / 2, hysteresis = 0.01;
     // A gate with a button is decided by the button; one without by the position, with a little hysteresis.
     AxisZone zone = AxisZone::Dry;
     const bool inCutoff = cal.cutoffBtn >= 0 ? gates.cutoff : (previous == AxisZone::Cutoff ? r < cutLimit + hysteresis : r < cutLimit - hysteresis);
     const bool inAfterburner = cal.abBtn >= 0 ? gates.ab : (previous == AxisZone::Afterburner ? r > abLimit - hysteresis : r > abLimit + hysteresis);
     if (inCutoff) zone = AxisZone::Cutoff;
     else if (inAfterburner) zone = AxisZone::Afterburner;
-    const double dryStart = cal.idleBtn >= 0 ? idle : idle + cal.snap;  // above this the output leaves outIdle
-    double value;
-    if (zone == AxisZone::Cutoff) value = d.outCutoff;
-    else if (cal.idleBtn >= 0 && gates.idle) value = d.outIdle;
-    else if (zone == AxisZone::Afterburner || (cal.milBtn >= 0 && gates.mil)) value = d.outMil;
-    else if (r <= dryStart) value = d.outIdle;
-    else if (r >= mil) value = d.outMil;
-    else value = d.outIdle + (r - dryStart) / (mil - dryStart) * (d.outMil - d.outIdle);
-    return {value, zone};
+    if (zone == AxisZone::Cutoff) return {d.outCutoff, zone, -1, 0.0};
+    double at;
+    if (cal.idleBtn >= 0 && gates.idle) at = 0;
+    // up to the max gate: the gate and what lies beyond it are the top; to the end of the travel: the end is (its button, if it has one)
+    else if (d.top == LeverTop::Max && (zone == AxisZone::Afterburner || (cal.milBtn >= 0 && gates.mil))) at = 1;
+    else if (d.top == LeverTop::Full && cal.abBtn >= 0 && gates.ab) at = 1;
+    else at = std::clamp((r - f.dryStart) / (f.top - f.dryStart), 0.0, 1.0);
+    DetentResult out = leverCurve(d, at);
+    out.zone = zone;
+    return out;
 }
 
 Engine::DetentResult Engine::detentOutput(const AxisDetents& d, const AxisCalibration& cal, double raw01, AxisZone previous) {

@@ -157,8 +157,8 @@ void HapticsEngine::evaluate(const sim::Telemetry& t, float& left, float& right,
     const double rev = std::max(t.reverse1, t.reverse2);
     if (rev > 0.05) add("reverse", 0.25 + 0.5 * rev);
 
-    const double n1 = t.turningN1();
-    if (onGround && n1 > 35) add("engine", (n1 - 35.0) / 65.0 * 0.35);
+    const double power = t.enginePower();
+    if (onGround && power > 35) add("engine", (power - 35.0) / 65.0 * 0.35);
 
     const float rotor = rotorVibration(t);
     if (rotor > 0.f) add("rotor", rotor);
@@ -240,8 +240,9 @@ void HapticsEngine::threadMain() {
         }
         const sim::Telemetry t = bridge_.telemetry();
         // The sim keeps sending the values of its sim objects in a menu on MSFS 2024 (the menu's own aircraft: an overspeed warning, a ground
-        // speed), so a flight is what the sim says it is, not what the data looks like.
-        const bool flying = bridge_.inFlight();
+        // speed), so a flight is what the sim says it is, not what the data looks like: its "Sim" state and, as 2024 also says "in a flight"
+        // behind its menus, its camera.
+        const bool flying = bridge_.inFlight() && t.flightCamera();
         const bool fresh = flying && t.valid && (now - t.time) < std::chrono::seconds(2);
 
         float left = 0, right = 0;

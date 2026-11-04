@@ -56,11 +56,19 @@ public:
     static double axisOutput(const AxisConfig& c, double position01);        // rescaled (and rounded if integer)
     // Which gate buttons are closed (only meaningful for the gates of the calibration that have a button).
     struct GateState { bool cutoff = false, idle = false, mil = false, ab = false; };
-    struct DetentResult { double value; AxisZone zone; };
+    // value: what to send; zone: where the lever is; stage: index into AxisDetents::stages of the stage band it rests in, or -1;
+    // at: where it is on the used range (0 = idle, 1 = top; 0 in the cut-off)
+    struct DetentResult { double value; AxisZone zone; int stage = -1; double at = 0; };
     // A lever with gates: where it is (raw 0..1 of the device travel) -> the value to send and the zone it is in. `previous` gives the
     // zone a little hysteresis, so a lever resting at a zone boundary does not chatter.
     static DetentResult detentOutput(const AxisDetents& d, const AxisCalibration& cal, double raw01, AxisZone previous, const GateState& gates);
     static DetentResult detentOutput(const AxisDetents& d, const AxisCalibration& cal, double raw01, AxisZone previous);  // no gate button closed
+    // The output along the used range of a lever (0 = idle, 1 = top): through idle, the stages and the top, flat over each stage's band.
+    static DetentResult leverCurve(const AxisDetents& d, double at);
+    // Where a raw position is on the used range, judged from the position alone (the "Set" button of a stage, the drawing).
+    static double leverAt(const AxisDetents& d, const AxisCalibration& cal, double raw01);
+    // The other way: the raw device position of a point of the used range.
+    static double leverRaw(const AxisDetents& d, const AxisCalibration& cal, double at);
     static std::vector<Action> withValue(const std::vector<Action>& actions, double v, bool integer);  // substitute the axis value
     static std::string formatValue(double v, bool integer);
 

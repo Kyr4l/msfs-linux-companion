@@ -70,6 +70,21 @@ void Ui::drawLogTab() {
 
 void Ui::drawSettingsTab() {
     Settings& s = ctx_.settings;
+    ImGui::SeparatorText("Appearance");
+    {
+        struct Size { const char* label; double scale; };
+        static const Size sizes[] = {{"Small", 0.9}, {"Normal", 1.0}, {"Large", 1.15}, {"Larger", 1.3}, {"Largest", 1.5}};
+        const char* current = "Custom";
+        for (const auto& z : sizes)
+            if (std::fabs(s.uiScale - z.scale) < 1e-3) current = z.label;
+        fieldLabel("Text size");
+        ImGui::SetNextItemWidth(ImGui::GetFontSize() * 9);
+        if (ImGui::BeginCombo("##text_size", current)) {
+            for (const auto& z : sizes)
+                if (ImGui::Selectable(z.label, std::fabs(s.uiScale - z.scale) < 1e-3)) { s.uiScale = z.scale; ctx_.markDirty(); }
+            ImGui::EndCombo();
+        }
+    }
     ImGui::SeparatorText("Connection");
     bool changed = false;
     fieldLabel("Host");

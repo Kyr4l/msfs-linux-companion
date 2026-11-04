@@ -165,9 +165,20 @@ static json toJson(const AxisConfig& c) {
     // omitted while they are the defaults and the gates are off (files of plain axes stay as before); kept once set, even when the gates
     // are switched off, so switching them on again finds the values where they were left
     const AxisDetents defaults;
-    if (c.detents.enabled || c.detents.outCutoff != defaults.outCutoff || c.detents.outIdle != defaults.outIdle || c.detents.outMil != defaults.outMil)
-        j["detents"] = json{{"enabled", c.detents.enabled}, {"out_cutoff", finiteOr0(c.detents.outCutoff)}, {"out_idle", finiteOr0(c.detents.outIdle)},
-                            {"out_mil", finiteOr0(c.detents.outMil)}};
+    if (c.detents.enabled || c.detents.outCutoff != defaults.outCutoff || c.detents.outIdle != defaults.outIdle || c.detents.outMil != defaults.outMil ||
+        c.detents.top != defaults.top || !c.detents.stages.empty()) {
+        json d{{"enabled", c.detents.enabled}, {"out_cutoff", finiteOr0(c.detents.outCutoff)}, {"out_idle", finiteOr0(c.detents.outIdle)},
+               {"out_mil", finiteOr0(c.detents.outMil)}};
+        // schema 5; an older build ignores them and reads the lever as idle-to-max without stages
+        if (c.detents.top == LeverTop::Full) d["top"] = "full";
+        if (!c.detents.stages.empty()) {
+            json stages = json::array();
+            for (const auto& st : c.detents.stages)
+                stages.push_back(json{{"name", st.name}, {"at", finiteOr0(st.at)}, {"value", finiteOr0(st.value)}, {"band", finiteOr0(st.band)}});
+            d["stages"] = stages;
+        }
+        j["detents"] = d;
+    }
     return j;
 }
 
@@ -188,6 +199,18 @@ static AxisConfig axisFromJson(const json& j) {
         c.detents.outCutoff = d.value("out_cutoff", c.detents.outCutoff);
         c.detents.outIdle = d.value("out_idle", c.detents.outIdle);
         c.detents.outMil = d.value("out_mil", c.detents.outMil);
+        c.detents.top = d.contains("top") && d["top"].is_string() && d["top"].get<std::string>() == "full" ? LeverTop::Full : LeverTop::Max;
+        if (d.contains("stages") && d["stages"].is_array())
+            for (const auto& sj : d["stages"]) {
+                if (!sj.is_object()) continue;  // a broken stage is skipped, not the whole file
+                LeverStage st;
+                auto num = [&](const char* key, double fallback) { return sj.contains(key) && sj[key].is_number() ? sj[key].get<double>() : fallback; };
+                st.name = sj.contains("name") && sj["name"].is_string() ? sj["name"].get<std::string>() : "";
+                st.at = std::clamp(num("at", st.at), 0.0, 1.0);
+                st.value = num("value", st.value);
+                st.band = std::clamp(num("band", st.band), 0.0, 0.5);
+                c.detents.stages.push_back(st);
+            }
     }
     if (c.inMax <= c.inMin) { c.inMin = 0.0; c.inMax = 1.0; }
     if (c.stepPercent < 0.5) c.stepPercent = 0.5;
@@ -274,6 +297,7 @@ bool loadSettings(const std::string& path, Settings& out, std::string& err) {
         s.port = std::clamp(j.value("port", s.port), 0, 65535);  // the bridge takes a 16-bit port: 70000 would become 4464
         s.autoConnect = j.value("auto_connect", s.autoConnect);
         s.guideAutodetect = j.value("guide_autodetect", s.guideAutodetect);
+        if (j.contains("ui_scale") && j["ui_scale"].is_number()) s.uiScale = std::clamp(j["ui_scale"].get<double>(), 0.75, 2.0);
         s.activeProfile = j.value("active_profile", "");
         if (j.contains("bindings_view") && j["bindings_view"].is_object()) {
             const json& v = j["bindings_view"];
@@ -378,7 +402,7 @@ bool saveSettings(const std::string& path, const Settings& s, std::string& err) 
     json calibrations = json::array();
     for (const auto& c : s.calibrations) calibrations.push_back(toJson(c));
     json j{{"version", kConfigVersion}, {"host", s.host}, {"port", s.port}, {"auto_connect", s.autoConnect}, {"guide_autodetect", s.guideAutodetect},
-           {"active_profile", s.activeProfile}, {"profiles", profiles}, {"calibrations", calibrations},
+           {"ui_scale", finiteOr0(s.uiScale)}, {"active_profile", s.activeProfile}, {"profiles", profiles}, {"calibrations", calibrations},
            {"bindings_view", {{"group_by", s.bindingsGroupBy == BindingsGroupBy::Device ? "device" : s.bindingsGroupBy == BindingsGroupBy::InputType ? "type" : s.bindingsGroupBy == BindingsGroupBy::Custom ? "custom" : "none"}, {"auto_sort", s.bindingsAutoSort}}},
            {"haptics", {{"enabled", s.haptics.enabled}, {"master", s.haptics.master}, {"rules", rules}, {"devices", devices}}}};
     if (!s.disabledPlugins.empty() || !s.pluginSettings.empty()) {  // left out when there is nothing: files without plugins stay as before

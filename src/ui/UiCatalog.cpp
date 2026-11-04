@@ -267,7 +267,7 @@ void Ui::drawPanelsView(const Catalog& cat, bool pickMode, const std::vector<std
             dl->PopClipRect();
             if (hasRef) {
                 ImGui::SetCursorScreenPos(ImVec2(p1.x - photoW - pad * 0.5f, p0.y + 2));
-                ImGui::PushID(&v);
+                ImGui::PushID(v.card);  // the card itself: `v` lives in a list rebuilt for each region, whose addresses repeat
                 const bool clicked = ImGui::InvisibleButton("photos", ImVec2(photoW + pad * 0.5f, headH - 4));
                 const bool hov = ImGui::IsItemHovered();
                 dl->AddText(ImVec2(p1.x - photoW, p0.y + (headH - fs) * 0.5f), hov ? ImGui::GetColorU32(ImVec4(0.45f, 0.75f, 1.0f, 1.0f)) : colDim, "photos >");
@@ -281,8 +281,8 @@ void Ui::drawPanelsView(const Catalog& cat, bool pickMode, const std::vector<std
                 const ImVec2 c0(p0.x + pad + static_cast<float>(gi % 2) * (cellW + pad), p0.y + headH + static_cast<float>(gi / 2) * (cellH + pad));
                 const ImVec2 c1(c0.x + cellW, c0.y + cellH);
                 ImGui::SetCursorScreenPos(c0);
-                ImGui::PushID(static_cast<int>(gi + 1) * 100003 + static_cast<int>(&v - vis.data()) + static_cast<int>(region.size()));
-                ImGui::PushID(v.card->section.c_str());
+                ImGui::PushID(v.card);  // unique per card (a card is in one region) and per control of the card
+                ImGui::PushID(static_cast<int>(gi));
                 ImGui::PushID(g.function.c_str());
                 const bool clicked = ImGui::InvisibleButton("ctl", ImVec2(cellW, cellH));
                 const bool hovered = ImGui::IsItemHovered();
@@ -519,14 +519,21 @@ void Ui::drawCatalogTab() {
         const sim::LiveStatus live = ctx_.bridge.liveStatus();
         const bool isLoaded = sim::sameAircraft(live.aircraftId, shownCat.aircraft);
         size_t nInput = 0, nLVar = 0;
+        bool automatic = false;
         for (const auto& e : shownCat.entries) {
-            if (e.live && e.kind == "input_event") ++nInput;
+            if (e.live && e.kind == "input_event" && !e.autoTwin) ++nInput;
             if (e.live && e.kind == "lvar") ++nLVar;
+            automatic |= e.automatic;
         }
         if (shownCat.aircraft == kStandardCatalogId) {
             ImGui::TextDisabled("K: events for every aircraft");
         } else {
             ImGui::TextDisabled("%zu input events, %zu L: variables%s", nInput, nLVar, isLoaded ? "" : " (cached)");
+            if (automatic) {
+                ImGui::SameLine();
+                ImGui::TextColored(kYellow, "Automatic");
+                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Names and types guessed, not tried");
+            }
             ImGui::SameLine();
             if (ImGui::SmallButton("Refresh")) ctx_.bridge.requestLiveRefresh();
             if (nInput + nLVar > 0) {

@@ -13,6 +13,7 @@
 #include <imgui.h>
 #include <imgui_stdlib.h>
 
+#include "app/AutoCatalog.hpp"
 #include "app/Paths.hpp"
 #include "sim/AircraftId.hpp"
 #include "util/Log.hpp"
@@ -136,6 +137,7 @@ void AppContext::loadLiveCaches() {
             continue;
         }
         catalogs.applyLive(cached.aircraft, cached.title, cached.entries);
+        autoLabel(cached.aircraft);
         LOG_INFO("Cached controls for %s: %zu entries", cached.aircraft.c_str(), cached.entries.size());
     }
     catalogs.refreshStandard();
@@ -152,9 +154,39 @@ void AppContext::syncLive() {
     auto fresh = CatalogSet::liveEntriesFor(events, snap.lvars, snap.aircraftId);
     const bool changed = catalogs.applyLive(snap.aircraftId, snap.aircraftLabel, fresh);
     if (!changed) return;
+    autoLabel(snap.aircraftId);
     if (const Catalog* c = catalogs.find(snap.aircraftId)) {
         std::string err;
         if (!c->saveLive(liveCacheFile(c->aircraft), err)) LOG_WARN("Could not cache the controls of %s: %s", c->aircraft.c_str(), err.c_str());
+    }
+}
+
+void AppContext::autoLabel(const std::string& aircraft) {
+    Catalog* cat = catalogs.find(aircraft);
+    if (!cat || cat->curated || cat->aircraft == kStandardCatalogId) return;
+    const std::string key = sim::aircraftKey(aircraft);
+    auto it = packageTexts.find(key);
+    if (it == packageTexts.end()) {
+        if (!packageRoots) packageRoots = simPackageRoots();
+        std::shared_ptr<const PackageText> text;
+        if (const auto pkg = findAircraftPackage(*packageRoots, aircraft)) {
+            auto t = std::make_shared<PackageText>(readPackageText(*pkg));
+            LOG_INFO("Package of %s: %s (%zu tooltip strings%s)", aircraft.c_str(), pkg->dir.c_str(), t->strings.size(), t->checklistXml.empty() ? "" : ", checklist");
+            text = std::move(t);
+        }
+        it = packageTexts.emplace(key, std::move(text)).first;
+    }
+    const PackageText* text = it->second.get();
+    applyAutoLabels(*cat, text, text ? text->title : std::string());
+    if (text && !text->checklistXml.empty() && !guideFor(aircraft)) {
+        Guide g;
+        std::string err;
+        if (buildAutoGuide(cat->aircraft, text->title.empty() ? cat->label() : text->title, *text, *cat, g, err)) {
+            LOG_INFO("Guide %s: %zu topics from the sim's checklist", g.aircraft.c_str(), g.topics.size());
+            guides.push_back(std::move(g));
+        } else {
+            LOG_WARN("No guide from the checklist of %s: %s", aircraft.c_str(), err.c_str());
+        }
     }
 }
 

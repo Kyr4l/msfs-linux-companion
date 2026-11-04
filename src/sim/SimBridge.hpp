@@ -51,11 +51,25 @@ struct Telemetry {
     double onGround = 0, groundSpeedKt = 0, gForce = 1, stallWarning = 0, overspeedWarning = 0, gearPct = 1, flapsPct = 0,
            spoilersHandle = 0, n1Eng1 = 0, n1Eng2 = 0, reverse1 = 0, reverse2 = 0, accelBodyY = 0, verticalSpeedFpm = 0,
            brakeLeft = 0, brakeRight = 0, iasKt = 0, altAgl = 0,
-           rotorRpmPct = 0, collective = 0;  // helicopter: main rotor speed and collective, both 0..1 (1 = 100 %); 0 on an aircraft without a rotor
+           rotorRpmPct = 0, collective = 0,  // helicopter: main rotor speed and collective, both 0..1 (1 = 100 %); 0 on an aircraft without a rotor
+           engineType = 0,                   // ENGINE TYPE: 0 piston, 1 jet, 3 turbine helicopter, 5 turboprop
+           torqueEng1 = 0, torqueEng2 = 0,   // percent of the rated torque
+           cameraState = 0;                  // CAMERA STATE: 2 cockpit ... 10 drone aircraft are views of a flight; 11 and up are menus, the world map, hangars
+
+    // MSFS 2024 runs a world with the menu's aircraft behind its menus and says "in a flight" there, so only a flight camera tells a flight
+    // (seen: camera 34 in the menu, with the menu's aircraft airborne at 188 kt and an overspeed warning). 0 = not reported yet.
+    bool flightCamera() const { return cameraState == 0 || (cameraState >= 2 && cameraState <= 10); }
 
     // N1 of the engines that turn. A single-engine aircraft (the Vision Jet) reports 0 for engine 2, which must not halve engine 1.
-    double turningN1() const {
-        const double a = n1Eng1 > 1.0 ? n1Eng1 : 0.0, b = n1Eng2 > 1.0 ? n1Eng2 : 0.0;
+    double turningN1() const { return meanTurning(n1Eng1, n1Eng2); }
+    double turningTorque() const { return meanTurning(torqueEng1, torqueEng2); }
+
+    // How hard the engines pull, 0..100. A turboprop's N1 is its gas generator, already 55-70 % at idle: its power is the torque.
+    double enginePower() const { return engineType == 3 || engineType == 5 ? turningTorque() : turningN1(); }
+
+private:
+    static double meanTurning(double v1, double v2) {
+        const double a = v1 > 1.0 ? v1 : 0.0, b = v2 > 1.0 ? v2 : 0.0;
         const int turning = (a > 0.0) + (b > 0.0);
         return turning ? (a + b) / turning : 0.0;
     }

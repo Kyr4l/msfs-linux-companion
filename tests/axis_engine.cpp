@@ -856,6 +856,31 @@ int main() {
         CHECK(t.turningN1() == 0.0);
     }
 
+    // a turboprop idles at 55-70 % N1 (its gas generator): its engine vibration reads the torque, not the N1
+    {
+        lr::sim::Telemetry t;
+        t.engineType = 5;
+        t.n1Eng1 = 65;
+        t.torqueEng1 = 12;
+        CHECK(std::fabs(t.enginePower() - 12.0) < 1e-9);  // idle: below the 35 % where the vibration starts
+        t.torqueEng1 = 95;
+        CHECK(std::fabs(t.enginePower() - 95.0) < 1e-9);
+        t.engineType = 1;
+        CHECK(std::fabs(t.enginePower() - 65.0) < 1e-9);  // a jet: the N1
+    }
+
+    // MSFS 2024 says "in a flight" behind its menus: only a flight camera counts
+    {
+        lr::sim::Telemetry t;
+        CHECK(t.flightCamera());  // not reported yet
+        t.cameraState = 2;
+        CHECK(t.flightCamera());  // cockpit
+        t.cameraState = 34;
+        CHECK(!t.flightCamera());  // the 2024 menu
+        t.cameraState = 12;
+        CHECK(!t.flightCamera());  // world map
+    }
+
     // helicopter vibration: nothing without a rotor, a steady shake that grows with the collective, a pulse when the rotor is slow in flight
     {
         lr::sim::Telemetry t;
@@ -874,6 +899,69 @@ int main() {
         CHECK(lr::haptics::rotorLow(t));
         t.rotorRpmPct = 1.0;
         CHECK(!lr::haptics::rotorLow(t));
+    }
+
+    // ---- lever range to the end of the travel, and stages (an Airbus: CL, FLX/MCT, TOGA on a lever without those detents)
+    {
+        AxisCalibration cal;
+        cal.device = "1234:5678:Lever";
+        cal.cutoff = 0.0; cal.idle = 0.10; cal.mil = 0.70; cal.ab = 1.0; cal.snap = 0.0;
+        CHECK(cal.valid());
+        AxisDetents d;
+        d.enabled = true; d.outCutoff = -1; d.outIdle = 0; d.outMil = 100;
+        auto out = [&](double raw) { return Engine::detentOutput(d, cal, raw, AxisZone::Dry); };
+        // up to the max gate (the default): the top is the max gate, the afterburner zone holds the top value
+        CHECK(std::fabs(out(0.40).value - 50) < 1e-9 && out(0.95).value == 100);
+        // to the end of the travel: idle 0, the max gate is on the way, the end is the top
+        d.top = LeverTop::Full;
+        CHECK(out(0.0).zone == AxisZone::Cutoff && out(0.0).value == -1);
+        CHECK(out(0.10).value == 0 && std::fabs(out(0.55).value - 50) < 1e-9 && std::fabs(out(0.70).value - 66.6666666667) < 1e-6);
+        CHECK(std::fabs(out(1.0).value - 100) < 1e-9 && out(1.0).zone == AxisZone::Afterburner);  // still the afterburner zone (its actions run)
+        CHECK(std::fabs(Engine::leverAt(d, cal, 0.55) - 0.5) < 1e-9 && std::fabs(Engine::leverRaw(d, cal, 0.5) - 0.55) < 1e-9);
+        {   // the end of the travel with a button: the button is the end, whatever the position says
+            AxisCalibration b = cal;
+            b.abBtn = 7; b.ab = 0.98;
+            Engine::GateState g; g.ab = true;
+            CHECK(Engine::detentOutput(d, b, 0.97, AxisZone::Dry, g).value == 100);
+        }
+        // stages: FBW-like values -8192 idle, 0 CL, 8192 FLX/MCT, 16384 TOGA
+        d.outCutoff = -8192; d.outIdle = -8192; d.outMil = 16384;
+        d.stages = {{"FLX/MCT", 0.75, 8192, 0.03}, {"CL", 0.40, 0, 0.05}};  // out of order on purpose
+        auto curve = [&](double t) { return Engine::leverCurve(d, t); };
+        CHECK(curve(0.0).value == -8192 && curve(0.0).stage == -1);
+        CHECK(curve(0.40).value == 0 && curve(0.40).stage == 1 && curve(0.36).value == 0 && curve(0.44).value == 0);  // CL band +-0.05
+        CHECK(curve(0.75).value == 8192 && curve(0.75).stage == 0 && curve(0.72).value == 8192 && curve(0.78).value == 8192);
+        CHECK(std::fabs(curve(0.175).value - (-4096)) < 1e-6);   // halfway between idle (0) and the CL band (0.35)
+        CHECK(std::fabs(curve(0.585).value - 4096) < 1e-6);      // halfway between 0.45 and 0.72
+        CHECK(curve(1.0).value == 16384);
+        {   // a sweep never goes down
+            double last = -1e9;
+            bool monotonic = true;
+            for (int i = 0; i <= 1000; ++i) { const double v = curve(i / 1000.0).value; monotonic = monotonic && v >= last; last = v; }
+            CHECK(monotonic);
+        }
+        // a stage at the top wins over the top value; overlapping bands do not reach into each other
+        d.stages = {{"TOGA", 1.0, 16000, 0.02}, {"A", 0.5, 10, 0.2}, {"B", 0.6, 20, 0.2}};
+        CHECK(curve(1.0).value == 16000 && curve(1.0).stage == 0 && curve(0.985).value == 16000);
+        CHECK(curve(0.5).value == 10 && curve(0.69).value == 10 && curve(0.75).value == 20);  // B starts where A ends
+        // round trip of the range and the stages
+        Settings st;
+        Profile pr;
+        Binding b;
+        b.input = {cal.device, InputKind::Axis, 0, 0};
+        b.axis.detents = d;
+        pr.bindings.push_back(b);
+        st.profiles.push_back(pr);
+        st.uiScale = 1.25;
+        const auto path = (std::filesystem::temp_directory_path() / "msfs-linux-companion-stages-test.json").string();
+        std::string err;
+        CHECK(saveSettings(path, st, err));
+        Settings back;
+        CHECK(loadSettings(path, back, err));
+        const AxisDetents& rd = back.profiles[0].bindings[0].axis.detents;
+        CHECK(rd.top == LeverTop::Full && rd.stages.size() == 3 && rd.stages[0].name == "TOGA" && rd.stages[1].at == 0.5 && rd.stages[2].value == 20 && rd.stages[0].band == 0.02);
+        CHECK(back.uiScale == 1.25);
+        std::filesystem::remove(path);
     }
 
     std::printf(failures ? "\n%d check(s) FAILED\n" : "all axis checks passed\n", failures);

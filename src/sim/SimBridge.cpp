@@ -61,6 +61,10 @@ const TelemetryVar kTelemetryVars[] = {
     {"PLANE ALT ABOVE GROUND", "Feet", &Telemetry::altAgl},
     {"ROTOR RPM PCT:1", "Percent Over 100", &Telemetry::rotorRpmPct},
     {"COLLECTIVE POSITION", "Percent Over 100", &Telemetry::collective},
+    {"ENGINE TYPE", "Enum", &Telemetry::engineType},
+    {"TURB ENG MAX TORQUE PERCENT:1", "Percent", &Telemetry::torqueEng1},
+    {"TURB ENG MAX TORQUE PERCENT:2", "Percent", &Telemetry::torqueEng2},
+    {"CAMERA STATE", "Enum", &Telemetry::cameraState},
 };
 constexpr size_t kTelemetryCount = sizeof(kTelemetryVars) / sizeof(kTelemetryVars[0]);
 
@@ -435,6 +439,7 @@ void SimBridge::handleTelemetry(const RecvClientData& d) {
         std::lock_guard<std::mutex> lock(m_);
         t = telemetry_;
     }
+    const double camera = t.cameraState;
     const uint8_t* p = d.data.data();
     size_t n = d.data.size();
     size_t off = 0;
@@ -447,6 +452,7 @@ void SimBridge::handleTelemetry(const RecvClientData& d) {
         if (id < kTelemetryCount) t.*(kTelemetryVars[id].field) = v;
     }
     if (!t.valid) LOG_INFO("Telemetry flowing (%u datums per update)", d.defineCount);
+    if (t.cameraState != camera) LOG_INFO("Camera state %.0f (%s)", t.cameraState, t.flightCamera() ? "a flight" : "not a flight: no vibration");
     t.valid = true;
     t.time = clock::now();
     t.seq++;

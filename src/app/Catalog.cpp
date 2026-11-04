@@ -184,6 +184,8 @@ std::string lowerKey(const CatalogEntry& c) {
 }
 }  // namespace
 
+void refreshSearchKey(CatalogEntry& e) { e.searchKey = lowerKey(e); }
+
 CatalogEntry makeInputEventEntry(const std::string& name, bool isString) {
     CatalogEntry c;
     c.panel = "Cockpit input events (from the sim)";
@@ -214,7 +216,7 @@ CatalogEntry makeLiveLVarEntry(const std::string& name) {
 // them in upper case (ENGINE_THROTTLE_1) where MSFS 2020 mixes the case (ENGINE_Throttle_1).
 static std::string entryKey(const CatalogEntry& e) {
     const std::string& n = e.name.empty() ? e.api : e.name;
-    return e.kind + ":" + (e.kind == "input_event" ? lower(n) : n);
+    return e.kind + ":" + (e.kind == "input_event" ? lower(n) : n) + (e.autoTwin ? "#" + e.behavior : std::string());
 }
 
 std::vector<CatalogEntry> axisTargetEntries() {
@@ -267,10 +269,10 @@ bool Catalog::setLiveEntries(std::vector<CatalogEntry> fresh) {
         if (!e.live) have.insert(entryKey(e));
     std::vector<CatalogEntry> wanted;
     for (auto& e : fresh)
-        if (have.insert(entryKey(e)).second) wanted.push_back(std::move(e));
+        if (!e.autoTwin && have.insert(entryKey(e)).second) wanted.push_back(std::move(e));
 
     std::vector<std::string> before, after;
-    for (const auto& e : entries) if (e.live) before.push_back(e.api);
+    for (const auto& e : entries) if (e.live && !e.autoTwin) before.push_back(e.api);
     for (const auto& e : wanted) after.push_back(e.api);
     std::sort(before.begin(), before.end());
     std::sort(after.begin(), after.end());
@@ -297,7 +299,7 @@ void Catalog::removeStandardEntries() {
 bool Catalog::saveLive(const std::string& path, std::string& err) const {
     nlohmann::json arr = nlohmann::json::array();
     for (const auto& e : entries) {
-        if (!e.live) continue;
+        if (!e.live || e.autoTwin) continue;
         arr.push_back({{"panel", e.panel}, {"section", e.section}, {"function", e.function}, {"api", e.api}, {"name", e.name},
                        {"kind", e.kind}, {"type", e.type}, {"rw", e.rw}, {"live", true}});
     }
@@ -394,7 +396,7 @@ Catalog& CatalogSet::ensure(const std::string& id, const std::string& title) {
     Catalog c;
     c.aircraft = id;
     // cached titles already carry the suffix: never add it twice
-    c.title = title.find("(from the sim)") != std::string::npos ? title : title + " (from the sim)";
+    c.title = title.find("(from the sim)") != std::string::npos || title.find("(automatic)") != std::string::npos ? title : title + " (from the sim)";
     items.push_back(std::move(c));
     return items.back();
 }
@@ -420,7 +422,7 @@ bool CatalogSet::applyLive(const std::string& id, const std::string& title, cons
     std::unordered_set<std::string> have;
     for (const auto& e : merged) have.insert(entryKey(e));
     for (const auto& e : cat.entries)
-        if (e.live && have.insert(entryKey(e)).second) merged.push_back(e);
+        if (e.live && !e.autoTwin && have.insert(entryKey(e)).second) merged.push_back(e);
     const bool changed = cat.setLiveEntries(std::move(merged));
     if (changed && !cat.curated) {
         cat.addStandardEntries(standardEntries());

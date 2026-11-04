@@ -12,8 +12,19 @@ flight data, which MSFS under Proton cannot do by itself.
 * **Dear ImGui** UI on **Wayland or X11** (GLFW 3.4+, runtime platform selection), or `--headless`.
 * Profiles with press / release actions, repeat-while-held (for FCU knobs), 2-position switches.
 * **Axes** as inputs: an axis can send its position as a value (brightness knobs, QNH set...) or act as a +/- knob, with dead zones, inversion and rate limiting.
-* **Throttle calibration** for levers with gates (cut-off, idle, afterburner), for aircraft whose own quadrant cannot be calibrated.
+* **Throttle calibration** for levers with gates (cut-off, idle, afterburner), for aircraft whose own quadrant cannot be calibrated: per aircraft, idle to the max gate or to the end of the travel, with named stages (an Airbus: CL, FLX/MCT, TOGA) that the lever snaps into.
 * A visual **panels view** of the cockpit to find the control you want, plus a plain list; searchable catalogs of cockpit functions for the FlyByWire **A32NX** and **A380X**, generated from the FlyByWire docs, with a per-profile aircraft selector.
+
+## Screenshots
+
+| | |
+|---|---|
+| ![Bindings](docs/screenshots/bindings.png) | ![Throttle with Airbus stages](docs/screenshots/lever-editor.png) |
+| **Bindings**: a profile per aircraft, the list grouped by input type | **Throttle**: idle to end with CL, FLX/MCT and TOGA stages; the lever is in CL |
+| ![Catalog](docs/screenshots/catalog.png) | ![Guide](docs/screenshots/guide.png) |
+| **Catalog**: the A32NX cockpit by panel, double-click to bind | **Guides**: a step of the A32NX cold and dark start-up, with the control lit |
+| ![Vibration](docs/screenshots/vibration.png) | |
+| **Vibration**: the rules that drive the Winwing motors from flight data | |
 
 ## AI-assisted code, real-hardware tested
 
@@ -35,6 +46,7 @@ hardware path in it was exercised on the real devices it targets, and no issues 
 | Spirit of St. Louis catalog (`data/microsoft_spirit_of_stlouis_catalog.json`) | all 19 cockpit input events the sim reports are labeled, plus the K: events and L: variables the aircraft's model and its own checklist use (hand prop, primer, magnetos, the six fuel valves, throttle and mixture with their 0 to 16383 range, the periscope lever). The names and positions come from the cockpit model and the aircraft's tooltips; the events and parameters come from the sim's own checklist, whose copilot sends them. **Nothing is marked *verified* yet**: none of it was tried through this program on a running Spirit, and every note says where the entry comes from |
 | Cirrus Vision Jet G2 catalog (`data/microsoft_sf50_catalog.json`, MSFS 2024) | all 141 cockpit input events the sim reports are labeled (174 entries with the K: event and the L: variables of the aircraft's management tablet). The names come from the aircraft's own tooltips, the names its checklist gives each switch (BAT 1, GEN 1, Engine Knob, Fuel Control Switch, WING/STAB IPS ...) and the public G3000 sources: the touch controllers' knobs and softkeys, where the sign of the value picks the direction. **Nothing is marked *verified* yet**: none of it was tried through this program on a running aircraft, and every note says where the entry comes from. The CAPS handle (it fires the parachute) and the Safe Return button (emergency autoland) are listed with a warning, and `tools/probe_controls.py` never touches them |
 | Guimbal Cabri G2 catalog (`data/asobo_cabri_g2_catalog.json`, MSFS 2024, a helicopter) | all 97 cockpit input events the sim reports are labeled (125 entries with the sim's own helicopter K: events and two L: variables). The names come from the aircraft's tooltips and checklist wording and from the Asobo behaviour files in the install that are readable offline (the rotorcraft templates: clutch and its cover, governor switch, rotor brake; the engine templates: what the plasma, magneto and starter switches send; the AS 21 transponder, AS 650 radio and EPM). **Nothing is marked *verified* yet**: none of it was tried through this program on the running helicopter, and every note says where the entry comes from. The collective, cyclic and throttle events whose range is not known are listed without a behaviour, so nothing sets a wrong value; use the **Helicopter** axes of the Control list instead (collective, cyclic fore/aft and left/right, anti-torque pedals, helicopter throttle, rotor brake; their range is taken as the usual -16383 to 16383 and is not confirmed). `tools/probe_controls.py` skips the aircraft's autostart / shutdown procedure |
+| Automatic catalogs and guides (any aircraft without a hand-made catalog) | the sim's list of cockpit input events is labeled by the program: panel, section, name and behaviour (switch, knob, push button) guessed from the names MSFS gives them, and, when the aircraft's package is found on disk, taken from its English tooltips and the sim's own control names (`en-us.locpak` in the unencrypted `minimal.fsarchive` of MSFS 2024 packages, or the loose file of 2020 packages and add-ons). A knob gets an up and a down entry; a lever (throttle, mixture, flaps ...) is left without a behaviour, use the axis events of the Control list. Controls such as the CAPS parachute, Safe Return and fire extinguishers get a DANGER note. When the package has a readable checklist (in MSFS 2024 only the Vision Jet, CJ4 and PC-12 do; the others are in the encrypted archives, which the program does not open) a guide with one topic per list is made from it. Tested against the hand-made catalogs: the behaviour guessed from the name alone agrees with about 84 % of their entries (`tests/auto_catalog.cpp`). **Nothing automatic is tried on a running aircraft**: every entry says *Not verified* and where its label comes from, and the Catalog tab shows *Automatic* |
 | FlyByWire A380X | catalog generated from the FlyByWire A380X docs; the APU, FCU and many overhead names were confirmed present in an installed A380X package. **Not yet exercised on the A380X in flight with this tool**: verify an A380X binding with its *Test* button before relying on it. The docs describe the development branch: the stable build's baro knob uses its own `A380X_EFIS_CP_BARO_PUSH/PULL_<n>` H events and lacks the `A32NX.FCU_EFIS_*_BARO_*` events the docs list, so the A380X catalog has no baro recipes and its EFIS baro entries may do nothing on older builds |
 | Guides | the flow logic is unit-tested and the validator checks every guide. The app was run against a real CJ4: the questions were answered from the sim (on the ground; none, one or both engines through a two-variable sum), and the steps of "Start the engines" were confirmed by the sim's own variables while a real start was done through the app. The A32NX and A380X guides were written from the FlyByWire documentation (every step names its page) and have **not** been run against the real aircraft: their ticks and questions are unchecked, and each guide says so on its topics page. The F/A-18E guide (15 topics) was written from the sim's own checklist and instrument files plus three community guides on the MSFS forum (there is no official manual; community steps are labelled as such, and their figures were checked against the original posts); it has **not** been run on the aircraft, and steps that need the controls not yet understood there (parking brake release, speed brake, navigation light knob) carry no tick check and say so. The Spirit of St. Louis guide (4 topics) follows the sim's own checklist for that aircraft and its cockpit model, step by step with the file and item each comes from; it has **not** been run on the aircraft either, and says where the sim's checklist file contradicts itself (speeds in its comments, "RPM" items that test the throttle, an empty After landing page). The Cirrus Vision Jet G2 guide (14 topics: cabin preflight, walk around, start, taxi, takeoff, climb and cruise, descent, landing, go-around, shutdown, icing, emergencies, abnormal procedures and the CAS messages) is the sim's own checklist for that aircraft, step by step with the list and item each comes from; it has **not** been run on the aircraft, its ticks read standard simulation variables the aircraft may not drive, and it says where the sim's checklist file leaves something out (the climb and VREF tables, three checklists it names but does not contain, Safe Return and the CAPS parachute). The Guimbal Cabri G2 guide (11 topics: walkaround, engine start, hover, takeoff and climb, cruise and turns, pattern and approach, landing from a hover, shutdown, air taxi and quick stop, confined area, dangers) uses the sim's own words: the checklist items of the aircraft (its language file) and the instructor texts of the sim's eleven helicopter lessons; every step names the key it comes from. The language file has no order for the items, so the order of the start and the shutdown is ours and the guide says so; it has no procedure for an engine failure or an autorotation, and the guide does not invent one. It has **not** been run on the helicopter |
 | Device safety | the tool only sends identity queries, config *reads* and volatile motor levels; it never writes flash, restarts or re-flashes a device (`--dump-winwing-config` gives a baseline to diff) |
@@ -227,14 +239,28 @@ detent and an afterburner gate at the front. The sim's own calibration cannot te
      when the gates are far enough apart.
    The result is stored in the config and shared by every profile; the bindings are paused while the window is open. A
    lever that reads the other way round is detected.
-2. **Tick *Gates*** in the binding of that axis and give the values the sim should get: at the cut-off, at
-   idle (exactly that value while the idle gate is closed) and at the end of the dry
-   range. Between idle and the end of the dry range the value follows the lever linearly; in the afterburner zone it
-   stays at the last value.
+2. **Tick *Gates*** in the binding of that axis (per profile, so each aircraft gets its own values). The editor shows a graph
+   of what the lever sends over its travel, with the live position of the lever.
+   * **Range**: *Idle to end* uses everything above the idle gate (an aircraft without afterburner: the cut-off part is left
+     out, idle is the lowest value, the end of the travel the highest); *Idle to max gate* ends at the max gate and keeps the
+     afterburner zone at the top value (the F/A-18E, whose afterburner is its own event).
+   * **Values**: what the sim gets in the cut-off, at idle (exactly that value while the idle gate is closed) and at the top.
+   * **Stages**: named points on the range (an Airbus: CL, FLX/MCT, TOGA). At a stage the value is the stage's value, held
+     over its *Band* so the lever snaps into it; between stages it follows the lever linearly. Put the lever where the stage
+     should be and press *Set*, or drag the stage in the graph. Positions are a share of the range, so they survive a new
+     calibration.
+   * **Presets**: *Linear* (idle to end, the whole range of the event, the cut-off sends idle; ticking *Gates* starts from it),
+     *Airbus (FlyByWire)*, *F/A-18E left / right*. A preset sets values, not the event, except the F/A-18E one.
 3. **Gate actions**: lists of actions that run once when the lever enters or leaves the cut-off or the afterburner
-   zone (for example the aircraft's afterburner event on and off).
+   zone (for example the aircraft's afterburner event on and off, or a fuel cut-off).
 
-The *F/A-18E throttle 1 / 2* presets fill in what the aircraft needs (the lever is a fraction of its travel: 0 is idle, the
+The *Airbus (FlyByWire)* preset is for `THROTTLEn_AXIS_SET_EX1` on the A32NX / A380X. It sends the middle of each region of the
+default FlyByWire throttle mapping (`fbw-common` `ThrottleAxisMapping.cpp`, axis -1..1): idle -0.5 (-8192), CL 0, FLX/MCT 0.5 (8192),
+TOGA 1 (16384), with FLX/MCT on the lever's max gate and TOGA at its end. Between idle and CL the thrust is manual, as on the real
+lever. If the aircraft's own throttle calibration (flyPad) was changed, set the stage values to match it. The cut-off sends idle;
+with reverse on the axis enabled in the flyPad, set it to -16384 for full reverse. Not yet run on the aircraft.
+
+The *F/A-18E* presets fill in what the aircraft needs (the lever is a fraction of its travel: 0 is idle, the
 value of the sim's own *Idle* preset, and 0.8 is military power):
 
 * **Idle**: 0. A throttle set to 0 from higher up stops at the aircraft's idle gate (10 % on the engine display); only a second 0
@@ -285,6 +311,8 @@ the *Catalog* tab offer; it never changes existing bindings, so you can re-assig
 * Catalog files are `data/<aircraft>_catalog.json`; any `*_catalog.json` placed in
   `~/.config/msfs-linux-companion/` overrides the shipped one with the same name, and `--catalog FILE`
   adds one for a single run. `tools/build_catalog.py --all` regenerates the shipped ones.
+* An aircraft without a catalog file gets an automatic one (see the table above). The program finds the sim's package folders through
+  the Steam libraries and the `InstalledPackagesPath` of each sim's `UserCfg.opt` under Proton; `MSFS_PACKAGES_DIRS=dir1:dir2` overrides that.
 
 ### Upgrading does not break your configuration
 

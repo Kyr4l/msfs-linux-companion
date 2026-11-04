@@ -5,20 +5,94 @@
 #include <algorithm>
 #include <cctype>
 #include <chrono>
+#include <cstring>
 #include <ctime>
 #include <string>
 #include <vector>
 
 #include <imgui.h>
 
+#include "ui/Theme.hpp"
 #include "ui/Ui.hpp"
 
 namespace lr::app::uidetail {
 
-inline const ImVec4 kGreen(0.35f, 0.85f, 0.40f, 1.0f);
-inline const ImVec4 kYellow(0.95f, 0.80f, 0.25f, 1.0f);
-inline const ImVec4 kRed(0.95f, 0.35f, 0.35f, 1.0f);
-inline const ImVec4 kGrey(0.6f, 0.6f, 0.6f, 1.0f);
+inline const ImVec4 kGreen(0.36f, 0.82f, 0.50f, 1.0f);
+inline const ImVec4 kYellow(0.96f, 0.76f, 0.30f, 1.0f);
+inline const ImVec4 kRed(0.96f, 0.40f, 0.40f, 1.0f);
+inline const ImVec4 kGrey(0.56f, 0.60f, 0.67f, 1.0f);
+using ui::palette::kAccent;
+using ui::palette::kCode;
+
+inline ImVec4 withAlpha(ImVec4 c, float a) { c.w = a; return c; }
+
+// A switch for a setting that is on or off (bindings active, vibration on). Draws its label to the right.
+inline bool toggleSwitch(const char* label, bool* v) {
+    const float h = ImGui::GetFrameHeight() * 0.78f, w = h * 1.8f;
+    ImGui::PushID(label);
+    const ImVec2 p = ImGui::GetCursorScreenPos();
+    const float y = p.y + (ImGui::GetFrameHeight() - h) * 0.5f;
+    bool clicked = ImGui::InvisibleButton("##switch", ImVec2(w, ImGui::GetFrameHeight()));
+    if (clicked) *v = !*v;
+    const bool hovered = ImGui::IsItemHovered();
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    const ImVec4 track = *v ? kAccent : ImGui::GetStyleColorVec4(hovered ? ImGuiCol_FrameBgHovered : ImGuiCol_FrameBgActive);
+    dl->AddRectFilled(ImVec2(p.x, y), ImVec2(p.x + w, y + h), ImGui::GetColorU32(track), h * 0.5f);
+    const float r = h * 0.5f - 2.5f;
+    dl->AddCircleFilled(ImVec2(*v ? p.x + w - h * 0.5f : p.x + h * 0.5f, y + h * 0.5f), r, IM_COL32(240, 243, 248, 255), 20);
+    const char* end = std::strstr(label, "##");
+    if (!end) end = label + std::strlen(label);
+    if (end != label) {
+        ImGui::SameLine(0, ImGui::GetStyle().ItemInnerSpacing.x);
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(label, end);
+        if (ImGui::IsItemClicked()) { *v = !*v; clicked = true; }
+    }
+    ImGui::PopID();
+    return clicked;
+}
+
+// A rounded badge with a coloured dot: the state of the simulator, MobiFlight, the aircraft. True when hovered.
+inline bool pill(const ImVec4& dotColor, const char* text) {
+    const float fs = ImGui::GetFontSize(), padX = fs * 0.7f, h = ImGui::GetFrameHeight();
+    const ImVec2 ts = ImGui::CalcTextSize(text);
+    const float dotD = dotColor.w > 0 ? fs * 0.5f : 0.0f;
+    const ImVec2 size(padX * 2 + (dotD > 0 ? dotD + fs * 0.45f : 0) + ts.x, h);
+    const ImVec2 p = ImGui::GetCursorScreenPos();
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    dl->AddRectFilled(p, ImVec2(p.x + size.x, p.y + size.y), ImGui::GetColorU32(ui::palette::kSurfaceHi), h * 0.5f);
+    float x = p.x + padX;
+    if (dotD > 0) {
+        dl->AddCircleFilled(ImVec2(x + dotD * 0.5f, p.y + h * 0.5f), dotD * 0.5f, ImGui::GetColorU32(dotColor), 16);
+        x += dotD + fs * 0.45f;
+    }
+    dl->AddText(ImVec2(x, p.y + (h - ts.y) * 0.5f), ImGui::GetColorU32(ImGuiCol_Text), text);
+    ImGui::Dummy(size);
+    return ImGui::IsItemHovered();
+}
+
+// A small square button with three dots, for a menu of the less used commands of a row. True when clicked.
+inline bool dotsButton(const char* id) {
+    const float h = ImGui::GetFrameHeight();
+    const ImVec2 p = ImGui::GetCursorScreenPos();
+    const bool clicked = ImGui::InvisibleButton(id, ImVec2(h, h));
+    const bool hovered = ImGui::IsItemHovered(), active = ImGui::IsItemActive();
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    if (hovered || active) dl->AddRectFilled(p, ImVec2(p.x + h, p.y + h), ImGui::GetColorU32(active ? ImGuiCol_ButtonActive : ImGuiCol_ButtonHovered), ImGui::GetStyle().FrameRounding);
+    const ImU32 col = ImGui::GetColorU32(hovered ? ImGuiCol_Text : ImGuiCol_TextDisabled);
+    for (int i = -1; i <= 1; ++i) dl->AddCircleFilled(ImVec2(p.x + h * 0.5f + i * h * 0.22f, p.y + h * 0.5f), h * 0.07f + 0.6f, col, 8);
+    return clicked;
+}
+
+// The title of a page, in the large size of the font.
+inline void pageTitle(const char* text) {
+    ImGui::PushFont(nullptr, ImGui::GetFontSize() * 1.45f);
+    ImGui::TextUnformatted(text);
+    ImGui::PopFont();
+}
+
+// An event or variable name, in the colour of code.
+inline void codeText(const char* text) { ImGui::TextColored(kCode, "%s", text); }
 
 inline void dot(const ImVec4& color) {
     ImDrawList* dl = ImGui::GetWindowDrawList();

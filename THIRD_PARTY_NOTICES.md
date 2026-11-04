@@ -7,6 +7,7 @@ It includes or links the following components, each under its own licence, all o
 |---|---|---|
 | [Dear ImGui](https://github.com/ocornut/imgui) (git submodule, `third_party/imgui`) | user interface | MIT, `third_party/imgui/LICENSE.txt` |
 | [nlohmann/json](https://github.com/nlohmann/json) (`third_party/nlohmann/json.hpp`) | config and catalog files | MIT, `third_party/nlohmann/LICENSE.MIT` |
+| [Roboto](https://fonts.google.com/specimen/Roboto) Medium (`third_party/fonts/Roboto-Medium.ttf`, from Dear ImGui's `misc/fonts`) | user interface font, built into the program | Apache-2.0, `third_party/fonts/LICENSE.Apache-2.0.txt` |
 | [GLFW](https://www.glfw.org/) | windowing (Wayland and X11); linked dynamically, bundled in the AppImage | zlib/libpng |
 | libstdc++ and libgcc | linked statically in the release binaries | GPL-3.0 with the GCC Runtime Library Exception |
 | [MobiFlight WASM module](https://github.com/MobiFlight/MobiFlight-WASM-Module) | optional, runs inside MSFS; this tool only talks to it over SimConnect | MIT, installed separately by the user |

@@ -14,7 +14,10 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <string>
 
 #include "util/Log.hpp"
 
@@ -275,13 +278,32 @@ static bool sysfsLooksLikeJoystick(const std::string& eventName) {
     return false;
 }
 
+// The name the kernel gives an input device (/sys/class/input/eventN/device/name), or "".
+static std::string sysfsDeviceName(const char* eventName) {
+    std::string path = std::string("/sys/class/input/") + eventName + "/device/name";
+    FILE* f = fopen(path.c_str(), "r");
+    if (!f) return {};
+    char buf[256] = {0};
+    const bool ok = fgets(buf, sizeof buf, f) != nullptr;
+    fclose(f);
+    if (!ok) return {};
+    std::string name = buf;
+    while (!name.empty() && (name.back() == '\n' || name.back() == '\r')) name.pop_back();
+    return name;
+}
+
 void InputManager::scanDevices() {
-    if (isolatedRun()) { scans_++; return; }  // tests never open the real devices (the scan still counts as done)
+    // Tests never open the real devices (the scan still counts as done). A test may name one virtual device of its own
+    // (MSFS_LINUX_COMPANION_TEST_DEVICE=lr-test-pad, tools/virtual_joystick.py): only a device of exactly that name is opened.
+    const char* testDevice = isolatedRun() ? std::getenv("MSFS_LINUX_COMPANION_TEST_DEVICE") : nullptr;
+    if (isolatedRun() && !(testDevice && *testDevice)) { scans_++; return; }
     DIR* dir = opendir("/dev/input");
     if (!dir) { scans_++; return; }  // no /dev/input (a sandbox): nothing to find, but the scan is done
     std::vector<std::string> paths;
     while (dirent* e = readdir(dir)) {
-        if (strncmp(e->d_name, "event", 5) == 0 && sysfsLooksLikeJoystick(e->d_name)) paths.push_back(std::string("/dev/input/") + e->d_name);
+        if (strncmp(e->d_name, "event", 5) != 0 || !sysfsLooksLikeJoystick(e->d_name)) continue;
+        if (testDevice && sysfsDeviceName(e->d_name) != testDevice) continue;
+        paths.push_back(std::string("/dev/input/") + e->d_name);
     }
     closedir(dir);
     std::sort(paths.begin(), paths.end());

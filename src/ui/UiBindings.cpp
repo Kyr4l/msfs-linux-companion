@@ -24,65 +24,35 @@ using namespace uidetail;
 
 // ---------------------------------------------------------------- Bindings
 
-// The throttle with gates: whether it is calibrated, what it sends at each gate, and the preset for the F/A-18E.
-void Ui::drawDetentOptions() {
-    AxisConfig& c = draft_.axis;
+// Lever presets. Values only; the press list is kept, except the F/A-18E's, which is the cockpit's own input event.
+enum class LeverPreset { Linear, AirbusFbw, Fa18Left, Fa18Right };
+
+static void applyLeverPreset(LeverPreset which, Binding& draft, const AxisCalibration* cal, AppContext& ctx) {
+    AxisConfig& c = draft.axis;
     AxisDetents& d = c.detents;
-    const AxisCalibration* cal = ctx_.settings.calibrationFor(draft_.input);
-    const bool ok = cal && cal->valid();
-    const float fs = ImGui::GetFontSize();
-    ImGui::Indent(fs);
-    if (ok) {
-        std::string gates;
-        const int codes[4] = {cal->cutoffBtn, cal->idleBtn, cal->milBtn, cal->abBtn};
-        const char* names[4] = {"cut-off", "idle", "max", "afterburner"};
-        for (int g = 0; g < 4; ++g)
-            if (codes[g] >= 0) gates += std::string(gates.empty() ? "" : ", ") + names[g] + " = " + ctx_.input.describe({draft_.input.device, input::InputKind::Button, codes[g], 0});
-        ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + fs * 40);
-        ImGui::TextColored(kGreen, "Calibrated%s%s", gates.empty() ? "" : ": ", gates.c_str());
-        ImGui::PopTextWrapPos();
-        const float now = axisNow(draft_.input);
-        drawGateBar(*cal, now, fs * 36);
-        if (now >= 0) {
-            const auto r = Engine::detentOutput(d, *cal, now, AxisZone::Dry, gateStateNow(*cal));
-            ImGui::TextDisabled("Lever: %s", r.zone == AxisZone::Cutoff ? "cut-off" : r.zone == AxisZone::Afterburner ? "afterburner" : "normal");
+    d.stages.clear();
+    switch (which) {
+        case LeverPreset::Linear: {
+            // idle to the end of the travel, the whole range of the event; the cut-off sends idle
+            double lo = c.outMin, hi = c.outMax;
+            if (ctx.suggestedAxisRange(draft, lo, hi)) c.integer = true;
+            d.top = LeverTop::Full;
+            d.outCutoff = lo; d.outIdle = lo; d.outMil = hi;
+            break;
         }
-    } else {
-        ImGui::TextColored(kYellow, "Not calibrated");
-    }
-    if (ImGui::Button("Calibrate")) openCalibration(draft_.input);
-
-    ImGui::Spacing();
-    ImGui::TextUnformatted("Values");
-    ImGui::SameLine();
-    ImGui::TextDisabled("cut-off");
-    ImGui::SameLine();
-    ImGui::SetNextItemWidth(fs * 5);
-    ImGui::InputDouble("##outCutoff", &d.outCutoff, 0, 0, "%g");
-    ImGui::SameLine();
-    ImGui::TextDisabled("idle");
-    ImGui::SameLine();
-    ImGui::SetNextItemWidth(fs * 5);
-    ImGui::InputDouble("##outIdle", &d.outIdle, 0, 0, "%g");
-    ImGui::SameLine();
-    ImGui::TextDisabled("max");
-    ImGui::SameLine();
-    ImGui::SetNextItemWidth(fs * 5);
-    ImGui::InputDouble("##outMil", &d.outMil, 0, 0, "%g");
-    const bool fractional = d.outIdle != std::round(d.outIdle) || d.outMil != std::round(d.outMil) || d.outCutoff != std::round(d.outCutoff);
-    if (c.integer && fractional) {
-        ImGui::TextColored(kYellow, "Values are rounded.");
-        ImGui::SameLine();
-        if (ImGui::SmallButton("Allow decimals")) c.integer = false;
-    }
-
-    // the presets only mean something for that one aircraft: out of the way (folded) for every other
-    ImGui::Spacing();
-    const bool forFa18 = sim::sameAircraft(ctx_.settings.ensureActive().aircraft, "Asobo_FA18E");
-    const bool showPresets = ImGui::TreeNodeEx("F/A-18E presets", forFa18 ? ImGuiTreeNodeFlags_DefaultOpen : ImGuiTreeNodeFlags_None);
-    for (int engine = 1; showPresets && engine <= 2; ++engine) {
-        if (engine == 2) ImGui::SameLine();
-        if (ImGui::Button(engine == 1 ? "Throttle 1" : "Throttle 2")) {
+        case LeverPreset::AirbusFbw: {
+            // FlyByWire A32NX / A380X, THROTTLEn_AXIS_SET_EX1 (-16384..16384). The defaults of its throttle mapping (fbw-common
+            // ThrottleAxisMapping.cpp, axis -1..1): idle -0.55..-0.45, CL -0.05..0.05, FLX/MCT 0.45..0.55, TOGA 0.95..1. The middle of each region
+            // is sent; FLX/MCT goes on the max gate of the lever, TOGA on its end, CL a little past half way to the gate.
+            d.top = LeverTop::Full;
+            d.outCutoff = -8192; d.outIdle = -8192; d.outMil = 16384;
+            c.integer = true;
+            const double gate = cal && cal->valid() ? Engine::leverAt(d, *cal, cal->mil) : 0.75;
+            d.stages = {{"CL", gate * 0.55, 0, 0.05}, {"FLX/MCT", gate, 8192, 0.03}, {"TOGA", 1.0, 16384, 0.03}};
+            break;
+        }
+        case LeverPreset::Fa18Left:
+        case LeverPreset::Fa18Right: {
             // Asobo F/A-18E (the cockpit's own template, read from the sim files and checked on the aircraft): the throttle input event is a
             // fraction of the lever travel; the sim's own Idle preset sets 0 and military power is 0.8.
             //  * The cut-off needs the throttle at exactly 0 when STOP is set, and a fast pull from above lands on the idle gate (10 %) first,
@@ -90,6 +60,8 @@ void Ui::drawDetentOptions() {
             //    leaving the cut-off at 0 changes nothing, so STOP is cleared explicitly.
             //  * The afterburner sets the throttle to L:XMLVAR_LastAB<n>ThrottleSet, which is 0 until the game's own throttle is used, so
             //    it is set to 1 first; leaving sends the throttle value again.
+            const int engine = which == LeverPreset::Fa18Left ? 1 : 2;
+            d.top = LeverTop::Max;
             d.outCutoff = 0.0; d.outIdle = 0.0; d.outMil = 0.8;
             c.integer = false;
             const std::string n = std::to_string(engine);
@@ -100,16 +72,152 @@ void Ui::drawDetentOptions() {
             lastAb.name = "XMLVAR_LastAB" + n + "ThrottleSet";
             lastAb.value = 1;
             const std::string thr = "ENGINE_Throttle_" + n;
-            draft_.onPress = {event(thr, 0)};
-            draft_.onCutoff = {wait(100), event(thr, 0), wait(100), event(thr + "_STOP", 1)};
-            draft_.onCutoffLeave = {event(thr + "_STOP", 0)};
-            draft_.onAfterburner = {lastAb, wait(100), event(thr + "_Afterburner", 1)};
-            draft_.onAfterburnerLeave = {event(thr + "_Afterburner", 0)};
-            if (draft_.label.empty()) draft_.label = engine == 1 ? "Left throttle" : "Right throttle";
+            draft.onPress = {event(thr, 0)};
+            draft.onCutoff = {wait(100), event(thr, 0), wait(100), event(thr + "_STOP", 1)};
+            draft.onCutoffLeave = {event(thr + "_STOP", 0)};
+            draft.onAfterburner = {lastAb, wait(100), event(thr + "_Afterburner", 1)};
+            draft.onAfterburnerLeave = {event(thr + "_Afterburner", 0)};
+            if (draft.label.empty()) draft.label = engine == 1 ? "Left throttle" : "Right throttle";
+            break;
         }
     }
-    if (showPresets) ImGui::TreePop();
-    ImGui::Unindent(fs);
+}
+
+static void sortStages(AxisDetents& d) {
+    std::stable_sort(d.stages.begin(), d.stages.end(), [](const LeverStage& a, const LeverStage& b) { return a.at < b.at; });
+}
+
+// The throttle with gates: calibration, the part of the lever that is used, presets, the graph and the points of the curve.
+void Ui::drawDetentOptions() {
+    AxisConfig& c = draft_.axis;
+    AxisDetents& d = c.detents;
+    const AxisCalibration* cal = ctx_.settings.calibrationFor(draft_.input);
+    const bool ok = cal && cal->valid();
+    const float fs = ImGui::GetFontSize();
+    const float now = axisNow(draft_.input);
+
+    fieldLabel("Lever");
+    dot(ok ? kGreen : kYellow);
+    ImGui::TextUnformatted(ok ? "Calibrated" : "Not calibrated");
+    if (ok && ImGui::IsItemHovered()) {
+        std::string gates;
+        const int codes[4] = {cal->cutoffBtn, cal->idleBtn, cal->milBtn, cal->abBtn};
+        const char* names[4] = {"Cut-off", "Idle", "Max", "Afterburner"};
+        for (int g = 0; g < 4; ++g)
+            if (codes[g] >= 0) gates += std::string(gates.empty() ? "" : "\n") + names[g] + ": " + ctx_.input.describe({draft_.input.device, input::InputKind::Button, codes[g], 0});
+        if (!gates.empty()) ImGui::SetTooltip("%s", gates.c_str());
+    }
+    ImGui::SameLine();
+    if (ImGui::SmallButton(ok ? "Recalibrate" : "Calibrate")) openCalibration(draft_.input);
+
+    fieldLabel("Range");
+    if (ImGui::RadioButton("Idle to max gate", d.top == LeverTop::Max)) d.top = LeverTop::Max;
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Afterburner zone stays at max");
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Idle to end", d.top == LeverTop::Full)) d.top = LeverTop::Full;
+
+    fieldLabel("Preset");
+    ImGui::SetNextItemWidth(fs * 14);
+    if (ImGui::BeginCombo("##lever_preset", "Choose", ImGuiComboFlags_HeightRegular)) {
+        if (ImGui::Selectable("Linear")) applyLeverPreset(LeverPreset::Linear, draft_, cal, ctx_);
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Idle to end, full event range");
+        if (ImGui::Selectable("Airbus (FlyByWire)")) applyLeverPreset(LeverPreset::AirbusFbw, draft_, cal, ctx_);
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("CL, FLX/MCT, TOGA");
+        if (ImGui::Selectable("F/A-18E left")) applyLeverPreset(LeverPreset::Fa18Left, draft_, cal, ctx_);
+        if (ImGui::Selectable("F/A-18E right")) applyLeverPreset(LeverPreset::Fa18Right, draft_, cal, ctx_);
+        ImGui::EndCombo();
+    }
+
+    if (ok) {
+        ImGui::Spacing();
+        drawLeverGraph(d, *cal, now, std::min(ImGui::GetContentRegionAvail().x, fs * 44), fs * 9.5f);
+    }
+
+    // the points of the curve: cut-off and idle, the stages, the top
+    ImGui::Spacing();
+    const ImGuiTableFlags tf = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_NoHostExtendX;
+    int removeStage = -1;
+    bool resort = false;
+    const Engine::DetentResult live = ok && now >= 0 ? Engine::detentOutput(d, *cal, now, AxisZone::Dry, gateStateNow(*cal)) : Engine::DetentResult{0, AxisZone::Dry, -2, 0};
+    if (ImGui::BeginTable("lever_points", 5, tf)) {
+        ImGui::TableSetupColumn("Point", ImGuiTableColumnFlags_WidthFixed, fs * 9);
+        ImGui::TableSetupColumn("Position", ImGuiTableColumnFlags_WidthFixed, fs * 5.5f);
+        ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthFixed, fs * 7);
+        ImGui::TableSetupColumn("Band", ImGuiTableColumnFlags_WidthFixed, fs * 4.5f);
+        ImGui::TableSetupColumn("##do", ImGuiTableColumnFlags_WidthFixed, fs * 8);
+        ImGui::TableHeadersRow();
+        auto fixedRow = [&](const char* name, const char* where, double& value, bool active) {
+            ImGui::TableNextRow();
+            if (active) ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ui::palette::kAccentSoft));
+            ImGui::TableSetColumnIndex(0);
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextUnformatted(name);
+            ImGui::TableSetColumnIndex(1);
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextDisabled("%s", where);
+            ImGui::TableSetColumnIndex(2);
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            ImGui::PushID(name);
+            ImGui::InputDouble("##v", &value, 0, 0, "%g");
+            ImGui::PopID();
+        };
+        fixedRow("Cut-off", "", d.outCutoff, live.zone == AxisZone::Cutoff);
+        fixedRow("Idle", "0 %", d.outIdle, live.stage == -1 && live.zone != AxisZone::Cutoff && live.at <= 0.0);
+        for (size_t i = 0; i < d.stages.size(); ++i) {
+            LeverStage& st = d.stages[i];
+            ImGui::PushID(static_cast<int>(i));
+            ImGui::TableNextRow();
+            if (live.stage == static_cast<int>(i)) ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ui::palette::kAccentSoft));
+            ImGui::TableSetColumnIndex(0);
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            ImGui::InputTextWithHint("##name", "Name", &st.name);
+            ImGui::TableSetColumnIndex(1);
+            float pct = static_cast<float>(st.at * 100.0);
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            if (ImGui::DragFloat("##at", &pct, 0.2f, 0.0f, 100.0f, "%.0f %%", ImGuiSliderFlags_AlwaysClamp)) st.at = pct / 100.0;
+            if (ImGui::IsItemDeactivatedAfterEdit()) resort = true;
+            ImGui::TableSetColumnIndex(2);
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            ImGui::InputDouble("##v", &st.value, 0, 0, "%g");
+            ImGui::TableSetColumnIndex(3);
+            float band = static_cast<float>(st.band * 100.0);
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            if (ImGui::DragFloat("##band", &band, 0.1f, 0.0f, 20.0f, "%.0f %%", ImGuiSliderFlags_AlwaysClamp)) st.band = band / 100.0;
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Snap width");
+            ImGui::TableSetColumnIndex(4);
+            ImGui::BeginDisabled(!ok || now < 0);
+            if (ImGui::SmallButton("Set")) { st.at = Engine::leverAt(d, *cal, now); resort = true; }
+            ImGui::EndDisabled();
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) ImGui::SetTooltip("Lever position");
+            ImGui::SameLine();
+            if (ImGui::SmallButton("Remove")) removeStage = static_cast<int>(i);
+            ImGui::PopID();
+        }
+        // a stage at the very top (TOGA) is what the top sends: the row of the top would only be a second, unused value
+        const bool stageAtTop = std::any_of(d.stages.begin(), d.stages.end(), [](const LeverStage& st) { return st.at >= 0.999; });
+        if (!stageAtTop) fixedRow(d.top == LeverTop::Full ? "End" : "Max", "100 %", d.outMil, live.stage == -1 && live.zone != AxisZone::Cutoff && live.at >= 1.0);
+        ImGui::EndTable();
+    }
+    if (removeStage >= 0) d.stages.erase(d.stages.begin() + removeStage);
+    if (resort && leverDrag_ < 0) sortStages(d);
+    ImGui::BeginDisabled(d.stages.size() >= 16);
+    if (ImGui::SmallButton("Add stage")) {
+        LeverStage st;
+        st.name = "Stage " + std::to_string(d.stages.size() + 1);
+        if (ok && now >= 0) st.at = Engine::leverAt(d, *cal, now);
+        st.value = Engine::leverCurve(d, st.at).value;  // where the curve already is: adding a stage changes nothing until it is edited
+        d.stages.push_back(st);
+        sortStages(d);
+    }
+    ImGui::EndDisabled();
+    const bool fractional = d.outIdle != std::round(d.outIdle) || d.outMil != std::round(d.outMil) || d.outCutoff != std::round(d.outCutoff) ||
+                            std::any_of(d.stages.begin(), d.stages.end(), [](const LeverStage& st) { return st.value != std::round(st.value); });
+    if (c.integer && fractional) {
+        ImGui::SameLine();
+        ImGui::TextColored(kYellow, "Values are rounded");
+        ImGui::SameLine();
+        if (ImGui::SmallButton("Allow decimals")) c.integer = false;
+    }
 }
 
 // What the axis does: how it sends, the throttle gates, and the range of the values.
@@ -124,7 +232,7 @@ void Ui::drawAxisOptions() {
     if (gates && now >= 0) shown = Engine::detentOutput(c.detents, *cal, now, AxisZone::Dry, gateStateNow(*cal)).value;
     char overlay[96];
     if (now < 0) snprintf(overlay, sizeof overlay, "No device");
-    else if (c.mode == AxisMode::Value) snprintf(overlay, sizeof overlay, "%d%%  ->  %s", static_cast<int>(now * 100 + 0.5f), Engine::formatValue(shown, c.integer && !gates).c_str());
+    else if (c.mode == AxisMode::Value) snprintf(overlay, sizeof overlay, "%d%%  ->  %s", static_cast<int>(now * 100 + 0.5f), Engine::formatValue(shown, c.integer).c_str());
     else snprintf(overlay, sizeof overlay, "%d%%", static_cast<int>(now * 100 + 0.5f));
     fieldLabel("Position");
     ImGui::ProgressBar(now < 0 ? 0.0f : now, ImVec2(fs * 26, 0), overlay);
@@ -140,7 +248,12 @@ void Ui::drawAxisOptions() {
 
     if (c.mode == AxisMode::Value) {
         fieldLabel("Throttle");
-        ImGui::Checkbox("Gates", &c.detents.enabled);
+        if (ImGui::Checkbox("Gates", &c.detents.enabled) && c.detents.enabled) {
+            // switched on for the first time: idle to the end with the range of the event, not the old F/A-18E numbers
+            const AxisDetents fresh;
+            if (c.detents.outCutoff == fresh.outCutoff && c.detents.outIdle == fresh.outIdle && c.detents.outMil == fresh.outMil && c.detents.stages.empty())
+                applyLeverPreset(LeverPreset::Linear, draft_, ctx_.settings.calibrationFor(draft_.input), ctx_);
+        }
         if (c.detents.enabled) drawDetentOptions();
     }
 
@@ -266,7 +379,7 @@ void Ui::drawBindingsTab() {
     ImGui::AlignTextToFramePadding();
     ImGui::TextUnformatted("Profile");
     ImGui::SameLine();
-    ImGui::SetNextItemWidth(220);
+    ImGui::SetNextItemWidth(ImGui::GetFontSize() * 13);
     if (ImGui::BeginCombo("##profile", p.name.c_str())) {
         for (const auto& prof : s.profiles) {
             const std::string label = prof.name + "   [" + prof.aircraft + "]";
@@ -282,7 +395,7 @@ void Ui::drawBindingsTab() {
     ImGui::AlignTextToFramePadding();
     ImGui::TextUnformatted("Aircraft");
     ImGui::SameLine();
-    ImGui::SetNextItemWidth(260);
+    ImGui::SetNextItemWidth(ImGui::GetFontSize() * 15);
     if (ImGui::BeginCombo("##profile_aircraft", [&] {
             const Catalog* c = ctx_.catalogFor(p.aircraft);
             return (c && sim::sameAircraft(c->aircraft, p.aircraft)) ? c->label() : p.aircraft;
@@ -306,20 +419,27 @@ void Ui::drawBindingsTab() {
         renamingProfile_ = false;
         ImGui::OpenPopup("profile_name");
     }
-    ImGui::SameLine();
-    if (ImGui::Button("Rename")) { newProfileName_ = p.name; renamingProfile_ = true; ImGui::OpenPopup("profile_name"); }
-    ImGui::SameLine();
-    if (ImGui::Button("Duplicate")) {
-        Profile copy = p;
-        copy.name = uniqueProfileName(p.name + " copy");
-        s.profiles.push_back(copy);
-        s.activeProfile = copy.name;
-        ctx_.markDirty();
+    ImGui::SameLine(0, ImGui::GetFontSize() * 0.3f);
+    if (dotsButton("##profile_more")) ImGui::OpenPopup("profile_menu");
+    {
+        bool rename = false, remove = false;
+        if (ImGui::BeginPopup("profile_menu")) {
+            if (ImGui::MenuItem("Rename")) rename = true;
+            if (ImGui::MenuItem("Duplicate")) {
+                Profile copy = p;
+                copy.name = uniqueProfileName(p.name + " copy");
+                s.profiles.push_back(copy);
+                s.activeProfile = copy.name;
+                ctx_.markDirty();
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Delete", nullptr, false, s.profiles.size() > 1)) remove = true;  // the last profile cannot be deleted
+            ImGui::EndPopup();
+        }
+        // opened here, outside the menu, where their BeginPopup below looks for them
+        if (rename) { newProfileName_ = p.name; renamingProfile_ = true; ImGui::OpenPopup("profile_name"); }
+        if (remove) ImGui::OpenPopup("confirm_delete_profile");
     }
-    ImGui::SameLine();
-    ImGui::BeginDisabled(s.profiles.size() <= 1);  // the last profile cannot be deleted
-    if (ImGui::Button("Delete")) ImGui::OpenPopup("confirm_delete_profile");
-    ImGui::EndDisabled();
     if (ImGui::BeginPopup("profile_name")) {
         ImGui::InputText("Name", &newProfileName_);
         if (!renamingProfile_) {
@@ -433,16 +553,17 @@ void Ui::drawBindingsTab() {
     const bool canReorder = !s.bindingsAutoSort && filterWords.empty();  // Up and Down move past rows that a filter hides
     const bool canRegroup = by == BindingsGroupBy::Custom;
     const auto groups = arrangeBindings(prof, by, s.bindingsAutoSort, [this](const std::string& key) { return deviceDisplayName(key); });
-    ImGuiTableFlags tflags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp;
-    if (ImGui::BeginTable("bindings", 7, tflags, ImVec2(0, 0))) {
+    ImGuiTableFlags tflags = ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable |
+                             ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_PadOuterX;
+    const float fsz = ImGui::GetFontSize();
+    if (ImGui::BeginTable("bindings", 6, tflags, ImVec2(0, 0))) {
         ImGui::TableSetupScrollFreeze(0, 1);
-        ImGui::TableSetupColumn("On", ImGuiTableColumnFlags_WidthFixed, 30);
+        ImGui::TableSetupColumn("On", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFrameHeight() + 2);
         ImGui::TableSetupColumn("Input", ImGuiTableColumnFlags_WidthStretch, 1.2f);
-        ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch, 1.0f);
-        ImGui::TableSetupColumn("Press", ImGuiTableColumnFlags_WidthStretch, 2.0f);
-        ImGui::TableSetupColumn("Release", ImGuiTableColumnFlags_WidthStretch, 1.5f);
-        ImGui::TableSetupColumn("Repeat", ImGuiTableColumnFlags_WidthFixed, 60);
-        ImGui::TableSetupColumn("##actions", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFontSize() * 21);
+        ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch, 1.1f);
+        ImGui::TableSetupColumn("Press", ImGuiTableColumnFlags_WidthStretch, 1.9f);
+        ImGui::TableSetupColumn("Release", ImGuiTableColumnFlags_WidthStretch, 1.3f);
+        ImGui::TableSetupColumn("##actions", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("Edit").x + ImGui::GetStyle().FramePadding.x * 2 + ImGui::GetFrameHeight() + fsz);
         ImGui::TableHeadersRow();
 
         int toDelete = -1, moveFrom = -1, moveTo = -1;  // Up / Down: two bindings swap places
@@ -459,7 +580,7 @@ void Ui::drawBindingsTab() {
             bool open = true;
             if (!g.title.empty()) {
                 ImGui::TableNextRow();
-                ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ImVec4(0.20f, 0.26f, 0.38f, 0.8f)));
+                ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ui::palette::kSurfaceHi));
                 ImGui::TableSetColumnIndex(1);
                 char label[320];
                 snprintf(label, sizeof label, "%s  (%zu)###group:%s", g.title.c_str(), shown.size(), g.key.c_str());
@@ -479,12 +600,14 @@ void Ui::drawBindingsTab() {
                     Binding& b = prof.bindings[static_cast<size_t>(i)];
                     ImGui::PushID(i);
                     ImGui::TableNextRow();
-                    if (inputIsPressed(b.input)) ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ImVec4(0.2f, 0.45f, 0.2f, 0.6f)));
+                    if (inputIsPressed(b.input)) ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(withAlpha(kGreen, 0.22f)));
                     ImGui::TableSetColumnIndex(0);
                     {   // the whole row is the handle to drag it by, and the place to drop another one; the widgets drawn after it stay clickable
                         const ImVec2 rowPos = ImGui::GetCursorScreenPos();
-                        ImGui::Selectable("##row", false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap,
+                        ImGui::Selectable("##row", false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap | ImGuiSelectableFlags_AllowDoubleClick,
                                           ImVec2(0, ImGui::GetTextLineHeight() * 2 + ImGui::GetStyle().ItemSpacing.y));
+                        if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) openEditor(i);
+                        if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) ImGui::OpenPopup("row_menu");
                         if ((canReorder || canRegroup) && ImGui::BeginDragDropSource()) {
                             ImGui::SetDragDropPayload(dragType.c_str(), &i, sizeof i);
                             ImGui::Text("%s", b.label.empty() ? ctx_.input.describe(b.input).c_str() : b.label.c_str());
@@ -519,6 +642,8 @@ void Ui::drawBindingsTab() {
                     if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", deviceDisplayName(b.input.device).c_str());  // the column clips a long device name
                     ImGui::TableSetColumnIndex(2);
                     ImGui::TextUnformatted(b.label.c_str());
+                    if (b.input.kind == input::InputKind::Axis && b.axis.mode == AxisMode::Steps) ImGui::TextDisabled("Steps of %d%%", static_cast<int>(b.axis.stepPercent + 0.5));
+                    else if (b.input.kind != input::InputKind::Axis && b.repeat) ImGui::TextDisabled("Repeat %d ms", b.repeatIntervalMs);
                     {
                         double lo, hi;
                         if (b.input.kind == input::InputKind::Axis && ctx_.suggestedAxisRange(b, lo, hi) && axisRangeLooksWrong(b.axis, lo, hi)) {
@@ -528,7 +653,7 @@ void Ui::drawBindingsTab() {
                         }
                     }
                     auto actionLine = [&](const Action& a) {
-                        ImGui::TextUnformatted(a.describe().c_str());
+                        codeText(a.describe().c_str());
                         if (a.kind == ActionKind::InputEvent || a.kind == ActionKind::InputEventToggle) {
                             if (auto v = ctx_.bridge.inputEventValue(a.name)) {
                                 ImGui::SameLine();
@@ -547,30 +672,32 @@ void Ui::drawBindingsTab() {
                     ImGui::TableSetColumnIndex(4);
                     for (const auto& a : b.onRelease) actionLine(a);
                     ImGui::TableSetColumnIndex(5);
-                    if (b.input.kind == input::InputKind::Axis) { if (b.axis.mode == AxisMode::Steps) ImGui::TextDisabled("%d%%", static_cast<int>(b.axis.stepPercent + 0.5)); }
-                    else if (b.repeat) ImGui::Text("%d ms", b.repeatIntervalMs);
-                    ImGui::TableSetColumnIndex(6);
-                    if (ImGui::SmallButton("Edit")) openEditor(i);
-                    ImGui::SameLine();
-                    if (ImGui::SmallButton("Copy")) openEditorCopy(i);
-                    ImGui::SameLine();
-                    if (ImGui::SmallButton("Test")) {
-                        if (b.input.kind == input::InputKind::Axis && b.axis.mode == AxisMode::Value) {
-                            const float now = axisNow(b.input);
-                            const double out = Engine::axisOutput(b.axis, Engine::axisPosition(b.axis, now >= 0 ? now : 0.5f));
-                            ctx_.engine.fire(Engine::withValue(b.onPress, out, b.axis.integer), "test " + b.label);
-                        } else {
-                            ctx_.engine.fire(b.onPress, "test " + b.label);
+                    if (ImGui::Button("Edit")) openEditor(i);
+                    ImGui::SameLine(0, fsz * 0.3f);
+                    if (dotsButton("##more")) ImGui::OpenPopup("row_menu");
+                    bool askDelete = false;
+                    if (ImGui::BeginPopup("row_menu")) {
+                        if (ImGui::MenuItem("Edit")) openEditor(i);
+                        if (ImGui::MenuItem("Test")) {
+                            if (b.input.kind == input::InputKind::Axis && b.axis.mode == AxisMode::Value) {
+                                const float now = axisNow(b.input);
+                                const AxisCalibration* cal = b.axis.detents.enabled ? ctx_.settings.calibrationFor(b.input) : nullptr;
+                                const double out = cal && cal->valid() ? Engine::detentOutput(b.axis.detents, *cal, now >= 0 ? now : 0.5, AxisZone::Dry, gateStateNow(*cal)).value
+                                                                       : Engine::axisOutput(b.axis, Engine::axisPosition(b.axis, now >= 0 ? now : 0.5f));
+                                ctx_.engine.fire(Engine::withValue(b.onPress, out, b.axis.integer), "test " + b.label);
+                            } else {
+                                ctx_.engine.fire(b.onPress, "test " + b.label);
+                            }
                         }
+                        if (ImGui::MenuItem("Copy")) openEditorCopy(i);
+                        ImGui::Separator();
+                        if (ImGui::MenuItem("Move up", nullptr, false, canReorder && pos > 0)) { moveFrom = i; moveTo = shown[pos - 1]; }
+                        if (ImGui::MenuItem("Move down", nullptr, false, canReorder && pos + 1 < shown.size())) { moveFrom = i; moveTo = shown[pos + 1]; }
+                        ImGui::Separator();
+                        if (ImGui::MenuItem("Delete")) askDelete = true;
+                        ImGui::EndPopup();
                     }
-                    ImGui::SameLine();
-                    ImGui::BeginDisabled(!canReorder);
-                    if (ImGui::SmallButton("Up") && pos > 0) { moveFrom = i; moveTo = shown[pos - 1]; }
-                    ImGui::SameLine();
-                    if (ImGui::SmallButton("Down") && pos + 1 < shown.size()) { moveFrom = i; moveTo = shown[pos + 1]; }
-                    ImGui::EndDisabled();
-                    ImGui::SameLine();
-                    if (ImGui::SmallButton("Delete")) ImGui::OpenPopup("delete_binding");
+                    if (askDelete) ImGui::OpenPopup("delete_binding");
                     if (ImGui::BeginPopup("delete_binding")) {
                         ImGui::Text("Delete \"%s\"?", b.label.empty() ? ctx_.input.describe(b.input).c_str() : b.label.c_str());
                         if (ImGui::Button("Delete")) { toDelete = i; ImGui::CloseCurrentPopup(); }
@@ -672,7 +799,9 @@ void Ui::drawActionList(const char* id, std::vector<Action>& actions, int listIn
     if (ImGui::SmallButton("Run")) {
         if (draft_.input.kind == input::InputKind::Axis && draft_.axis.mode == AxisMode::Value && listIndex == 0) {
             const float now = axisNow(draft_.input);
-            const double out = Engine::axisOutput(draft_.axis, Engine::axisPosition(draft_.axis, now >= 0 ? now : 0.5f));
+            const AxisCalibration* cal = draft_.axis.detents.enabled ? ctx_.settings.calibrationFor(draft_.input) : nullptr;
+            const double out = cal && cal->valid() ? Engine::detentOutput(draft_.axis.detents, *cal, now >= 0 ? now : 0.5, AxisZone::Dry, gateStateNow(*cal)).value
+                                                   : Engine::axisOutput(draft_.axis, Engine::axisPosition(draft_.axis, now >= 0 ? now : 0.5f));
             ctx_.engine.fire(Engine::withValue(actions, out, draft_.axis.integer), "test (axis at its current position)");
         } else {
             ctx_.engine.fire(actions, "test");
@@ -719,7 +848,12 @@ void Ui::drawAxisTargetPicker() {
 }
 
 void Ui::drawBindingEditor() {
-    ImGui::SetNextWindowSize(ImVec2(920, 640), ImGuiCond_FirstUseEver);
+    {
+        const ImVec2 work = ImGui::GetMainViewport()->WorkSize, origin = ImGui::GetMainViewport()->WorkPos;
+        const float fsz = ImGui::GetFontSize();
+        ImGui::SetNextWindowSize(ImVec2(std::min(work.x * 0.9f, fsz * 58), work.y * 0.88f), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImVec2(origin.x + work.x * 0.5f, origin.y + work.y * 0.5f), ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
+    }
     const char* title = editIndex_ >= 0 ? "Edit binding###binding_editor" : draftIsCopy_ ? "Copy binding###binding_editor" : "New binding###binding_editor";
     if (!ImGui::Begin(title, &editorOpen_)) { ImGui::End(); return; }
     const float fs = ImGui::GetFontSize();

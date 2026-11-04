@@ -87,6 +87,7 @@ struct Guide {
     std::string aircraft, title;
     std::string keypad;  // id of the keypad drawing (data/*_keypads.json) the steps' `keys` refer to
     std::string notice;  // what was checked against the real aircraft and what was not, shown on the topics page
+    bool automatic = false;  // made by the program from the sim's own checklist (app/AutoCatalog.hpp), not a shipped file
     std::vector<std::string> sources;
     std::vector<GuideTopic> topics;
     std::unordered_map<std::string, GuideNode> nodes;

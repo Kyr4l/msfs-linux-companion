@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 Kyr4l
 cmake_minimum_required(VERSION 3.20)
-project(msfs-linux-companion VERSION 0.8.4 LANGUAGES CXX)
+project(msfs-linux-companion VERSION 0.8.9 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -40,7 +40,16 @@ add_library(imgui OBJECT
 target_include_directories(imgui PUBLIC ${IMGUI_DIR} ${IMGUI_DIR}/backends ${IMGUI_DIR}/misc/cpp)
 target_link_libraries(imgui PUBLIC PkgConfig::GLFW OpenGL::GL)
 
+# The UI font (Roboto Medium, Apache-2.0, third_party/fonts), built into the program so it looks the same everywhere.
+set(COMPANION_FONT_CPP ${CMAKE_BINARY_DIR}/embedded/font_ui.cpp)
+add_custom_command(OUTPUT ${COMPANION_FONT_CPP}
+  COMMAND ${CMAKE_COMMAND} -DIN=${CMAKE_SOURCE_DIR}/third_party/fonts/Roboto-Medium.ttf -DOUT=${COMPANION_FONT_CPP} -DNAME=kFontUi -P ${CMAKE_SOURCE_DIR}/cmake/EmbedFile.cmake
+  DEPENDS ${CMAKE_SOURCE_DIR}/third_party/fonts/Roboto-Medium.ttf ${CMAKE_SOURCE_DIR}/cmake/EmbedFile.cmake
+  COMMENT "Embedding the UI font")
+
 add_executable(msfs-linux-companion
+  ${COMPANION_FONT_CPP}
+  src/ui/Theme.cpp
   src/main.cpp
   src/sim/SimConnectClient.cpp
   src/sim/SimBridge.cpp
@@ -49,6 +58,9 @@ add_executable(msfs-linux-companion
   src/haptics/Haptics.cpp
   src/app/Profile.cpp
   src/app/Catalog.cpp
+  src/app/AutoCatalog.cpp
+  src/app/SimPackages.cpp
+  src/sim/FsArchive.cpp
   src/app/AxisTargets.cpp
   src/app/Guide.cpp
   src/app/CockpitWatch.cpp
@@ -98,6 +110,7 @@ install(FILES packaging/msfs-linux-companion.desktop DESTINATION share/applicati
 install(FILES LICENSE THIRD_PARTY_NOTICES.md DESTINATION share/licenses/msfs-linux-companion)
 install(FILES third_party/imgui/LICENSE.txt DESTINATION share/licenses/msfs-linux-companion RENAME LICENSE.imgui)
 install(FILES third_party/nlohmann/LICENSE.MIT DESTINATION share/licenses/msfs-linux-companion RENAME LICENSE.nlohmann-json)
+install(FILES third_party/fonts/LICENSE.Apache-2.0.txt DESTINATION share/licenses/msfs-linux-companion RENAME LICENSE.roboto-font)
 install(FILES packaging/icons/msfs-linux-companion.svg DESTINATION share/icons/hicolor/scalable/apps)
 foreach(size 16 32 48 64 128 256 512)
   install(FILES packaging/icons/msfs-linux-companion-${size}.png DESTINATION share/icons/hicolor/${size}x${size}/apps RENAME msfs-linux-companion.png)
@@ -129,6 +142,11 @@ if(COMPANION_BUILD_TESTS)
   add_executable(cockpit_watch tests/cockpit_watch.cpp src/app/CockpitWatch.cpp)
   target_include_directories(cockpit_watch PRIVATE src third_party)
   add_test(NAME cockpit_watch COMMAND cockpit_watch)
+  add_executable(auto_catalog tests/auto_catalog.cpp src/app/AutoCatalog.cpp src/app/SimPackages.cpp src/sim/FsArchive.cpp src/app/Catalog.cpp
+                 src/app/Guide.cpp src/app/AxisTargets.cpp src/app/Profile.cpp src/input/Evdev.cpp)
+  target_include_directories(auto_catalog PRIVATE src third_party)
+  target_link_libraries(auto_catalog PRIVATE Threads::Threads)
+  add_test(NAME auto_catalog COMMAND auto_catalog ${CMAKE_SOURCE_DIR})
   add_executable(guide_flow tests/guide_flow.cpp src/app/Guide.cpp src/app/Keypad.cpp)
   target_include_directories(guide_flow PRIVATE src third_party)
   add_test(NAME guide_flow COMMAND guide_flow ${CMAKE_SOURCE_DIR})
