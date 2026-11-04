@@ -76,7 +76,15 @@ constexpr uint32_t REQ_MF_RESPONSE = 100;
 constexpr uint32_t MF_MESSAGE_SIZE = 1024;
 // Our private MobiFlight client (registered with "MF.Clients.Add.<name>"): own command/response areas and an
 // LVars area the module fills with the variables we ask for, so other MobiFlight clients cannot shift our indices.
-constexpr const char* MF_CLIENT_NAME = "msfs-linux-companion";
+// MSFS_LINUX_COMPANION_MF_CLIENT gives a test run a name of its own, so it can talk to the sim next to a running copy of the program
+// without clearing that copy's watched variables.
+static const std::string& mfClientName() {
+    static const std::string name = [] {
+        const char* e = std::getenv("MSFS_LINUX_COMPANION_MF_CLIENT");
+        return std::string(e && *e ? e : "msfs-linux-companion");
+    }();
+    return name;
+}
 constexpr uint32_t CD_OUR_COMMAND = 110;
 constexpr uint32_t CD_OUR_RESPONSE = 111;
 constexpr uint32_t CD_OUR_LVARS = 112;
@@ -748,18 +756,18 @@ void SimBridge::sendMobiFlightCommand(const std::string& text, const std::string
 void SimBridge::registerMobiFlightClient() {
     if (mfClientRequested_) return;
     mfClientRequested_ = true;
-    sendMobiFlightCommand(std::string("MF.Clients.Add.") + MF_CLIENT_NAME, "MobiFlight client registration");
+    sendMobiFlightCommand("MF.Clients.Add." + mfClientName(), "MobiFlight client registration");
 }
 
 void SimBridge::onMobiFlightClientReady() {
-    const std::string n = MF_CLIENT_NAME;
+    const std::string& n = mfClientName();
     rememberSend(client_.mapClientDataNameToID(n + ".Command", CD_OUR_COMMAND), "map own MobiFlight command area");
     rememberSend(client_.mapClientDataNameToID(n + ".Response", CD_OUR_RESPONSE), "map own MobiFlight response area");
     rememberSend(client_.mapClientDataNameToID(n + ".LVars", CD_OUR_LVARS), "map own MobiFlight LVars area");
     rememberSend(client_.requestClientData(CD_OUR_RESPONSE, REQ_OUR_RESPONSE, DEF_MF_STRING, CD_PERIOD_ON_SET, CD_REQUEST_FLAG_CHANGED),
                  "request own MobiFlight response");
     mfClientReady_ = true;
-    LOG_INFO("MobiFlight: private client \"%s\" registered", MF_CLIENT_NAME);
+    LOG_INFO("MobiFlight: private client \"%s\" registered", mfClientName().c_str());
     lvarWatchDirty_ = true;
 }
 
@@ -1101,7 +1109,7 @@ void SimBridge::handleMobiFlightResponse(const std::string& text) {
             status_.mobiflight = ModuleState::Detected;
         }
         registerMobiFlightClient();
-    } else if (text == std::string("MF.Clients.Add.") + MF_CLIENT_NAME + ".Finished") {
+    } else if (text == "MF.Clients.Add." + mfClientName() + ".Finished") {
         if (!mfClientReady_) onMobiFlightClientReady();
         bool lvarsDone;
         {

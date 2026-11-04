@@ -394,6 +394,65 @@ int main(int argc, char** argv) {
         CHECK(heli == 4);
     }
 
+    // ---- the iniBuilds A320neo V2 of MSFS 2024: its cockpit is driven by INI_* L: variables, calculator code and standard events;
+    // what was checked on the aircraft says so, the HubHop presets do not claim anything
+    {
+        Catalog a;
+        if (!a.load(root + "/data/microsoft_a320neo_catalog.json", err)) { std::printf("cannot load the A320neo catalog: %s\n", err.c_str()); return 1; }
+        CHECK(a.aircraft == "microsoft-a320neo" && a.curated && a.axisControls && a.standardEvents);
+        auto byFunction = [&](const std::string& section, const std::string& function) -> const CatalogEntry* {
+            for (const auto& e : a.entries)
+                if (e.section == section && e.function == function) return &e;
+            return nullptr;
+        };
+        for (const auto& e : a.entries) {
+            CHECK(!e.function.empty() && !e.note.empty());
+            if (e.note.rfind("From the MobiFlight HubHop presets for", 0) == 0) CHECK(!e.verified);
+        }
+        const auto* arm = byFunction("Speed brake", "Ground spoilers ARM: toggle");
+        CHECK(arm && arm->verified && arm->toAction().kind == lr::app::ActionKind::CalcCode);
+        const auto* disarm = byFunction("Speed brake", "Ground spoilers ARM: off");
+        CHECK(disarm && disarm->toAction().kind == lr::app::ActionKind::SimEvent && disarm->toAction().name == "SPOILERS_ARM_SET" && disarm->toAction().value == 0);
+        const auto* alt = byFunction("FCU", "ALT 100/1000: toggle");
+        CHECK(alt && alt->verified && alt->toAction().name == "1 (>L:INI_FCU_ALTITUDE_MODE_COMMAND)");
+        // engine masters are the mixture levers of the sim
+        const auto* off1 = byFunction("Engines", "ENG 1 MASTER: off");
+        const auto* off2 = byFunction("Engines", "ENG 2 MASTER: off");
+        CHECK(off1 && off1->toAction().kind == lr::app::ActionKind::SimEvent && off1->toAction().name == "MIXTURE1_LEAN");
+        CHECK(off2 && off2->toAction().name == "MIXTURE2_LEAN" && !off2->verified);
+        // autobrake: a value per button, not a toggle
+        const auto* lo = byFunction("Autobrake", "AUTO BRK: LO");
+        CHECK(lo && lo->toAction().kind == lr::app::ActionKind::LVarSet && lo->toAction().value == 1);
+        const auto* off = byFunction("Autobrake", "AUTO BRK: off");
+        CHECK(off && off->toAction().kind == lr::app::ActionKind::LVarSet && off->toAction().value == 0);
+        // landing lights: the switch position is the input event value (0 ON, 1 OFF, 2 RETRACT)
+        const auto* retract = byFunction("Exterior lights", "LAND L: RETRACT");
+        CHECK(retract && retract->toAction().kind == lr::app::ActionKind::InputEvent && retract->toAction().value == 2);
+        const auto* on = byFunction("Exterior lights", "LAND R: ON");
+        CHECK(on && on->toAction().name == "AIRLINER_LT_LDG_R" && on->toAction().value == 0);
+        // both baro knobs in one entry: one action per side
+        const auto* both = byFunction("EFIS both sides", "Baro: up (both)");
+        CHECK(both && both->toActions().size() == 2);
+        const auto* bleed = byFunction("APU", "APU BLEED: toggle");
+        CHECK(bleed && bleed->toAction().kind == lr::app::ActionKind::LVarToggle && bleed->verified);
+        // a curated catalog with "standard_events" also gets the standard events (gear, parking brake ...)
+        CatalogSet set;
+        Catalog std_;
+        std_.aircraft = kStandardCatalogId;
+        CatalogEntry gear;
+        gear.kind = "sim_event";
+        gear.api = gear.name = "GEAR_UP";
+        gear.function = "Gear up";
+        gear.standard = true;
+        std_.entries.push_back(gear);
+        set.addShipped(std_);
+        set.addShipped(a);
+        set.refreshStandard();
+        bool hasGear = false;
+        for (const auto& e : set.find("microsoft-a320neo")->entries) hasGear |= e.name == "GEAR_UP" && e.standard;
+        CHECK(hasGear);
+    }
+
     std::printf(failures ? "\n%d check(s) FAILED\n" : "all curated catalog checks passed\n", failures);
     return failures ? 1 : 0;
 }

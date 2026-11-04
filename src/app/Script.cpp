@@ -108,7 +108,7 @@ ScriptNeeds scanScript(const std::string& path) {
             if (!err.empty()) { needs.error = "line " + std::to_string(number) + ": " + err; return needs; }
             continue;
         }
-        static const char* known[] = {"set", "toggle", "press", "event", "get", "code", "expect", "expectb", "sleep", "rewatch", "trace", "expecttrace"};
+        static const char* known[] = {"set", "toggle", "press", "event", "get", "code", "expect", "expectb", "sleep", "rewatch", "trace", "tracedump", "expecttrace"};
         if (std::find_if(std::begin(known), std::end(known), [&](const char* k) { return l.cmd == k; }) == std::end(known)) {
             needs.error = "line " + std::to_string(number) + ": unknown command '" + l.cmd + "'";
             return needs;
@@ -172,7 +172,8 @@ int runScript(sim::SimBridge& bridge, const std::string& path) {
             const auto t0 = std::chrono::steady_clock::now();
             bridge.watchLVars(codes);
             size_t got = 0;
-            for (int i = 0; i < 40; ++i) {
+            const int tries = 40 + static_cast<int>(codes.size());  // the module adds about 18 codes a second
+            for (int i = 0; i < tries; ++i) {
                 got = 0;
                 for (const auto& c : codes) got += bridge.lvarValue(c).has_value();
                 if (got == codes.size()) break;
@@ -186,6 +187,8 @@ int runScript(sim::SimBridge& bridge, const std::string& path) {
             }
         } else if (l.cmd == "trace") {
             bridge.setInputTrace(arg(0) != "off");
+        } else if (l.cmd == "tracedump") {
+            for (const auto& c : bridge.inputChanges(0)) std::printf("trace: B:%s %g -> %g\n", c.name.c_str(), c.oldValue, c.newValue);
         } else if (l.cmd == "expecttrace") {
             const std::string key = stripB(arg(0));
             const int timeout = static_cast<int>(num(1, 3000));

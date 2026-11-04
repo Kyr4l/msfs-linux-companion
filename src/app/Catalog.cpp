@@ -108,6 +108,7 @@ bool Catalog::load(const std::string& path, std::string& err) {
         aircraft = j.value("aircraft", "");
         title = j.value("title", "");
         axisControls = j.value("axis_controls", false);
+        standardEvents = j.value("standard_events", false);
         entries.clear();
         for (const auto& e : j.value("entries", nlohmann::json::array())) {
             CatalogEntry c;
@@ -424,7 +425,7 @@ bool CatalogSet::applyLive(const std::string& id, const std::string& title, cons
     for (const auto& e : cat.entries)
         if (e.live && !e.autoTwin && have.insert(entryKey(e)).second) merged.push_back(e);
     const bool changed = cat.setLiveEntries(std::move(merged));
-    if (changed && !cat.curated) {
+    if (changed && (!cat.curated || cat.standardEvents)) {
         cat.addStandardEntries(standardEntries());
     }
     return changed;
@@ -464,7 +465,7 @@ void CatalogSet::refreshStandard() {
     for (auto& e : commonControlEntries()) axes.push_back(std::move(e));
     for (auto& c : items) {
         if (c.aircraft == kStandardCatalogId) continue;
-        if (c.curated) {
+        if (c.curated && !c.standardEvents) {
             if (c.axisControls) c.addStandardEntries(axes);  // a curated catalog that asks for them gets the axis controls, not every standard event
             continue;
         }

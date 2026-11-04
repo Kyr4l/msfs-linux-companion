@@ -14,6 +14,7 @@
 //   expectb NAME OP VALUE [MS]  the same for an input event value
 //   rewatch CODE [| CODE ...]   replace the whole set of watched codes while connected (the way the guides change pages), report what arrives
 //   trace on|off                watch the cockpit: record every change of every input event (the Cockpit tab does the same)
+//   tracedump                   print every change the trace has recorded so far
 //   expecttrace NAME [MS]       wait up to MS (default 3000) until the trace has recorded a change of the input event; prints ok or FAIL
 //   sleep MS
 #include <string>

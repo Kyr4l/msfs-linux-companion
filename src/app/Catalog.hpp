@@ -47,6 +47,7 @@ struct Catalog {
     std::string title;      // display name
     bool curated = false;   // has hand-checked entries from a shipped catalog file (not just live / standard ones)
     bool axisControls = false;  // a curated catalog that also lists the ranged axis events every aircraft has ("axis_controls": true)
+    bool standardEvents = false;  // a curated catalog that also gets every standard event ("standard_events": true: gear, flaps, brakes ...)
     unsigned revision = 0;  // bumped whenever the entries change so views know to rebuild
     std::string label() const { return title.empty() ? aircraft : title; }
     std::string sourcePath;

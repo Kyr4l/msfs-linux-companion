@@ -14,6 +14,8 @@
 #include <thread>
 #include <vector>
 
+#include "haptics/FlapsMotion.hpp"
+
 #include "haptics/RotorRules.hpp"
 #include "haptics/WinwingHid.hpp"
 #include "sim/SimBridge.hpp"
@@ -115,11 +117,10 @@ private:
     // rule state (guarded by m_)
     void resetRuleState();
     bool prevOnGround_ = true;
-    double prevGear_ = 1, prevFlaps_ = 0;
+    double prevGear_ = 1;
     double lastAirborneVs_ = 0;
     double gSmooth_ = 1.0;
-    std::chrono::steady_clock::time_point prevTime_{};
-    double flapsRate_ = 0;
+    FlapsMotion flaps_;
 };
 
 }  // namespace lr::haptics

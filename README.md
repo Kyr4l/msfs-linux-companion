@@ -12,7 +12,7 @@ TCP to the sim running under Proton.
   release actions, repeat while held and two-position switches.
 * **Throttle calibration** for levers with gates: leave out the cut-off, use idle to the max gate or to the end, add named
   stages (Airbus CL, FLX/MCT, TOGA).
-* **Cockpit catalogs** to pick controls from: A32NX, A380X, CJ4, F/A-18E, Spirit of St. Louis, Vision Jet, Cabri G2, and an
+* **Cockpit catalogs** to pick controls from: A32NX, A380X, A320neo V2 (MSFS 2024), CJ4, F/A-18E, Spirit of St. Louis, Vision Jet, Cabri G2, and an
   automatic one for any other aircraft.
 * **Guides**: step-by-step procedures in the app, with steps the sim confirms ticked for you.
 * **Vibration** for Winwing URSA MINOR devices, driven by flight data.

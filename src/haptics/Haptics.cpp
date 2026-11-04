@@ -107,8 +107,6 @@ static float clamp01(double v) { return static_cast<float>(std::clamp(v, 0.0, 1.
 
 void HapticsEngine::evaluate(const sim::Telemetry& t, float& left, float& right, std::map<std::string, float>& contrib) {
     const auto now = clock::now();
-    const double dt = prevTime_.time_since_epoch().count() == 0 ? 0.02 : std::chrono::duration<double>(now - prevTime_).count();
-    prevTime_ = now;
     const bool onGround = t.onGround > 0.5;
     const double phase = std::chrono::duration<double>(now.time_since_epoch()).count();
 
@@ -123,10 +121,7 @@ void HapticsEngine::evaluate(const sim::Telemetry& t, float& left, float& right,
 
     // --- state updates ---
     if (!onGround) lastAirborneVs_ = t.verticalSpeedFpm;
-    if (dt > 0) {
-        const double rate = (t.flapsPct - prevFlaps_) / dt;
-        flapsRate_ = flapsRate_ * 0.7 + rate * 0.3;
-    }
+    const bool flapsMoving = flaps_.update(t.flapsPct, now);
     gSmooth_ = gSmooth_ * 0.6 + t.gForce * 0.4;
 
     // --- rules ---
@@ -150,7 +145,7 @@ void HapticsEngine::evaluate(const sim::Telemetry& t, float& left, float& right,
         if (rc.enabled) globalPulses_.push_back({now + std::chrono::milliseconds(180), clamp01(0.5 * rc.gain), clamp01(0.5 * rc.gain)});
     }
 
-    if (std::fabs(flapsRate_) > 0.01) add("flaps", 0.15);
+    if (flapsMoving) add("flaps", 0.15);
 
     if (!onGround && t.spoilersHandle > 0.05) add("speedbrake", 0.08 + 0.35 * t.spoilersHandle * std::min(1.0, t.iasKt / 250.0));
 
@@ -196,18 +191,15 @@ void HapticsEngine::evaluate(const sim::Telemetry& t, float& left, float& right,
 
     prevOnGround_ = onGround;
     prevGear_ = t.gearPct;
-    prevFlaps_ = t.flapsPct;
 }
 
 void HapticsEngine::resetRuleState() {
-    prevTime_ = {};
     globalPulses_.clear();
     prevOnGround_ = true;
     prevGear_ = 1;
-    prevFlaps_ = 0;
     lastAirborneVs_ = 0;
     gSmooth_ = 1.0;
-    flapsRate_ = 0;
+    flaps_.reset();
 }
 
 void HapticsEngine::threadMain() {

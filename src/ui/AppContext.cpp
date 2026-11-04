@@ -163,7 +163,8 @@ void AppContext::syncLive() {
 
 void AppContext::autoLabel(const std::string& aircraft) {
     Catalog* cat = catalogs.find(aircraft);
-    if (!cat || cat->curated || cat->aircraft == kStandardCatalogId) return;
+    // a curated catalog keeps its own entries; the live input events it does not list are labelled like any other aircraft's
+    if (!cat || cat->aircraft == kStandardCatalogId) return;
     const std::string key = sim::aircraftKey(aircraft);
     auto it = packageTexts.find(key);
     if (it == packageTexts.end()) {
@@ -177,7 +178,7 @@ void AppContext::autoLabel(const std::string& aircraft) {
         it = packageTexts.emplace(key, std::move(text)).first;
     }
     const PackageText* text = it->second.get();
-    applyAutoLabels(*cat, text, text ? text->title : std::string());
+    applyAutoLabels(*cat, text, text && !cat->curated ? text->title : std::string());
     if (text && !text->checklistXml.empty() && !guideFor(aircraft)) {
         Guide g;
         std::string err;
