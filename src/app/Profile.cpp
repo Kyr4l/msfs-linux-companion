@@ -367,7 +367,8 @@ bool loadSettings(const std::string& path, Settings& out, std::string& err) {
 }
 
 static json toJson(const AxisCalibration& c) {
-    json cj{{"device", c.device}, {"code", c.code}, {"cutoff", c.cutoff}, {"idle", c.idle}, {"mil", c.mil}, {"ab", c.ab}, {"snap", c.snap}};
+    json cj{{"device", c.device}, {"code", c.code}, {"cutoff", finiteOr0(c.cutoff)}, {"idle", finiteOr0(c.idle)}, {"mil", finiteOr0(c.mil)},
+             {"ab", finiteOr0(c.ab)}, {"snap", finiteOr0(c.snap)}};
     if (c.cutoffBtn >= 0) cj["cutoff_btn"] = c.cutoffBtn;  // omitted without a button: files stay as before
     if (c.idleBtn >= 0) cj["idle_btn"] = c.idleBtn;
     if (c.milBtn >= 0) cj["mil_btn"] = c.milBtn;
@@ -394,7 +395,7 @@ bool saveSettings(const std::string& path, const Settings& s, std::string& err) 
         profiles.push_back(json{{"name", p.name}, {"aircraft", p.aircraft}, {"bindings", bindings}});
     }
     json rules = json::object(), devices = json::object();
-    for (const auto& [id, rc] : s.haptics.rules) rules[id] = json{{"enabled", rc.enabled}, {"gain", rc.gain}};
+    for (const auto& [id, rc] : s.haptics.rules) rules[id] = json{{"enabled", rc.enabled}, {"gain", finiteOr0(rc.gain)}};
     for (const auto& [key, dc] : s.haptics.devices)
         devices[key] = json{{"enabled", dc.enabled}, {"family", dc.identity.family},
                             {"left_device", dc.identity.left.device}, {"left_index", dc.identity.left.index},
@@ -404,7 +405,7 @@ bool saveSettings(const std::string& path, const Settings& s, std::string& err) 
     json j{{"version", kConfigVersion}, {"host", s.host}, {"port", s.port}, {"auto_connect", s.autoConnect}, {"guide_autodetect", s.guideAutodetect},
            {"ui_scale", finiteOr0(s.uiScale)}, {"active_profile", s.activeProfile}, {"profiles", profiles}, {"calibrations", calibrations},
            {"bindings_view", {{"group_by", s.bindingsGroupBy == BindingsGroupBy::Device ? "device" : s.bindingsGroupBy == BindingsGroupBy::InputType ? "type" : s.bindingsGroupBy == BindingsGroupBy::Custom ? "custom" : "none"}, {"auto_sort", s.bindingsAutoSort}}},
-           {"haptics", {{"enabled", s.haptics.enabled}, {"master", s.haptics.master}, {"rules", rules}, {"devices", devices}}}};
+           {"haptics", {{"enabled", s.haptics.enabled}, {"master", finiteOr0(s.haptics.master)}, {"rules", rules}, {"devices", devices}}}};
     if (!s.disabledPlugins.empty() || !s.pluginSettings.empty()) {  // left out when there is nothing: files without plugins stay as before
         json settings = json::object();
         for (const auto& [id, text] : s.pluginSettings) {

@@ -23,7 +23,11 @@ using namespace uidetail;
 
 
 std::optional<double> Ui::readProbe(const GuideProbe& p) const {
-    if (!p.inputEvent.empty()) return ctx_.bridge.inputEventValue(p.inputEvent);
+    if (!p.inputEvent.empty()) {
+        for (const auto& n : p.inputEvents())  // the first alternative the loaded aircraft reports
+            if (auto v = ctx_.bridge.inputEventValue(n)) return v;
+        return std::nullopt;
+    }
     return ctx_.bridge.lvarValue(p.code);
 }
 

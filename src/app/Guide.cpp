@@ -9,6 +9,20 @@
 
 namespace lr::app {
 
+std::vector<std::string> GuideProbe::inputEvents() const {
+    std::vector<std::string> out;
+    size_t start = 0;
+    while (start <= inputEvent.size()) {
+        const size_t bar = inputEvent.find('|', start);
+        const std::string one = inputEvent.substr(start, bar == std::string::npos ? std::string::npos : bar - start);
+        if (!one.empty()) out.push_back(one);
+        if (bar == std::string::npos) break;
+        start = bar + 1;
+    }
+    return out;
+}
+
+
 bool guideCompare(const std::string& op, double a, double b) {
     if (op == "==") return std::fabs(a - b) < 0.5e-3 + 1e-9 * std::fabs(b);
     if (op == "!=") return !guideCompare("==", a, b);

@@ -1,0 +1,2068 @@
+{
+ "aircraft": "a400m",
+ "title": "Airbus A400M Atlas",
+ "notice": "The procedures are the sim's own checklists for the A400M (its language file): the item names and clues, and the names of the switch positions from the aircraft's tooltips. The language file does not keep the order of the items: the order here follows the clues (APU START 3 s after APU MASTER, engines one at a time, masters to RUN once all four run) and is ours. The ticks read the aircraft's own L: variables, the ones its panel states contain (batteries, APU, ADIRS, fuel pumps, signs, lights, ground spoilers, flaps, engines available), and the cockpit events of the engine masters and the start selector. Nothing was run on the aircraft yet: no control is marked verified, and a tick that never comes may mean the variable is not what it looks like.",
+ "sources": [
+  "Official2024/Steam/microsoft-aircraft-a400m/minimal.fsarchive, en-us.locpak: A400.CHECKLISTS.* (the sim's checklists for the A400M) and A400M.TOOLTIPS.* (unencrypted archive)",
+  "Official2024/Steam/microsoft-aircraft-a400m/data/panelstates/*.ini: the aircraft's L: variables in cold and dark, on GPU, APU running and ready for takeoff"
+ ],
+ "topics": [
+  {
+   "id": "power_up",
+   "title": "Power up",
+   "summary": "Batteries, APU, GADIRS, fuel pumps, lights and signs, then the before start checklist.",
+   "start": "pu_ground"
+  },
+  {
+   "id": "fms",
+   "title": "EFIS and FMS setup",
+   "summary": "Route, performance, radios, transponder, altimeter, FCU altitude.",
+   "start": "fms_setup"
+  },
+  {
+   "id": "engine_start",
+   "title": "Start the engines",
+   "summary": "Engines 1 to 4 one at a time, then the after start procedure and checklist.",
+   "start": "es_ground"
+  },
+  {
+   "id": "takeoff",
+   "title": "Before takeoff and takeoff",
+   "summary": "Before takeoff and takeoff checklists, then the after takeoff checklist.",
+   "start": "to_ground"
+  },
+  {
+   "id": "landing",
+   "title": "Approach and landing",
+   "summary": "Approach checklist, landing procedure (lights, autobrake, spoilers, flaps, gear) and landing checklist.",
+   "start": "ld_approach"
+  },
+  {
+   "id": "after_landing",
+   "title": "After landing and parking",
+   "summary": "Flaps, lights, APU, then the parking checklist.",
+   "start": "al_proc"
+  },
+  {
+   "id": "shutdown",
+   "title": "Shut down and secure",
+   "summary": "APU, fuel, GADIRS, lights and signs, then the securing checklist.",
+   "start": "sd_proc"
+  }
+ ],
+ "nodes": {
+  "pu_ground": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "help": "The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, on the ground",
+     "next": "pu_power"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "pu_ground_air"
+    }
+   ]
+  },
+  "pu_ground_air": {
+   "type": "info",
+   "title": "Flying",
+   "text": "The power-up is done on the ground, cold and dark.",
+   "next": ""
+  },
+  "pu_power": {
+   "type": "steps",
+   "title": "Electrical power up",
+   "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.ELEC_POWER_UP_PROCEDURE",
+   "steps": [
+    {
+     "text": "Battery 1 on.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.ELEC_POWER_UP_PROCEDURE.BATTERY",
+     "why": "The sim's clue: \"Select all 3 main batteries to on\".",
+     "controls": [
+      {
+       "api": "AIRLINER_ELEC_BAT1"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_OVHD_ELEC_BAT_1_PB_IS_AUTO, number)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Battery 2 on.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.ELEC_POWER_UP_PROCEDURE.BATTERY",
+     "why": "The sim's clue: \"Select all 3 main batteries to on\".",
+     "controls": [
+      {
+       "api": "AIRLINER_ELEC_BAT2"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_OVHD_ELEC_BAT_2_PB_IS_AUTO, number)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Essential battery on.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.ELEC_POWER_UP_PROCEDURE.BATTERY",
+     "why": "The sim's clue: \"Select all 3 main batteries to on\".",
+     "controls": [
+      {
+       "api": "AIRLINER_ELEC_BAT_ESS"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_OVHD_ELEC_BAT_3_PB_IS_AUTO, number)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "External power on, if ground power is connected.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.ELEC_POWER_UP_PROCEDURE.EXT_POWER",
+     "why": "The sim's clue: \"If you have ground power connected to the aircraft select this on\".",
+     "controls": [
+      {
+       "api": "AIRLINER_EXT_POWER"
+      }
+     ]
+    },
+    {
+     "text": "APU MASTER on.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.ELEC_POWER_UP_PROCEDURE.APU_MASTER",
+     "why": "The sim's clue: \"Start the apu by pressing the apu\".",
+     "controls": [
+      {
+       "api": "AIRLINER_APU_MASTER"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_APU_MASTER_SWITCH, number)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Wait 3 seconds, then press APU START.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.ELEC_POWER_UP_PROCEDURE.APU_START",
+     "why": "The sim's clue: \"Press the apu start switch a minimum of 3 seconds after the apu master switch is selected on\".",
+     "controls": [
+      {
+       "api": "AIRLINER_APU_START"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_APU_AVAILABLE, number)",
+      "op": "==",
+      "value": 1
+     },
+     "readouts": [
+      {
+       "label": "APU N",
+       "unit": "%",
+       "code": "(L:INI_APU_N1, number)"
+      }
+     ]
+    },
+    {
+     "text": "APU BLEED on once the APU runs.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.ELEC_POWER_UP_PROCEDURE.APU_BLEED",
+     "why": "The sim's clue: \"Select apu bleed on\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_AIR_APU_BLEED"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_APU_BLEED_BUTTON, number)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "ADR 1 on.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.ELEC_POWER_UP_PROCEDURE.GADIRS",
+     "why": "The sim's clue: \"Select all the adr and ir buttons to on\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_ADR1"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_ADR1_STATE, number)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "ADR 2 on.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.ELEC_POWER_UP_PROCEDURE.GADIRS",
+     "why": "The sim's clue: \"Select all the adr and ir buttons to on\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_ADR2"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_ADR2_STATE, number)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "ADR 3 on.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.ELEC_POWER_UP_PROCEDURE.GADIRS",
+     "why": "The sim's clue: \"Select all the adr and ir buttons to on\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_ADR3"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_ADR3_STATE, number)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "IR 1 on.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.ELEC_POWER_UP_PROCEDURE.GADIRS",
+     "why": "The sim's clue: \"Select all the adr and ir buttons to on\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_IR1"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_IR1_STATE, number)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "IR 2 on.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.ELEC_POWER_UP_PROCEDURE.GADIRS",
+     "why": "The sim's clue: \"Select all the adr and ir buttons to on\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_IR2"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_IR2_STATE, number)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "IR 3 on.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.ELEC_POWER_UP_PROCEDURE.GADIRS",
+     "why": "The sim's clue: \"Select all the adr and ir buttons to on\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_IR3"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_IR3_STATE, number)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "All fuel pumps on: main feed tanks 1 to 4.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.ELEC_POWER_UP_PROCEDURE.FUEL_PUMPS",
+     "why": "The sim's clue: \"Select all the fuel pumps to on\".",
+     "controls": [
+      {
+       "api": "AIRLINER_FUEL_FEED_TK1"
+      },
+      {
+       "api": "AIRLINER_FUEL_FEED_TK2"
+      },
+      {
+       "api": "AIRLINER_FUEL_FEED_TK3_MAN"
+      },
+      {
+       "api": "AIRLINER_FUEL_FEED_TK4_MAN"
+      }
+     ],
+     "check": {
+      "code": "(L:A400M_FUEL_FEED1_PUMP_ON, number) (L:A400M_FUEL_FEED2_PUMP_ON, number) + (L:A400M_FUEL_FEED3_PUMP_ON, number) + (L:A400M_FUEL_FEED4_PUMP_ON, number) +",
+      "op": "==",
+      "value": 4
+     }
+    },
+    {
+     "text": "Standby feed pumps 1 to 4 on.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.ELEC_POWER_UP_PROCEDURE.FUEL_PUMPS",
+     "why": "The sim's clue: \"Select all the fuel pumps to on\". The aircraft's APU-running panel state has the standby pumps on as well.",
+     "controls": [
+      {
+       "api": "AIRLINER_FUEL_FEED_TK1_STBY"
+      },
+      {
+       "api": "AIRLINER_FUEL_FEED_TK2_STBY"
+      },
+      {
+       "api": "AIRLINER_FUEL_FEED_TK3_STBY"
+      },
+      {
+       "api": "AIRLINER_FUEL_FEED_TK4_STBY"
+      }
+     ],
+     "check": {
+      "code": "(L:A400M_FUEL_FEED1_STBY_PUMP_ON, number) (L:A400M_FUEL_FEED2_STBY_PUMP_ON, number) + (L:A400M_FUEL_FEED3_STBY_PUMP_ON, number) + (L:A400M_FUEL_FEED4_STBY_PUMP_ON, number) +",
+      "op": "==",
+      "value": 4
+     }
+    },
+    {
+     "text": "Navigation lights on; every other exterior light off.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.ELEC_POWER_UP_PROCEDURE.LIGHTS",
+     "why": "The sim's clue: \"Check all the external lights are off apart from the nav light\".",
+     "controls": [
+      {
+       "api": "INSTRUMENT_OVH_NAV_IE_ID",
+       "function": "NAVIGATION LIGHTS: ON"
+      }
+     ]
+    },
+    {
+     "text": "Seat belt signs on.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.ELEC_POWER_UP_PROCEDURE.SIGNS",
+     "why": "The sim's clue: \"Select seat belts to on and emergency exits armed\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_SEATBELT",
+       "function": "SEAT BELTS SIGNS: ON"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_SEATBELTS_SWITCH, number)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Emergency exit lights armed.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.ELEC_POWER_UP_PROCEDURE.SIGNS",
+     "why": "The sim's clue: \"Select seat belts to on and emergency exits armed\". The switch has ON, AUTO and OFF; armed is taken to be AUTO.",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_EMER_EXIT",
+       "function": "EMERGENCY EXTERNAL LIGHTS: AUTO"
+      }
+     ]
+    }
+   ],
+   "next": "pu_before"
+  },
+  "pu_before": {
+   "type": "steps",
+   "title": "Before start checklist",
+   "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.PRELIMPREP",
+   "steps": [
+    {
+     "text": "Cockpit preparation: all white lights on the overhead off.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.PRELIMPREP.COCKPIT_PREP",
+     "why": "The sim's clue: \"Check all overhead white lights are off\"."
+    },
+    {
+     "text": "Gear pins and covers: the pins are in the flight deck.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.PRELIMPREP.GEAR_COVER",
+     "why": "The sim's clue: \"Check pins are in the flight deck\"."
+    },
+    {
+     "text": "Fuel quantity matches the expected fuel.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.PRELIMPREP.FUEL_QUANTITY",
+     "why": "The sim's clue: \"Check fuel amount matches expected fuel\"."
+    },
+    {
+     "text": "Takeoff data inserted.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.PRELIMPREP.TAKEOFF_DATA",
+     "why": "The sim's clue: \"Check that you have your takeoff performance inserted\"."
+    },
+    {
+     "text": "Altimeter: the correct QNH is set.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.PRELIMPREP.ALTIMETER",
+     "why": "The sim's clue: \"Make sure that you have the correct qnh set\".",
+     "controls": [
+      {
+       "api": "(L:XMLVAR_Baro1_Mode) 2 != (L:XMLVAR_Baro1_Mode) 3 != and if{ (L:XMLVAR_Baro_Selector_HPA_1) if{ 1 (A:KOHLSMAN SETTING MB:1, mbars) ++ 16 * (>K:2:KOHLSMAN_SET) } els{ 1 (>K:KOHLSMAN_INC) } }",
+       "function": "Baro: up"
+      }
+     ]
+    },
+    {
+     "text": "IRS in align.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.PRELIMPREP.IRS",
+     "why": "The sim's clue: \"Check the irs are in align\".",
+     "readouts": [
+      {
+       "label": "IRS aligned",
+       "unit": "",
+       "code": "(L:INI_IRS_ALIGNED, number)"
+      }
+     ]
+    },
+    {
+     "text": "Parking brake set.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.PRELIMPREP.PARKING_BRAKE",
+     "why": "The sim's clue: \"Check the parking brake is set on\".",
+     "controls": [
+      {
+       "api": "LANDING_GEAR_PARKINGBRAKE"
+      }
+     ],
+     "check": {
+      "code": "(A:BRAKE PARKING POSITION, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Seat belt signs on.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.PRELIMPREP.SEAT_BELTS",
+     "why": "The sim's clue: \"Check the seat belt sign is selected on\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_SEATBELT",
+       "function": "SEAT BELTS SIGNS: ON"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_SEATBELTS_SWITCH, number)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Emergency exit lights armed.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.PRELIMPREP.EMER_LIGHTS",
+     "why": "The sim's clue: \"Check the switch is set to armed\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_EMER_EXIT",
+       "function": "EMERGENCY EXTERNAL LIGHTS: AUTO"
+      }
+     ]
+    },
+    {
+     "text": "Beacon: both, bright.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.PRELIMPREP.BEACON",
+     "why": "The sim's clue: \"Check beacon both are set to bright\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_BEACON",
+       "function": "BEACON LIGHTS: BRT"
+      },
+      {
+       "api": "INSTRUMENT_OVH_BEACON_UP_IE_ID",
+       "function": "BEACON LIGHTS UP: BOTH"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_BEACON_LIGHT_SWITCH, number)",
+      "op": "==",
+      "value": 0
+     }
+    }
+   ],
+   "next": "pu_done"
+  },
+  "pu_done": {
+   "type": "end",
+   "title": "Powered",
+   "text": "The aircraft runs on the APU and is ready for the EFIS and FMS setup and the engine start."
+  },
+  "fms_setup": {
+   "type": "steps",
+   "title": "EFIS and FMS setup",
+   "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.FMS_PROCEDURE",
+   "steps": [
+    {
+     "text": "FMS: set the departure and arrival airports, the route, the SID and the STAR.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.FMS_PROCEDURE.FMS1",
+     "why": "The sim's clue: \"Set city pair in fms and select route along with sid and star\"."
+    },
+    {
+     "text": "FMS: fill in every amber box (the EFB's fuel and payload page has the numbers).",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.FMS_PROCEDURE.FMS2",
+     "why": "The sim's clue: \"Fill in information with amber boxes. you can get this information from the efb on the fuel and payload section\"."
+    },
+    {
+     "text": "FMS: pick the takeoff flaps, press the performance computation button and confirm: the V speeds are inserted.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.FMS_PROCEDURE.FMS3",
+     "why": "The sim's clue: \"Select flaps for takeoff using the drop-down. press to perf computation button and confirm the data. this will insert your v speeds automatically\"."
+    },
+    {
+     "text": "Set the radio frequency on the radio panel and swap it to active.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.FMS_PROCEDURE.RADIO_FREQ",
+     "why": "The sim's clue: \"The frequency is set by pressing the button above or below the frequency and then typing in the frequency using the number pad. press the button next to it, this will toggle it from stby to active\"."
+    },
+    {
+     "text": "Set the transponder code (the button under M1 on the radio panel, then the keypad).",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.FMS_PROCEDURE.XPDR",
+     "why": "The sim's clue: \"The transponder code is set bottom right of the radio unit pressing the button under the m1 and typing the code using the number pad\"."
+    },
+    {
+     "text": "Set the EFIS mode on each side.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.FMS_PROCEDURE.SELECT_EFIS",
+     "why": "The sim's clue: \"Select which efis mode you want on the screen\".",
+     "controls": [
+      {
+       "api": "AIRLINER_CPT_EFIS_L_KNOB_BIG",
+       "function": "CPT MAP MODE: right"
+      },
+      {
+       "api": "AIRLINER_FO_EFIS_L_KNOB_BIG",
+       "function": "FO MAP MODE: next position"
+      }
+     ]
+    },
+    {
+     "text": "Set the altimeter to the current QNH.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.FMS_PROCEDURE.ALTIMETER",
+     "why": "The sim's clue: \"Set the current qnh also know as altimeter setting\".",
+     "controls": [
+      {
+       "api": "(L:XMLVAR_Baro1_Mode) 2 != (L:XMLVAR_Baro1_Mode) 3 != and if{ (L:XMLVAR_Baro_Selector_HPA_1) if{ 1 (A:KOHLSMAN SETTING MB:1, mbars) ++ 16 * (>K:2:KOHLSMAN_SET) } els{ 1 (>K:KOHLSMAN_INC) } }",
+       "function": "Baro: up"
+      }
+     ]
+    },
+    {
+     "text": "Set the first stop altitude in the FCU window.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.FMS_PROCEDURE.FCU",
+     "why": "The sim's clue: \"This is also known as the first stop altitude\".",
+     "controls": [
+      {
+       "api": "INSTRUMENT_FCU_ROTARY_ALT_KNOB",
+       "function": "ALTITUDE SELECTOR KNOB: up"
+      }
+     ]
+    },
+    {
+     "text": "Flight director on: green bar on the FD button.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.FMS_PROCEDURE.FD_BUTTON",
+     "why": "The sim's clue: \"When selected on it should have a green light bar on the fd button\".",
+     "controls": [
+      {
+       "api": "AIRLINER_FCU_FD"
+      }
+     ]
+    }
+   ],
+   "next": "fms_done"
+  },
+  "fms_done": {
+   "type": "end",
+   "title": "Set up",
+   "text": "Route, performance and radios are set."
+  },
+  "es_ground": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "help": "The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, on the ground",
+     "next": "es_power"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "es_ground_air"
+    }
+   ]
+  },
+  "es_ground_air": {
+   "type": "info",
+   "title": "Flying",
+   "text": "This start is done on the ground.",
+   "next": ""
+  },
+  "es_power": {
+   "type": "question",
+   "title": "Power",
+   "text": "Is the APU running?",
+   "help": "The engines start with APU bleed air.",
+   "auto": {
+    "code": "(L:INI_APU_AVAILABLE, number)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes",
+     "next": "es_start"
+    },
+    {
+     "id": "no",
+     "label": "No, power up first",
+     "next": "pu_power"
+    }
+   ]
+  },
+  "es_start": {
+   "type": "steps",
+   "title": "Engine start",
+   "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.START_PROCEDURE",
+   "steps": [
+    {
+     "text": "Outside area: the area around the engines is clear.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.START_PROCEDURE.OUTSIDE",
+     "why": "The sim's clue: \"Make sure the area around the engines is clear.\"."
+    },
+    {
+     "text": "Tell the loadmaster the engines are about to start.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.START_PROCEDURE.LOADMASTER",
+     "why": "The sim's clue: \"Inform the loadmaster aircraft is about start engines\"."
+    },
+    {
+     "text": "Engine start selector to IGN START.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.START_PROCEDURE.ENGINE_SELECTOR",
+     "why": "The sim's clue: \"Make sure knob is set to ign/star postion\".",
+     "controls": [
+      {
+       "api": "AIRLINER_ENG_START",
+       "function": "ENG START: IGN START"
+      }
+     ],
+     "check": {
+      "input_event": "AIRLINER_ENG_START",
+      "op": "==",
+      "value": 2
+     }
+    },
+    {
+     "text": "ENG 1 MASTER to the middle position (FTHR).",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.START_PROCEDURE.ENG_MASTER_1",
+     "why": "The sim's clue: \"Set the engine master 1 to the middle postion\".",
+     "controls": [
+      {
+       "api": "AIRLINER_ENG1_CUTOFF",
+       "function": "ENG 1 MASTER: FTHR (start)"
+      }
+     ],
+     "check": {
+      "input_event": "AIRLINER_ENG1_CUTOFF",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Wait for engine 1: the white half box around its PWR% gauge shows during the start and goes away once it runs.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.START_PROCEDURE.WHITE_BOX",
+     "why": "The sim's clue: \"When the white half box around the pwr% gauge is shown the engine is starting. once it's been removed the engine has been started\".",
+     "check": {
+      "code": "(L:ENGINE_1_AVAIL, number)",
+      "op": "==",
+      "value": 1
+     },
+     "readouts": [
+      {
+       "label": "ENG 1 available",
+       "unit": "",
+       "code": "(L:ENGINE_1_AVAIL, number)"
+      }
+     ]
+    },
+    {
+     "text": "ENG 2 MASTER to the middle position (FTHR).",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.START_PROCEDURE.REPEAT_PROC",
+     "why": "The sim's clue: \"Repeat the same procedure as above for each engine. do this one at a time\". One engine at a time.",
+     "controls": [
+      {
+       "api": "AIRLINER_ENG2_CUTOFF",
+       "function": "ENG 2 MASTER: FTHR (start)"
+      }
+     ],
+     "check": {
+      "input_event": "AIRLINER_ENG2_CUTOFF",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Wait for engine 2: the white half box around its PWR% gauge shows during the start and goes away once it runs.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.START_PROCEDURE.WHITE_BOX",
+     "why": "The sim's clue: \"When the white half box around the pwr% gauge is shown the engine is starting. once it's been removed the engine has been started\".",
+     "check": {
+      "code": "(L:ENGINE_2_AVAIL, number)",
+      "op": "==",
+      "value": 1
+     },
+     "readouts": [
+      {
+       "label": "ENG 2 available",
+       "unit": "",
+       "code": "(L:ENGINE_2_AVAIL, number)"
+      }
+     ]
+    },
+    {
+     "text": "ENG 3 MASTER to the middle position (FTHR).",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.START_PROCEDURE.REPEAT_PROC",
+     "why": "The sim's clue: \"Repeat the same procedure as above for each engine. do this one at a time\". One engine at a time.",
+     "controls": [
+      {
+       "api": "AIRLINER_ENG3_CUTOFF",
+       "function": "ENG 3 MASTER: FTHR (start)"
+      }
+     ],
+     "check": {
+      "input_event": "AIRLINER_ENG3_CUTOFF",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Wait for engine 3: the white half box around its PWR% gauge shows during the start and goes away once it runs.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.START_PROCEDURE.WHITE_BOX",
+     "why": "The sim's clue: \"When the white half box around the pwr% gauge is shown the engine is starting. once it's been removed the engine has been started\".",
+     "check": {
+      "code": "(L:ENGINE_3_AVAIL, number)",
+      "op": "==",
+      "value": 1
+     },
+     "readouts": [
+      {
+       "label": "ENG 3 available",
+       "unit": "",
+       "code": "(L:ENGINE_3_AVAIL, number)"
+      }
+     ]
+    },
+    {
+     "text": "ENG 4 MASTER to the middle position (FTHR).",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.START_PROCEDURE.REPEAT_PROC",
+     "why": "The sim's clue: \"Repeat the same procedure as above for each engine. do this one at a time\". One engine at a time.",
+     "controls": [
+      {
+       "api": "AIRLINER_ENG4_CUTOFF",
+       "function": "ENG 4 MASTER: FTHR (start)"
+      }
+     ],
+     "check": {
+      "input_event": "AIRLINER_ENG4_CUTOFF",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Wait for engine 4: the white half box around its PWR% gauge shows during the start and goes away once it runs.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.START_PROCEDURE.WHITE_BOX",
+     "why": "The sim's clue: \"When the white half box around the pwr% gauge is shown the engine is starting. once it's been removed the engine has been started\".",
+     "check": {
+      "code": "(L:ENGINE_4_AVAIL, number)",
+      "op": "==",
+      "value": 1
+     },
+     "readouts": [
+      {
+       "label": "ENG 4 available",
+       "unit": "",
+       "code": "(L:ENGINE_4_AVAIL, number)"
+      }
+     ]
+    },
+    {
+     "text": "ENG 1 MASTER to RUN.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.START_PROCEDURE.WHEN_4_ON",
+     "why": "The sim's clue: \"Move all 4 of the engine master switches to run. do this one at a time starting with engine 1 and ending at engine 4\".",
+     "controls": [
+      {
+       "api": "AIRLINER_ENG1_CUTOFF",
+       "function": "ENG 1 MASTER: RUN"
+      }
+     ],
+     "check": {
+      "input_event": "AIRLINER_ENG1_CUTOFF",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "ENG 2 MASTER to RUN.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.START_PROCEDURE.WHEN_4_ON",
+     "why": "The sim's clue: \"Move all 4 of the engine master switches to run. do this one at a time starting with engine 1 and ending at engine 4\".",
+     "controls": [
+      {
+       "api": "AIRLINER_ENG2_CUTOFF",
+       "function": "ENG 2 MASTER: RUN"
+      }
+     ],
+     "check": {
+      "input_event": "AIRLINER_ENG2_CUTOFF",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "ENG 3 MASTER to RUN.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.START_PROCEDURE.WHEN_4_ON",
+     "why": "The sim's clue: \"Move all 4 of the engine master switches to run. do this one at a time starting with engine 1 and ending at engine 4\".",
+     "controls": [
+      {
+       "api": "AIRLINER_ENG3_CUTOFF",
+       "function": "ENG 3 MASTER: RUN"
+      }
+     ],
+     "check": {
+      "input_event": "AIRLINER_ENG3_CUTOFF",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "ENG 4 MASTER to RUN.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.START_PROCEDURE.WHEN_4_ON",
+     "why": "The sim's clue: \"Move all 4 of the engine master switches to run. do this one at a time starting with engine 1 and ending at engine 4\".",
+     "controls": [
+      {
+       "api": "AIRLINER_ENG4_CUTOFF",
+       "function": "ENG 4 MASTER: RUN"
+      }
+     ],
+     "check": {
+      "input_event": "AIRLINER_ENG4_CUTOFF",
+      "op": "==",
+      "value": 0
+     }
+    }
+   ],
+   "next": "es_after"
+  },
+  "es_after": {
+   "type": "steps",
+   "title": "After start procedure",
+   "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.AFTER_START_PROCEDURE",
+   "steps": [
+    {
+     "text": "Engine start selector to NORM.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.AFTER_START_PROCEDURE.ENGINE_SELECTOR",
+     "why": "The sim's clue: \"Make sure knob is set to normal\".",
+     "controls": [
+      {
+       "api": "AIRLINER_ENG_START",
+       "function": "ENG START: NORM"
+      }
+     ],
+     "check": {
+      "input_event": "AIRLINER_ENG_START",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "APU BLEED off.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.AFTER_START_PROCEDURE.APU_BLEED",
+     "why": "The sim's clue: \"Select apu bleed off\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_AIR_APU_BLEED"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_APU_BLEED_BUTTON, number)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "APU MASTER off.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.AFTER_START_PROCEDURE.APU_MASTER",
+     "why": "The sim's clue: \"Select apu master switch to off\".",
+     "controls": [
+      {
+       "api": "AIRLINER_APU_MASTER"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_APU_MASTER_SWITCH, number)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Ground spoilers: press ON next to the ground spoilers arm.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.AFTER_START_PROCEDURE.GND_SPOILERS",
+     "why": "The sim's clue: \"Press the on button next to the ground spoilers arm\".",
+     "controls": [
+      {
+       "api": "A400M_GND_SPOILER",
+       "function": "GND SPOILERS ARM: on"
+      }
+     ],
+     "check": {
+      "code": "(L:A400M_GND_SPOILER, number)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Takeoff flaps on the flap lever.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.AFTER_START_PROCEDURE.FLAPS",
+     "why": "The sim's clue: \"Select your takeoff flaps on the flap leaver\".",
+     "readouts": [
+      {
+       "label": "Flaps lever",
+       "unit": "",
+       "code": "(L:FLAPS_HANDLE_POSITION, number)"
+      }
+     ]
+    },
+    {
+     "text": "Autobrake: press HI/RTO.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.AFTER_START_PROCEDURE.AUTO_BRAKE",
+     "why": "The sim's clue: \"Press the hi/rto button to arm the autobrakes for takeoff\".",
+     "controls": [
+      {
+       "api": "AIRLINER_AUTO_BRK_MAX"
+      }
+     ]
+    },
+    {
+     "text": "Yaw trim: press the reset button next to the yaw trim switch.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.AFTER_START_PROCEDURE.YAW_TRIM",
+     "why": "The sim's clue: \"Press the reset button next to the yaw trim switch\". The aircraft's cockpit events have no yaw trim reset; press it in the cockpit."
+    }
+   ],
+   "next": "es_check"
+  },
+  "es_check": {
+   "type": "steps",
+   "title": "After engine start checklist",
+   "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.AFTER_ENG_START",
+   "steps": [
+    {
+     "text": "Anti-ice on if there is visible moisture and it is below 10 C.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.AFTER_ENG_START.ANTI_ICE",
+     "why": "The sim's clue: \"Selected on if visible moisture and below 10c\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_ANTI_ICE_AUTO"
+      }
+     ]
+    },
+    {
+     "text": "Doors: all closed (shown on the internal screens).",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.AFTER_ENG_START.DOORS",
+     "why": "The sim's clue: \"Check that all doors are closed. can be viewed on the internal screens\"."
+    },
+    {
+     "text": "ECAM status page normal.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.AFTER_ENG_START.ECAM",
+     "why": "The sim's clue: \"Check the ecam status page displays normal\".",
+     "controls": [
+      {
+       "api": "AIRLINER_ECAM_STS"
+      }
+     ]
+    },
+    {
+     "text": "Pitch trim set for takeoff.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.AFTER_ENG_START.PITCH_TRIM",
+     "why": "The sim's clue: \"Check correct trim is set for takeoff\"."
+    },
+    {
+     "text": "Yaw trim below 0.3.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.AFTER_ENG_START.YAW_TRIM",
+     "why": "The sim's clue: \"Check the yaw trim is less than 0.3\"."
+    }
+   ],
+   "next": "es_done"
+  },
+  "es_done": {
+   "type": "end",
+   "title": "Engines running",
+   "text": "All four engines run and the after start checklist is done."
+  },
+  "to_ground": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "help": "The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, on the ground",
+     "next": "to_before"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "to_ground_air"
+    }
+   ]
+  },
+  "to_ground_air": {
+   "type": "info",
+   "title": "Flying",
+   "text": "Already airborne: the after takeoff checklist is next.",
+   "next": "to_after"
+  },
+  "to_before": {
+   "type": "steps",
+   "title": "Before takeoff checklist",
+   "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.BEFORE_TAKEOFF",
+   "steps": [
+    {
+     "text": "Crew briefing completed.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.BEFORE_TAKEOFF.BRIEFING",
+     "why": "The sim's clue: \"Make sure crew briefing has been completed\"."
+    },
+    {
+     "text": "Flight controls: full and free movement on the flight controls page.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.BEFORE_TAKEOFF.FLIGHT_CONTROLS",
+     "why": "The sim's clue: \"Check the flight controls page for full free movement\".",
+     "controls": [
+      {
+       "api": "AIRLINER_ECAM_FCTL"
+      }
+     ]
+    },
+    {
+     "text": "Flight instruments set.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.BEFORE_TAKEOFF.FLIGHT_INSTRUMENTS",
+     "why": "The sim's clue: \"General visual check to see if instruments are set\"."
+    },
+    {
+     "text": "IRS in NAV.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.BEFORE_TAKEOFF.IRS",
+     "why": "The sim's clue: \"Check the irs are set in nav mode\".",
+     "check": {
+      "code": "(L:INI_IRS_ALIGNED, number)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Weather radar: PWS on.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.BEFORE_TAKEOFF.RADAR_TX",
+     "why": "The sim's clue: \"Check that pws is selected on\".",
+     "controls": [
+      {
+       "api": "AIRLINER_WXR_PRED"
+      }
+     ]
+    },
+    {
+     "text": "V1, VR, V2 inserted.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.BEFORE_TAKEOFF.SPEEDS_CHECK",
+     "why": "The sim's clue: \"Check v speeds are inserted\"."
+    },
+    {
+     "text": "Both flight deck windows closed.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.BEFORE_TAKEOFF.WINDOWS",
+     "why": "The sim's clue: \"Check both flight deck windows are closed\"."
+    }
+   ],
+   "next": "to_takeoff"
+  },
+  "to_takeoff": {
+   "type": "steps",
+   "title": "Takeoff checklist",
+   "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.TAKEOFF",
+   "steps": [
+    {
+     "text": "Autobrake on RTO.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.TAKEOFF.AUTO_BRAKE",
+     "why": "The sim's clue: \"Brakes set to rejected takeoff setting\".",
+     "controls": [
+      {
+       "api": "AIRLINER_AUTO_BRK_MAX"
+      }
+     ]
+    },
+    {
+     "text": "Engine start selector on IGN START.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.TAKEOFF.ENGINE START SELECTOR",
+     "why": "The sim's clue: \"Make sure knob is set to ign/star postion\".",
+     "controls": [
+      {
+       "api": "AIRLINER_ENG_START",
+       "function": "ENG START: IGN START"
+      }
+     ],
+     "check": {
+      "input_event": "AIRLINER_ENG_START",
+      "op": "==",
+      "value": 2
+     }
+    },
+    {
+     "text": "Flaps at the takeoff setting.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.TAKEOFF.FLAPS",
+     "why": "The sim's clue: \"Flaps are set to the correct takeoff setting\".",
+     "readouts": [
+      {
+       "label": "Flaps lever",
+       "unit": "",
+       "code": "(L:FLAPS_HANDLE_POSITION, number)"
+      }
+     ]
+    },
+    {
+     "text": "Ground spoilers armed: white band showing.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.TAKEOFF.GND_SPOILERS",
+     "why": "The sim's clue: \"Check ground spoilers are armed, white band showing\".",
+     "controls": [
+      {
+       "api": "A400M_GND_SPOILER",
+       "function": "GND SPOILERS ARM: on"
+      }
+     ],
+     "check": {
+      "code": "(L:A400M_GND_SPOILER, number)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Tell the loadmaster the aircraft is about to take off.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.TAKEOFF.LOADMASTER",
+     "why": "The sim's clue: \"Inform the loadmaster aircraft is about to takeoff\"."
+    },
+    {
+     "text": "Packs 1 and 2 off or on, as the takeoff performance says.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.TAKEOFF.PACKS",
+     "why": "The sim's clue: \"Select packs off or leave them on depending on your takeoff performance calculation\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_AIR_PACK1"
+      },
+      {
+       "api": "AIRLINER_OVH_AIR_PACK2"
+      }
+     ]
+    },
+    {
+     "text": "Seat belt signs on.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.TAKEOFF.SEAT_BELTS",
+     "why": "The sim's clue: \"Check seat belts are selected on\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_SEATBELT",
+       "function": "SEAT BELTS SIGNS: ON"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_SEATBELTS_SWITCH, number)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "TO CONFIG test: normal.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.TAKEOFF.TO_CONFIG",
+     "why": "The sim's clue: \"Takeoff config test shows at normal\".",
+     "check": {
+      "code": "(L:TO_CONFIG_IS_READY, number)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Runway confirmed.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.TAKEOFF.TO_RUNWAY",
+     "why": "The sim's clue: \"Example, runway 26l confirmed\"."
+    }
+   ],
+   "next": "to_after"
+  },
+  "to_after": {
+   "type": "steps",
+   "title": "After takeoff checklist",
+   "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.AFTER_TAKEOFF",
+   "steps": [
+    {
+     "text": "Landing gear up, no lights.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.AFTER_TAKEOFF.LANDING_GEAR",
+     "why": "The sim's clue: \"Make sure gear is up showing and showing no lights\".",
+     "controls": [
+      {
+       "api": "LANDING_GEAR_GEAR"
+      }
+     ],
+     "check": {
+      "code": "(A:GEAR HANDLE POSITION, Bool)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Flaps 0.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.AFTER_TAKEOFF.FLAPS",
+     "why": "The sim's clue: \"Check flaps are selected to 0\".",
+     "check": {
+      "code": "(L:FLAPS_HANDLE_POSITION, number)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Packs 1 and 2 on.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.AFTER_TAKEOFF.PACKS",
+     "why": "The sim's clue: \"Check packs 1 and 2 are selected on\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_AIR_PACK1"
+      },
+      {
+       "api": "AIRLINER_OVH_AIR_PACK2"
+      }
+     ]
+    }
+   ],
+   "next": "to_done"
+  },
+  "to_done": {
+   "type": "end",
+   "title": "Climbing",
+   "text": "Gear and flaps are up."
+  },
+  "ld_approach": {
+   "type": "steps",
+   "title": "Approach checklist",
+   "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.APPROACH",
+   "steps": [
+    {
+     "text": "Crew briefing completed.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.APPROACH.BRIEFING",
+     "why": "The sim's clue: \"Make sure crew briefing has been complated\"."
+    },
+    {
+     "text": "ECAM status page normal.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.APPROACH.ECAM",
+     "why": "The sim's clue: \"Check that ecam status page shows normal\".",
+     "controls": [
+      {
+       "api": "AIRLINER_ECAM_STS"
+      }
+     ]
+    },
+    {
+     "text": "Altimeter: read the QNH shown, then set.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.APPROACH.ALTIMETER",
+     "why": "The sim's clue: \"Read qnh shown followed by set\".",
+     "controls": [
+      {
+       "api": "(L:XMLVAR_Baro1_Mode) 3 == if{ 1 (>L:INI_1_ALTIMETER_PUSH_COMMAND) } els{ 1 (>L:INI_1_ALTIMETER_PULL_COMMAND) }",
+       "function": "Baro: STD / QNH toggle"
+      }
+     ]
+    },
+    {
+     "text": "Minima: read them, then say set (example: 400 ft set).",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.APPROACH.MINIMA",
+     "why": "The sim's clue: \"Read the minima and then say set, example 400ft set\"."
+    },
+    {
+     "text": "Engine start selector as needed for wind shear.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.APPROACH.ENGINE_SELECTOR",
+     "why": "The sim's clue is only \"Wind shear\"; IGN START is the takeoff setting of the same checklist. Technique, not a checklist item.",
+     "controls": [
+      {
+       "api": "AIRLINER_ENG_START",
+       "function": "ENG START: IGN START"
+      }
+     ]
+    },
+    {
+     "text": "Seat belt signs on.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.APPROACH.SEAT_BELTS",
+     "why": "The sim's clue: \"Check seat belts are selected on\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_SEATBELT",
+       "function": "SEAT BELTS SIGNS: ON"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_SEATBELTS_SWITCH, number)",
+      "op": "==",
+      "value": 0
+     }
+    }
+   ],
+   "next": "ld_proc"
+  },
+  "ld_proc": {
+   "type": "steps",
+   "title": "Landing procedure",
+   "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.LANDING_PROCEDURE",
+   "steps": [
+    {
+     "text": "Landing lights on, coming onto the approach.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.LANDING_PROCEDURE.LIGHTS1",
+     "why": "The sim's clue: \"When you are coming onto the approach make sure you have the landing light selected\".",
+     "controls": [
+      {
+       "api": "INSTRUMENT_OVH_LDG_LIGHT_IE_ID",
+       "function": "LANDING LIGHTS: ON"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_LANDING_LIGHT_SWITCH, number)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Takeoff lights on.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.LANDING_PROCEDURE.LIGHTS2",
+     "why": "The sim's clue: \"Select takeoff light on/rnway turn off\".",
+     "controls": [
+      {
+       "api": "INSTRUMENT_OVH_TAXI_IE_ID",
+       "function": "TAKEOFF AND TAXI LIGHTS: ON"
+      }
+     ]
+    },
+    {
+     "text": "Runway turn off lights on.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.LANDING_PROCEDURE.LIGHTS2",
+     "why": "The sim's clue: \"Select takeoff light on/rnway turn off\".",
+     "controls": [
+      {
+       "api": "INSTRUMENT_OVH_RWY_TURNOFF_IE_ID",
+       "function": "RUNWAY TURN OFF LIGHTS: ON"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_TURNOFF_LIGHT_SWITCH, number)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Autobrake LO, MED or HI, to land with it.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.LANDING_PROCEDURE.AUTO_BRAKE",
+     "why": "The sim's clue: \"If you want to land with auto brake make sure you have low med or hi selected\".",
+     "controls": [
+      {
+       "api": "AIRLINER_AUTO_BRK_LO"
+      },
+      {
+       "api": "AIRLINER_AUTO_BRK_MED"
+      },
+      {
+       "api": "AIRLINER_AUTO_BRK_MAX"
+      }
+     ]
+    },
+    {
+     "text": "Arm the ground spoilers.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.LANDING_PROCEDURE.GND_SPOILERS",
+     "why": "The sim's clue: \"This will arm the ground spoilers to deploy on landing\".",
+     "controls": [
+      {
+       "api": "A400M_GND_SPOILER",
+       "function": "GND SPOILERS ARM: on"
+      }
+     ],
+     "check": {
+      "code": "(L:A400M_GND_SPOILER, number)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Flaps 1 on base (about 15 miles out).",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.LANDING_PROCEDURE.FLAPS",
+     "why": "The sim's clue: \"Select flaps 1 when on base to landing (around 15 miles) select flaps 2 when going down the glide slope, select gear down and then flaps 3 4 and then full.\".",
+     "check": {
+      "code": "(L:FLAPS_HANDLE_POSITION, number)",
+      "op": ">=",
+      "value": 1
+     }
+    },
+    {
+     "text": "Flaps 2 going down the glide slope.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.LANDING_PROCEDURE.FLAPS",
+     "why": "The sim's clue: \"Select flaps 1 when on base to landing (around 15 miles) select flaps 2 when going down the glide slope, select gear down and then flaps 3 4 and then full.\".",
+     "check": {
+      "code": "(L:FLAPS_HANDLE_POSITION, number)",
+      "op": ">=",
+      "value": 2
+     }
+    },
+    {
+     "text": "Gear down after flaps 2.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.LANDING_PROCEDURE.GEAR",
+     "why": "The sim's clue: \"Select the gear down after flaps 2\".",
+     "controls": [
+      {
+       "api": "LANDING_GEAR_GEAR"
+      }
+     ],
+     "check": {
+      "code": "(A:GEAR HANDLE POSITION, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Flaps 3, 4, then FULL.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.LANDING_PROCEDURE.FLAPS",
+     "why": "The sim's clue: \"Select flaps 1 when on base to landing (around 15 miles) select flaps 2 when going down the glide slope, select gear down and then flaps 3 4 and then full.\".",
+     "readouts": [
+      {
+       "label": "Flaps lever",
+       "unit": "",
+       "code": "(L:FLAPS_HANDLE_POSITION, number)"
+      }
+     ]
+    }
+   ],
+   "next": "ld_check"
+  },
+  "ld_check": {
+   "type": "steps",
+   "title": "Landing checklist",
+   "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.LANDING",
+   "steps": [
+    {
+     "text": "A/THR mode: SPEED or off.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.LANDING.ATHR",
+     "why": "The sim's clue: \"This will either be speed or off\".",
+     "controls": [
+      {
+       "api": "AIRLINER_FCU_ATHR"
+      }
+     ]
+    },
+    {
+     "text": "Autobrake: LO, MED, HI or off.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.LANDING.AUTO_BRAKE",
+     "why": "The sim's clue: \"This will either be low med hi or off\"."
+    },
+    {
+     "text": "Tell the loadmaster the aircraft is about to land.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.LANDING.LOADMASTER",
+     "why": "The sim's clue: \"Inform the loadmaster aircraft is about to land\"."
+    }
+   ],
+   "next": "ld_done"
+  },
+  "ld_done": {
+   "type": "end",
+   "title": "Ready to land",
+   "text": "The aircraft is configured for the landing."
+  },
+  "al_proc": {
+   "type": "steps",
+   "title": "After landing procedure",
+   "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.AFTER_LANDING_PROCEDURE",
+   "steps": [
+    {
+     "text": "Flaps 0.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.AFTER_LANDING_PROCEDURE.FLAPS",
+     "why": "The sim's clue: \"Select flaps to the zero position\".",
+     "check": {
+      "code": "(L:FLAPS_HANDLE_POSITION, number)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Strobe lights off.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.AFTER_LANDING_PROCEDURE.LIGHTS",
+     "why": "The sim's clue: \"If selected on turn the wing light off as well\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_STROBE",
+       "function": "STROBE LIGHTS: OFF"
+      }
+     ]
+    },
+    {
+     "text": "Landing lights off.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.AFTER_LANDING_PROCEDURE.LIGHTS",
+     "why": "The sim's clue: \"If selected on turn the wing light off as well\".",
+     "controls": [
+      {
+       "api": "INSTRUMENT_OVH_LDG_LIGHT_IE_ID",
+       "function": "LANDING LIGHTS: OFF"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_LANDING_LIGHT_SWITCH, number)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Wing lights off, if they were on.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.AFTER_LANDING_PROCEDURE.LIGHTS",
+     "why": "The sim's clue: \"If selected on turn the wing light off as well\".",
+     "controls": [
+      {
+       "api": "INSTRUMENT_OVH_WING_IE_ID",
+       "function": "WING LIGHTS: OFF"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_WING_LIGHT_SWITCH, number)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "APU MASTER on.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.AFTER_LANDING_PROCEDURE.APU_MASTER",
+     "why": "The sim's clue: \"Start the apu by pressing the apu\".",
+     "controls": [
+      {
+       "api": "AIRLINER_APU_MASTER"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_APU_MASTER_SWITCH, number)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Wait 3 seconds, then press APU START.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.AFTER_LANDING_PROCEDURE.APU_START",
+     "why": "The sim's clue: \"Press the apu start switch a minimum of 3 seconds after the apu master switch is selected on\".",
+     "controls": [
+      {
+       "api": "AIRLINER_APU_START"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_APU_AVAILABLE, number)",
+      "op": "==",
+      "value": 1
+     }
+    }
+   ],
+   "next": "al_parking"
+  },
+  "al_parking": {
+   "type": "steps",
+   "title": "Parking checklist",
+   "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.PARKING",
+   "steps": [
+    {
+     "text": "Parking brake set, or the chocks in place.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.PARKING.PARKING_BRAKES",
+     "why": "The sim's clue: \"Either parking brake set or chocks selected\".",
+     "controls": [
+      {
+       "api": "LANDING_GEAR_PARKINGBRAKE"
+      },
+      {
+       "api": "UNKNOWN_CHOCKS"
+      }
+     ]
+    },
+    {
+     "text": "APU BLEED on once the APU runs.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.PARKING.APU_BLEED",
+     "why": "The sim's clue: \"Make sure apu is started and then select the apu bleed on.\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_AIR_APU_BLEED"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_APU_BLEED_BUTTON, number)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "ENG 1 MASTER off.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.PARKING.ALL_ENGINES",
+     "why": "The sim's clue: \"Make sure that all engines master switches are selected off\".",
+     "controls": [
+      {
+       "api": "AIRLINER_ENG1_CUTOFF",
+       "function": "ENG 1 MASTER: OFF"
+      }
+     ],
+     "check": {
+      "input_event": "AIRLINER_ENG1_CUTOFF",
+      "op": "==",
+      "value": 2
+     },
+     "readouts": [
+      {
+       "label": "ENG 1 available",
+       "unit": "",
+       "code": "(L:ENGINE_1_AVAIL, number)"
+      }
+     ]
+    },
+    {
+     "text": "ENG 2 MASTER off.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.PARKING.ALL_ENGINES",
+     "why": "The sim's clue: \"Make sure that all engines master switches are selected off\".",
+     "controls": [
+      {
+       "api": "AIRLINER_ENG2_CUTOFF",
+       "function": "ENG 2 MASTER: OFF"
+      }
+     ],
+     "check": {
+      "input_event": "AIRLINER_ENG2_CUTOFF",
+      "op": "==",
+      "value": 2
+     },
+     "readouts": [
+      {
+       "label": "ENG 2 available",
+       "unit": "",
+       "code": "(L:ENGINE_2_AVAIL, number)"
+      }
+     ]
+    },
+    {
+     "text": "ENG 3 MASTER off.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.PARKING.ALL_ENGINES",
+     "why": "The sim's clue: \"Make sure that all engines master switches are selected off\".",
+     "controls": [
+      {
+       "api": "AIRLINER_ENG3_CUTOFF",
+       "function": "ENG 3 MASTER: OFF"
+      }
+     ],
+     "check": {
+      "input_event": "AIRLINER_ENG3_CUTOFF",
+      "op": "==",
+      "value": 2
+     },
+     "readouts": [
+      {
+       "label": "ENG 3 available",
+       "unit": "",
+       "code": "(L:ENGINE_3_AVAIL, number)"
+      }
+     ]
+    },
+    {
+     "text": "ENG 4 MASTER off.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.PARKING.ALL_ENGINES",
+     "why": "The sim's clue: \"Make sure that all engines master switches are selected off\".",
+     "controls": [
+      {
+       "api": "AIRLINER_ENG4_CUTOFF",
+       "function": "ENG 4 MASTER: OFF"
+      }
+     ],
+     "check": {
+      "input_event": "AIRLINER_ENG4_CUTOFF",
+      "op": "==",
+      "value": 2
+     },
+     "readouts": [
+      {
+       "label": "ENG 4 available",
+       "unit": "",
+       "code": "(L:ENGINE_4_AVAIL, number)"
+      }
+     ]
+    },
+    {
+     "text": "Fuel pumps off.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.PARKING.FUEL_PUMPS",
+     "why": "The sim's clue: \"Check fuel pumps are selected off\".",
+     "controls": [
+      {
+       "api": "AIRLINER_FUEL_FEED_TK1"
+      },
+      {
+       "api": "AIRLINER_FUEL_FEED_TK2"
+      },
+      {
+       "api": "AIRLINER_FUEL_FEED_TK3_MAN"
+      },
+      {
+       "api": "AIRLINER_FUEL_FEED_TK4_MAN"
+      }
+     ],
+     "check": {
+      "code": "(L:A400M_FUEL_FEED1_PUMP_ON, number) (L:A400M_FUEL_FEED2_PUMP_ON, number) + (L:A400M_FUEL_FEED3_PUMP_ON, number) + (L:A400M_FUEL_FEED4_PUMP_ON, number) +",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Seat belt signs off.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.PARKING.SEAT_BELTS",
+     "why": "The sim's clue: \"Check seat belts are selected off\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_SEATBELT",
+       "function": "SEAT BELTS SIGNS: OFF"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_SEATBELTS_SWITCH, number)",
+      "op": "==",
+      "value": 2
+     }
+    },
+    {
+     "text": "Exit lights: leave on for a turnaround, off to shut the aircraft down.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.PARKING.EXIT_LIGHTS",
+     "why": "The sim's clue: \"Exit lights left on if crew are doing turn around, or selected off if shutting down the aircraft\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_EMER_EXIT",
+       "function": "EMERGENCY EXTERNAL LIGHTS: OFF"
+      }
+     ]
+    }
+   ],
+   "next": "al_done"
+  },
+  "al_done": {
+   "type": "end",
+   "title": "Parked",
+   "text": "The engines are off and the APU supplies the aircraft."
+  },
+  "sd_proc": {
+   "type": "steps",
+   "title": "Shutdown procedure",
+   "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.SHUTDOWN_PROCEDURE",
+   "steps": [
+    {
+     "text": "External power on, if ground power is connected.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.SHUTDOWN_PROCEDURE.EXT_POWER",
+     "why": "The sim's clue: \"If you have ground power connected to the aircraft select this on\".",
+     "controls": [
+      {
+       "api": "AIRLINER_EXT_POWER"
+      }
+     ]
+    },
+    {
+     "text": "APU BLEED off.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.SHUTDOWN_PROCEDURE.APU_BLEED",
+     "why": "The sim's clue: \"Select apu bleed off\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_AIR_APU_BLEED"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_APU_BLEED_BUTTON, number)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "APU MASTER off, if the APU runs.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.SHUTDOWN_PROCEDURE.APU_MASTER",
+     "why": "The sim's clue: \"If running shutdown the apu\".",
+     "controls": [
+      {
+       "api": "AIRLINER_APU_MASTER"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_APU_MASTER_SWITCH, number)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Fuel pumps off.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.SHUTDOWN_PROCEDURE.FUEL_PUMPS",
+     "why": "The sim's clue: \"Select all the fuel pumps to off\".",
+     "controls": [
+      {
+       "api": "AIRLINER_FUEL_FEED_TK1_STBY"
+      },
+      {
+       "api": "AIRLINER_FUEL_FEED_TK2_STBY"
+      },
+      {
+       "api": "AIRLINER_FUEL_FEED_TK3_STBY"
+      },
+      {
+       "api": "AIRLINER_FUEL_FEED_TK4_STBY"
+      }
+     ],
+     "check": {
+      "code": "(L:A400M_FUEL_FEED1_STBY_PUMP_ON, number) (L:A400M_FUEL_FEED2_STBY_PUMP_ON, number) + (L:A400M_FUEL_FEED3_STBY_PUMP_ON, number) + (L:A400M_FUEL_FEED4_STBY_PUMP_ON, number) +",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "ADR 1, 2, 3 off.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.SHUTDOWN_PROCEDURE.GADIRS",
+     "why": "The sim's clue: \"Select all the adr and ir buttons to off\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_ADR1"
+      },
+      {
+       "api": "AIRLINER_OVH_ADR2"
+      },
+      {
+       "api": "AIRLINER_OVH_ADR3"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_ADR1_STATE, number) (L:INI_ADR2_STATE, number) + (L:INI_ADR3_STATE, number) +",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "IR 1, 2, 3 off.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.SHUTDOWN_PROCEDURE.GADIRS",
+     "why": "The sim's clue: \"Select all the adr and ir buttons to off\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_IR1"
+      },
+      {
+       "api": "AIRLINER_OVH_IR2"
+      },
+      {
+       "api": "AIRLINER_OVH_IR3"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_IR1_STATE, number) (L:INI_IR2_STATE, number) + (L:INI_IR3_STATE, number) +",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "All exterior lights off.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.SHUTDOWN_PROCEDURE.LIGHTS",
+     "why": "The sim's clue: \"Check all the external lights are off\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_BEACON",
+       "function": "BEACON LIGHTS: OFF"
+      },
+      {
+       "api": "INSTRUMENT_OVH_NAV_IE_ID",
+       "function": "NAVIGATION LIGHTS: OFF"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_BEACON_LIGHT_SWITCH, number)",
+      "op": "==",
+      "value": 2
+     }
+    },
+    {
+     "text": "Seat belt signs off.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.SHUTDOWN_PROCEDURE.SIGNS",
+     "why": "The sim's clue: \"Make sure both seat belts and emergency exits are selected off\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_SEATBELT",
+       "function": "SEAT BELTS SIGNS: OFF"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_SEATBELTS_SWITCH, number)",
+      "op": "==",
+      "value": 2
+     }
+    },
+    {
+     "text": "Emergency exit lights off.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.SHUTDOWN_PROCEDURE.SIGNS",
+     "why": "The sim's clue: \"Make sure both seat belts and emergency exits are selected off\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_EMER_EXIT",
+       "function": "EMERGENCY EXTERNAL LIGHTS: OFF"
+      }
+     ]
+    },
+    {
+     "text": "Batteries 1, 2 and ESS stay on until the securing checklist.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.SHUTDOWN_PROCEDURE.BATTERY",
+     "why": "The sim's clue: \"Select all 3 main batteries to on\"; the securing checklist turns them off."
+    }
+   ],
+   "next": "sd_secure"
+  },
+  "sd_secure": {
+   "type": "steps",
+   "title": "Securing checklist",
+   "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.SECURING",
+   "steps": [
+    {
+     "text": "ADIRS push buttons off.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.SECURING.ADIRS",
+     "why": "The sim's clue: \"Make sure the adirs push buttons are selected off\".",
+     "check": {
+      "code": "(L:INI_ADR1_STATE, number) (L:INI_IR1_STATE, number) +",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "APU BLEED off.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.SECURING.APU_BLEED",
+     "why": "The sim's clue: \"Check the apu bleed is selected off\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_AIR_APU_BLEED"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_APU_BLEED_BUTTON, number)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Emergency exit lights off.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.SECURING.EMER_LIGHTS",
+     "why": "The sim's clue: \"Check emergency exit lights are set to off\".",
+     "controls": [
+      {
+       "api": "AIRLINER_OVH_EMER_EXIT",
+       "function": "EMERGENCY EXTERNAL LIGHTS: OFF"
+      }
+     ]
+    },
+    {
+     "text": "APU shut down.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.SECURING.APU_BATTERY",
+     "why": "The sim's clue: \"Make sure apu is shutdown and battery 1 2 and ess bat are selected off\".",
+     "check": {
+      "code": "(L:INI_APU_AVAILABLE, number)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Battery 1 off.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.SECURING.APU_BATTERY",
+     "why": "The sim's clue: \"Make sure apu is shutdown and battery 1 2 and ess bat are selected off\".",
+     "controls": [
+      {
+       "api": "AIRLINER_ELEC_BAT1"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_OVHD_ELEC_BAT_1_PB_IS_AUTO, number)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Battery 2 off.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.SECURING.APU_BATTERY",
+     "why": "The sim's clue: \"Make sure apu is shutdown and battery 1 2 and ess bat are selected off\".",
+     "controls": [
+      {
+       "api": "AIRLINER_ELEC_BAT2"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_OVHD_ELEC_BAT_2_PB_IS_AUTO, number)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Essential battery off.",
+     "source": "A400M language file (microsoft-aircraft-a400m, minimal.fsarchive, en-us.locpak): A400.CHECKLISTS.SECURING.APU_BATTERY",
+     "why": "The sim's clue: \"Make sure apu is shutdown and battery 1 2 and ess bat are selected off\".",
+     "controls": [
+      {
+       "api": "AIRLINER_ELEC_BAT_ESS"
+      }
+     ],
+     "check": {
+      "code": "(L:INI_OVHD_ELEC_BAT_3_PB_IS_AUTO, number)",
+      "op": "==",
+      "value": 0
+     }
+    }
+   ],
+   "next": "sd_done"
+  },
+  "sd_done": {
+   "type": "end",
+   "title": "Secured",
+   "text": "The aircraft is cold and dark."
+  }
+ }
+}

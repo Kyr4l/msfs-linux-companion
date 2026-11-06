@@ -1,0 +1,3893 @@
+{
+ "source": "Official2024/Steam/microsoft-aircraft-a400m/minimal.fsarchive, en-us.locpak: the A400M.TOOLTIPS.* strings (title, action and the names of the positions), unencrypted archive",
+ "tooltips": {
+  "ACCU_PRESS_TEST": {
+   "ACTION": "REINFLATE BRAKE ACCUMULATOR",
+   "IN": "REINFLATING",
+   "TITLE": "BRAKE ACCUMULATOR REINFLATE"
+  },
+  "ACC_ESS_FEED": {
+   "ACTION": "SET ACC ESS FEED",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "ACC ESS FEED"
+  },
+  "ACC_ESS_FEED_GUARD": {
+   "ACTION": "UNCOVER/COVER ACC ESS FEED",
+   "OFF": "OPEN",
+   "ON": "COVERED",
+   "TITLE": "ACC ESS FEED GUARD"
+  },
+  "AIR_DATA": {
+   "1": "CM1/ON3",
+   "2": "NORM",
+   "3": "CM2/ON3",
+   "ACTION": "SET AIR DATA SOURCE",
+   "TITLE": "AIR DATA SOURCE SELECTOR"
+  },
+  "ANTISKID": {
+   "1": "OFF",
+   "2": "ON",
+   "ACTION": "SET ANTISKID",
+   "TITLE": "ANTISKID"
+  },
+  "APU_MASTER": {
+   "ACTION": "TOGGLE APU MASTER",
+   "OFF": "AUTO",
+   "ON": "OFF",
+   "TITLE": "APU MASTER SWITCH"
+  },
+  "APU_START": {
+   "ACTION": "START APU",
+   "OFF": "AUTO",
+   "ON": "OFF",
+   "TITLE": "APU START"
+  },
+  "ATT_HDG": {
+   "1": "CM1/ON3",
+   "2": "NORM",
+   "3": "CM2/ON3",
+   "ACTION": "SET ATT HDG SOURCE",
+   "TITLE": "ATT HDG SOURCE SELECTOR"
+  },
+  "AUDIO_MODE_GUARD": {
+   "ACTION": "UNCOVER/COVER AUDIO MODE SWITCH",
+   "OFF": "OPEN",
+   "ON": "COVERED",
+   "TITLE": "AUDIO MODE SWITCH GUARD"
+  },
+  "AUDIO_MODE_TOGGLE": {
+   "1": "BACKUP",
+   "2": "TACT",
+   "3": "NORM",
+   "ACTION": "SET AUDIO MODE",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "AUDIO MODE SWITCH"
+  },
+  "AUTO_BRK_LO": {
+   "ACTION": "SET AUTOBRAKE LOW",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "AUTOBRAKE LOW"
+  },
+  "AUTO_BRK_MAX": {
+   "ACTION": "SET AUTOBRAKE HIGH/RTO",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "AUTOBRAKE HIGH/RTO"
+  },
+  "AUTO_BRK_MED": {
+   "ACTION": "SET AUTOBRAKE MED",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "AUTOBRAKE MED"
+  },
+  "AVNCS_BLOW": {
+   "ACTION": "TOGGLE AVIONICS BLOWING",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "AVIONICS BLOWING"
+  },
+  "CAB_ALT": {
+   "ACTION": "ADJUST CABIN VERTICAL SPEED",
+   "TITLE": "CABIN VERTICAL SPEED SELECTOR"
+  },
+  "CAB_ALT_MODE": {
+   "1": "100",
+   "2": "1000",
+   "ACTION": "SELECT CABIN ALTITUDE MODE",
+   "TITLE": "CABIN ALTITUDE MODE SELECTOR"
+  },
+  "CAB_PRESS_MODE": {
+   "1": "TACT DEPRESS",
+   "2": "AUTO",
+   "3": "SEMI AUTO",
+   "4": "MANUAL",
+   "ACTION": "SELECT CABIN PRESS MODE",
+   "TITLE": "CABIN PRESS MODE SELECTOR"
+  },
+  "CARGO_DOOR_TOGGLE": {
+   "1": "DOWN",
+   "2": "OFF",
+   "3": "UP",
+   "ACTION": "TOGGLE CARGO DOOR & RAMP",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CARGO DOOR & RAMP"
+  },
+  "CARGO_DOOR_TOGGLE_GUARD": {
+   "ACTION": "UNCOVER CARGO DOOR & RAMP BUTTON",
+   "OFF": "OPEN",
+   "ON": "CLOSED",
+   "TITLE": "CARGO DOOR & RAMP GUARD"
+  },
+  "COCKPIT_DOOR": {
+   "ACTION": "OPEN/CLOSE DOOR",
+   "OFF": "OPEN",
+   "ON": "CLOSED",
+   "TITLE": "FLIGHT DECK DOOR"
+  },
+  "CPT_ADF_VOL": {
+   "ACTION": "ADJUST ADF VOLUME",
+   "TITLE": "ADF VOLUME"
+  },
+  "CPT_ADF_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "CPT_ARMREST_LS": {
+   "ACTION": "SET ARM REST",
+   "OFF": "TOGGLE",
+   "ON": "TOGGLE",
+   "TITLE": "RIGHT ARM REST 5"
+  },
+  "CPT_BARO_BIG": {
+   "1": "inHg",
+   "2": "hPa",
+   "ACTION": "TOGGLE HPA / INHG",
+   "TITLE": "BAROMETER UNITS SELECTOR"
+  },
+  "CPT_BARO_SMALL": {
+   "ACTION": "ADJUST CPT ALTIMETER",
+   "TITLE": "CPT ALTIMETER"
+  },
+  "CPT_BARO_SMALL_PUSH": {
+   "STATE_PULL": "SET STD ALTIMETER SETTING",
+   "STATE_PULL_VALUE": "PULL",
+   "STATE_PUSH": "SET LOCAL PRESSURE SETTING",
+   "STATE_PUSH_VALUE": "PUSH"
+  },
+  "CPT_COMM_BRT": {
+   "ACTION": "ADJUST RADIO PANEL BRIGHTNESS",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL BRIGHTNESS"
+  },
+  "CPT_COMM_BSK_1": {
+   "ACTION": "SET RADIO FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL"
+  },
+  "CPT_COMM_BSK_2": {
+   "ACTION": "SET RADIO FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL"
+  },
+  "CPT_COMM_BSK_3": {
+   "ACTION": "SET RADIO FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL"
+  },
+  "CPT_COMM_BSK_4": {
+   "ACTION": "SET RADIO FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL"
+  },
+  "CPT_COMM_HFF1": {
+   "ACTION": "SET IFF1-3",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL IFF1-3"
+  },
+  "CPT_COMM_HFF4": {
+   "ACTION": "SET IFF4-5",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL IFF4-5"
+  },
+  "CPT_COMM_IDENT": {
+   "ACTION": "SET IDENT",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "COMM IDENT"
+  },
+  "CPT_COMM_KP_0": {
+   "ACTION": "SET NUMBER 0",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "CPT_COMM_KP_1": {
+   "ACTION": "SET NUMBER 1",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "CPT_COMM_KP_2": {
+   "ACTION": "SET NUMBER 2",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "CPT_COMM_KP_3": {
+   "ACTION": "SET NUMBER 3",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "CPT_COMM_KP_4": {
+   "ACTION": "SET NUMBER 4",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "CPT_COMM_KP_5": {
+   "ACTION": "SET NUMBER 5",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "CPT_COMM_KP_6": {
+   "ACTION": "SET NUMBER 6",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "CPT_COMM_KP_7": {
+   "ACTION": "SET NUMBER 7",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "CPT_COMM_KP_8": {
+   "ACTION": "SET NUMBER 8",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "CPT_COMM_KP_9": {
+   "ACTION": "SET NUMBER 9",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "CPT_COMM_KP_CLR": {
+   "ACTION": "PRESS TO CLEAR RADIO ENTRY",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL CLEAR"
+  },
+  "CPT_COMM_KP_XY": {
+   "ACTION": "SET X/Y DESIGNATOR",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL X/Y SELECTOR"
+  },
+  "CPT_COMM_MENU": {
+   "ACTION": "TOGGLE PANEL MENU",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT RADIO PANEL MENU"
+  },
+  "CPT_COMM_TSK_1": {
+   "ACTION": "SET RADIO FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL"
+  },
+  "CPT_COMM_TSK_2": {
+   "ACTION": "SET RADIO FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL"
+  },
+  "CPT_COMM_TSK_3": {
+   "ACTION": "SET RADIO FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL"
+  },
+  "CPT_COMM_TSK_4": {
+   "ACTION": "SET RADIO FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL"
+  },
+  "CPT_CONSOLE_LT_KNOB": {
+   "ACTION": "ADJUST CPT CONSOLE LIGHT",
+   "TITLE": "CPT CONSOLE LIGHT"
+  },
+  "CPT_EFIS_L_BSK_1": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT LEFT EFIS FUNCTION BUTTON"
+  },
+  "CPT_EFIS_L_BSK_2": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT LEFT EFIS FUNCTION BUTTON"
+  },
+  "CPT_EFIS_L_BSK_3": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT LEFT EFIS FUNCTION BUTTON"
+  },
+  "CPT_EFIS_L_BSK_4": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT LEFT EFIS FUNCTION BUTTON"
+  },
+  "CPT_EFIS_L_BSK_5": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT LEFT EFIS FUNCTION BUTTON"
+  },
+  "CPT_EFIS_L_FMT": {
+   "ACTION": "SET CPT LEFT FMT",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT LEFT FMT"
+  },
+  "CPT_EFIS_L_KNOB_BIG": {
+   "0": "SET",
+   "1": "SET",
+   "2": "SET",
+   "3": "SET",
+   "4": "SET",
+   "5": "SET",
+   "6": "SET",
+   "ACTION": "ADJUST CPT MAP MODE",
+   "TITLE": "CPT MAP MODE"
+  },
+  "CPT_EFIS_L_KNOB_SMALL": {
+   "0": "SET",
+   "1": "SET",
+   "2": "SET",
+   "3": "SET",
+   "4": "SET",
+   "5": "SET",
+   "6": "SET",
+   "ACTION": "ADJUST CPT MAP RANGE",
+   "TITLE": "CPT MAP RANGE"
+  },
+  "CPT_EFIS_L_TSK_1": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT LEFT EFIS FUNCTION BUTTON"
+  },
+  "CPT_EFIS_L_TSK_2": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT LEFT EFIS FUNCTION BUTTON"
+  },
+  "CPT_EFIS_L_TSK_3": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT LEFT EFIS FUNCTION BUTTON"
+  },
+  "CPT_EFIS_L_TSK_4": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT LEFT EFIS FUNCTION BUTTON"
+  },
+  "CPT_EFIS_L_TSK_5": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT LEFT EFIS FUNCTION BUTTON"
+  },
+  "CPT_EFIS_R_BSK_1": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT RIGHT EFIS FUNCTION BUTTON"
+  },
+  "CPT_EFIS_R_BSK_2": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT RIGHT EFIS FUNCTION BUTTON"
+  },
+  "CPT_EFIS_R_BSK_3": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT RIGHT EFIS FUNCTION BUTTON"
+  },
+  "CPT_EFIS_R_BSK_4": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT RIGHT EFIS FUNCTION BUTTON"
+  },
+  "CPT_EFIS_R_BSK_5": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT RIGHT EFIS FUNCTION BUTTON"
+  },
+  "CPT_EFIS_R_FMT": {
+   "ACTION": "SET CPT RIGHT FMT",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT RIGHT FMT"
+  },
+  "CPT_EFIS_R_KNOB_BIG": {
+   "0": "LS",
+   "1": "VOR",
+   "2": "NAV",
+   "3": "ARC",
+   "4": "PLAN",
+   "5": "ENG",
+   "6": "ROSE 6",
+   "ACTION": "ADJUST EFIS SETTING",
+   "TITLE": "EFIS OUTER ADJUST KNOB"
+  },
+  "CPT_EFIS_R_KNOB_SMALL": {
+   "0": "SET",
+   "1": "SET",
+   "2": "SET",
+   "3": "SET",
+   "4": "SET",
+   "5": "SET",
+   "ACTION": "ADJUST EFIS SETTING",
+   "TITLE": "EFIS INNER ADJUST KNOB"
+  },
+  "CPT_EFIS_R_TSK_1": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT RIGHT EFIS FUNCTION BUTTON"
+  },
+  "CPT_EFIS_R_TSK_2": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT RIGHT EFIS FUNCTION BUTTON"
+  },
+  "CPT_EFIS_R_TSK_3": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT RIGHT EFIS FUNCTION BUTTON"
+  },
+  "CPT_EFIS_R_TSK_4": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT RIGHT EFIS FUNCTION BUTTON"
+  },
+  "CPT_EFIS_R_TSK_5": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT RIGHT EFIS FUNCTION BUTTON"
+  },
+  "CPT_GEN_VOL": {
+   "ACTION": "ADJUST GENERAL VOLUME",
+   "TITLE": "GENERAL VOLUME KNOB"
+  },
+  "CPT_GEN_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "CPT_GEN_VOL_SEL": {
+   "ACTION": "ACTION GENERAL DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "GENERAL DOWN"
+  },
+  "CPT_HF1_VOL": {
+   "ACTION": "ADJUST HF 1 VOLUME",
+   "TITLE": "HF 1 VOLUME KNOB"
+  },
+  "CPT_HF1_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "CPT_HF1_VOL_SEL": {
+   "ACTION": "ACTION HF 1 UPPER",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "HF 1 UPPER"
+  },
+  "CPT_HF1_VOL_SEL2": {
+   "ACTION": "ACTION HF 1 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "HF 1 DOWN"
+  },
+  "CPT_HF2_VOL": {
+   "ACTION": "ADJUST HF 2 VOLUME",
+   "TITLE": "HF 2 VOLUME KNOB"
+  },
+  "CPT_HF2_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "CPT_HF2_VOL_SEL": {
+   "ACTION": "ACTION HF 2 UPPER",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "HF 2 UPPER"
+  },
+  "CPT_HF2_VOL_SEL2": {
+   "ACTION": "ACTION HF 2 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "HF 2 DOWN"
+  },
+  "CPT_HUD_ARM": {
+   "ACTION": "TOGGLE CPT HUD POSITION",
+   "OFF": "TOGGLE",
+   "ON": "TOGGLE",
+   "TITLE": "CAPTAIN HUD"
+  },
+  "CPT_HUD_LS": {
+   "ACTION": "SET HUD LS MODE",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "LS MODE"
+  },
+  "CPT_HUD_NAV": {
+   "ACTION": "SET HUD NAV MODE",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "NAV MODE"
+  },
+  "CPT_INNER_DU_BRT_BIG": {
+   "ACTION": "ADJUST MFD BRIGHTNESS",
+   "TITLE": "MFD BRIGHTNESS"
+  },
+  "CPT_INNER_DU_BRT_SMALL": {
+   "ACTION": "CAPTAIN HUD",
+   "TITLE": "SEC INNER KNOB"
+  },
+  "CPT_INT_TOGGLE": {
+   "0": "INT",
+   "1": "VOX",
+   "2": "RAD",
+   "ACTION": "TOGGLE",
+   "TITLE": "CPT INT"
+  },
+  "CPT_LS_VOL": {
+   "ACTION": "ADJUST LS VOLUME",
+   "TITLE": "LS VOLUME"
+  },
+  "CPT_LT_KNOB_BIG": {
+   "ACTION": "ADJUST VALUE",
+   "TITLE": "LT BRIGHTNESS"
+  },
+  "CPT_LT_KNOB_SMALL": {
+   "ACTION": "ADJUST VALUE",
+   "TITLE": "OUTER BRIGHTNESS"
+  },
+  "CPT_MAP_LIGHT_KNOB": {
+   "ACTION": "ADJUST CPT LIGHT BRIGTHNESS",
+   "TITLE": "CPT MAP LIGHT"
+  },
+  "CPT_MASTER_CAUTION": {
+   "ACTION": "TOGGLE MASTER CAUTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "MASTER CAUTION"
+  },
+  "CPT_MASTER_WARN": {
+   "ACTION": "TOGGLE MASTER WARNING",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "MASTER WARNING"
+  },
+  "CPT_MKR_VOL": {
+   "ACTION": "ADJUST MKR VOLUME",
+   "TITLE": "MKR VOLUME"
+  },
+  "CPT_MKR_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "CPT_MOS1_VOL": {
+   "ACTION": "ADJUST MIDS 1 VOLUME",
+   "TITLE": "MIDS 1 VOLUME KNOB"
+  },
+  "CPT_MOS1_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "CPT_MOS1_VOL_SEL": {
+   "ACTION": "ACTION MIDS 1 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "MIDS 1 DOWN"
+  },
+  "CPT_MOS2_VOL": {
+   "ACTION": "ADJUST MIDS 2 VOLUME",
+   "TITLE": "MIDS 2 VOLUME KNOB"
+  },
+  "CPT_MOS2_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "CPT_MOS2_VOL_SEL": {
+   "ACTION": "ACTION MIDS 2 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "MIDS 2 DOWN"
+  },
+  "CPT_OF_VOL": {
+   "ACTION": "ADJUST OF VOLUME",
+   "TITLE": "DF VOLUME"
+  },
+  "CPT_OF_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "CPT_OUTER_DU_BRT_BIG": {
+   "ACTION": "ADJUST PFD BRIGHTNESS",
+   "TITLE": "PFD BRIGHTNESS"
+  },
+  "CPT_OUTER_DU_BRT_SMALL": {
+   "ACTION": "ADJUST BRIGHTNESS",
+   "TITLE": "SEC DU KNOB"
+  },
+  "CPT_OVRD_PUSH": {
+   "ACTION": "OVERRIDE",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "CPT OVERRIDE"
+  },
+  "CPT_PAV_VOL": {
+   "ACTION": "ADJUST PRIV VOLUME",
+   "TITLE": "PRIV VOLUME KNOB"
+  },
+  "CPT_PAV_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "CPT_PAV_VOL_SEL": {
+   "ACTION": "ACTION PRIV DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "PRIV DOWN"
+  },
+  "CPT_PA_VOL": {
+   "ACTION": "ADJUST PA VOLUME",
+   "TITLE": "PA VOLUME KNOB"
+  },
+  "CPT_PA_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "CPT_PA_VOL_SEL": {
+   "ACTION": "ACTION PA DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "PA DOWN"
+  },
+  "CPT_PILLAR_LIGHT_KNOB": {
+   "ACTION": "ADJUST CPT PILLAR LIGHT BRIGHTNESS",
+   "TITLE": "CPT PILLAR LIGHT KNOB"
+  },
+  "CPT_REVTHRUST": {
+   "1": "RET",
+   "2": "OFF",
+   "3": "EXT",
+   "ACTION": "ADJUST SPEEDBRAKE",
+   "TITLE": "SPEEDBRAKE SWITCH"
+  },
+  "CPT_RWY_VOL": {
+   "ACTION": "ADJUST RWY VOLUME",
+   "TITLE": "RWR VOLUME"
+  },
+  "CPT_RWY_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "CPT_SAT1_VOL": {
+   "ACTION": "ADJUST SAT 1 VOLUME",
+   "TITLE": "SAT 1 VOLUME KNOB"
+  },
+  "CPT_SAT1_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "CPT_SAT1_VOL_SEL": {
+   "ACTION": "ACTION SAT 1 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "SAT 1 DOWN"
+  },
+  "CPT_SAT2_VOL": {
+   "ACTION": "ADJUST SAT 2 VOLUME",
+   "TITLE": "SAT 2 VOLUME KNOB"
+  },
+  "CPT_SAT2_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "CPT_SAT2_VOL_SEL": {
+   "ACTION": "ACTION SAT 2 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "SAT 2 DOWN"
+  },
+  "CPT_SIDESTICK_AP_DISCO": {
+   "ACTION": "DISCONNECT AUTOPILOT",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT AP DISCONNECT"
+  },
+  "CPT_TAC1_VOL": {
+   "ACTION": "ADJUST TAC 1 VOLUME",
+   "TITLE": "TAC 1 VOLUME"
+  },
+  "CPT_TAC1_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "CPT_TAC2_VOL": {
+   "ACTION": "ADJUST TAC 2 VOLUME",
+   "TITLE": "TAC 2 VOLUME"
+  },
+  "CPT_TAC2_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "CPT_TILLER_BIG": {
+   "ACTION": "TOGGLE TILLER",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "CPT TILLER/PEDAL DISC"
+  },
+  "CPT_TRAY_LT_KNOB": {
+   "ACTION": "ADJUST CPT TRAY LIGHT",
+   "TITLE": "CPT TRAY LIGHT"
+  },
+  "CPT_TRAY_MAIN": {
+   "ACTION": "TOGGLE CPT TRAY TABLE",
+   "OFF": "OPENED",
+   "ON": "STOWED",
+   "TITLE": "CPT TRAY TABLE"
+  },
+  "CPT_VHF1_VOL": {
+   "ACTION": "ADJUST V/U 1 VOLUME",
+   "TITLE": "V/U 1 VOLUME KNOB"
+  },
+  "CPT_VHF1_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "CPT_VHF1_VOL_SEL": {
+   "ACTION": "ACTION V/U 2 UPPER",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "V/U 1 UPPER"
+  },
+  "CPT_VHF1_VOL_SEL2": {
+   "ACTION": "ACTION V/U 1 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "V/U 1 DOWN"
+  },
+  "CPT_VHF2_VOL": {
+   "ACTION": "ADJUST V/U 2 VOLUME",
+   "TITLE": "V/U 2 VOLUME KNOB"
+  },
+  "CPT_VHF2_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "CPT_VHF2_VOL_SEL": {
+   "ACTION": "ACTION V/U 2 UPPER",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "V/U 2 UPPER"
+  },
+  "CPT_VHF2_VOL_SEL2": {
+   "ACTION": "ACTION V/U 2 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "V/U 2 DOWN"
+  },
+  "CPT_VHF3_VOL": {
+   "ACTION": "ADJUST V/U 3 VOLUME",
+   "TITLE": "V/U 3 VOLUME KNOB"
+  },
+  "CPT_VHF3_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "CPT_VHF3_VOL_SEL": {
+   "ACTION": "ACTION V/U 3 UPPER",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "V/U 3 UPPER"
+  },
+  "CPT_VHF3_VOL_SEL2": {
+   "ACTION": "ACTION V/U 1 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "V/U 3 DOWN"
+  },
+  "CPT_VHF4_VOL": {
+   "ACTION": "ADJUST V/U 4 VOLUME",
+   "TITLE": "V/U 4 VOLUME KNOB"
+  },
+  "CPT_VHF4_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "CPT_VHF4_VOL_SEL": {
+   "ACTION": "ACTION V/U 4 UPPER",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "V/U 4 UPPER"
+  },
+  "CPT_VHF4_VOL_SEL2": {
+   "ACTION": "ACTION V/U 4 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "V/U 4 DOWN"
+  },
+  "CPT_VOR1_VOL": {
+   "ACTION": "ADJUST VOR 1 VOLUME",
+   "TITLE": "VOR 1 VOLUME"
+  },
+  "CPT_VOR1_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "CPT_VOR2_VOL": {
+   "ACTION": "ADJUST VOR 2 VOLUME",
+   "TITLE": "VOR 2 VOLUME"
+  },
+  "CPT_VOR2_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "CPT_VOX_VOL": {
+   "ACTION": "ADJUST VOX VOLUME",
+   "TITLE": "VOX VOLUME KNOB"
+  },
+  "CPT_VOX_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "CPT_VOX_VOL_SEL": {
+   "ACTION": "ACTION VOICE DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "VOICE DOWN"
+  },
+  "CPT_XCHECK": {
+   "ACTION": "PERFORM XCHECK",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "XCHECK"
+  },
+  "CTR_SHADE": {
+   "1": "RETRACTED",
+   "2": "DEPLOYED",
+   "ACTION": "DEPLOY CENTER SUNSHADE",
+   "TITLE": "CENTER SUNSHADE"
+  },
+  "DIRECT_LAW": {
+   "ACTION": "SET DIRECT LAW",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "DIRECT LAW"
+  },
+  "DIRECT_LAW_GUARD": {
+   "ACTION": "UNCOVER/COVER DIRECT LAW BUTTON",
+   "OFF": "OPEN",
+   "ON": "COVERED",
+   "TITLE": "DIRECT LAW GUARD"
+  },
+  "DU_L_CTR": {
+   "ACTION": "ADJUST BRIGHTNESS",
+   "TITLE": "R CTR DU"
+  },
+  "DU_L_LOWER_BIG": {
+   "ACTION": "ADJUST BRIGHTNESS",
+   "TITLE": "L LWR DU"
+  },
+  "DU_L_LOWER_SMALL": {
+   "ACTION": "DU L LOWER SMALL",
+   "TITLE": "DU L LOWER SMALL"
+  },
+  "DU_R_CTR": {
+   "ACTION": "ADJUST BRIGHTNESS",
+   "TITLE": "L CTR DU"
+  },
+  "DU_R_LOWER_BIG": {
+   "ACTION": "ADJUST BRIGHTNESS",
+   "TITLE": "R LWR DU"
+  },
+  "DU_R_LOWER_SMALL": {
+   "ACTION": "DU R LOWER SMALL",
+   "TITLE": "DU R LOWER SMALL"
+  },
+  "ECAM_ABN": {
+   "ACTION": "SET ECAM ABN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ECAM ABN"
+  },
+  "ECAM_ALL": {
+   "ACTION": "SET ECAM ALL",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ECAM ALL"
+  },
+  "ECAM_APU": {
+   "ACTION": "SET ECAM APU PAGE",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ECAM APU"
+  },
+  "ECAM_BLEED": {
+   "ACTION": "SET ECAM BLEED PAGE",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ECAM BLEED"
+  },
+  "ECAM_CHECK": {
+   "ACTION": "SET ECAM CHECK",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ECAM CHECK"
+  },
+  "ECAM_CLEAR": {
+   "ACTION": "SET ECAM CLEAR",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ECAM CLEAR"
+  },
+  "ECAM_COND": {
+   "ACTION": "SET ECAM COND PAGE",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ECAM COND"
+  },
+  "ECAM_CONFIG": {
+   "ACTION": "SET ECAM CONFIG",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ECAM CONFIG"
+  },
+  "ECAM_DOOR": {
+   "ACTION": "SET ECAM DOOR PAGE",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ECAM DOOR"
+  },
+  "ECAM_ELAC": {
+   "ACTION": "SET ECAM ELAC PAGE",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ECAM ELAC"
+  },
+  "ECAM_ELDC": {
+   "ACTION": "SET ECAM ELDC PAGE",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ECAM ELDC"
+  },
+  "ECAM_EMERCANC": {
+   "ACTION": "SET ECAM EMERGENCY CANCEL",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ECAM EMERGENCY CANCEL"
+  },
+  "ECAM_EMERCANC_GUARD": {
+   "ACTION": "UNCOVER BUTTON",
+   "OFF": "COVER",
+   "ON": "UNCOVER",
+   "TITLE": "ECAM EMERGENCY CANCEL GUARD"
+  },
+  "ECAM_ENG": {
+   "ACTION": "SET ECAM ENG PAGE",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ECAM ENG"
+  },
+  "ECAM_FCTL": {
+   "ACTION": "SET ECAM FTCL PAGE",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ECAM FCTL"
+  },
+  "ECAM_FUEL": {
+   "ACTION": "SET ECAM FUEL PAGE",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ECAM FUEL"
+  },
+  "ECAM_HYD": {
+   "ACTION": "SET ECAM HYD PAGE",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ECAM HYD"
+  },
+  "ECAM_NORM": {
+   "ACTION": "SET SET NORM",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ECAM C/L NORM"
+  },
+  "ECAM_PRESS": {
+   "ACTION": "SET ECAM PRESS PAGE",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ECAM PRESS"
+  },
+  "ECAM_RCL": {
+   "ACTION": "SET ECAM RCL",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ECAM RCL"
+  },
+  "ECAM_RCL_LAST": {
+   "ACTION": "SET ECAM RCL LAST",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ECAM RCL LAST"
+  },
+  "ECAM_STS": {
+   "ACTION": "SET ECAM STS PAGE",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ECAM STS"
+  },
+  "ECAM_TACT": {
+   "ACTION": "SET ECAM TACT",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ECAM TACT"
+  },
+  "ECAM_WHEEL": {
+   "ACTION": "SET ECAM WHEEL PAGE",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ECAM WHEEL"
+  },
+  "ELEC_APU_GEN": {
+   "ACTION": "SET APU GENERATOR",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "APU GENERATOR"
+  },
+  "ELEC_BAT1": {
+   "ACTION": "SET BATTERY 1",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "BATTERY 1"
+  },
+  "ELEC_BAT2": {
+   "ACTION": "SET BATTERY 2",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "BATTERY 2"
+  },
+  "ELEC_BAT_ESS": {
+   "ACTION": "SET ESSENTIAL BATTERY",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "ESSENTIAL BATTERY"
+  },
+  "ELEC_BUS_TIE": {
+   "ACTION": "SET BUS TIE",
+   "OFF": "AUTO",
+   "ON": "OFF",
+   "TITLE": "AC BUS TIE"
+  },
+  "ELEC_DRIVE1": {
+   "ACTION": "DISCONNECT ENG 1 DRIVE",
+   "OFF": "OFF",
+   "ON": "ON",
+   "TITLE": "GENERATOR 1 DRIVE"
+  },
+  "ELEC_DRIVE1_GUARD": {
+   "ACTION": "UNCOVER/COVER DRIVE BUTTON",
+   "OFF": "OPEN",
+   "ON": "COVERED",
+   "TITLE": "GENERATOR 1 DRIVE GUARD"
+  },
+  "ELEC_DRIVE2": {
+   "ACTION": "DISCONNECT ENG 2 DRIVE",
+   "OFF": "OFF",
+   "ON": "ON",
+   "TITLE": "GENERATOR 2 DRIVE"
+  },
+  "ELEC_DRIVE2_GUARD": {
+   "ACTION": "UNCOVER/COVER DRIVE BUTTON",
+   "OFF": "OPEN",
+   "ON": "COVERED",
+   "TITLE": "GENERATOR 2 DRIVE GUARD"
+  },
+  "ELEC_DRIVE3": {
+   "ACTION": "DISCONNECT ENG 3 DRIVE",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "GENERATOR 3 DRIVE"
+  },
+  "ELEC_DRIVE3_GUARD": {
+   "ACTION": "UNCOVER/COVER DRIVE BUTTON",
+   "OFF": "OPEN",
+   "ON": "COVERED",
+   "TITLE": "GENERATOR 3 DRIVE GUARD"
+  },
+  "ELEC_DRIVE4": {
+   "ACTION": "DISCONNECT ENG 4 DRIVE",
+   "OFF": "OFF",
+   "ON": "ON",
+   "TITLE": "GENERATOR 4 DRIVE"
+  },
+  "ELEC_DRIVE4_GUARD": {
+   "ACTION": "UNCOVER/COVER DRIVE BUTTON",
+   "OFF": "OPEN",
+   "ON": "COVERED",
+   "TITLE": "GENERATOR 4 DRIVE GUARD"
+  },
+  "ELEC_GEN1": {
+   "ACTION": "SET GENERATOR 1",
+   "OFF": "OFF",
+   "ON": "ON",
+   "TITLE": "GENERATOR 1"
+  },
+  "ELEC_GEN2": {
+   "ACTION": "SET GENERATOR 2",
+   "OFF": "OFF",
+   "ON": "ON",
+   "TITLE": "GENERATOR 2"
+  },
+  "ELEC_GEN3": {
+   "ACTION": "SET GENERATOR 3",
+   "OFF": "OFF",
+   "ON": "ON",
+   "TITLE": "GENERATOR 3"
+  },
+  "ELEC_GEN4": {
+   "ACTION": "SET GENERATOR 4",
+   "OFF": "OFF",
+   "ON": "ON",
+   "TITLE": "GENERATOR 4"
+  },
+  "EMER_GEN": {
+   "ACTION": "TOGGLE EMERGENCY GENERATOR",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "EMERGENCY GENERATOR"
+  },
+  "ENG1_CUTOFF": {
+   "1": "RUN",
+   "2": "FTHR",
+   "3": "OFF",
+   "ACTION": "SET ENG CUTOFF",
+   "TITLE": "ENGINE 1 CUTOFF SWITCH"
+  },
+  "ENG2_CUTOFF": {
+   "1": "RUN",
+   "2": "FTHR",
+   "3": "OFF",
+   "ACTION": "SET ENG CUTOFF",
+   "TITLE": "ENGINE 2 CUTOFF SWITCH"
+  },
+  "ENG3_CUTOFF": {
+   "1": "RUN",
+   "2": "FTHR",
+   "3": "OFF",
+   "ACTION": "SET ENG CUTOFF",
+   "TITLE": "ENGINE 3 CUTOFF SWITCH"
+  },
+  "ENG4_CUTOFF": {
+   "1": "RUN",
+   "2": "FTHR",
+   "3": "OFF",
+   "ACTION": "SET ENG CUTOFF",
+   "TITLE": "ENGINE 4 CUTOFF SWITCH"
+  },
+  "ENG_MODE_AAR": {
+   "ACTION": "SET AAR PWR RATING",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ENGINE AAR PWR RATING"
+  },
+  "ENG_MODE_DTO": {
+   "ACTION": "SET DTO PWR RATING",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ENGINE DTO PWR RATING"
+  },
+  "ENG_MODE_LFI": {
+   "ACTION": "SET LFI PWR RATING",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ENGINE LFI PWR RATING"
+  },
+  "ENG_MODE_LNC": {
+   "ACTION": "SET LNC PWR RATING",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ENGINE LNC PWR RATING"
+  },
+  "ENG_MODE_MCT": {
+   "ACTION": "SET MCT PWR RATING",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ENGINE MCT PWR RATING"
+  },
+  "ENG_MODE_MIL": {
+   "ACTION": "SET MIL OPS PWR RATING",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ENGINE MILITARY OPERATIONS PWR RATING"
+  },
+  "ENG_START": {
+   "1": "CRANK",
+   "2": "NORM",
+   "3": "IGN START",
+   "ACTION": "SELECT ENGINE START MODE",
+   "TITLE": "ENGINE START MODE SELECTOR"
+  },
+  "EXT_POWER": {
+   "ACTION": "TOGGLE EXTERNAL POWER",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "EXTERNAL POWER"
+  },
+  "FCTL_PRIM1": {
+   "ACTION": "RELEASE PRIM 1",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "PRIM 1 BUTTON"
+  },
+  "FCTL_PRIM1_GUARD": {
+   "ACTION": "UNCOVER/COVER PRIM 1 BUTTON",
+   "OFF": "OPEN",
+   "ON": "COVERED",
+   "TITLE": "PRIM 1 GUARD"
+  },
+  "FCTL_PRIM2": {
+   "ACTION": "RELEASE PRIM 2",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "PRIM 2 BUTTON"
+  },
+  "FCTL_PRIM2_GUARD": {
+   "ACTION": "UNCOVER/COVER PRIM 2 BUTTON",
+   "OFF": "OPEN",
+   "ON": "COVERED",
+   "TITLE": "PRIM 2 GUARD"
+  },
+  "FCTL_PRIM3": {
+   "ACTION": "RELEASE PRIM 3",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "PRIM 3 BUTTON"
+  },
+  "FCTL_PRIM3_GUARD": {
+   "ACTION": "UNCOVER/COVER PRIM 3 BUTTON",
+   "OFF": "OPEN",
+   "ON": "COVERED",
+   "TITLE": "PRIM 3 GUARD"
+  },
+  "FCTL_SEC1": {
+   "ACTION": "RELEASE SEC 1",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "SEC 1 BUTTON"
+  },
+  "FCTL_SEC1_GUARD": {
+   "ACTION": "UNCOVER/COVER SEC 1 BUTTON",
+   "OFF": "OPEN",
+   "ON": "COVERED",
+   "TITLE": "SEC 1 GUARD"
+  },
+  "FCU_ALT": {
+   "ACTION": "TOGGLE ALTITUDE MODE",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ALTITUDE MODE"
+  },
+  "FCU_AP1": {
+   "ACTION": "TOGGLE AUTOPILOT 1",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "AUTOPILOT MASTER 1"
+  },
+  "FCU_AP2": {
+   "ACTION": "TOGGLE AUTOPILOT 2",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "AUTOPILOT MASTER 2"
+  },
+  "FCU_APPR": {
+   "ACTION": "TOGGLE APPROACH MODE",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "APPROACH MODE"
+  },
+  "FCU_ATHR": {
+   "ACTION": "TOGGLE AUTOTHROTTLE",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "AP ATHR"
+  },
+  "FCU_FD": {
+   "ACTION": "TOGGLE FLIGHT DIRECTOR",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "AP FLIGHT DIRECTOR"
+  },
+  "FCU_HDG_TRK": {
+   "ACTION": "TOGGLE HDG / TRK",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "HDG/TRACK SELECTOR"
+  },
+  "FCU_LCUE": {
+   "ACTION": "TOGGLE LCUE MODE",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "LCUE MODE"
+  },
+  "FCU_LOC": {
+   "ACTION": "TOGGLE LOC MODE",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "LOCALIZER MODE"
+  },
+  "FCU_MACH": {
+   "ACTION": "TOGGLE SPD / MACH",
+   "OFF": "MACH",
+   "ON": "SPD",
+   "TITLE": "AIRSPEED/MACH SELECTOR"
+  },
+  "FCU_METER": {
+   "ACTION": "SET METER",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "METER"
+  },
+  "FCU_ROTARY_ALT": {
+   "ACTION": "ADJUST ALTITUDE",
+   "TITLE": "ALTITUDE SELECTOR KNOB"
+  },
+  "FCU_ROTARY_ALT_PUSH": {
+   "STATE_PULL": "SET SELECTED ALTITUDE",
+   "STATE_PUSH": "SET MANAGED ALTITUDE"
+  },
+  "FCU_ROTARY_ALT_UNITS": {
+   "1": "50",
+   "2": "1000",
+   "3": "INOP",
+   "ACTION": "SET ALTITUDE UNITS",
+   "OFF": "1000",
+   "ON": "100",
+   "TITLE": "ALTITUDE UNITS SELECTOR"
+  },
+  "FCU_ROTARY_BANK": {
+   "1": "MAG",
+   "2": "TRUE",
+   "ACTION": "SET MAG/TRUE",
+   "TITLE": "MAG/TRUE HDG SELECTOR"
+  },
+  "FCU_ROTARY_HEADING": {
+   "ACTION": "ADJUST HEADING",
+   "TITLE": "HEADING SELECTOR KNOB"
+  },
+  "FCU_ROTARY_HEADING_PUSH": {
+   "STATE_PULL": "SET SELECTED HEADING",
+   "STATE_PUSH": "SET MANAGED HEADING"
+  },
+  "FCU_ROTARY_SPEED": {
+   "ACTION": "ADJUST SPD",
+   "STATE_PULL": "SET MANAGED",
+   "STATE_PUSH": "SET SELECTED",
+   "TITLE": "SPEED SELECTOR KNOB"
+  },
+  "FCU_ROTARY_SPEED_PUSH": {
+   "STATE_PULL": "SET SELECTED SPEED",
+   "STATE_PUSH": "SET MANAGED SPEED"
+  },
+  "FCU_ROTARY_VS": {
+   "ACTION": "ADJUST VERTICAL SPEED",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "VERTICAL SPEED SLECTOR KNOB"
+  },
+  "FCU_ROTARY_VS_PUSH": {
+   "STATE_PULL": "SET SELECTED V/S",
+   "STATE_PUSH": "SET MANAGED V/S"
+  },
+  "FCU_VS_FPA": {
+   "ACTION": "SELECT V/S OR FPA",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "V/S OR FPA SELECTOR"
+  },
+  "FIRE_APU": {
+   "ACTION": "RELEASE APU FIRE EXTINGUISHER",
+   "OFF": "TRIGGERED",
+   "ON": "READY",
+   "TITLE": "APU FIRE"
+  },
+  "FIRE_APU_AGENT": {
+   "ACTION": "SET APU AGENT",
+   "OFF": "OFF",
+   "ON": "ON",
+   "TITLE": "APU AGENT"
+  },
+  "FIRE_APU_GUARD": {
+   "ACTION": "UNCOVER APU FIRE BUTTON",
+   "OFF": "OPEN",
+   "ON": "COVERED",
+   "TITLE": "APU FIRE GUARD"
+  },
+  "FIRE_APU_TEST": {
+   "ACTION": "PERFORM APU FIRE TEST",
+   "TITLE": "APU FIRE TEST"
+  },
+  "FIRE_ENG1": {
+   "ACTION": "RELEASE ENGINE 1 FIRE EXTINGUISHER",
+   "OFF": "TRIGGERED",
+   "ON": "READY",
+   "TITLE": "ENGINE 1 FIRE"
+  },
+  "FIRE_ENG1_AGT1": {
+   "ACTION": "DISCH ENG 1 AGENT 1",
+   "OFF": "TRIGGERED",
+   "ON": "READY",
+   "TITLE": "ENGINE 1 FIRE AGENT 1"
+  },
+  "FIRE_ENG1_AGT2": {
+   "ACTION": "DISCH ENG 1 AGENT 2",
+   "OFF": "TRIGGERED",
+   "ON": "READY",
+   "TITLE": "ENGINE 1 FIRE AGENT 2"
+  },
+  "FIRE_ENG1_GUARD": {
+   "ACTION": "UNCOVER ENGINE 1 FIRE BUTTON",
+   "OFF": "OPEN",
+   "ON": "COVERED",
+   "TITLE": "ENGINE 1 FIRE GUARD"
+  },
+  "FIRE_ENG2": {
+   "ACTION": "RELEASE ENGINE 2 FIRE EXTINGUISHER",
+   "OFF": "TRIGGERED",
+   "ON": "READY",
+   "TITLE": "ENGINE 2 FIRE"
+  },
+  "FIRE_ENG2_AGT1": {
+   "ACTION": "DISCH ENG 1 AGENT 1",
+   "OFF": "TRIGGERED",
+   "ON": "READY",
+   "TITLE": "ENGINE 2 FIRE AGENT 1"
+  },
+  "FIRE_ENG2_AGT2": {
+   "ACTION": "DISCH ENG 2 AGENT 2",
+   "OFF": "TRIGGERED",
+   "ON": "READY",
+   "TITLE": "ENGINE 2 FIRE AGENT 2"
+  },
+  "FIRE_ENG2_GUARD": {
+   "ACTION": "UNCOVER ENGINE 2 FIRE BUTTON",
+   "OFF": "OPEN",
+   "ON": "COVERED",
+   "TITLE": "ENGINE 2 FIRE GUARD"
+  },
+  "FIRE_ENG3": {
+   "ACTION": "RELEASE ENGINE 3 FIRE EXTINGUISHER",
+   "OFF": "TRIGGERED",
+   "ON": "READY",
+   "TITLE": "ENGINE 3 FIRE"
+  },
+  "FIRE_ENG3_AGT1": {
+   "ACTION": "DISCH ENG 3 AGENT 1",
+   "OFF": "TRIGGERED",
+   "ON": "READY",
+   "TITLE": "ENGINE 3 FIRE AGENT 1"
+  },
+  "FIRE_ENG3_AGT2": {
+   "ACTION": "DISCH ENG 1 AGENT 2",
+   "OFF": "TRIGGERED",
+   "ON": "READY",
+   "TITLE": "ENGINE 3 FIRE AGENT 2"
+  },
+  "FIRE_ENG3_GUARD": {
+   "ACTION": "UNCOVER ENGINE 3 FIRE BUTTON",
+   "OFF": "OPEN",
+   "ON": "COVERED",
+   "TITLE": "ENGINE 3 FIRE GUARD"
+  },
+  "FIRE_ENG4": {
+   "ACTION": "RELEASE ENGINE 4 FIRE EXTINGUISHER",
+   "OFF": "TRIGGERED",
+   "ON": "READY",
+   "TITLE": "ENGINE 4 FIRE"
+  },
+  "FIRE_ENG4_AGT1": {
+   "ACTION": "DISCH ENG 4 AGENT 1",
+   "OFF": "TRIGGERED",
+   "ON": "READY",
+   "TITLE": "ENGINE 4 FIRE AGENT 1"
+  },
+  "FIRE_ENG4_AGT2": {
+   "ACTION": "DISCH ENG 4 AGENT 2",
+   "OFF": "TRIGGERED",
+   "ON": "READY",
+   "TITLE": "ENGINE 4 FIRE AGENT 2"
+  },
+  "FIRE_ENG4_GUARD": {
+   "ACTION": "UNCOVER ENGINE 4 FIRE BUTTON",
+   "OFF": "OPEN",
+   "ON": "COVERED",
+   "TITLE": "ENGINE 4 FIRE GUARD"
+  },
+  "FIRE_ENG_TEST": {
+   "ACTION": "PERFORM ENGINES FIRE TEST",
+   "TITLE": "FIRE ENGINE TEST"
+  },
+  "FMGS1_KNOB_BIG": {
+   "ACTION": "FMGS BIG KNOB",
+   "TITLE": "FMGS BIG KNOB"
+  },
+  "FMGS1_KNOB_SMALL": {
+   "ACTION": "FMGS SMALL KNOB",
+   "TITLE": "FMGS SMALL KNOB"
+  },
+  "FMGS1_LOWER_1": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT EFIS FUNCTION BUTTON"
+  },
+  "FMGS1_LOWER_2": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT EFIS FUNCTION BUTTON"
+  },
+  "FMGS1_LOWER_3": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT EFIS FUNCTION BUTTON"
+  },
+  "FMGS1_LOWER_4": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT EFIS FUNCTION BUTTON"
+  },
+  "FMGS1_LOWER_5": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT EFIS FUNCTION BUTTON"
+  },
+  "FMGS1_UPPER_1": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT EFIS FUNCTION BUTTON"
+  },
+  "FMGS1_UPPER_2": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT EFIS FUNCTION BUTTON"
+  },
+  "FMGS1_UPPER_3": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT EFIS FUNCTION BUTTON"
+  },
+  "FMGS1_UPPER_4": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT EFIS FUNCTION BUTTON"
+  },
+  "FMGS1_UPPER_5": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT EFIS FUNCTION BUTTON"
+  },
+  "FMGS2_KNOB_BIG": {
+   "ACTION": "FMGS BIG KNOB",
+   "TITLE": "FMGS BIG KNOB"
+  },
+  "FMGS2_KNOB_SMALL": {
+   "ACTION": "FMGS SMALL KNOB",
+   "TITLE": "FMGS SMALL KNOB"
+  },
+  "FMGS2_LOWER_1": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO EFIS FUNCTION BUTTON"
+  },
+  "FMGS2_LOWER_2": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO EFIS FUNCTION BUTTON"
+  },
+  "FMGS2_LOWER_3": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO EFIS FUNCTION BUTTON"
+  },
+  "FMGS2_LOWER_4": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO EFIS FUNCTION BUTTON"
+  },
+  "FMGS2_LOWER_5": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO EFIS FUNCTION BUTTON"
+  },
+  "FMGS2_UPPER_1": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO EFIS FUNCTION BUTTON"
+  },
+  "FMGS2_UPPER_2": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO EFIS FUNCTION BUTTON"
+  },
+  "FMGS2_UPPER_3": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO EFIS FUNCTION BUTTON"
+  },
+  "FMGS2_UPPER_4": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO EFIS FUNCTION BUTTON"
+  },
+  "FMGS2_UPPER_5": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO EFIS FUNCTION BUTTON"
+  },
+  "FMS_MODE": {
+   "1": "ALL/ON1",
+   "2": "NORM",
+   "3": "ALL/ON2",
+   "ACTION": "SET FMS SOURCE",
+   "TITLE": "FMS SOURCE SELECTOR"
+  },
+  "FORMATION": {
+   "1": "OFF",
+   "2": "1",
+   "3": "2",
+   "4": "3",
+   "5": "4",
+   "6": "BRT",
+   "ACTION": "ADJUST FORMATION LIGHTS",
+   "TITLE": "FORMATION LIGHTS SELECTOR"
+  },
+  "FO_ADF_VOL": {
+   "ACTION": "ADJUST ADF VOLUME",
+   "TITLE": "ADF VOLUME"
+  },
+  "FO_ADF_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "FO_BARO_BIG": {
+   "1": "inHg",
+   "2": "hPa",
+   "ACTION": "TOGGLE HPA / INHG",
+   "TITLE": "BAROMETER UNITS SELECTOR"
+  },
+  "FO_BARO_SMALL": {
+   "ACTION": "ADJUST FO ALTIMETER",
+   "TITLE": "FO ALTIMETER"
+  },
+  "FO_BARO_SMALL_PUSH": {
+   "STATE_PULL": "SET STD ALTIMETER SETTING",
+   "STATE_PULL_VALUE": "PULL",
+   "STATE_PUSH": "SET LOCAL PRESSURE SETTING",
+   "STATE_PUSH_VALUE": "PUSH"
+  },
+  "FO_COMM_BRT": {
+   "ACTION": "ADJUST RADIO PANEL BRIGHTNESS",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL BRIGHTNESS"
+  },
+  "FO_COMM_BSK_1": {
+   "ACTION": "SET RADIO FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL"
+  },
+  "FO_COMM_BSK_2": {
+   "ACTION": "SET RADIO FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL"
+  },
+  "FO_COMM_BSK_3": {
+   "ACTION": "SET RADIO FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL"
+  },
+  "FO_COMM_BSK_4": {
+   "ACTION": "SET RADIO FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL"
+  },
+  "FO_COMM_HFF1": {
+   "ACTION": "SET IFF1-3",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL IFF1-3"
+  },
+  "FO_COMM_HFF4": {
+   "ACTION": "SET IFF4-5",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL IFF4-5"
+  },
+  "FO_COMM_IDENT": {
+   "ACTION": "SET IDENT",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "COMM IDENT"
+  },
+  "FO_COMM_KP_0": {
+   "ACTION": "SET NUMBER 0",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "FO_COMM_KP_1": {
+   "ACTION": "SET NUMBER 1",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "FO_COMM_KP_2": {
+   "ACTION": "SET NUMBER 2",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "FO_COMM_KP_3": {
+   "ACTION": "SET NUMBER 3",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "FO_COMM_KP_4": {
+   "ACTION": "SET NUMBER 4",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "FO_COMM_KP_5": {
+   "ACTION": "SET NUMBER 5",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "FO_COMM_KP_6": {
+   "ACTION": "SET NUMBER 6",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "FO_COMM_KP_7": {
+   "ACTION": "SET NUMBER 7",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "FO_COMM_KP_8": {
+   "ACTION": "SET NUMBER 8",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "FO_COMM_KP_9": {
+   "ACTION": "SET NUMBER 9",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "FO_COMM_KP_CLR": {
+   "ACTION": "PRESS TO CLEAR RADIO ENTRY",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL CLEAR"
+  },
+  "FO_COMM_KP_XY": {
+   "ACTION": "SET X/Y DESIGNATOR",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL X/Y SELECTOR"
+  },
+  "FO_COMM_MENU": {
+   "ACTION": "TOGGLE PANEL MENU",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO RADIO PANEL MENU"
+  },
+  "FO_COMM_TSK_1": {
+   "ACTION": "SET RADIO FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL"
+  },
+  "FO_COMM_TSK_2": {
+   "ACTION": "SET RADIO FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL"
+  },
+  "FO_COMM_TSK_3": {
+   "ACTION": "SET RADIO FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL"
+  },
+  "FO_COMM_TSK_4": {
+   "ACTION": "SET RADIO FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL"
+  },
+  "FO_CONSOLE_LT_KNOB": {
+   "ACTION": "ADJUST FO CONSOLE LIGHT",
+   "TITLE": "FO CONSOLE LIGHT"
+  },
+  "FO_EFIS_L_BSK_1": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO LEFT EFIS FUNCTION BUTTON"
+  },
+  "FO_EFIS_L_BSK_2": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO LEFT EFIS FUNCTION BUTTON"
+  },
+  "FO_EFIS_L_BSK_3": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO LEFT EFIS FUNCTION BUTTON"
+  },
+  "FO_EFIS_L_BSK_4": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO LEFT EFIS FUNCTION BUTTON"
+  },
+  "FO_EFIS_L_BSK_5": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO LEFT EFIS FUNCTION BUTTON"
+  },
+  "FO_EFIS_L_FMT": {
+   "ACTION": "SET FO LEFT FMT",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO LEFT FMT"
+  },
+  "FO_EFIS_L_KNOB_BIG": {
+   "0": "LS",
+   "1": "VOR",
+   "2": "NAV",
+   "3": "ARC",
+   "4": "PLAN",
+   "5": "ENG",
+   "6": "ENG",
+   "ACTION": "ADJUST FO MAP MODE",
+   "TITLE": "FO MAP MODE"
+  },
+  "FO_EFIS_L_KNOB_SMALL": {
+   "1": "SET",
+   "2": "SET",
+   "3": "SET",
+   "4": "SET",
+   "5": "SET",
+   "6": "SET",
+   "ACTION": "ADJUST FO MAP RANGE",
+   "TITLE": "FO MAP RANGE"
+  },
+  "FO_EFIS_L_TSK_1": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO LEFT EFIS FUNCTION BUTTON"
+  },
+  "FO_EFIS_L_TSK_2": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO LEFT EFIS FUNCTION BUTTON"
+  },
+  "FO_EFIS_L_TSK_3": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO LEFT EFIS FUNCTION BUTTON"
+  },
+  "FO_EFIS_L_TSK_4": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO LEFT EFIS FUNCTION BUTTON"
+  },
+  "FO_EFIS_L_TSK_5": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO LEFT EFIS FUNCTION BUTTON"
+  },
+  "FO_EFIS_R_BSK_1": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO RIGHT EFIS FUNCTION BUTTON"
+  },
+  "FO_EFIS_R_BSK_2": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO RIGHT EFIS FUNCTION BUTTON"
+  },
+  "FO_EFIS_R_BSK_3": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO RIGHT EFIS FUNCTION BUTTON"
+  },
+  "FO_EFIS_R_BSK_4": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO RIGHT EFIS FUNCTION BUTTON"
+  },
+  "FO_EFIS_R_BSK_5": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO RIGHT EFIS FUNCTION BUTTON"
+  },
+  "FO_EFIS_R_FMT": {
+   "ACTION": "SET FO RIGHT FMT",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO RIGHT FMT"
+  },
+  "FO_EFIS_R_KNOB_BIG": {
+   "0": "SET",
+   "1": "SET",
+   "2": "SET",
+   "3": "SET",
+   "4": "SET",
+   "5": "SET",
+   "ACTION": "ADJUST EFIS SETTING",
+   "TITLE": "EFIS OUTER ADJUST KNOB"
+  },
+  "FO_EFIS_R_KNOB_SMALL": {
+   "1": "SET",
+   "2": "SET",
+   "3": "SET",
+   "4": "SET",
+   "5": "SET",
+   "6": "SET",
+   "ACTION": "ADJUST EFIS SETTING",
+   "TITLE": "EFIS INNER ADJUST KNOB"
+  },
+  "FO_EFIS_R_TSK_1": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO RIGHT EFIS FUNCTION BUTTON"
+  },
+  "FO_EFIS_R_TSK_2": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO RIGHT EFIS FUNCTION BUTTON"
+  },
+  "FO_EFIS_R_TSK_3": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO RIGHT EFIS FUNCTION BUTTON"
+  },
+  "FO_EFIS_R_TSK_4": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO RIGHT EFIS FUNCTION BUTTON"
+  },
+  "FO_EFIS_R_TSK_5": {
+   "ACTION": "SET FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO RIGHT EFIS FUNCTION BUTTON"
+  },
+  "FO_GEN_VOL": {
+   "ACTION": "ADJUST GENERAL VOLUME",
+   "TITLE": "GENERAL VOLUME KNOB"
+  },
+  "FO_GEN_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "FO_GEN_VOL_SEL": {
+   "ACTION": "ACTION GENERAL DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "GENERAL DOWN"
+  },
+  "FO_HF1_VOL": {
+   "ACTION": "ADJUST HF 1 VOLUME",
+   "TITLE": "HF 1 VOLUME KNOB"
+  },
+  "FO_HF1_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "FO_HF1_VOL_SEL": {
+   "ACTION": "ACTION HF 1 UPPER",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "HF 1 UPPER"
+  },
+  "FO_HF1_VOL_SEL2": {
+   "ACTION": "ACTION HF 1 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "HF 1 DOWN"
+  },
+  "FO_HF2_VOL": {
+   "ACTION": "ADJUST HF 2 VOLUME",
+   "TITLE": "HF 2 VOLUME KNOB"
+  },
+  "FO_HF2_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "FO_HF2_VOL_SEL": {
+   "ACTION": "ACTION HF 2 UPPER",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "HF 2 UPPER"
+  },
+  "FO_HF2_VOL_SEL2": {
+   "ACTION": "ACTION HF 2 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "HF 2 DOWN"
+  },
+  "FO_HUD_ARM": {
+   "ACTION": "TOGGLE FO HUD POSITION",
+   "OFF": "TOGGLE",
+   "ON": "TOGGLE",
+   "TITLE": "FO HUD"
+  },
+  "FO_HUD_LS": {
+   "ACTION": "SET HUD LS MODE",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "LS MODE"
+  },
+  "FO_HUD_NAV": {
+   "ACTION": "SET HUD NAV MODE",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "NAV MODE"
+  },
+  "FO_INNER_DU_BRT_BIG": {
+   "ACTION": "ADJUST MFD BRIGHTNESS",
+   "TITLE": "MFD BRIGHTNESS"
+  },
+  "FO_INNER_DU_BRT_SMALL": {
+   "ACTION": "CAPTAIN HUD",
+   "TITLE": "SEC INNER KNOB"
+  },
+  "FO_INT_TOGGLE": {
+   "0": "INT",
+   "1": "VOX",
+   "2": "RAD",
+   "ACTION": "TOGGLE",
+   "TITLE": "FO INT"
+  },
+  "FO_LS_VOL": {
+   "ACTION": "ADJUST LS VOLUME",
+   "TITLE": "LS VOLUME"
+  },
+  "FO_LS_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "FO_LT_KNOB_BIG": {
+   "TITLE": "LT BRIGHTNESS"
+  },
+  "FO_LT_KNOB_SMALL": {
+   "ACTION": "ADJUST VALUE",
+   "TITLE": "OUTER BRIGHTNESS"
+  },
+  "FO_MAP_LIGHT_KNOB": {
+   "ACTION": "ADJUST FO LIGHT BRIGTHNESS",
+   "TITLE": "FO MAP LIGHT"
+  },
+  "FO_MASTER_CAUTION": {
+   "ACTION": "TOGGLE MASTER CAUTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "MASTER CAUTION"
+  },
+  "FO_MASTER_WARN": {
+   "ACTION": "TOGGLE MASTER WARNING",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "MASTER WARNING"
+  },
+  "FO_MKR_VOL": {
+   "ACTION": "ADJUST MKR VOLUME",
+   "TITLE": "MKR VOLUME"
+  },
+  "FO_MKR_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "FO_MOS1_VOL": {
+   "ACTION": "ADJUST MIDS 1 VOLUME",
+   "TITLE": "MIDS 1 VOLUME KNOB"
+  },
+  "FO_MOS1_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "FO_MOS1_VOL_SEL": {
+   "ACTION": "ACTION MIDS 1 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "MIDS 1 DOWN"
+  },
+  "FO_MOS2_VOL": {
+   "ACTION": "ADJUST MIDS 2 VOLUME",
+   "TITLE": "MIDS 2 VOLUME KNOB"
+  },
+  "FO_MOS2_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "FO_MOS2_VOL_SEL": {
+   "ACTION": "ACTION MIDS 2 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "MIDS 2 DOWN"
+  },
+  "FO_OF_VOL": {
+   "ACTION": "ADJUST DF VOLUME",
+   "TITLE": "DF VOLUME"
+  },
+  "FO_OF_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "FO_OUTER_DU_BRT_BIG": {
+   "ACTION": "ADJUST PFD BRIGHTNESS",
+   "TITLE": "PFD BRIGHTNESS"
+  },
+  "FO_OUTER_DU_BRT_SMALL": {
+   "ACTION": "ADJUST BRIGHTNESS",
+   "TITLE": "SEC DU KNOB"
+  },
+  "FO_OVRD_PUSH": {
+   "ACTION": "OVERRIDE",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "FO OVERRIDE"
+  },
+  "FO_PAV_VOL": {
+   "ACTION": "ADJUST PRIV VOLUME",
+   "TITLE": "PRIV VOLUME KNOB"
+  },
+  "FO_PAV_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "FO_PAV_VOL_SEL": {
+   "ACTION": "ACTION PRIV DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "PRIV DOWN"
+  },
+  "FO_PA_VOL": {
+   "ACTION": "ADJUST PA VOLUME",
+   "TITLE": "PA VOLUME KNOB"
+  },
+  "FO_PA_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "FO_PA_VOL_SEL": {
+   "ACTION": "ACTION PA DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "PA DOWN"
+  },
+  "FO_PILLAR_LIGHT_KNOB": {
+   "ACTION": "ADJUST FO PILLAR LIGHT BRIGHTNESS",
+   "TITLE": "FO PILLAR LIGHT KNOB"
+  },
+  "FO_REVTHRUST": {
+   "1": "RET",
+   "2": "OFF",
+   "3": "EXT",
+   "ACTION": "ADJUST SPEEDBRAKE",
+   "TITLE": "SPEEDBRAKE SWITCH"
+  },
+  "FO_RWY_VOL": {
+   "ACTION": "ADJUST RWY VOLUME",
+   "TITLE": "RWR VOLUME"
+  },
+  "FO_RWY_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "FO_SAT1_VOL": {
+   "ACTION": "ADJUST SAT 1 VOLUME",
+   "TITLE": "SAT 1 VOLUME KNOB"
+  },
+  "FO_SAT1_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "FO_SAT1_VOL_SEL": {
+   "ACTION": "ACTION SAT 1 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "SAT 1 DOWN"
+  },
+  "FO_SAT2_VOL": {
+   "ACTION": "ADJUST SAT 2 VOLUME",
+   "TITLE": "SAT 2 VOLUME KNOB"
+  },
+  "FO_SAT2_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "FO_SAT2_VOL_SEL": {
+   "ACTION": "ACTION SAT 2 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "SAT 2 DOWN"
+  },
+  "FO_SEAT_TOGGLE_BKREST": {
+   "ACTION": "SET ARM REST",
+   "OFF": "TOGGLE",
+   "ON": "TOGGLE",
+   "TITLE": "LEFT ARM REST"
+  },
+  "FO_SIDESTICK_AP_DISCO": {
+   "ACTION": "DISCONNECT AUTOPILOT",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FO AP DISCONNECT"
+  },
+  "FO_TAC1_VOL": {
+   "ACTION": "ADJUST TAC 1 VOLUME",
+   "TITLE": "TAC 1 VOLUME"
+  },
+  "FO_TAC1_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "FO_TAC2_VOL": {
+   "ACTION": "ADJUST TAC 2 VOLUME",
+   "TITLE": "TAC 2 VOLUME"
+  },
+  "FO_TAC2_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "FO_TILLER_BIG": {
+   "ACTION": "TOGGLE TILLER",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "FO TILLER/PEDAL DISC"
+  },
+  "FO_TRAY_LT_KNOB": {
+   "ACTION": "ADJUST FO TRAY LIGHT",
+   "TITLE": "FO TRAY LIGHT"
+  },
+  "FO_TRAY_MAIN": {
+   "ACTION": "TOGGLE FO TRAY TABLE",
+   "OFF": "OPENED",
+   "ON": "STOWED",
+   "TITLE": "FO TRAY TABLE"
+  },
+  "FO_VHF1_VOL": {
+   "ACTION": "ADJUST V/U 1 VOLUME",
+   "TITLE": "V/U 1 VOLUME KNOB"
+  },
+  "FO_VHF1_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "FO_VHF1_VOL_SEL": {
+   "ACTION": "ACTION V/U 2 UPPER",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "V/U 1 UPPER"
+  },
+  "FO_VHF1_VOL_SEL2": {
+   "ACTION": "ACTION V/U 1 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "V/U 1 DOWN"
+  },
+  "FO_VHF2_VOL": {
+   "ACTION": "ADJUST V/U 2 VOLUME",
+   "TITLE": "V/U 2 VOLUME KNOB"
+  },
+  "FO_VHF2_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "FO_VHF2_VOL_SEL": {
+   "ACTION": "ACTION V/U 2 UPPER",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "V/U 2 UPPER"
+  },
+  "FO_VHF2_VOL_SEL2": {
+   "ACTION": "ACTION V/U 2 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "V/U 2 DOWN"
+  },
+  "FO_VHF3_VOL": {
+   "ACTION": "ADJUST V/U 3 VOLUME",
+   "TITLE": "V/U 3 VOLUME KNOB"
+  },
+  "FO_VHF3_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "FO_VHF3_VOL_SEL": {
+   "ACTION": "ACTION V/U 3 UPPER",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "V/U 3 UPPER"
+  },
+  "FO_VHF3_VOL_SEL2": {
+   "ACTION": "ACTION V/U 1 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "V/U 3 DOWN"
+  },
+  "FO_VHF4_VOL": {
+   "ACTION": "ADJUST V/U 4 VOLUME",
+   "TITLE": "V/U 4 VOLUME KNOB"
+  },
+  "FO_VHF4_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "FO_VHF4_VOL_SEL": {
+   "ACTION": "ACTION V/U 4 UPPER",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "V/U 4 UPPER"
+  },
+  "FO_VHF4_VOL_SEL2": {
+   "ACTION": "ACTION V/U 4 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "V/U 4 DOWN"
+  },
+  "FO_VOR1_VOL": {
+   "ACTION": "ADJUST VOR 1 VOLUME",
+   "TITLE": "VOR 1 VOLUME"
+  },
+  "FO_VOR1_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "FO_VOR2_VOL": {
+   "ACTION": "ADJUST VOR 2 VOLUME",
+   "TITLE": "VOR 2 VOLUME"
+  },
+  "FO_VOR2_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "FO_VOX_VOL": {
+   "ACTION": "ADJUST VOX VOLUME",
+   "TITLE": "VOX VOLUME KNOB"
+  },
+  "FO_VOX_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "FO_VOX_VOL_SEL": {
+   "ACTION": "ACTION VOICE DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "VOICE DOWN"
+  },
+  "FO_XCHECK": {
+   "ACTION": "PERFORM XCHECK",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "XCHECK"
+  },
+  "FUEL_CROSS1": {
+   "ACTION": "SET CROSSFEED 1",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FUEL CROSSFEED 1"
+  },
+  "FUEL_CROSS2": {
+   "ACTION": "SET CROSSFEED 2",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FUEL CROSSFEED 2"
+  },
+  "FUEL_CROSS3": {
+   "ACTION": "SET CROSSFEED 3",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FUEL CROSSFEED 3"
+  },
+  "FUEL_CROSS4": {
+   "ACTION": "SET CROSSFEED 4",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FUEL CROSSFEED 4"
+  },
+  "FUEL_EEC_XFEED_OVRD": {
+   "ACTION": "SET EEC CROSSFEED OVERRIDE",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "EEC CROSSFEED OVERRIDE"
+  },
+  "FUEL_FEED_1": {
+   "ACTION": "SET FEED 1&2",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FEED 1&2 LEFT"
+  },
+  "FUEL_FEED_1_GUARD": {
+   "ACTION": "UNCOVER/COVER FEED 1&3",
+   "OFF": "OPEN",
+   "ON": "CLOSED",
+   "TITLE": "FEED 1&2 LEFT GUARD"
+  },
+  "FUEL_FEED_3": {
+   "ACTION": "SET FEED 3&4",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FEED 3&4 RIGHT"
+  },
+  "FUEL_FEED_3_GUARD": {
+   "ACTION": "UNCOVER/COVER FEED 3&4",
+   "OFF": "OPEN",
+   "ON": "CLOSED",
+   "TITLE": "FEED 3&4 RIGHT GUARD"
+  },
+  "FUEL_FEED_CTR": {
+   "ACTION": "SET FUEL FEED CONTROL",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "FUEL FEED CONTROL"
+  },
+  "FUEL_FEED_CTR_GUARD": {
+   "ACTION": "UNCOVER/COVER FUEL FEED CONTROL",
+   "OFF": "OPEN",
+   "ON": "CLOSED",
+   "TITLE": "FUEL FEED CONTROL"
+  },
+  "FUEL_FEED_TK1": {
+   "ACTION": "SET MAIN FEED TK 1",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "MAIN FEED TANK 1"
+  },
+  "FUEL_FEED_TK1_STBY": {
+   "ACTION": "SET STANDBY FEED TK 1",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "STANDBY FEED TANK 1"
+  },
+  "FUEL_FEED_TK2": {
+   "ACTION": "SET MAIN FEED TK 2",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "MAIN FEED TANK 2"
+  },
+  "FUEL_FEED_TK2_STBY": {
+   "ACTION": "SET STANDBY FEED TK 2",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "STANDBY FEED TANK 2"
+  },
+  "FUEL_FEED_TK3_MAN": {
+   "ACTION": "SET MAIN FEED TK 3",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "MAIN FEED TANK 3"
+  },
+  "FUEL_FEED_TK3_STBY": {
+   "ACTION": "SET STANDBY FEED TK 3",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "STANDBY FEED TANK 3"
+  },
+  "FUEL_FEED_TK4_MAN": {
+   "ACTION": "SET MAIN FEED TK 4",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "MAIN FEED TANK 4"
+  },
+  "FUEL_FEED_TK4_STBY": {
+   "ACTION": "SET STANDBY FEED TK 4",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "STANDBY FEED TANK 4"
+  },
+  "FUEL_L_INR_TK_ALTN1": {
+   "ACTION": "SET L INR TK ALTN 1",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "LEFT INNER TANK ALTN 1"
+  },
+  "FUEL_L_INR_TK_ALTN1_1": {
+   "ACTION": "SET L INR TK 1",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "LEFT INNER TANK 1"
+  },
+  "FUEL_L_INR_TK_ALTN2": {
+   "ACTION": "SET L INR TK ALTN 2",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "LEFT INNER TANK ALTN 2"
+  },
+  "FUEL_L_INR_TK_ALTN2_2": {
+   "ACTION": "SET L INR TK 2",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "LEFT INNER TANK 2"
+  },
+  "FUEL_RISER_DRAIN_PUMP": {
+   "ACTION": "SET RISER DRAIN PUMP",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RISER DRAIN PUMP"
+  },
+  "FUEL_R_INR_TK_ALTN3": {
+   "ACTION": "SET R INR ALTN 3",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RIGHT INNER ALTN 3"
+  },
+  "FUEL_R_INR_TK_ALTN3_3": {
+   "ACTION": "SET R INR 3",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RIGHT INNER 3"
+  },
+  "FUEL_R_INR_TK_ALTN4": {
+   "ACTION": "SET R INR ALTN 4",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RIGHT INNER ALTN 4"
+  },
+  "FUEL_R_INR_TK_ALTN4_4": {
+   "ACTION": "SET R INR 4",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RIGHT INNER 4"
+  },
+  "GADIRS": {
+   "ACTION": "SET GADIRS",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "GADIRS"
+  },
+  "GADIRS_GUARD": {
+   "ACTION": "UNCOVER GADIRS BUTTON",
+   "OFF": "OPEN",
+   "ON": "CLOSED",
+   "TITLE": "GADIRS GUARD"
+  },
+  "GEAR_LEVER": {
+   "ACTION": "SET LANDING GEAR",
+   "TITLE": "LANDING GEAR LEVER"
+  },
+  "GND_HYD_BLUE": {
+   "ACTION": "TOGGLE GND HYD BLUE",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "GROUND HYD BLUE"
+  },
+  "GND_HYD_BLUE_GUARD": {
+   "ACTION": "UNCOVER/COVER GND HYD BLUE",
+   "OFF": "OPEN",
+   "ON": "CLOSED",
+   "TITLE": "GND HYD BLUE GUARD"
+  },
+  "GND_HYD_BLUE_PUMP": {
+   "ACTION": "TOGGLE GND HYD BLUE PUMP",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "GND HYD BLUE PUMP"
+  },
+  "GND_HYD_CONVERTER": {
+   "ACTION": "GND HYD CONVERTER",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "GND HYD CONVERTER"
+  },
+  "GND_HYD_CONVERTER_GUARD": {
+   "OFF": "OPEN",
+   "ON": "CLOSED"
+  },
+  "GND_HYD_REMOTE": {
+   "ACTION": "GND HYD REMOTE",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "GND HYD REMOTE"
+  },
+  "GND_HYD_REMOTE_GUARD": {
+   "OFF": "OPEN",
+   "ON": "CLOSED"
+  },
+  "GND_HYD_YELLOW": {
+   "ACTION": "TOGGLE GND HYD YELLOW",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "GROUND HYD YELLOW"
+  },
+  "GND_HYD_YELLOW_GUARD": {
+   "ACTION": "UNCOVER/COVER GND HYD YELLOW",
+   "OFF": "OPEN",
+   "ON": "CLOSED",
+   "TITLE": "GND HYD YELLOW GUARD"
+  },
+  "GND_HYD_YELLOW_PUMP": {
+   "ACTION": "TOGGLE GND HYD BLUE PUMP",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "GND HYD YELLOW PUMP"
+  },
+  "GND_SPOILER": {
+   "ACTION": "ARM GROUND SPOILERS",
+   "OFF": "OFF",
+   "ON": "ON",
+   "TITLE": "GROUND SPOILERS"
+  },
+  "HYD_ENG1": {
+   "ACTION": "TOGGLE HYD PUMP 1",
+   "OFF": "AUTO",
+   "ON": "OFF",
+   "TITLE": "HYDRAULIC PUMP 1"
+  },
+  "HYD_ENG2": {
+   "ACTION": "TOGGLE HYD PUMP 2",
+   "OFF": "AUTO",
+   "ON": "OFF",
+   "TITLE": "HYDRAULIC PUMP 2"
+  },
+  "HYD_ENG3": {
+   "ACTION": "TOGGLE HYD PUMP 3",
+   "OFF": "AUTO",
+   "ON": "OFF",
+   "TITLE": "HYDRAULIC PUMP 3"
+  },
+  "HYD_ENG4": {
+   "ACTION": "TOGGLE HYD PUMP 4",
+   "OFF": "AUTO",
+   "ON": "OFF",
+   "TITLE": "HYDRAULIC PUMP 4"
+  },
+  "IFF_SYS": {
+   "1": "1",
+   "2": "SYS",
+   "3": "2",
+   "ACTION": "SELECT SYSTEM",
+   "TITLE": "IFF SYSTEM SELECTOR"
+  },
+  "LDG_ELEVATION": {
+   "ACTION": "ADJUST LANDING ELEVATION",
+   "TITLE": "LANDING ELEVATION SELECTOR"
+  },
+  "MAIN_PNL_FLOOD_L": {
+   "ACTION": "ADJUST FLOOD",
+   "TITLE": "MAIN LEFT PANEL FLOOD"
+  },
+  "MAIN_PNL_FLOOD_R": {
+   "ACTION": "ADJUST FLOOD",
+   "TITLE": "MAIN RIGHT PANEL FLOOD"
+  },
+  "MCU_BRT_KNOB_L": {
+   "ACTION": "ADJUST MCU BRIGHTNESS",
+   "TITLE": "LEFT MDU LIGHT BRIGHTNESS"
+  },
+  "MCU_BRT_KNOB_R": {
+   "ACTION": "ADJUST MCU BRIGHTNESS",
+   "TITLE": "RIGHT MDU LIGHT BRIGHTNESS"
+  },
+  "OVH_ADR1": {
+   "ACTION": "SET ADR 1",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "ADR 1"
+  },
+  "OVH_ADR2": {
+   "ACTION": "SET ADR 2",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "ADR 2"
+  },
+  "OVH_ADR3": {
+   "ACTION": "SET ADR 3",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "ADR 3"
+  },
+  "OVH_AIR_APU_BLEED": {
+   "ACTION": "SET APU BLEED",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "APU BLEED"
+  },
+  "OVH_AIR_BLEED1": {
+   "ACTION": "SET ENG 1 BLEED",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "ENGINE 1 BLEED"
+  },
+  "OVH_AIR_BLEED2": {
+   "ACTION": "SET ENG 2 BLEED",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "ENGINE 2 BLEED"
+  },
+  "OVH_AIR_BLEED3": {
+   "ACTION": "SET ENG 3 BLEED",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "ENGINE 3 BLEED"
+  },
+  "OVH_AIR_BLEED4": {
+   "ACTION": "SET ENG 4 BLEED",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "ENGINE 4 BLEED"
+  },
+  "OVH_AIR_FLOW": {
+   "1": "ECON",
+   "2": "LOW",
+   "3": "NORM",
+   "4": "HIGH",
+   "ACTION": "ADJUST AIR FLOW",
+   "TITLE": "AIR FLOW SELECTOR"
+  },
+  "OVH_AIR_PACK1": {
+   "ACTION": "SET PACK 1",
+   "OFF": "OFF",
+   "ON": "ON",
+   "TITLE": "PACK 1"
+  },
+  "OVH_AIR_PACK2": {
+   "ACTION": "SET PACK 2",
+   "OFF": "OFF",
+   "ON": "ON",
+   "TITLE": "PACK 2"
+  },
+  "OVH_AIR_XBLEED": {
+   "1": "CLOSE",
+   "2": "AUTO",
+   "3": "OPEN",
+   "ACTION": "SELECT XBLEED MODE",
+   "TITLE": "XBLEED SELECTOR"
+  },
+  "OVH_ANN_LT_TEST": {
+   "1": "TEST",
+   "2": "BRT",
+   "3": "DIM",
+   "ACTION": "ADJUST/TEST ANN LIGHTING",
+   "TITLE": "ANN LIGHT SELECTOR"
+  },
+  "OVH_ANTI_ICE_AUTO": {
+   "ACTION": "TOGGLE ANTI ICE AUTO MODE",
+   "OFF": "OFF",
+   "ON": "ON",
+   "TITLE": "ANTI ICE AUTO MODE"
+  },
+  "OVH_ANTI_ICE_ENG1": {
+   "ACTION": "TOGGLE ENG 1 ANTI ICE",
+   "OFF": "OFF",
+   "ON": "ON",
+   "TITLE": "ENGINE 1 ANTI ICE"
+  },
+  "OVH_ANTI_ICE_ENG2": {
+   "ACTION": "TOGGLE ENG 2 ANTI ICE",
+   "OFF": "OFF",
+   "ON": "ON",
+   "TITLE": "ENGINE 2 ANTI ICE"
+  },
+  "OVH_ANTI_ICE_ENG3": {
+   "ACTION": "TOGGLE ENG 3 ANTI ICE",
+   "OFF": "OFF",
+   "ON": "ON",
+   "TITLE": "ENGINE 3 ANTI ICE"
+  },
+  "OVH_ANTI_ICE_ENG4": {
+   "ACTION": "TOGGLE ENG 4 ANTI ICE",
+   "OFF": "OFF",
+   "ON": "ON",
+   "TITLE": "ENGINE 4 ANTI ICE"
+  },
+  "OVH_ANTI_ICE_PROBE": {
+   "ACTION": "SET PROBE & WINDOW HEAT TO AUTO",
+   "OFF": "AUTO",
+   "ON": "ON",
+   "TITLE": "PROBE AND WINDOW HEAT"
+  },
+  "OVH_ANTI_ICE_PROP1": {
+   "ACTION": "TOGGLE PROP 1 ANTI ICE",
+   "OFF": "OFF",
+   "ON": "ON",
+   "TITLE": "PROPELLER 1 ANTI ICE"
+  },
+  "OVH_ANTI_ICE_PROP2": {
+   "ACTION": "TOGGLE PROP 2 ANTI ICE",
+   "OFF": "OFF",
+   "ON": "ON",
+   "TITLE": "PROPELLER 2 ANTI ICE"
+  },
+  "OVH_ANTI_ICE_PROP3": {
+   "ACTION": "TOGGLE PROP 3 ANTI ICE",
+   "OFF": "OFF",
+   "ON": "ON",
+   "TITLE": "PROPELLER 3 ANTI ICE"
+  },
+  "OVH_ANTI_ICE_PROP4": {
+   "ACTION": "TOGGLE PROP 4 ANTI ICE",
+   "OFF": "OFF",
+   "ON": "ON",
+   "TITLE": "PROPELLER 4 ANTI ICE"
+  },
+  "OVH_ANTI_ICE_WING": {
+   "ACTION": "TOGGLE WING ANTI ICE",
+   "OFF": "OFF",
+   "ON": "ON",
+   "TITLE": "WING ANTI ICE"
+  },
+  "OVH_BAT_CHECK": {
+   "1": "ESS",
+   "2": "OFF",
+   "3": "1",
+   "4": "2",
+   "ACTION": "SELECT BATTERY SOURCE",
+   "TITLE": "BATTERY CHECK SELECTOR"
+  },
+  "OVH_BEACON": {
+   "1": "BRT",
+   "2": "DIM",
+   "3": "OFF",
+   "ACTION": "SET BEACON LIGHTS",
+   "TITLE": "BEACON LIGHTS"
+  },
+  "OVH_BEACON_UP": {
+   "1": "BOTH",
+   "2": "UPPER",
+   "ACTION": "TOGGLE BEACON LIGHTS BETWEEN UPPER/BOTH",
+   "TITLE": "BEACON LIGHTS SELECTOR"
+  },
+  "OVH_CPT_WIPER": {
+   "1": "OFF",
+   "2": "SLOW",
+   "3": "FAST",
+   "ACTION": "SET CPT WIPER",
+   "TITLE": "CPT WIPER"
+  },
+  "OVH_DOME_LT": {
+   "ACTION": "ADJUST DOME LIGHT BRIGTHNESS",
+   "TITLE": "DOME LIGHT"
+  },
+  "OVH_ELMF": {
+   "ACTION": "SET OVERHEAD ELMF",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "OVERHEAD ELMF"
+  },
+  "OVH_EMER_EXIT": {
+   "1": "ON",
+   "2": "AUTO",
+   "3": "OFF",
+   "ACTION": "SET EMER EXT LIGHTS",
+   "TITLE": "EMERGENCY EXTERNAL LIGHTS"
+  },
+  "OVH_ENG1_MAN": {
+   "ACTION": "START ENG 1 MANUALLY",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "ENGINE 1 MANUAL START"
+  },
+  "OVH_ENG1_MAN_GUARD": {
+   "ACTION": "UNCOVER ENG 1 MAN START",
+   "OFF": "OPEN",
+   "ON": "COVERED",
+   "TITLE": "ENGINE 1 MANUAL START GUARD"
+  },
+  "OVH_ENG2_MAN": {
+   "ACTION": "START ENG 2 MANUALLY",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "ENGINE 2 MANUAL START"
+  },
+  "OVH_ENG2_MAN_GUARD": {
+   "ACTION": "UNCOVER ENG 2 MAN START",
+   "OFF": "OPEN",
+   "ON": "COVERED",
+   "TITLE": "ENGINE 2 MANUAL START GUARD"
+  },
+  "OVH_ENG3_MAN": {
+   "ACTION": "START ENG 3 MANUALLY",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "ENGINE 3 MANUAL START"
+  },
+  "OVH_ENG3_MAN_GUARD": {
+   "ACTION": "UNCOVER ENG 3 MAN START",
+   "OFF": "OPEN",
+   "ON": "COVERED",
+   "TITLE": "ENGINE 3 MANUAL START GUARD"
+  },
+  "OVH_ENG4_MAN": {
+   "ACTION": "START ENG 4 MANUALLY",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "ENGINE 4 MANUAL START"
+  },
+  "OVH_ENG4_MAN_GUARD": {
+   "ACTION": "UNCOVER ENG 4 MAN START",
+   "OFF": "OPEN",
+   "ON": "COVERED",
+   "TITLE": "ENGINE 4 MANUAL START GUARD"
+  },
+  "OVH_FADEC_ENG1": {
+   "ACTION": "SET ENGINE 1 FADEC",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ENGINE 1 FADEC"
+  },
+  "OVH_FADEC_ENG1_GUARD": {
+   "ACTION": "UNCOVER FADEC 1 BUTTON",
+   "OFF": "OPEN",
+   "ON": "CLOSED",
+   "TITLE": "FADEC 1 GUARD"
+  },
+  "OVH_FADEC_ENG2": {
+   "ACTION": "SET ENGINE 2 FADEC",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ENGINE 2 FADEC"
+  },
+  "OVH_FADEC_ENG2_GUARD": {
+   "ACTION": "UNCOVER FADEC 2 BUTTON",
+   "OFF": "OPEN",
+   "ON": "CLOSED",
+   "TITLE": "FADEC 2 GUARD"
+  },
+  "OVH_FADEC_ENG3": {
+   "ACTION": "SET ENGINE 3 FADEC",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ENGINE 3 FADEC"
+  },
+  "OVH_FADEC_ENG3_GUARD": {
+   "ACTION": "UNCOVER FADEC 3 BUTTON",
+   "OFF": "OPEN",
+   "ON": "CLOSED",
+   "TITLE": "FADEC 3 GUARD"
+  },
+  "OVH_FADEC_ENG4": {
+   "ACTION": "SET ENGINE 4 FADEC",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ENGINE 4 FADEC"
+  },
+  "OVH_FADEC_ENG4_GUARD": {
+   "ACTION": "UNCOVER FADEC 4 BUTTON",
+   "OFF": "OPEN",
+   "ON": "CLOSED",
+   "TITLE": "FADEC 4 GUARD"
+  },
+  "OVH_FO_WIPER": {
+   "1": "OFF",
+   "2": "SLOW",
+   "3": "FAST",
+   "ACTION": "SET FO WIPER",
+   "TITLE": "FO WIPER"
+  },
+  "OVH_HOT_AIR1": {
+   "ACTION": "SET HOT AIR 1",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "HOT AIR 1"
+  },
+  "OVH_HOT_AIR2": {
+   "ACTION": "SET HOT AIR 2",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "HOT AIR 2"
+  },
+  "OVH_ICE_IND": {
+   "1": "ICE IND",
+   "2": "OFF",
+   "3": "EYE REF",
+   "ACTION": "SELECT ICE INDICATOR MODE",
+   "TITLE": "ICE INDICATORS SELECTOR"
+  },
+  "OVH_IR1": {
+   "ACTION": "SET IRS 1",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "IRS 1"
+  },
+  "OVH_IR2": {
+   "ACTION": "SET IRS 2",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "IRS 2"
+  },
+  "OVH_IR3": {
+   "ACTION": "SET IRS 3",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "IRS 3"
+  },
+  "OVH_LDG_LIGHT": {
+   "1": "OFF",
+   "2": "ON",
+   "ACTION": "SET LANDING LIGHTS",
+   "TITLE": "LANDING LIGHTS"
+  },
+  "OVH_LOADSHED": {
+   "ACTION": "SET OVERHEAD LOADSHED",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "OVERHEAD LOADSHED"
+  },
+  "OVH_NAV": {
+   "1": "ON",
+   "2": "OFF",
+   "ACTION": "SET NAVIGATION LIGHTS",
+   "TITLE": "NAVIGATION LIGHTS"
+  },
+  "OVH_NVG_MODE": {
+   "1": "NVG MODE",
+   "2": "CKPT & EXT",
+   "3": "OFF",
+   "ACTION": "SELLECT NVG MODE",
+   "TITLE": "NIGHT VISION GOGGLE MODE"
+  },
+  "OVH_PROBE": {
+   "1": "BRT",
+   "2": "DIM",
+   "3": "OFF",
+   "ACTION": "SET PROBE LIGHTS",
+   "TITLE": "PROBE LIGHTS"
+  },
+  "OVH_RWY_TURNOFF": {
+   "1": "OFF",
+   "2": "ON",
+   "ACTION": "SET RUNWAY TURN OFF LIGHTS",
+   "TITLE": "RUNWAY TURN OFF LIGHTS"
+  },
+  "OVH_SEATBELT": {
+   "1": "ON",
+   "2": "AUTO",
+   "3": "OFF",
+   "ACTION": "SET SEAT BELTS SIGNS",
+   "TITLE": "SEAT BELTS SIGNS"
+  },
+  "OVH_STROBE": {
+   "1": "BRT",
+   "2": "DIM",
+   "3": "OFF",
+   "ACTION": "SET STROBE LIGHTS",
+   "TITLE": "STROBE LIGHTS"
+  },
+  "OVH_TAXI": {
+   "1": "OFF",
+   "2": "ON",
+   "ACTION": "SET T.O AND TAXI LIGHTS",
+   "TITLE": "TAKEOFF AND TAXI LIGHTS"
+  },
+  "OVH_WING": {
+   "1": "OFF",
+   "2": "ON",
+   "ACTION": "SET WING LIGHTS",
+   "TITLE": "WING LIGHTS"
+  },
+  "PEDESTAL_FLOOD_LT": {
+   "ACTION": "ADJUST FLOOD",
+   "TITLE": "PEDESTAL FLOOD"
+  },
+  "PITCHTRIM_L": {
+   "1": "UP",
+   "2": "NEUTRAL",
+   "3": "DOWN",
+   "ACTION": "ADJUST PITCH TRIM",
+   "TITLE": "PITCH TRIM"
+  },
+  "PITCHTRIM_R": {
+   "1": "UP",
+   "2": "NEUTRAL",
+   "3": "DOWN",
+   "ACTION": "ADJUST PITCH TRIM",
+   "TITLE": "PITCH TRIM"
+  },
+  "PITCHTRIM_RESET": {
+   "ACTION": "SET PITCH TRIM RESET",
+   "OFF": "SET",
+   "ON": "SET",
+   "TITLE": "PITCH TRIM RESET"
+  },
+  "RAM_AIR": {
+   "ACTION": "ACTIVATE RAM AIR",
+   "OFF": "OFF",
+   "ON": "ON",
+   "TITLE": "RAM AIR"
+  },
+  "RAM_AIR_GUARD": {
+   "ACTION": "UNCOVER/COVER RAM AIR BUTTOM",
+   "OFF": "CLOSE",
+   "ON": "OPEN",
+   "TITLE": "RAM AIR GUARD"
+  },
+  "RAPID_DEPRESS": {
+   "ACTION": "SET RAPID DEPRESSURIZATION",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "RAPID DEPRESSURIZATION"
+  },
+  "RAPID_DEPRESS_GUARD": {
+   "ACTION": "UNCOVER/COVER RAPID DEPRESS BUTTON",
+   "OFF": "CLOSE",
+   "ON": "OPEN",
+   "TITLE": "RAPID DEPRESS GUARD"
+  },
+  "REAR_READINGLIGHT_KNOB": {
+   "ACTION": "ADJUST REAR READING LIGHT",
+   "TITLE": "REAR READING LIGHT"
+  },
+  "RECYC_FANS": {
+   "ACTION": "TOGGLE FANS RECYCLING",
+   "OFF": "OFF",
+   "ON": "ON",
+   "TITLE": "RECYCLE FANS"
+  },
+  "ROLLTRIM_1": {
+   "1": "LEFT WING DOWN",
+   "2": "NEUTRAL",
+   "3": "RIGHT WING DOWN",
+   "ACTION": "ADJUST ROLL TRIM",
+   "TITLE": "ROLL TRIM"
+  },
+  "ROLLTRIM_2": {
+   "1": "LEFT WING DOWN",
+   "2": "NEUTRAL",
+   "3": "RIGHT WING DOWN",
+   "ACTION": "ADJUST ROLL TRIM",
+   "TITLE": "ROLL TRIM"
+  },
+  "ROLLTRIM_RESET": {
+   "ACTION": "SET ROLL TRIM RESET",
+   "OFF": "SET",
+   "ON": "SET",
+   "TITLE": "ROLL TRIM RESET"
+  },
+  "RUDDER_TRIM": {
+   "1": "LEFT",
+   "2": "NEUTRAL",
+   "3": "RIGHT",
+   "ACTION": "ADJUST RUDDER TRIM",
+   "TITLE": "RUDDER TRIM"
+  },
+  "SEAT_CPT_ARMREST_R_SEL_1": {
+   "ACTION": "SET ARM REST",
+   "OFF": "TOGGLE",
+   "ON": "TOGGLE",
+   "TITLE": "RIGHT ARM REST SEL 1"
+  },
+  "SEAT_FO_ARMREST_R_SEL_3": {
+   "ACTION": "SET ARM REST",
+   "OFF": "TOGGLE",
+   "ON": "TOGGLE",
+   "TITLE": "LEFT ARM REST"
+  },
+  "SMOKE_AVNCS": {
+   "ACTION": "TOGGLE AVIONICS SMOKE DETECTION",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "AVIONICS SMOKE DETECTION"
+  },
+  "SMOKE_CARGO": {
+   "ACTION": "TOGGLE CARGO SMOKE DETECTION",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "CARGO SMOKE DETECTION"
+  },
+  "SMOKE_CARGO_WARN": {
+   "ACTION": "TOGGLE SMOKE CARGO WARNING",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "SMOKE CARGO WARNING"
+  },
+  "SMOKE_LAV": {
+   "ACTION": "TOGGLE LAVATORY SMOKE DETECTION",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "LAVATORY SMOKE DETECTION"
+  },
+  "STBY_HORI_LS": {
+   "ACTION": "SET LS MODE",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "LS MODE"
+  },
+  "STBY_HORI_MENU": {
+   "ACTION": "TOGGLE MENU",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ISIS MENU"
+  },
+  "STBY_HORI_MINUS": {
+   "ACTION": "DECREASE BRIGHTNESS",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ISIS  DECREASE BRIGHTNESS"
+  },
+  "STBY_HORI_PLUS": {
+   "ACTION": "INCREASE BRIGHTNESS",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ISIS INCREASE BRIGHTNESS"
+  },
+  "STBY_HORI_SELECT": {
+   "ACTION": "TOGGLE BARO STD SETTING",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "ISIS STD BARO"
+  },
+  "STBY_HORI_SET": {
+   "ACTION": "ADJUST BAROMETER",
+   "STATE_PULL": "ISIS UNKNOWN",
+   "STATE_PUSH": "ISIS UNKNOWN",
+   "TITLE": "STBY ARTIFICIAL HORIZON BARO SET"
+  },
+  "SURV_SYS1": {
+   "ACTION": "TOGGLE SURVEILLANCE SYSTEM 1",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "SURVEILLANCE SYSTEM 1"
+  },
+  "SURV_SYS2": {
+   "ACTION": "TOGGLE SURVEILLANCE SYSTEM 2",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "SURVEILLANCE SYSTEM 2"
+  },
+  "TAWS_TOGGLE": {
+   "1": "TACT",
+   "2": "OFF",
+   "3": "NORM",
+   "ACTION": "SET TAWS MODE",
+   "TITLE": "TAWS MODE"
+  },
+  "TCAS_ABV": {
+   "ACTION": "SET TRAFFIC ABOVE",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "TCAS ABOVE TRAFFIC"
+  },
+  "TCAS_BLW": {
+   "ACTION": "SET TRAFFIC BELLOW",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "TCAS BELLOW TRAFFIC"
+  },
+  "TCAS_MIN_HEIGHT": {
+   "ACTION": "SET MIN HEIGHT",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "TCAS MIN HEIGHT"
+  },
+  "TCAS_STBY": {
+   "ACTION": "SET STANDBY",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "TCAS STAND BY"
+  },
+  "TCAS_TA": {
+   "ACTION": "SET TA",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "TCAS TA"
+  },
+  "THROTTLE_1": {
+   "ACTION": "MOVE THROTTLE 1",
+   "TITLE": "THROTTLE 1"
+  },
+  "THROTTLE_2": {
+   "ACTION": "MOVE THROTTLE 2",
+   "TITLE": "THROTTLE 2"
+  },
+  "THROTTLE_3": {
+   "ACTION": "MOVE THROTTLE 3",
+   "TITLE": "THROTTLE 3"
+  },
+  "THROTTLE_4": {
+   "ACTION": "MOVE THROTTLE 4",
+   "TITLE": "THROTTLE 4"
+  },
+  "THROTTLE_AT_DISCONNECT": {
+   "ACTION": "DISCONNECT AUTO THRUST",
+   "TITLE": "A/THR DISCONNECT"
+  },
+  "U_TURN": {
+   "ACTION": "SET U TURN MODE",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "U TURN"
+  },
+  "VENT_AUTO": {
+   "ACTION": "SET AUTO VENTILATION",
+   "OFF": "ON",
+   "ON": "AUTO",
+   "TITLE": "AUTO VENTILATION"
+  },
+  "VENT_CARGO": {
+   "ACTION": "TOGGLE CARGO VENTILATION",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "CARGO VENTILATION"
+  },
+  "VENT_CARGO_GUARD": {
+   "ACTION": "UNCOVER/COVER CARGO VENT BUTTON",
+   "OFF": "CLOSE",
+   "ON": "OPEN",
+   "TITLE": "CARGO VENT GUARD"
+  },
+  "VENT_MISC": {
+   "ACTION": "SET MISC VENT",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "MISC VENT"
+  },
+  "VENT_MISC_GUARD": {
+   "ACTION": "UNCOVER/COVER MISC VENT",
+   "OFF": "OPEN",
+   "ON": "CLOSED",
+   "TITLE": "MISC VENT GUARD"
+  },
+  "VHF3_ADF_VOL": {
+   "ACTION": "ADJUST ADF VOLUME",
+   "TITLE": "ADF VOLUME"
+  },
+  "VHF3_ADF_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "VHF3_COMM_BRT": {
+   "ACTION": "ADJUST RADIO PANEL BRIGHTNESS",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL BRIGHTNESS"
+  },
+  "VHF3_COMM_BSK_1": {
+   "ACTION": "SET RADIO FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL"
+  },
+  "VHF3_COMM_BSK_2": {
+   "ACTION": "SET RADIO FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL"
+  },
+  "VHF3_COMM_BSK_3": {
+   "ACTION": "SET RADIO FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL"
+  },
+  "VHF3_COMM_BSK_4": {
+   "ACTION": "SET RADIO FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL"
+  },
+  "VHF3_COMM_HFF1": {
+   "ACTION": "SET IFF1-3",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL IFF1-3"
+  },
+  "VHF3_COMM_HFF4": {
+   "ACTION": "SET IFF4-5",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL IFF4-5"
+  },
+  "VHF3_COMM_IDENT": {
+   "ACTION": "TOGGLE RADIO IDENT",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL IDENT"
+  },
+  "VHF3_COMM_KP_0": {
+   "ACTION": "SET NUMBER 0",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "VHF3_COMM_KP_1": {
+   "ACTION": "SET NUMBER 1",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "VHF3_COMM_KP_2": {
+   "ACTION": "SET NUMBER 2",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "VHF3_COMM_KP_3": {
+   "ACTION": "SET NUMBER 3",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "VHF3_COMM_KP_4": {
+   "ACTION": "SET NUMBER 4",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "VHF3_COMM_KP_5": {
+   "ACTION": "SET NUMBER 5",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "VHF3_COMM_KP_6": {
+   "ACTION": "SET NUMBER 6",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "VHF3_COMM_KP_7": {
+   "ACTION": "SET NUMBER 7",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "VHF3_COMM_KP_8": {
+   "ACTION": "SET NUMBER 8",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "VHF3_COMM_KP_9": {
+   "ACTION": "SET NUMBER 9",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL NUMBER KEY"
+  },
+  "VHF3_COMM_KP_CLR": {
+   "ACTION": "PRESS TO CLEAR RADIO ENTRY",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL CLEAR"
+  },
+  "VHF3_COMM_KP_XY": {
+   "ACTION": "SET X/Y DESIGNATOR",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL X/Y SELECTOR"
+  },
+  "VHF3_COMM_MENU": {
+   "ACTION": "TOGGLE PANEL MENU",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "CPT RADIO PANEL MENU"
+  },
+  "VHF3_COMM_TSK_1": {
+   "ACTION": "SET RADIO FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL"
+  },
+  "VHF3_COMM_TSK_2": {
+   "ACTION": "SET RADIO FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL"
+  },
+  "VHF3_COMM_TSK_3": {
+   "ACTION": "SET RADIO FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL"
+  },
+  "VHF3_COMM_TSK_4": {
+   "ACTION": "SET RADIO FUNCTION",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "RADIO PANEL"
+  },
+  "VHF3_GEN_VOL": {
+   "ACTION": "ADJUST GENERAL VOLUME",
+   "TITLE": "GENERAL VOLUME KNOB"
+  },
+  "VHF3_GEN_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "VHF3_GEN_VOL_SEL": {
+   "ACTION": "ACTION GENERAL DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "GENERAL DOWN"
+  },
+  "VHF3_HF1_VOL": {
+   "ACTION": "ADJUST HF 1 VOLUME",
+   "TITLE": "HF 1 VOLUME KNOB"
+  },
+  "VHF3_HF1_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "VHF3_HF1_VOL_SEL": {
+   "ACTION": "ACTION HF 1 UPPER",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "HF 1 UPPER"
+  },
+  "VHF3_HF1_VOL_SEL2": {
+   "ACTION": "ACTION HF 1 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "HF 1 DOWN"
+  },
+  "VHF3_HF2_VOL": {
+   "ACTION": "ADJUST HF 2 VOLUME",
+   "TITLE": "HF 2 VOLUME KNOB"
+  },
+  "VHF3_HF2_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "VHF3_HF2_VOL_SEL": {
+   "ACTION": "ACTION HF 2 UPPER",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "HF 2 UPPER"
+  },
+  "VHF3_HF2_VOL_SEL2": {
+   "ACTION": "ACTION HF 2 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "HF 2 DOWN"
+  },
+  "VHF3_LS_VOL": {
+   "ACTION": "ADJUST LS VOLUME",
+   "TITLE": "LS VOLUME"
+  },
+  "VHF3_LS_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "VHF3_MKR_VOL": {
+   "ACTION": "ADJUST MKR VOLUME",
+   "TITLE": "MKR VOLUME"
+  },
+  "VHF3_MKR_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "VHF3_MOS1_VOL": {
+   "ACTION": "ADJUST MIDS 1 VOLUME",
+   "TITLE": "MIDS 1 VOLUME KNOB"
+  },
+  "VHF3_MOS1_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "VHF3_MOS1_VOL_SEL": {
+   "ACTION": "ACTION MIDS 1 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "MIDS 1 DOWN"
+  },
+  "VHF3_MOS2_VOL": {
+   "ACTION": "ADJUST MIDS 2 VOLUME",
+   "TITLE": "MIDS 2 VOLUME KNOB"
+  },
+  "VHF3_MOS2_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "VHF3_MOS2_VOL_SEL": {
+   "ACTION": "ACTION MIDS 2 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "MIDS 2 DOWN"
+  },
+  "VHF3_OF_VOL": {
+   "ACTION": "ADJUST DF VOLUME",
+   "TITLE": "DF VOLUME"
+  },
+  "VHF3_OF_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "VHF3_OVRD_PUSH": {
+   "ACTION": "OVERRIDE",
+   "OFF": "ON",
+   "ON": "OFF",
+   "TITLE": "VHF3 OVERRIDE"
+  },
+  "VHF3_PAV_VOL": {
+   "ACTION": "ADJUST PRIV VOLUME",
+   "TITLE": "PRIV VOLUME KNOB"
+  },
+  "VHF3_PAV_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "VHF3_PAV_VOL_SEL": {
+   "ACTION": "ACTION PRIV DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "PRIV DOWN"
+  },
+  "VHF3_PA_VOL": {
+   "ACTION": "ADJUST PA VOLUME",
+   "TITLE": "PA VOLUME KNOB"
+  },
+  "VHF3_PA_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "VHF3_PA_VOL_SEL": {
+   "ACTION": "ACTION PA DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "PA DOWN"
+  },
+  "VHF3_RWY_VOL": {
+   "ACTION": "ADJUST RWY VOLUME",
+   "TITLE": "RWR VOLUME"
+  },
+  "VHF3_RWY_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "VHF3_SAT1_VOL": {
+   "ACTION": "ADJUST SAT 1 VOLUME",
+   "TITLE": "SAT 1 VOLUME KNOB"
+  },
+  "VHF3_SAT1_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "VHF3_SAT1_VOL_SEL": {
+   "ACTION": "ACTION SAT 1 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "SAT 1 DOWN"
+  },
+  "VHF3_SAT2_VOL": {
+   "ACTION": "ADJUST SAT 2 VOLUME",
+   "TITLE": "SAT 2 VOLUME KNOB"
+  },
+  "VHF3_SAT2_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "VHF3_SAT2_VOL_SEL": {
+   "ACTION": "ACTION SAT 2 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "SAT 2 DOWN"
+  },
+  "VHF3_TAC1_VOL": {
+   "ACTION": "ADJUST TAC 1 VOLUME",
+   "TITLE": "TAC 1 VOLUME"
+  },
+  "VHF3_TAC1_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "VHF3_TAC2_VOL": {
+   "ACTION": "ADJUST TAC 2 VOLUME",
+   "TITLE": "TAC 2 VOLUME"
+  },
+  "VHF3_TAC2_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "VHF3_VHF1_VOL": {
+   "ACTION": "ADJUST V/U 1 VOLUME",
+   "TITLE": "V/U 1 VOLUME KNOB"
+  },
+  "VHF3_VHF1_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "VHF3_VHF1_VOL_SEL": {
+   "ACTION": "ACTION V/U 2 UPPER",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "V/U 1 UPPER"
+  },
+  "VHF3_VHF1_VOL_SEL2": {
+   "ACTION": "ACTION V/U 1 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "V/U 1 DOWN"
+  },
+  "VHF3_VHF2_VOL": {
+   "ACTION": "ADJUST V/U 2 VOLUME",
+   "TITLE": "V/U 2 VOLUME KNOB"
+  },
+  "VHF3_VHF2_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "VHF3_VHF2_VOL_SEL": {
+   "ACTION": "ACTION V/U 2 UPPER",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "V/U 2 UPPER"
+  },
+  "VHF3_VHF2_VOL_SEL2": {
+   "ACTION": "ACTION V/U 2 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "V/U 2 DOWN"
+  },
+  "VHF3_VHF3_VOL": {
+   "ACTION": "ADJUST V/U 3 VOLUME",
+   "TITLE": "V/U 3 VOLUME KNOB"
+  },
+  "VHF3_VHF3_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "VHF3_VHF3_VOL_SEL": {
+   "ACTION": "ACTION V/U 3 UPPER",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "V/U 3 UPPER"
+  },
+  "VHF3_VHF3_VOL_SEL2": {
+   "ACTION": "ACTION V/U 1 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "V/U 3 DOWN"
+  },
+  "VHF3_VHF4_VOL": {
+   "ACTION": "ADJUST V/U 4 VOLUME",
+   "TITLE": "V/U 4 VOLUME KNOB"
+  },
+  "VHF3_VHF4_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "VHF3_VHF4_VOL_SEL": {
+   "ACTION": "ACTION V/U 4 UPPER",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "V/U 4 UPPER"
+  },
+  "VHF3_VHF4_VOL_SEL2": {
+   "ACTION": "ACTION V/U 4 DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "V/U 4 DOWN"
+  },
+  "VHF3_VOR1_VOL": {
+   "ACTION": "ADJUST VOR 1 VOLUME",
+   "TITLE": "VOR 1 VOLUME"
+  },
+  "VHF3_VOR1_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "VHF3_VOR2_VOL": {
+   "ACTION": "ADJUST VOR 2 VOLUME",
+   "TITLE": "VOR 2 VOLUME"
+  },
+  "VHF3_VOR2_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "VHF3_VOX_VOL": {
+   "ACTION": "ADJUST VOX VOLUME",
+   "TITLE": "VOX VOLUME KNOB"
+  },
+  "VHF3_VOX_VOL_BUTTON": {
+   "ACTION": "MUTE/UNMUTE"
+  },
+  "VHF3_VOX_VOL_SEL": {
+   "ACTION": "ACTION VOICE DOWN",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "VOICE DOWN"
+  },
+  "VS_TOGGLE": {
+   "1": "UP",
+   "2": "NEUTRAL",
+   "3": "DOWN",
+   "ACTION": "ADJUST CABIN PRESS VS",
+   "TITLE": "MANUAL CABIN VS SELECTOR"
+  },
+  "WER_WE2": {
+   "ACTION": "TOGGLE WEATHER RADAR 2",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "WEATHER RADAR 2"
+  },
+  "WXR_CM1_MODE": {
+   "1": "GAIN",
+   "2": "TILT",
+   "3": "ELEVN",
+   "4": "AZIM",
+   "ACTION": "SET CM1 MODE",
+   "TITLE": "WEATHER RADAR CM1 MODE"
+  },
+  "WXR_CM1_SELECT": {
+   "ACTION": "SELECT CM1 VALUE",
+   "TITLE": "WEATHER RADAR CM1 SELECTOR"
+  },
+  "WXR_CM2_MODE": {
+   "1": "GAIN",
+   "2": "TILT",
+   "3": "ELEVN",
+   "4": "AZIM",
+   "ACTION": "SET CM2 MODE",
+   "TITLE": "WEATHER RADAR CM3 MODE"
+  },
+  "WXR_CM2_SELECT": {
+   "ACTION": "SELECT CM2 VALUE",
+   "TITLE": "WEATHER RADAR CM2 SELECTOR"
+  },
+  "WXR_MAP": {
+   "ACTION": "TOGGLE MAP",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "MAP"
+  },
+  "WXR_MAP2": {
+   "ACTION": "TOGGLE MAP",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "WEATHER RADAR MAP"
+  },
+  "WXR_PRED": {
+   "ACTION": "SET WEATHER PRED",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "WEATHER PRED"
+  },
+  "WXR_PRTY": {
+   "ACTION": "SET PRTY CM",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "PRTY CM"
+  },
+  "WXR_TX": {
+   "ACTION": "SET RADAR TX",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "WEATHER RADAR TX"
+  },
+  "WXR_WX": {
+   "ACTION": "TOGGLE WEATHER RADAR",
+   "OFF": "PRESS",
+   "ON": "PRESS",
+   "TITLE": "WEATHER RADAR"
+  }
+ }
+}

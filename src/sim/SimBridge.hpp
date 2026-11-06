@@ -54,7 +54,8 @@ struct Telemetry {
            rotorRpmPct = 0, collective = 0,  // helicopter: main rotor speed and collective, both 0..1 (1 = 100 %); 0 on an aircraft without a rotor
            engineType = 0,                   // ENGINE TYPE: 0 piston, 1 jet, 3 turbine helicopter, 5 turboprop
            torqueEng1 = 0, torqueEng2 = 0,   // percent of the rated torque
-           cameraState = 0;                  // CAMERA STATE: 2 cockpit ... 10 drone aircraft are views of a flight; 11 and up are menus, the world map, hangars
+           cameraState = 0,                  // CAMERA STATE: 2 cockpit ... 10 drone aircraft are views of a flight; 11 and up are menus, the world map, hangars
+           spoilerAvailable = 0;             // SPOILER AVAILABLE: the aircraft has spoilers. Its handle variable moves without them (a lever bound in the sim)
 
     // MSFS 2024 runs a world with the menu's aircraft behind its menus and says "in a flight" there, so only a flight camera tells a flight
     // (seen: camera 34 in the menu, with the menu's aircraft airborne at 188 kt and an overspeed warning). 0 = not reported yet.
@@ -178,7 +179,7 @@ private:
     void handleMessage(const RecvMessage& m);
     void drainQueue();
     void execute(const SimCommand& cmd);
-    void warnUnknownInput(const std::string& name, const std::string& where);
+    bool warnUnknownInput(const std::string& name, const std::string& where);  // true the first time for this name and aircraft
     void sendMobiFlightCommand(const std::string& text, const std::string& desc);
     void setupMobiFlight();
     void registerMobiFlightClient();

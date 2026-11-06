@@ -10,6 +10,7 @@
 #include <deque>
 #include <functional>
 #include <mutex>
+#include <set>
 #include <string>
 #include <thread>
 #include <vector>
@@ -17,6 +18,7 @@
 #include "haptics/FlapsMotion.hpp"
 
 #include "haptics/RotorRules.hpp"
+#include "haptics/SpeedbrakeRule.hpp"
 #include "haptics/WinwingHid.hpp"
 #include "sim/SimBridge.hpp"
 
@@ -99,6 +101,7 @@ private:
     };
     void threadMain();
     void evaluate(const sim::Telemetry& t, float& left, float& right, std::map<std::string, float>& contrib);
+    void logRuleStarts(const sim::Telemetry& t, const std::map<std::string, float>& contrib, std::chrono::steady_clock::time_point now);
 
     sim::SimBridge& bridge_;
     WinwingHidManager& hid_;
@@ -121,6 +124,8 @@ private:
     double lastAirborneVs_ = 0;
     double gSmooth_ = 1.0;
     FlapsMotion flaps_;
+    std::set<std::string> activeRules_;                                         // the rules that vibrated on the last turn
+    std::map<std::string, std::chrono::steady_clock::time_point> ruleLogged_;  // when each rule's start was last logged
 };
 
 }  // namespace lr::haptics

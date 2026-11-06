@@ -55,7 +55,7 @@ void AppContext::refreshWatches() {
             for (const auto& a : *list)
                 if ((a.kind == ActionKind::InputEvent || a.kind == ActionKind::InputEventToggle) && !a.name.empty()) inputs.push_back(a.name);
     for (const auto& pr : guideProbes) {
-        if (!pr.inputEvent.empty()) inputs.push_back(pr.inputEvent);
+        if (!pr.inputEvent.empty()) for (auto& n : pr.inputEvents()) inputs.push_back(std::move(n));
         else if (!pr.code.empty()) vars.push_back(pr.code);
     }
     bridge.watchLVars(vars);

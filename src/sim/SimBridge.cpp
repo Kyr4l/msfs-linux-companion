@@ -65,6 +65,7 @@ const TelemetryVar kTelemetryVars[] = {
     {"TURB ENG MAX TORQUE PERCENT:1", "Percent", &Telemetry::torqueEng1},
     {"TURB ENG MAX TORQUE PERCENT:2", "Percent", &Telemetry::torqueEng2},
     {"CAMERA STATE", "Enum", &Telemetry::cameraState},
+    {"SPOILER AVAILABLE", "Bool", &Telemetry::spoilerAvailable},
 };
 constexpr size_t kTelemetryCount = sizeof(kTelemetryVars) / sizeof(kTelemetryVars[0]);
 
@@ -502,6 +503,7 @@ std::string SimBridge::describeSend(uint32_t sendId) {
 
 void SimBridge::dropConnection(const std::string& why) {
     client_.close();
+    lvarRetries_ = 0;  // a new connection gets its own retries
     std::lock_guard<std::mutex> lock(m_);
     if (status_.state != ConnState::Disconnected) LOG_WARN("SimConnect: disconnected (%s)", why.c_str());
     status_.state = ConnState::Disconnected;
@@ -855,9 +857,10 @@ void SimBridge::handleLVarData(const RecvClientData& d) {
 }
 
 // An axis bound to a missing input event would repeat this at 25 Hz: say it once per event, and again after the next aircraft has loaded.
-void SimBridge::warnUnknownInput(const std::string& name, const std::string& where) {
-    if (!unknownInputWarned_.insert(name).second) return;
+bool SimBridge::warnUnknownInput(const std::string& name, const std::string& where) {
+    if (!unknownInputWarned_.insert(name).second) return false;
     LOG_WARN("B:%s is not an input event of the loaded aircraft (%zu known)%s", name.c_str(), inputHash_.size(), where.c_str());
+    return true;
 }
 
 void SimBridge::execute(const SimCommand& cmd) {
@@ -904,8 +907,8 @@ void SimBridge::execute(const SimCommand& cmd) {
             const std::string name = stripPrefix(cmd.name, "B:");
             auto it = findInput(name);
             if (it == inputHash_.end()) {
-                warnUnknownInput(name, where);
-                if (!liveScanPending_) requestLiveRefresh();
+                // once per name and aircraft: a binding to an event the aircraft lacks re-listed every event and L: var each time it was used
+                if (warnUnknownInput(name, where) && !liveScanPending_) requestLiveRefresh();
                 break;
             }
             rememberSend(client_.setInputEvent(it->second, cmd.value), "input event " + name + " = " + formatNumber(cmd.value));
@@ -916,8 +919,8 @@ void SimBridge::execute(const SimCommand& cmd) {
             const std::string name = stripPrefix(cmd.name, "B:");
             auto it = findInput(name);
             if (it == inputHash_.end()) {
-                warnUnknownInput(name, where);
-                if (!liveScanPending_) requestLiveRefresh();
+                // once per name and aircraft: a binding to an event the aircraft lacks re-listed every event and L: var each time it was used
+                if (warnUnknownInput(name, where) && !liveScanPending_) requestLiveRefresh();
                 break;
             }
             // one toggle in flight per event: a second one would read the same old position and undo nothing
@@ -1064,12 +1067,10 @@ void SimBridge::handleMessage(const RecvMessage& m) {
             break;
         case RecvId::EnumerateInputEventParams: {
             const RecvInputEventParams p = SimConnectClient::parseInputEventParams(m);
-            for (const auto& [name, hash] : inputHash_)
-                if (hash == p.hash) {
-                    std::lock_guard<std::mutex> lock(m_);
-                    inputParams_[lowerAscii(name)] = p.text;
-                    break;
-                }
+            if (auto name = inputNameByHash_.find(p.hash); name != inputNameByHash_.end()) {
+                std::lock_guard<std::mutex> lock(m_);
+                inputParams_[lowerAscii(name->second)] = p.text;
+            }
             break;
         }
         case RecvId::GetInputEvent:
@@ -1154,7 +1155,11 @@ void SimBridge::onAircraftPath(const std::string& cfgPath) {
         // the hashes below are gone whether or not it is the same aircraft: the events have to be listed again, or a reload of the
         // same aircraft leaves every B: event unknown
         live_.inputEventsDone = false;
+        // values read from the previous aircraft: a name the new one does not have is never polled again, and its old value would be
+        // returned as if it were current (a guide's "A|B" check takes the first name with a value)
+        inputValues_.clear();
     }
+    pendingWatchGets_.clear();  // replies to polls of the previous aircraft
     inputHash_.clear();
     inputByLower_.clear();
     inputIsString_.clear();
@@ -1409,7 +1414,10 @@ void SimBridge::threadMain() {
             dropConnection(err);
             continue;
         }
-        for (const auto& m : msgs) handleMessage(m);
+        for (const auto& m : msgs) {
+            handleMessage(m);
+            if (!client_.isConnected()) break;  // a Quit in this batch: what follows belongs to the closed connection
+        }
 
         ConnState st;
         ModuleState mf;

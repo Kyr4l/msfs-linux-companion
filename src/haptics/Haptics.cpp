@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <set>
 
 #include "util/Log.hpp"
 
@@ -147,7 +148,7 @@ void HapticsEngine::evaluate(const sim::Telemetry& t, float& left, float& right,
 
     if (flapsMoving) add("flaps", 0.15);
 
-    if (!onGround && t.spoilersHandle > 0.05) add("speedbrake", 0.08 + 0.35 * t.spoilersHandle * std::min(1.0, t.iasKt / 250.0));
+    if (const double sb = speedbrakeLevel(t); sb > 0) add("speedbrake", sb);
 
     const double rev = std::max(t.reverse1, t.reverse2);
     if (rev > 0.05) add("reverse", 0.25 + 0.5 * rev);
@@ -189,8 +190,29 @@ void HapticsEngine::evaluate(const sim::Telemetry& t, float& left, float& right,
         ++i;
     }
 
+    logRuleStarts(t, contrib, now);
     prevOnGround_ = onGround;
     prevGear_ = t.gearPct;
+}
+
+// One log line when a rule starts to vibrate, with the flight data behind it, so that a vibration nobody expected can be explained from the
+// session log. At most one line per rule every 10 s (turbulence comes and goes).
+void HapticsEngine::logRuleStarts(const sim::Telemetry& t, const std::map<std::string, float>& contrib, clock::time_point now) {
+    std::set<std::string> active;
+    for (const auto& [id, level] : contrib) {
+        if (level <= 0.f) continue;
+        active.insert(id);
+        if (activeRules_.count(id)) continue;
+        auto last = ruleLogged_.find(id);
+        if (last != ruleLogged_.end() && now - last->second < std::chrono::seconds(10)) continue;
+        ruleLogged_[id] = now;
+        LOG_INFO("Vibration %s starts (%.0f%%): ground %d, IAS %.0f kt, GS %.0f kt, spoilers %.2f (aircraft has them: %d), flaps %.2f, gear %.2f, "
+                 "power %.0f, engine type %.0f, reverse %.2f/%.2f, brakes %.2f/%.2f, G %.2f, stall %d, overspeed %d",
+                 id.c_str(), level * 100, t.onGround > 0.5, t.iasKt, t.groundSpeedKt, t.spoilersHandle, t.spoilerAvailable > 0.5, t.flapsPct,
+                 t.gearPct, t.enginePower(), t.engineType, t.reverse1, t.reverse2, t.brakeLeft, t.brakeRight, t.gForce, t.stallWarning > 0.5,
+                 t.overspeedWarning > 0.5);
+    }
+    activeRules_ = std::move(active);
 }
 
 void HapticsEngine::resetRuleState() {
@@ -200,6 +222,7 @@ void HapticsEngine::resetRuleState() {
     lastAirborneVs_ = 0;
     gSmooth_ = 1.0;
     flaps_.reset();
+    activeRules_.clear();
 }
 
 void HapticsEngine::threadMain() {

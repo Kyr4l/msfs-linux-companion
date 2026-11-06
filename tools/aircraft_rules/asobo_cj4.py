@@ -6,6 +6,11 @@ Panel / function names come from the event names and from the sim's own CJ4 chec
 (Official/Steam/asobo-aircraft-cj4/.../Checklist/CJ4_Checklist.xml). Behaviours come from trying the controls on a
 running CJ4 with `--script` (set the event, read the simulator's own A: variable, compare): only those carry a
 VERIFIED note. Everything else is inferred from the name and says so.
+
+One catalog serves both sims: MSFS 2024 reports the same aircraft id (asobo_cj4), 303 of its 425 events have a 2020 name
+(spelled in upper case, matched without regard to case), 122 are new (the rules in _cj4_2024) and six 2020 events are gone
+(ONLY_2020: their entries say what replaces them). The 2024 names, their English tooltips and the 2024 checks of
+2026-11-06 (engines running, parking brake set) are in the notes.
 """
 import re
 
@@ -15,6 +20,11 @@ EVENTS_FILE = "asobo_cj4_events.json"
 SOURCES = [
     "Cockpit input events enumerated from MSFS 11.0.282174.999 (SimConnect EnumerateInputEvents)",
     "Asobo_CJ4/Checklist/CJ4_Checklist.xml shipped with the aircraft",
+    "Cockpit input events enumerated from MSFS 2024 12.2.282174.999 (SimConnect EnumerateInputEvents), aircraft asobo_cj4, 2026-11-06",
+    "Official2024/Steam/asobo-aircraft-cj4/minimal.fsarchive, en-us.locpak: the aircraft's English tooltips (CJ4.*_TITLE / _ACTION) (unencrypted archive)",
+    "Working Title CJ4 source, microsoft/msfs-avionics-mirror (commit c817299): src/workingtitle-aircraft-cj4/src/Plugins/Shared/Fadec/CJ4Fadec.ts "
+    "(throttle detents) and src/sdk/fadec/ThrottleLeverManager.ts (which events move the lever); "
+    "src/workingtitle-instruments-wt21/.../PFD/Menus/Components/RadioboxSTD.tsx (the STD flag L:XMLVAR_Baro1_ForcedToSTD)",
 ]
 
 P_AP = "Autopilot and flight instruments"
@@ -31,8 +41,12 @@ P_SAFE = "Warnings and signs"
 P_CDU1 = "FMS CDU 1 (pilot)"
 P_CDU2 = "FMS CDU 2 (copilot)"
 P_AS3000 = "AS3000 display keys"
+P_DISP = "Displays and reversion"
+P_FIRE = "Fire protection"
+P_EXT = "Exterior and walkaround"
 P_OTHER = "Other"
-PANEL_ORDER = [P_AP, P_ENG, P_FUEL, P_ELEC, P_LIGHT, P_ICE, P_GEAR, P_TRIM, P_CABIN, P_RADIO, P_SAFE, P_CDU1, P_CDU2, P_AS3000, P_OTHER]
+PANEL_ORDER = [P_AP, P_ENG, P_FUEL, P_ELEC, P_LIGHT, P_ICE, P_GEAR, P_TRIM, P_CABIN, P_RADIO, P_SAFE, P_FIRE, P_DISP, P_CDU1, P_CDU2, P_AS3000,
+               P_EXT, P_OTHER]
 
 # --- what was actually observed on a running CJ4 (set the event, read the simulator's own state) ---------------
 _LIGHT = "Verified on a CJ4: set 1 / set 0 switches %s, read back with (A:%s)."
@@ -89,6 +103,42 @@ VERIFIED.update({
     "AUTOPILOT_VerticalSpeed": "Verified on a CJ4 with VS engaged: +1 raises the selected vertical speed by 100 fpm, -1 lowers it by 100 fpm (nothing happens outside VS mode).",
 })
 
+# --- MSFS 2024 (checked on 2026-11-06 with both engines running and the parking brake set; each control put back) --------
+_V24 = " MSFS 2024: "
+for _k, _t in {
+    "LIGHTING_TAXI_1": "the same (A:LIGHT TAXI).",
+    "DEICE_Pitot_1": "the same.",
+    "DEICE_Pitot_2": "the same.",
+    "DEICE_Engine_1": "the same; this is the ENG ONLY button ((A:STRUCTURAL DEICE SWITCH) stays 0).",
+    "DEICE_Airframe_1": "set 1 also turns engine anti-ice 1 on ((A:ENG ANTI ICE:1) = 1): this is the left WING/ENG button.",
+    "AUTOPILOT_Speed": "the same, one knot per event.",
+    "AUTOPILOT_Baro_1": "the same (1013.25 to 1013.56 and back).",
+    "AUTOPILOT_FD_1_Mode": "the same.",
+    "AUTOPILOT_Altitude_Button": "the same.",
+    "AUTOPILOT_AP_1": "the same; K:AUTOPILOT_OFF and AUTOPILOT_AP_Disconnect_1 disengage it.",
+}.items():
+    VERIFIED[_k] += _V24 + _t
+VERIFIED.update({
+    "AUTOPILOT_AP_Disconnect_1": "Verified on a CJ4 in MSFS 2024: one event disengages the autopilot ((A:AUTOPILOT MASTER) 1 to 0).",
+    "AUTOPILOT_Baro_1_STD": "Verified on a CJ4 in MSFS 2024: every event toggles STD, read back with (L:XMLVAR_Baro1_ForcedToSTD) (the WT21 flag; "
+                            "(A:KOHLSMAN SETTING STD:1) does not follow it). MSFS 2020: no variable showing the STD state was found.",
+    "ENGINE_Ignition_1": "Verified on a CJ4 in MSFS 2024: two positions, 0 = NORM ((A:TURB ENG IGNITION SWITCH EX1:1) = 1, auto) and 1 = ON (= 2); "
+                         "2 reads back as 1.",
+    "LIGHTING_LANDING_0": "Verified on a CJ4 in MSFS 2024: set 1 / set 0 switches the landing lights, read back with (A:LIGHT LANDING).",
+    "ELECTRICAL_SWITCH_AVIONICS_BUS": "Verified on a CJ4 in MSFS 2024: three positions by set, 0 = ON ((A:CIRCUIT AVIONICS ON) = 1); 1 and 2 both read "
+                                      "(A:CIRCUIT AVIONICS ON) = 0 (1 = OFF, 2 = DISPATCH as on the 2020 CJ4, which says what DISPATCH powers there). "
+                                      "Turning the avionics off reboots the displays.",
+})
+# 2020 events MSFS 2024 no longer reports, and what replaces them
+ONLY_2020 = {
+    "ELECTRICAL_Battery_1": "ELECTRICAL_SWITCH_BATTERY_MASTER",
+    "ELECTRICAL_Avionics_Bus_1": "ELECTRICAL_SWITCH_AVIONICS_BUS",
+    "LIGHTING_LANDING_1": "LIGHTING_LANDING_0",
+    "FUEL_Crossfeed_1": "FUEL_TRANSFER_SELECTOR",
+    "ELECTRICAL_Circuit_49": None,
+    "FMC_CJ4_2_Button_BRT_DIM": "FMC_BRT_DIM_2",
+}
+
 for _n in (15, 16, 17, 18):
     VERIFIED["LIGHTING_POTENTIOMETER_%d" % _n] = "Verified on a CJ4: the value 0..100 is the brightness, read back with (A:LIGHT POTENTIOMETER:%d)." % _n
 
@@ -100,6 +150,13 @@ def trim(panel, section, function, **kw):
     # the trim handlers act on a value >= 2 (up) or <= 0 (down); 1 does nothing
     return [row(panel, section, "%s: trim up" % function, "knob_up", value=10, **kw),
             row(panel, section, "%s: trim down" % function, "knob_down", value=0, **kw)]
+
+
+# the Working Title FADEC of the CJ4 (CJ4Fadec.ts, ThrottleLeverManager.ts in the sources)
+_THR = ("For an axis use THROTTLE1_AXIS_SET_EX1 / THROTTLE2_AXIS_SET_EX1 (-16384 = idle, 16384 = full; THROTTLE1_SET takes 0..16384): "
+        "the Working Title FADEC turns the value into a lever position 0..1 ((value + 16384) / 32768) and picks the thrust mode from it: "
+        "CRU from idle up to 0.776, CLB from 0.776 (axis value about 9044), TO from 0.958 (about 15008). There is no reverse. Read from the source, "
+        "not moved on the aircraft.")
 
 
 # --- the table ---------------------------------------------------------------------------------------------------
@@ -137,8 +194,10 @@ def _ap(name):
         "Course_Dyn_2_Sync": press(A, "Course", "CRS 2 SYNC", note=NOT_TRIED),
         "Baro_1": knob(A, "Baro", "BARO 1 knob", "up", "down"),
         "Baro_1_STD": press(A, "Baro", "BARO 1 STD", note="Pressed on a CJ4: (A:KOHLSMAN SETTING MB:1) went from 1013.25 to 1013.24 and back with the second press; no variable showing the STD state was found."),
-        "Baro_2": knob(A, "Baro", "BARO 2 knob", "up", "down", note="Clicked on a CJ4: (A:KOHLSMAN SETTING MB:2) did not change, so what this knob moves is not known."),
-        "Baro_2_STD": press(A, "Baro", "BARO 2 STD", note=NOT_TRIED),
+        "Baro_2": knob(A, "Baro", "BARO 2 knob", "up", "down", note="Clicked on a CJ4: (A:KOHLSMAN SETTING MB:2) did not change. MSFS 2024: +1 moved the PILOT's "
+                      "setting ((A:KOHLSMAN SETTING MB:1) 1013.25 to 1013.56), so bind BARO 1 or BARO 2, not both (both would step twice)."),
+        "Baro_2_STD": press(A, "Baro", "BARO 2 STD", note="Pressed on a CJ4 in MSFS 2024: it toggles the pilot's STD flag (L:XMLVAR_Baro1_ForcedToSTD), "
+                          "as BARO 1 STD does; (L:XMLVAR_Baro2_ForcedToSTD) stays 0. Bind one of the two."),
         "Baro_3": knob(A, "Baro", "Standby baro knob", "up", "down", note=NOT_TRIED),
     }
     return table.get(s)
@@ -206,9 +265,9 @@ def _simple(name):
         "ENGINE_Starter_Disengage": press(P_ENG, "Starters", "Starter disengage", note=NOT_TRIED),
         "ENGINE_TOGA_PUSH": press(P_ENG, "Thrust levers", "TOGA button", note=NOT_TRIED),
         "ENGINE_Throttle_1": unknown(P_ENG, "Thrust levers", "Thrust lever 1 (left)",
-                                     "Seen on a CJ4 with the brake set: values up to 10 leave the lever at idle and 11 or more send it to 100 % (not a usable axis). For an axis use the standard THROTTLE1_SET sim events."),
+                                     "Seen on a CJ4 with the brake set: values up to 10 leave the lever at idle and 11 or more send it to 100 % (not a usable axis). " + _THR),
         "ENGINE_Throttle_2": unknown(P_ENG, "Thrust levers", "Thrust lever 2 (right)",
-                                     "Same event as lever 1; on lever 1 values up to 10 leave the lever at idle and 11 or more send it to 100 % (not a usable axis). For an axis use the standard THROTTLE2_SET sim events."),
+                                     "Same event as lever 1; on lever 1 values up to 10 leave the lever at idle and 11 or more send it to 100 % (not a usable axis). " + _THR),
         "FUEL_Crossfeed_1": latched(F, "Crossfeed", "Crossfeed switch", 3, note="Seen on a CJ4: the value follows set 0 / 1 / 2 (a three-position, set-value switch, resting at 1); the effect on the fuel system was not read."),
         "FUEL_Pump_1": latched(F, "Pumps", "Boost pump 1 (left)"),
         "FUEL_Pump_2": latched(F, "Pumps", "Boost pump 2 (right)"),
@@ -259,8 +318,136 @@ def _simple(name):
     return table.get(name)
 
 
+# --- events only MSFS 2024 reports (upper case); labels from the names and the aircraft's English tooltips --------
+_TT = "Label from the MSFS 2024 tooltip %s; not tried."
+_DOOR = ("WARNING: a door, hatch or seat event of MSFS 2024 can move the pilot out of the cockpit (it happened on a C172); never sent "
+         "by tools/probe_controls.py. Not tried.")
+_SIDE = {"PILOT": "pilot", "COPILOT": "copilot"}
+
+
+def _cj4_2024(name):
+    E, L = P_ELEC, P_LIGHT
+    table = {
+        "ELECTRICAL_SWITCH_BATTERY_MASTER": latched(E, "Batteries", "Battery switch (BATT / OFF / EMER)", 3,
+                                                    note="MSFS 2024 name of ELECTRICAL_Battery_1. Seen on a CJ4 in MSFS 2024 (engines running): the "
+                                                         "value follows set 0 / 1 / 2 and rests at 0 = BATT (ON, as on the 2020 CJ4, where 1 = OFF); "
+                                                         "(A:ELECTRICAL MASTER BATTERY) stayed 1 in every position with the generators on, so OFF "
+                                                         "and EMER were not confirmed."),
+        "ELECTRICAL_SWITCH_AVIONICS_BUS": latched(E, "Avionics", "Avionics switch (ON / OFF / DISPATCH)", 3),
+        "ELECTRICAL_BATTERY_DISCONNECT": latched(E, "Batteries", "Battery disconnect", note=_TT % "CJ4.BATTERY_DISCONNECT"),
+        "ELECTICAL_INTERIOR_MASTER": latched(E, "Cabin power", "Interior master (cabin electrical power)",
+                                             note=_TT % "CJ4.INTERIOR_MASTER (the event name is spelled ELECTICAL by the sim)"),
+        "LIGHTING_LANDING_0": latched(L, "Exterior", "Landing lights"),
+        "FMC_BRT_DIM_1": level(P_CDU1, "Brightness", "CDU 1 brightness", (0, 1), note="Rests at 0.5; range 0..1 assumed, not tried."),
+        "FMC_BRT_DIM_2": level(P_CDU2, "Brightness", "CDU 2 brightness", (0, 1), note="Rests at 0.5; range 0..1 assumed, not tried."),
+        "FUEL_TRANSFER_SELECTOR": latched(P_FUEL, "Crossfeed", "FUEL TRANSFER selector", 3,
+                                          note="MSFS 2024 name of FUEL_Crossfeed_1 (which rested at 1 of 0 / 1 / 2 too); rests at 1, not tried."),
+        "HYD_VALVE_1": latched(P_FIRE, "Hydraulic shutoff", "Hydraulic shutoff valve, left",
+                               note="WARNING: closes the left hydraulic supply. " + _TT % "CJ4.HYD_SHUTOFF_ACTION"),
+        "HYD_VALVE_2": latched(P_FIRE, "Hydraulic shutoff", "Hydraulic shutoff valve, right",
+                               note="WARNING: closes the right hydraulic supply. " + _TT % "CJ4.HYD_SHUTOFF_ACTION"),
+        "COMMON_LOCK_PILOT_HYDSHUTOFF_L_COVER": latched(P_FIRE, "Hydraulic shutoff", "Hydraulic shutoff cover, left", note=NOT_TRIED),
+        "COMMON_LOCK_PILOT_HYDSHUTOFF_R_COVER": latched(P_FIRE, "Hydraulic shutoff", "Hydraulic shutoff cover, right", note=NOT_TRIED),
+        "COMMON_LOCK_PILOT_LENGINEFIRELIGHT_COVER": latched(P_FIRE, "Engine fire", "ENG FIRE cover, left", note=NOT_TRIED),
+        "COMMON_LOCK_COPILOT_R_ENGINEFIRELIGHT_COVER": latched(P_FIRE, "Engine fire", "ENG FIRE cover, right", note=NOT_TRIED),
+        "COMMON_LOCK_BATTERY_DISCHARGE_COVER": latched(E, "Batteries", "Battery cover (discharge)", note=NOT_TRIED),
+        "COMMON_LOCK_BATTERY_INT_COVER": latched(E, "Batteries", "Battery cover (interior)", note=NOT_TRIED),
+        "CJ4_AVIONICS_PUSH_PILOT_LENGINEFIRELIGHT": press(P_FIRE, "Engine fire", "ENG FIRE push light, left",
+                                                          note="DANGER: on the real aircraft this shuts off fuel and hydraulics to the engine and "
+                                                               "arms the fire bottle. " + _TT % "CJ4.ENG_FIRE_WARNING"),
+        "CJ4_AVIONICS_PUSH_COPILOT_RENGINEFIRELIGHT": press(P_FIRE, "Engine fire", "ENG FIRE push light, right",
+                                                            note="DANGER: on the real aircraft this shuts off fuel and hydraulics to the engine and "
+                                                                 "arms the fire bottle. " + _TT % "CJ4.ENG_FIRE_WARNING"),
+        "CJ4_AVIONICS_PUSH_PILOT_LFIREBOTTLEARMEDLIGHT": press(P_FIRE, "Engine fire", "BOTTLE ARMED push light, left",
+                                                              note="DANGER: discharges the fire bottle. " + _TT % "CJ4.FIRE_BOTTLE_ARMED_LIGHT"),
+        "CJ4_AVIONICS_PUSH_COPILOT_RFIREBOTTLEARMEDLIGHT": press(P_FIRE, "Engine fire", "BOTTLE ARMED push light, right",
+                                                                note="DANGER: discharges the fire bottle. " + _TT % "CJ4.FIRE_BOTTLE_ARMED_LIGHT"),
+        "CJ4_AVIONICS_PUSH_PILOT_FADECRESET_L": press(P_ENG, "FADEC", "FADEC RESET, left", note=_TT % "CJ4.FADEC_RESET"),
+        "CJ4_AVIONICS_PUSH_PILOT_FADECRESET_R": press(P_ENG, "FADEC", "FADEC RESET, right", note=_TT % "CJ4.FADEC_RESET"),
+        "PROCEDURE_AUTOSTART": press(P_ENG, "Starters", "Automatic engine start (the sim's procedure)",
+                                     note="WARNING: runs the sim's whole engine start (or shutdown); never sent by tools/probe_controls.py. Not tried."),
+        "CJ4_AVIONICS_DEICE_PUSH_TAIL_1": latched(P_ICE, "Tail", "TAIL DEICE button, left", note=_TT % "CJ4.TAIL_DEICE"),
+        "CJ4_AVIONICS_DEICE_PUSH_TAIL_2": latched(P_ICE, "Tail", "TAIL DEICE button, right", note=_TT % "CJ4.TAIL_DEICE"),
+        "CJ4_AVIONICS_DEICE_PUSH_XFLOW": latched(P_ICE, "Anti-ice crossflow", "DEICE XFLOW (crossflow)", note=_TT % "CJ4.DEICE_XFLOW"),
+        "CJ4_AVIONICS_LIGHTING_PUSH_LIGHT_PULSE_TCAS": latched(L, "Exterior", "TCAS PULSE lights", note=_TT % "CJ4.TCAS_PULSE_LIGHTS"),
+        "LIGHTING_CABIN_4": latched(L, "Interior", "Cabin light 4", note="Rests at 1; not tried."),
+        "LIGHTING_CABIN_5": latched(L, "Interior", "Cabin light 5", note="Rests at 1; not tried."),
+        "LIGHTING_CABIN_6": latched(L, "Interior", "Cabin light 6", note="Rests at 1; not tried."),
+        "CJ4_AVIONICS_PRESSURIZATION_PUSH_CONTROL": latched(P_CABIN, "Pressurization", "Standby pressure control",
+                                                            note=_TT % "CJ4.STBY_PRESSURIZATION_CONTROL"),
+        "CJ4_AVIONICS_LEVER_PILOT_OXYGENSUPPLY": latched(P_CABIN, "Oxygen", "Oxygen supply lever", note=_TT % "CJ4.OXYGEN_SUPPLY"),
+        "PASSENGER_OXYGEN_CONTROL": latched(P_CABIN, "Oxygen", "OXYGEN CONTROL selector (CREW ONLY / DROP MASK)",
+                                            note="Rests at 1; positions from the tooltips CJ4.OXYGEN_CONTROL_*_VALUE, values not tried."),
+        "CJ4_AVIONICS_PUSH_OXYGENMASK": latched(P_CABIN, "Oxygen", "Oxygen mask", note=NOT_TRIED),
+        "CJ4_AVIONICS_PUSH_PILOT_OXYGENMASK_MIC": latched(P_RADIO, "Microphones", "Oxygen mask microphone", note=_TT % "CJ4.OXYGEN_MASK_MIC"),
+        "CJ4_AVIONICS_PUSH_COPILOTMIC_PIT": latched(P_RADIO, "Microphones", "Copilot microphone", note=_TT % "CJ4.COPILOT_MIC_PIT"),
+        "CJ4_AVIONICS_PUSH_CKPT_SPKR_MUTE": press(P_RADIO, "Audio panel", "Mute cockpit speaker", note=_TT % "CJ4.MUTE_COCKPIT_SPEAKER"),
+        "CJ4_AVIONICS_PUSH_COM1TUNE": press(P_RADIO, "Audio panel", "COM 1 tune to 121.5 (emergency)", note=_TT % "CJ4.COMM_1_TUNE"),
+        "CJ4_AVIONICS_PUSH_EVENTMARKER": press(P_RADIO, "Audio panel", "Event marker (voice recorder)", note=_TT % "CJ4.EVENT_MARKER"),
+        "CJ4_AVIONICS_PUSH_TAWS_GSCANCEL": press(P_SAFE, "TAWS", "TAWS glideslope cancel", note=_TT % "CJ4.TAWS_GS_CANCEL"),
+        "SAFETY_ELT_1": latched(P_SAFE, "ELT", "ELT switch", note="Emergency locator transmitter; not tried."),
+        "STBY_FLT_DISPLAY_SWITCH": latched(P_DISP, "Standby display", "STBY FLT DISPLAY switch",
+                                           note="Rests at 0; the number of positions is not known. " + _TT % "CJ4.STBY_FLT_DISPLAY"),
+        "HANDLING_EFB_HIDE": latched(P_OTHER, "View", "Hide the EFB", note="Cosmetic; not tried."),
+        "TOGGLE_VISOR_L_VISOR_L": latched(P_OTHER, "View", "Sun visor, left", note="Cosmetic; not tried."),
+        "TOGGLE_VISOR_R_VISOR_R": latched(P_OTHER, "View", "Sun visor, right", note="Cosmetic; not tried."),
+        "UNKNOWN_BUTTONS_COLLISION_EFB_VISIBILITY_HIDE": unknown(P_OTHER, "View", "EFB visibility (sim helper)", "Sim helper for the tablet; not tried."),
+        "UNKNOWN_TABLET_BACKDROP": unknown(P_OTHER, "View", "Tablet backdrop (sim helper)", "Sim helper for the tablet; not tried."),
+        "OPEN_DOOR_BATHROOM_BATHROOM_DOOR": latched(P_CABIN, "Cabin", "Lavatory door", note=_DOOR),
+        "CJ4_INT_PILOT_EXIT": press(P_EXT, "Pilot", "Pilot: leave the cockpit", note=_DOOR),
+        "CJ4_EXT_PILOT_SIT": press(P_EXT, "Pilot", "Pilot: sit in the cockpit", note=_DOOR),
+    }
+    if name in table:
+        return table[name]
+    m = re.match(r"AS3000_LOWER_(\d)_MEM(\d)$", name)
+    if m:
+        return press(P_DISP, "CCP %s" % m.group(1), "MEM %s (MFD format %s)" % (m.group(2), m.group(2)), note=_TT % ("CJ4.CCP_PUSH_MEM_%s" % m.group(2)))
+    m = re.match(r"CJ4_AVIONICS_CCP_PUSH_(\w+)_(\d)$", name)
+    if m:
+        key, n = m.groups()
+        fn = {"CHART": "CHART (chart data)", "CKLST": "CKLST (MFD checklists)", "CURSR": "CURSOR", "DATABASE": "DATABASE",
+              "PASSBRIEF": "PASS BRIEF (passenger briefing)", "UNKNOWN": "unlabelled key"}[key]
+        return press(P_DISP, "CCP %s" % n, fn, note=NOT_TRIED)
+    m = re.match(r"CJ4_AVIONICS_PUSH_(PILOT|COPILOT)_(?:APP_)?(ADC|AHRS|CDU|MFD|PFD|MAN|SLEW_LR)$", name)
+    if m:
+        side, key = m.groups()
+        if key == "SLEW_LR":
+            return unknown(P_DISP, "Reversion (%s)" % _SIDE[side], "AHRS slave slew (%s)" % _SIDE[side],
+                           "A left / right slew switch; its values are not known. " + _TT % "CJ4.AHRS_SLAVE_SLEW")
+        fn = {"ADC": "ADC reversion", "AHRS": "AHRS reversion", "CDU": "CDU reversion", "MFD": "MFD reversion", "PFD": "PFD reversion",
+              "MAN": "AHRS slave: manual"}[key]
+        return press(P_DISP, "Reversion (%s)" % _SIDE[side], "%s (%s)" % (fn, _SIDE[side]), note=NOT_TRIED)
+    m = re.match(r"CJ4_AVIONICS_PUSH_(PILOT|COPILOT)_DCP_(CCP|RADAR|TAWS)MENU$", name)
+    if m:
+        side, key = m.groups()
+        return press(P_DISP, "DCP (%s)" % _SIDE[side], "%s MENU (%s)" % (key, _SIDE[side]), note=NOT_TRIED)
+    m = re.match(r"CJ4_EXT_(.+)$", name)
+    if m:
+        what = m.group(1)
+        pretty = what.replace("_", " ").lower().replace("enginesafetycover", "engine cover")
+        if what.endswith("_CHECK"):
+            return press(P_EXT, "Walkaround checks", pretty[:-len(" check")].capitalize() + ": inspect",
+                         note="A walkaround inspection point; not tried.")
+        if "DOOR" in what:
+            return latched(P_EXT, "Doors", pretty.capitalize(), note=_DOOR)
+        return latched(P_EXT, "Covers, chocks and caps", pretty.capitalize(), note="Ground equipment; not tried.")
+    return None
+
+
 def classify(name):
     """Rows (one per catalog entry) for a cockpit input event, or None when the event has no rule."""
+    rows = _classify(name)
+    if rows and name in ONLY_2020:
+        repl = ONLY_2020[name]
+        for r in rows:
+            r["remark"] = "MSFS 2020 only" + ("; in MSFS 2024 use %s." % repl if repl else "; MSFS 2024 does not report it.")
+    return rows
+
+
+def _classify(name):
+    r = _cj4_2024(name)
+    if r:
+        return r
     if name.startswith("AUTOPILOT_"):
         return _ap(name)
     if name.startswith("AS3000_"):

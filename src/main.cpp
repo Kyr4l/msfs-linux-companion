@@ -291,19 +291,21 @@ int main(int argc, char** argv) {
             LOG_INFO("Catalog %s: %zu entries from %s", cat.aircraft.c_str(), cat.entries.size(), path.c_str());
             ctx.catalogs.addShipped(std::move(cat));
         }
-        ctx.catalogs.refreshStandard();
-        ctx.loadLiveCaches();
-        // a profile saved with another spelling of its aircraft ("asobo_cj4" for "Asobo_CJ4") would never match the loaded one
-        if (const int n = app::canonicalizeProfileAircraft(ctx.settings, ctx.catalogs)) {
-            LOG_INFO("%d profile(s) had their aircraft rewritten to the spelling of its catalog", n);
-            ctx.markDirty();
-        }
+        // the shipped guides first: loading the live caches labels each cached aircraft and makes a guide from the sim's checklist
+        // only for an aircraft that has none (the CJ4 and the Vision Jet got a second, automatic guide that hid the hand-made one)
         for (const auto& path : app::listDataFiles("_guide.json")) {
             app::Guide g;
             std::string err;
             if (!g.load(path, err)) { LOG_WARN("Guide %s not loaded: %s", path.c_str(), err.c_str()); continue; }
             LOG_INFO("Guide %s: %zu topics from %s", g.aircraft.c_str(), g.topics.size(), path.c_str());
             ctx.guides.push_back(std::move(g));
+        }
+        ctx.catalogs.refreshStandard();
+        ctx.loadLiveCaches();
+        // a profile saved with another spelling of its aircraft ("asobo_cj4" for "Asobo_CJ4") would never match the loaded one
+        if (const int n = app::canonicalizeProfileAircraft(ctx.settings, ctx.catalogs)) {
+            LOG_INFO("%d profile(s) had their aircraft rewritten to the spelling of its catalog", n);
+            ctx.markDirty();
         }
         for (const auto& path : app::listDataFiles("_keypads.json")) {
             std::string err;

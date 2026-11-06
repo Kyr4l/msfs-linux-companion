@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 Kyr4l
 cmake_minimum_required(VERSION 3.20)
-project(msfs-linux-companion VERSION 0.8.11 LANGUAGES CXX)
+project(msfs-linux-companion VERSION 0.8.16 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -136,6 +136,9 @@ if(COMPANION_BUILD_TESTS)
   add_executable(flaps_motion tests/flaps_motion.cpp)
   target_include_directories(flaps_motion PRIVATE src)
   add_test(NAME flaps_motion COMMAND flaps_motion)
+  add_executable(haptics_rules tests/haptics_rules.cpp)
+  target_include_directories(haptics_rules PRIVATE src)
+  add_test(NAME haptics_rules COMMAND haptics_rules)
   add_executable(curated_catalogs tests/curated_catalogs.cpp src/app/Catalog.cpp src/app/AxisTargets.cpp src/app/Profile.cpp src/input/Evdev.cpp)
   target_include_directories(curated_catalogs PRIVATE src third_party)
   add_test(NAME curated_catalogs COMMAND curated_catalogs ${CMAKE_SOURCE_DIR})

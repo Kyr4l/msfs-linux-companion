@@ -12,7 +12,7 @@ TCP to the sim running under Proton.
   release actions, repeat while held and two-position switches.
 * **Throttle calibration** for levers with gates: leave out the cut-off, use idle to the max gate or to the end, add named
   stages (Airbus CL, FLX/MCT, TOGA).
-* **Cockpit catalogs** to pick controls from: A32NX, A380X, A320neo V2 (MSFS 2024), CJ4, F/A-18E, Spirit of St. Louis, Vision Jet, Cabri G2, and an
+* **Cockpit catalogs** to pick controls from: A32NX, A380X, A320neo V2 and A400M (MSFS 2024), CJ4 (MSFS 2020 and 2024), F/A-18E, Spirit of St. Louis, Vision Jet, Cabri G2, and an
   automatic one for any other aircraft.
 * **Guides**: step-by-step procedures in the app, with steps the sim confirms ticked for you.
 * **Vibration** for Winwing URSA MINOR devices, driven by flight data.
@@ -34,6 +34,16 @@ Download the AppImage from [Releases](https://github.com/Kyr4l/msfs-linux-compan
 chmod +x msfs-linux-companion-*-x86_64.AppImage
 ./msfs-linux-companion-*-x86_64.AppImage
 ```
+
+Or the Flatpak (same settings folder as the AppImage; `packaging/build-flatpak.sh` builds it):
+
+```sh
+flatpak install --user msfs-linux-companion-*-x86_64.flatpak
+flatpak run io.github.Kyr4l.MsfsLinuxCompanion
+```
+
+It reads Steam libraries under `~/.local/share/Steam`, `/mnt`, `/media` and `/run/media`; for one elsewhere:
+`flatpak override --user --filesystem=/path/to/SteamLibrary:ro io.github.Kyr4l.MsfsLinuxCompanion`.
 
 Or build it (GCC 12+, CMake 3.20+, GLFW 3.4+):
 

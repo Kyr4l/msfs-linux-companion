@@ -587,6 +587,9 @@ void Engine::onInput(const input::InputEvent& ev) {
         std::lock_guard<std::mutex> lock(m_);
         if (capturing_) {
             lastInput_ = ev;
+            // a button released while the capture is open still stops its repeat (held from before the capture, it would repeat on and on)
+            if (!ev.pressed && ev.id.kind == input::InputKind::Button)
+                held_.erase(std::remove_if(held_.begin(), held_.end(), [&](const Held& h) { return h.id == ev.id; }), held_.end());
             if (captureButtonsOnly_ && ev.id.kind != input::InputKind::Button) return;
             if (ev.id.kind == input::InputKind::Axis) {
                 // An axis counts when it is moved a good part of its travel from where it rested, so a noisy or
@@ -681,8 +684,8 @@ int Engine::tick() {
     for (const auto& item : ready) runActions(item.rest, 0, item.origin, item.binding, item.generation);
     for (const auto& [profile, idx] : due) dispatch(profile->bindings[idx], true, " (repeat)");
     for (const auto& [profile, item] : axisDue) sendAxisValue(profile->bindings[item.first], item.second);
-    if (!ready.empty() || !axisDue.empty()) {
-        // the tails that ran may have scheduled the next part of their list: the next tick is due when that is, not at the default poll
+    if (!ready.empty() || !due.empty() || !axisDue.empty()) {
+        // the tails (and the repeats) that ran may have scheduled the next part of their list: the next tick is due when that is, not at the default poll
         std::lock_guard<std::mutex> lock(m_);
         const int next = nextScheduledMs();
         if (next >= 0 && (wait < 0 || next < wait)) wait = next;

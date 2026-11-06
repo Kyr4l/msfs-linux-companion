@@ -3,7 +3,10 @@
  "title": "Cessna Citation CJ4 (Asobo)",
  "sources": [
   "Cockpit input events enumerated from MSFS 11.0.282174.999 (SimConnect EnumerateInputEvents)",
-  "Asobo_CJ4/Checklist/CJ4_Checklist.xml shipped with the aircraft"
+  "Asobo_CJ4/Checklist/CJ4_Checklist.xml shipped with the aircraft",
+  "Cockpit input events enumerated from MSFS 2024 12.2.282174.999 (SimConnect EnumerateInputEvents), aircraft asobo_cj4, 2026-11-06",
+  "Official2024/Steam/asobo-aircraft-cj4/minimal.fsarchive, en-us.locpak: the aircraft's English tooltips (CJ4.*_TITLE / _ACTION) (unencrypted archive)",
+  "Working Title CJ4 source, microsoft/msfs-avionics-mirror (commit c817299): src/workingtitle-aircraft-cj4/src/Plugins/Shared/Fadec/CJ4Fadec.ts (throttle detents) and src/sdk/fadec/ThrottleLeverManager.ts (which events move the lever); src/workingtitle-instruments-wt21/.../PFD/Menus/Components/RadioboxSTD.tsx (the STD flag L:XMLVAR_Baro1_ForcedToSTD)"
  ],
  "entries": [
   {
@@ -17,7 +20,7 @@
    "rw": "R/W",
    "behavior": "press",
    "verified": true,
-   "note": "Verified on a CJ4 with the flight director on: every event toggles ALT hold, whatever its value."
+   "note": "Verified on a CJ4 with the flight director on: every event toggles ALT hold, whatever its value. MSFS 2024: the same."
   },
   {
    "panel": "Autopilot and flight instruments",
@@ -67,7 +70,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "press",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "verified": true,
+   "note": "Verified on a CJ4 in MSFS 2024: one event disengages the autopilot ((A:AUTOPILOT MASTER) 1 to 0)."
   },
   {
    "panel": "Autopilot and flight instruments",
@@ -80,7 +84,7 @@
    "rw": "R/W",
    "behavior": "press",
    "verified": true,
-   "note": "Verified on a CJ4: every event toggles the autopilot, whatever its value (sending 0 while it is off turns it on), so a binding sends it once, with nothing on release."
+   "note": "Verified on a CJ4: every event toggles the autopilot, whatever its value (sending 0 while it is off turns it on), so a binding sends it once, with nothing on release. MSFS 2024: the same; K:AUTOPILOT_OFF and AUTOPILOT_AP_Disconnect_1 disengage it."
   },
   {
    "panel": "Autopilot and flight instruments",
@@ -105,7 +109,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "press",
-   "note": "Pressed on a CJ4: (A:KOHLSMAN SETTING MB:1) went from 1013.25 to 1013.24 and back with the second press; no variable showing the STD state was found."
+   "verified": true,
+   "note": "Verified on a CJ4 in MSFS 2024: every event toggles STD, read back with (L:XMLVAR_Baro1_ForcedToSTD) (the WT21 flag; (A:KOHLSMAN SETTING STD:1) does not follow it). MSFS 2020: no variable showing the STD state was found."
   },
   {
    "panel": "Autopilot and flight instruments",
@@ -118,7 +123,7 @@
    "rw": "R/W",
    "behavior": "knob_down",
    "verified": true,
-   "note": "Verified on a CJ4: an event of +1 raises the baro setting by about 0.3 hPa (1013.25 to 1013.56), -1 lowers it again."
+   "note": "Verified on a CJ4: an event of +1 raises the baro setting by about 0.3 hPa (1013.25 to 1013.56), -1 lowers it again. MSFS 2024: the same (1013.25 to 1013.56 and back)."
   },
   {
    "panel": "Autopilot and flight instruments",
@@ -131,7 +136,7 @@
    "rw": "R/W",
    "behavior": "knob_up",
    "verified": true,
-   "note": "Verified on a CJ4: an event of +1 raises the baro setting by about 0.3 hPa (1013.25 to 1013.56), -1 lowers it again."
+   "note": "Verified on a CJ4: an event of +1 raises the baro setting by about 0.3 hPa (1013.25 to 1013.56), -1 lowers it again. MSFS 2024: the same (1013.25 to 1013.56 and back)."
   },
   {
    "panel": "Autopilot and flight instruments",
@@ -143,7 +148,7 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "press",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "note": "Pressed on a CJ4 in MSFS 2024: it toggles the pilot's STD flag (L:XMLVAR_Baro1_ForcedToSTD), as BARO 1 STD does; (L:XMLVAR_Baro2_ForcedToSTD) stays 0. Bind one of the two."
   },
   {
    "panel": "Autopilot and flight instruments",
@@ -155,7 +160,7 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "knob_down",
-   "note": "Clicked on a CJ4: (A:KOHLSMAN SETTING MB:2) did not change, so what this knob moves is not known."
+   "note": "Clicked on a CJ4: (A:KOHLSMAN SETTING MB:2) did not change. MSFS 2024: +1 moved the PILOT's setting ((A:KOHLSMAN SETTING MB:1) 1013.25 to 1013.56), so bind BARO 1 or BARO 2, not both (both would step twice)."
   },
   {
    "panel": "Autopilot and flight instruments",
@@ -167,7 +172,7 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "knob_up",
-   "note": "Clicked on a CJ4: (A:KOHLSMAN SETTING MB:2) did not change, so what this knob moves is not known."
+   "note": "Clicked on a CJ4: (A:KOHLSMAN SETTING MB:2) did not change. MSFS 2024: +1 moved the PILOT's setting ((A:KOHLSMAN SETTING MB:1) 1013.25 to 1013.56), so bind BARO 1 or BARO 2, not both (both would step twice)."
   },
   {
    "panel": "Autopilot and flight instruments",
@@ -278,7 +283,7 @@
    "rw": "R/W",
    "behavior": "press",
    "verified": true,
-   "note": "Verified on a CJ4: every event toggles the flight director, whatever its value; the value read back is the state (1 = on)."
+   "note": "Verified on a CJ4: every event toggles the flight director, whatever its value; the value read back is the state (1 = on). MSFS 2024: the same."
   },
   {
    "panel": "Autopilot and flight instruments",
@@ -427,7 +432,7 @@
    "rw": "R/W",
    "behavior": "knob_down",
    "verified": true,
-   "note": "Verified on a CJ4: an event of +1 raises the selected speed by 1 kt, -1 lowers it by 1 kt."
+   "note": "Verified on a CJ4: an event of +1 raises the selected speed by 1 kt, -1 lowers it by 1 kt. MSFS 2024: the same, one knot per event."
   },
   {
    "panel": "Autopilot and flight instruments",
@@ -440,7 +445,7 @@
    "rw": "R/W",
    "behavior": "knob_up",
    "verified": true,
-   "note": "Verified on a CJ4: an event of +1 raises the selected speed by 1 kt, -1 lowers it by 1 kt."
+   "note": "Verified on a CJ4: an event of +1 raises the selected speed by 1 kt, -1 lowers it by 1 kt. MSFS 2024: the same, one knot per event."
   },
   {
    "panel": "Autopilot and flight instruments",
@@ -508,6 +513,30 @@
   },
   {
    "panel": "Engines",
+   "section": "FADEC",
+   "function": "FADEC RESET, left",
+   "api": "CJ4_AVIONICS_PUSH_PILOT_FADECRESET_L",
+   "name": "CJ4_AVIONICS_PUSH_PILOT_FADECRESET_L",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Label from the MSFS 2024 tooltip CJ4.FADEC_RESET; not tried."
+  },
+  {
+   "panel": "Engines",
+   "section": "FADEC",
+   "function": "FADEC RESET, right",
+   "api": "CJ4_AVIONICS_PUSH_PILOT_FADECRESET_R",
+   "name": "CJ4_AVIONICS_PUSH_PILOT_FADECRESET_R",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Label from the MSFS 2024 tooltip CJ4.FADEC_RESET; not tried."
+  },
+  {
+   "panel": "Engines",
    "section": "Ignition",
    "function": "Ignition 1 (left)",
    "api": "ENGINE_Ignition_1",
@@ -516,7 +545,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "The value follows set 0 / 1 (2 reads back as 1); none of the variables tried ((A:TURB ENG IGNITION SWITCH EX1:1), (A:TURB ENG IS IGNITING:1)) followed it, so its effect was not read."
+   "verified": true,
+   "note": "Verified on a CJ4 in MSFS 2024: two positions, 0 = NORM ((A:TURB ENG IGNITION SWITCH EX1:1) = 1, auto) and 1 = ON (= 2); 2 reads back as 1."
   },
   {
    "panel": "Engines",
@@ -529,6 +559,18 @@
    "rw": "R/W",
    "behavior": "latched",
    "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Engines",
+   "section": "Starters",
+   "function": "Automatic engine start (the sim's procedure)",
+   "api": "PROCEDURE_AUTOSTART",
+   "name": "PROCEDURE_AUTOSTART",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "WARNING: runs the sim's whole engine start (or shutdown); never sent by tools/probe_controls.py. Not tried."
   },
   {
    "panel": "Engines",
@@ -590,7 +632,7 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "",
-   "note": "Seen on a CJ4 with the brake set: values up to 10 leave the lever at idle and 11 or more send it to 100 % (not a usable axis). For an axis use the standard THROTTLE1_SET sim events."
+   "note": "Seen on a CJ4 with the brake set: values up to 10 leave the lever at idle and 11 or more send it to 100 % (not a usable axis). For an axis use THROTTLE1_AXIS_SET_EX1 / THROTTLE2_AXIS_SET_EX1 (-16384 = idle, 16384 = full; THROTTLE1_SET takes 0..16384): the Working Title FADEC turns the value into a lever position 0..1 ((value + 16384) / 32768) and picks the thrust mode from it: CRU from idle up to 0.776, CLB from 0.776 (axis value about 9044), TO from 0.958 (about 15008). There is no reverse. Read from the source, not moved on the aircraft."
   },
   {
    "panel": "Engines",
@@ -602,7 +644,7 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "",
-   "note": "Same event as lever 1; on lever 1 values up to 10 leave the lever at idle and 11 or more send it to 100 % (not a usable axis). For an axis use the standard THROTTLE2_SET sim events."
+   "note": "Same event as lever 1; on lever 1 values up to 10 leave the lever at idle and 11 or more send it to 100 % (not a usable axis). For an axis use THROTTLE1_AXIS_SET_EX1 / THROTTLE2_AXIS_SET_EX1 (-16384 = idle, 16384 = full; THROTTLE1_SET takes 0..16384): the Working Title FADEC turns the value into a lever position 0..1 ((value + 16384) / 32768) and picks the thrust mode from it: CRU from idle up to 0.776, CLB from 0.776 (axis value about 9044), TO from 0.958 (about 15008). There is no reverse. Read from the source, not moved on the aircraft."
   },
   {
    "panel": "Fuel",
@@ -615,7 +657,21 @@
    "rw": "R/W",
    "behavior": "latched",
    "positions": 3,
+   "remark": "MSFS 2020 only; in MSFS 2024 use FUEL_TRANSFER_SELECTOR.",
    "note": "Seen on a CJ4: the value follows set 0 / 1 / 2 (a three-position, set-value switch, resting at 1); the effect on the fuel system was not read."
+  },
+  {
+   "panel": "Fuel",
+   "section": "Crossfeed",
+   "function": "FUEL TRANSFER selector",
+   "api": "FUEL_TRANSFER_SELECTOR",
+   "name": "FUEL_TRANSFER_SELECTOR",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "positions": 3,
+   "note": "MSFS 2024 name of FUEL_Crossfeed_1 (which rested at 1 of 0 / 1 / 2 too); rests at 1, not tried."
   },
   {
    "panel": "Fuel",
@@ -704,8 +760,59 @@
    "rw": "R/W",
    "behavior": "latched",
    "positions": 3,
+   "remark": "MSFS 2020 only; in MSFS 2024 use ELECTRICAL_SWITCH_AVIONICS_BUS.",
    "verified": true,
    "note": "Verified on a CJ4: three positions by set: 1 = OFF (avionics circuit off), 0 = ON, 2 = DISPATCH (both power the avionics); read back with (A:CIRCUIT AVIONICS ON)."
+  },
+  {
+   "panel": "Electrical",
+   "section": "Avionics",
+   "function": "Avionics switch (ON / OFF / DISPATCH)",
+   "api": "ELECTRICAL_SWITCH_AVIONICS_BUS",
+   "name": "ELECTRICAL_SWITCH_AVIONICS_BUS",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "positions": 3,
+   "verified": true,
+   "note": "Verified on a CJ4 in MSFS 2024: three positions by set, 0 = ON ((A:CIRCUIT AVIONICS ON) = 1); 1 and 2 both read (A:CIRCUIT AVIONICS ON) = 0 (1 = OFF, 2 = DISPATCH as on the 2020 CJ4, which says what DISPATCH powers there). Turning the avionics off reboots the displays."
+  },
+  {
+   "panel": "Electrical",
+   "section": "Batteries",
+   "function": "Battery cover (discharge)",
+   "api": "COMMON_LOCK_BATTERY_DISCHARGE_COVER",
+   "name": "COMMON_LOCK_BATTERY_DISCHARGE_COVER",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Electrical",
+   "section": "Batteries",
+   "function": "Battery cover (interior)",
+   "api": "COMMON_LOCK_BATTERY_INT_COVER",
+   "name": "COMMON_LOCK_BATTERY_INT_COVER",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Electrical",
+   "section": "Batteries",
+   "function": "Battery disconnect",
+   "api": "ELECTRICAL_BATTERY_DISCONNECT",
+   "name": "ELECTRICAL_BATTERY_DISCONNECT",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Label from the MSFS 2024 tooltip CJ4.BATTERY_DISCONNECT; not tried."
   },
   {
    "panel": "Electrical",
@@ -717,8 +824,34 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
+   "remark": "MSFS 2020 only; in MSFS 2024 use ELECTRICAL_SWITCH_BATTERY_MASTER.",
    "verified": true,
    "note": "Verified on a CJ4: set 1 = OFF, set 0 = ON (a second set 0 changes nothing), read back with (A:ELECTRICAL MASTER BATTERY)."
+  },
+  {
+   "panel": "Electrical",
+   "section": "Batteries",
+   "function": "Battery switch (BATT / OFF / EMER)",
+   "api": "ELECTRICAL_SWITCH_BATTERY_MASTER",
+   "name": "ELECTRICAL_SWITCH_BATTERY_MASTER",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "positions": 3,
+   "note": "MSFS 2024 name of ELECTRICAL_Battery_1. Seen on a CJ4 in MSFS 2024 (engines running): the value follows set 0 / 1 / 2 and rests at 0 = BATT (ON, as on the 2020 CJ4, where 1 = OFF); (A:ELECTRICAL MASTER BATTERY) stayed 1 in every position with the generators on, so OFF and EMER were not confirmed."
+  },
+  {
+   "panel": "Electrical",
+   "section": "Cabin power",
+   "function": "Interior master (cabin electrical power)",
+   "api": "ELECTICAL_INTERIOR_MASTER",
+   "name": "ELECTICAL_INTERIOR_MASTER",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Label from the MSFS 2024 tooltip CJ4.INTERIOR_MASTER (the event name is spelled ELECTICAL by the sim); not tried."
   },
   {
    "panel": "Electrical",
@@ -730,6 +863,7 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "",
+   "remark": "MSFS 2020 only; MSFS 2024 does not report it.",
    "note": "Purpose not known, not tried."
   },
   {
@@ -859,12 +993,26 @@
    "panel": "Lights",
    "section": "Exterior",
    "function": "Landing lights",
+   "api": "LIGHTING_LANDING_0",
+   "name": "LIGHTING_LANDING_0",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "verified": true,
+   "note": "Verified on a CJ4 in MSFS 2024: set 1 / set 0 switches the landing lights, read back with (A:LIGHT LANDING)."
+  },
+  {
+   "panel": "Lights",
+   "section": "Exterior",
+   "function": "Landing lights",
    "api": "LIGHTING_LANDING_1",
    "name": "LIGHTING_LANDING_1",
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
+   "remark": "MSFS 2020 only; in MSFS 2024 use LIGHTING_LANDING_0.",
    "verified": true,
    "note": "Verified on a CJ4: set 1 / set 0 switches the landing lights, read back with (A:LIGHT LANDING)."
   },
@@ -923,6 +1071,18 @@
   {
    "panel": "Lights",
    "section": "Exterior",
+   "function": "TCAS PULSE lights",
+   "api": "CJ4_AVIONICS_LIGHTING_PUSH_LIGHT_PULSE_TCAS",
+   "name": "CJ4_AVIONICS_LIGHTING_PUSH_LIGHT_PULSE_TCAS",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Label from the MSFS 2024 tooltip CJ4.TCAS_PULSE_LIGHTS; not tried."
+  },
+  {
+   "panel": "Lights",
+   "section": "Exterior",
    "function": "Taxi light",
    "api": "LIGHTING_TAXI_1",
    "name": "LIGHTING_TAXI_1",
@@ -931,7 +1091,7 @@
    "rw": "R/W",
    "behavior": "latched",
    "verified": true,
-   "note": "Verified on a CJ4: set 1 / set 0 switches the taxi light, read back with (A:LIGHT TAXI)."
+   "note": "Verified on a CJ4: set 1 / set 0 switches the taxi light, read back with (A:LIGHT TAXI). MSFS 2024: the same (A:LIGHT TAXI)."
   },
   {
    "panel": "Lights",
@@ -1000,6 +1160,42 @@
   {
    "panel": "Lights",
    "section": "Interior",
+   "function": "Cabin light 4",
+   "api": "LIGHTING_CABIN_4",
+   "name": "LIGHTING_CABIN_4",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Rests at 1; not tried."
+  },
+  {
+   "panel": "Lights",
+   "section": "Interior",
+   "function": "Cabin light 5",
+   "api": "LIGHTING_CABIN_5",
+   "name": "LIGHTING_CABIN_5",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Rests at 1; not tried."
+  },
+  {
+   "panel": "Lights",
+   "section": "Interior",
+   "function": "Cabin light 6",
+   "api": "LIGHTING_CABIN_6",
+   "name": "LIGHTING_CABIN_6",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Rests at 1; not tried."
+  },
+  {
+   "panel": "Lights",
+   "section": "Interior",
    "function": "Emergency lights switch",
    "api": "ELECTRICAL_EMERLIGHTS",
    "name": "ELECTRICAL_EMERLIGHTS",
@@ -1032,7 +1228,7 @@
    "rw": "R/W",
    "behavior": "latched",
    "verified": true,
-   "note": "Verified on a CJ4: set 1 / set 0 switches airframe de-ice, read back with (A:STRUCTURAL DEICE SWITCH)."
+   "note": "Verified on a CJ4: set 1 / set 0 switches airframe de-ice, read back with (A:STRUCTURAL DEICE SWITCH). MSFS 2024: set 1 also turns engine anti-ice 1 on ((A:ENG ANTI ICE:1) = 1): this is the left WING/ENG button."
   },
   {
    "panel": "Ice protection",
@@ -1048,6 +1244,18 @@
   },
   {
    "panel": "Ice protection",
+   "section": "Anti-ice crossflow",
+   "function": "DEICE XFLOW (crossflow)",
+   "api": "CJ4_AVIONICS_DEICE_PUSH_XFLOW",
+   "name": "CJ4_AVIONICS_DEICE_PUSH_XFLOW",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Label from the MSFS 2024 tooltip CJ4.DEICE_XFLOW; not tried."
+  },
+  {
+   "panel": "Ice protection",
    "section": "Engine",
    "function": "Engine anti-ice 1",
    "api": "DEICE_Engine_1",
@@ -1057,7 +1265,7 @@
    "rw": "R/W",
    "behavior": "latched",
    "verified": true,
-   "note": "Verified on a CJ4: set 1 / set 0 switches engine anti-ice 1, read back with (A:ENG ANTI ICE:1)."
+   "note": "Verified on a CJ4: set 1 / set 0 switches engine anti-ice 1, read back with (A:ENG ANTI ICE:1). MSFS 2024: the same; this is the ENG ONLY button ((A:STRUCTURAL DEICE SWITCH) stays 0)."
   },
   {
    "panel": "Ice protection",
@@ -1083,7 +1291,7 @@
    "rw": "R/W",
    "behavior": "latched",
    "verified": true,
-   "note": "Verified on a CJ4: set 1 / set 0 switches pitot heat 1, read back with (A:PITOT HEAT SWITCH:1)."
+   "note": "Verified on a CJ4: set 1 / set 0 switches pitot heat 1, read back with (A:PITOT HEAT SWITCH:1). MSFS 2024: the same."
   },
   {
    "panel": "Ice protection",
@@ -1096,7 +1304,31 @@
    "rw": "R/W",
    "behavior": "latched",
    "verified": true,
-   "note": "Verified on a CJ4: set 1 / set 0 switches pitot heat 2, read back with (A:PITOT HEAT SWITCH:2)."
+   "note": "Verified on a CJ4: set 1 / set 0 switches pitot heat 2, read back with (A:PITOT HEAT SWITCH:2). MSFS 2024: the same."
+  },
+  {
+   "panel": "Ice protection",
+   "section": "Tail",
+   "function": "TAIL DEICE button, left",
+   "api": "CJ4_AVIONICS_DEICE_PUSH_TAIL_1",
+   "name": "CJ4_AVIONICS_DEICE_PUSH_TAIL_1",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Label from the MSFS 2024 tooltip CJ4.TAIL_DEICE; not tried."
+  },
+  {
+   "panel": "Ice protection",
+   "section": "Tail",
+   "function": "TAIL DEICE button, right",
+   "api": "CJ4_AVIONICS_DEICE_PUSH_TAIL_2",
+   "name": "CJ4_AVIONICS_DEICE_PUSH_TAIL_2",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Label from the MSFS 2024 tooltip CJ4.TAIL_DEICE; not tried."
   },
   {
    "panel": "Landing gear and brakes",
@@ -1391,6 +1623,18 @@
   {
    "panel": "Pressurization and cabin",
    "section": "Cabin",
+   "function": "Lavatory door",
+   "api": "OPEN_DOOR_BATHROOM_BATHROOM_DOOR",
+   "name": "OPEN_DOOR_BATHROOM_BATHROOM_DOOR",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "WARNING: a door, hatch or seat event of MSFS 2024 can move the pilot out of the cockpit (it happened on a C172); never sent by tools/probe_controls.py. Not tried."
+  },
+  {
+   "panel": "Pressurization and cabin",
+   "section": "Cabin",
    "function": "Passenger air 1",
    "api": "PASSENGER_Passenger_Air_1",
    "name": "PASSENGER_Passenger_Air_1",
@@ -1470,6 +1714,42 @@
   },
   {
    "panel": "Pressurization and cabin",
+   "section": "Oxygen",
+   "function": "OXYGEN CONTROL selector (CREW ONLY / DROP MASK)",
+   "api": "PASSENGER_OXYGEN_CONTROL",
+   "name": "PASSENGER_OXYGEN_CONTROL",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Rests at 1; positions from the tooltips CJ4.OXYGEN_CONTROL_*_VALUE, values not tried."
+  },
+  {
+   "panel": "Pressurization and cabin",
+   "section": "Oxygen",
+   "function": "Oxygen mask",
+   "api": "CJ4_AVIONICS_PUSH_OXYGENMASK",
+   "name": "CJ4_AVIONICS_PUSH_OXYGENMASK",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Pressurization and cabin",
+   "section": "Oxygen",
+   "function": "Oxygen supply lever",
+   "api": "CJ4_AVIONICS_LEVER_PILOT_OXYGENSUPPLY",
+   "name": "CJ4_AVIONICS_LEVER_PILOT_OXYGENSUPPLY",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Label from the MSFS 2024 tooltip CJ4.OXYGEN_SUPPLY; not tried."
+  },
+  {
+   "panel": "Pressurization and cabin",
    "section": "Pressurization",
    "function": "Cabin dump",
    "api": "PRESSURIZATION_Dump",
@@ -1506,6 +1786,18 @@
    "note": "Seen on a CJ4: the value follows set 0 / 1 / 2 (-1 reads back as 0), a three-position, set-value switch resting at 2; its effect was not read."
   },
   {
+   "panel": "Pressurization and cabin",
+   "section": "Pressurization",
+   "function": "Standby pressure control",
+   "api": "CJ4_AVIONICS_PRESSURIZATION_PUSH_CONTROL",
+   "name": "CJ4_AVIONICS_PRESSURIZATION_PUSH_CONTROL",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Label from the MSFS 2024 tooltip CJ4.STBY_PRESSURIZATION_CONTROL; not tried."
+  },
+  {
    "panel": "Audio and volumes",
    "section": "Audio panel",
    "function": "ADF 1 audio",
@@ -1528,6 +1820,18 @@
    "rw": "R/W",
    "behavior": "latched",
    "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Audio and volumes",
+   "section": "Audio panel",
+   "function": "COM 1 tune to 121.5 (emergency)",
+   "api": "CJ4_AVIONICS_PUSH_COM1TUNE",
+   "name": "CJ4_AVIONICS_PUSH_COM1TUNE",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Label from the MSFS 2024 tooltip CJ4.COMM_1_TUNE; not tried."
   },
   {
    "panel": "Audio and volumes",
@@ -1568,6 +1872,18 @@
   {
    "panel": "Audio and volumes",
    "section": "Audio panel",
+   "function": "Event marker (voice recorder)",
+   "api": "CJ4_AVIONICS_PUSH_EVENTMARKER",
+   "name": "CJ4_AVIONICS_PUSH_EVENTMARKER",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Label from the MSFS 2024 tooltip CJ4.EVENT_MARKER; not tried."
+  },
+  {
+   "panel": "Audio and volumes",
+   "section": "Audio panel",
    "function": "Marker beacon audio",
    "api": "NAVCOM_AUDIO_MARKER1_Sound",
    "name": "NAVCOM_AUDIO_MARKER1_Sound",
@@ -1592,6 +1908,18 @@
   {
    "panel": "Audio and volumes",
    "section": "Audio panel",
+   "function": "Mute cockpit speaker",
+   "api": "CJ4_AVIONICS_PUSH_CKPT_SPKR_MUTE",
+   "name": "CJ4_AVIONICS_PUSH_CKPT_SPKR_MUTE",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Label from the MSFS 2024 tooltip CJ4.MUTE_COCKPIT_SPEAKER; not tried."
+  },
+  {
+   "panel": "Audio and volumes",
+   "section": "Audio panel",
    "function": "Speaker",
    "api": "NAVCOM_AUDIO_Speaker",
    "name": "NAVCOM_AUDIO_Speaker",
@@ -1600,6 +1928,30 @@
    "rw": "R/W",
    "behavior": "latched",
    "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Audio and volumes",
+   "section": "Microphones",
+   "function": "Copilot microphone",
+   "api": "CJ4_AVIONICS_PUSH_COPILOTMIC_PIT",
+   "name": "CJ4_AVIONICS_PUSH_COPILOTMIC_PIT",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Label from the MSFS 2024 tooltip CJ4.COPILOT_MIC_PIT; not tried."
+  },
+  {
+   "panel": "Audio and volumes",
+   "section": "Microphones",
+   "function": "Oxygen mask microphone",
+   "api": "CJ4_AVIONICS_PUSH_PILOT_OXYGENMASK_MIC",
+   "name": "CJ4_AVIONICS_PUSH_PILOT_OXYGENMASK_MIC",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Label from the MSFS 2024 tooltip CJ4.OXYGEN_MASK_MIC; not tried."
   },
   {
    "panel": "Audio and volumes",
@@ -1664,6 +2016,18 @@
     100
    ],
    "note": "Value 0..100 assumed from the values read at rest; not tried."
+  },
+  {
+   "panel": "Warnings and signs",
+   "section": "ELT",
+   "function": "ELT switch",
+   "api": "SAFETY_ELT_1",
+   "name": "SAFETY_ELT_1",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Emergency locator transmitter; not tried."
   },
   {
    "panel": "Warnings and signs",
@@ -1740,6 +2104,606 @@
    "note": "Verified on a CJ4: toggles the seat belt sign, read back with (A:CABIN SEATBELTS ALERT SWITCH); the value is the state."
   },
   {
+   "panel": "Warnings and signs",
+   "section": "TAWS",
+   "function": "TAWS glideslope cancel",
+   "api": "CJ4_AVIONICS_PUSH_TAWS_GSCANCEL",
+   "name": "CJ4_AVIONICS_PUSH_TAWS_GSCANCEL",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Label from the MSFS 2024 tooltip CJ4.TAWS_GS_CANCEL; not tried."
+  },
+  {
+   "panel": "Fire protection",
+   "section": "Engine fire",
+   "function": "BOTTLE ARMED push light, left",
+   "api": "CJ4_AVIONICS_PUSH_PILOT_LFIREBOTTLEARMEDLIGHT",
+   "name": "CJ4_AVIONICS_PUSH_PILOT_LFIREBOTTLEARMEDLIGHT",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "DANGER: discharges the fire bottle. Label from the MSFS 2024 tooltip CJ4.FIRE_BOTTLE_ARMED_LIGHT; not tried."
+  },
+  {
+   "panel": "Fire protection",
+   "section": "Engine fire",
+   "function": "BOTTLE ARMED push light, right",
+   "api": "CJ4_AVIONICS_PUSH_COPILOT_RFIREBOTTLEARMEDLIGHT",
+   "name": "CJ4_AVIONICS_PUSH_COPILOT_RFIREBOTTLEARMEDLIGHT",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "DANGER: discharges the fire bottle. Label from the MSFS 2024 tooltip CJ4.FIRE_BOTTLE_ARMED_LIGHT; not tried."
+  },
+  {
+   "panel": "Fire protection",
+   "section": "Engine fire",
+   "function": "ENG FIRE cover, left",
+   "api": "COMMON_LOCK_PILOT_LENGINEFIRELIGHT_COVER",
+   "name": "COMMON_LOCK_PILOT_LENGINEFIRELIGHT_COVER",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Fire protection",
+   "section": "Engine fire",
+   "function": "ENG FIRE cover, right",
+   "api": "COMMON_LOCK_COPILOT_R_ENGINEFIRELIGHT_COVER",
+   "name": "COMMON_LOCK_COPILOT_R_ENGINEFIRELIGHT_COVER",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Fire protection",
+   "section": "Engine fire",
+   "function": "ENG FIRE push light, left",
+   "api": "CJ4_AVIONICS_PUSH_PILOT_LENGINEFIRELIGHT",
+   "name": "CJ4_AVIONICS_PUSH_PILOT_LENGINEFIRELIGHT",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "DANGER: on the real aircraft this shuts off fuel and hydraulics to the engine and arms the fire bottle. Label from the MSFS 2024 tooltip CJ4.ENG_FIRE_WARNING; not tried."
+  },
+  {
+   "panel": "Fire protection",
+   "section": "Engine fire",
+   "function": "ENG FIRE push light, right",
+   "api": "CJ4_AVIONICS_PUSH_COPILOT_RENGINEFIRELIGHT",
+   "name": "CJ4_AVIONICS_PUSH_COPILOT_RENGINEFIRELIGHT",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "DANGER: on the real aircraft this shuts off fuel and hydraulics to the engine and arms the fire bottle. Label from the MSFS 2024 tooltip CJ4.ENG_FIRE_WARNING; not tried."
+  },
+  {
+   "panel": "Fire protection",
+   "section": "Hydraulic shutoff",
+   "function": "Hydraulic shutoff cover, left",
+   "api": "COMMON_LOCK_PILOT_HYDSHUTOFF_L_COVER",
+   "name": "COMMON_LOCK_PILOT_HYDSHUTOFF_L_COVER",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Fire protection",
+   "section": "Hydraulic shutoff",
+   "function": "Hydraulic shutoff cover, right",
+   "api": "COMMON_LOCK_PILOT_HYDSHUTOFF_R_COVER",
+   "name": "COMMON_LOCK_PILOT_HYDSHUTOFF_R_COVER",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Fire protection",
+   "section": "Hydraulic shutoff",
+   "function": "Hydraulic shutoff valve, left",
+   "api": "HYD_VALVE_1",
+   "name": "HYD_VALVE_1",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "WARNING: closes the left hydraulic supply. Label from the MSFS 2024 tooltip CJ4.HYD_SHUTOFF_ACTION; not tried."
+  },
+  {
+   "panel": "Fire protection",
+   "section": "Hydraulic shutoff",
+   "function": "Hydraulic shutoff valve, right",
+   "api": "HYD_VALVE_2",
+   "name": "HYD_VALVE_2",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "WARNING: closes the right hydraulic supply. Label from the MSFS 2024 tooltip CJ4.HYD_SHUTOFF_ACTION; not tried."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "CCP 1",
+   "function": "CHART (chart data)",
+   "api": "CJ4_AVIONICS_CCP_PUSH_CHART_1",
+   "name": "CJ4_AVIONICS_CCP_PUSH_CHART_1",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "CCP 1",
+   "function": "CKLST (MFD checklists)",
+   "api": "CJ4_AVIONICS_CCP_PUSH_CKLST_1",
+   "name": "CJ4_AVIONICS_CCP_PUSH_CKLST_1",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "CCP 1",
+   "function": "CURSOR",
+   "api": "CJ4_AVIONICS_CCP_PUSH_CURSR_1",
+   "name": "CJ4_AVIONICS_CCP_PUSH_CURSR_1",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "CCP 1",
+   "function": "DATABASE",
+   "api": "CJ4_AVIONICS_CCP_PUSH_DATABASE_1",
+   "name": "CJ4_AVIONICS_CCP_PUSH_DATABASE_1",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "CCP 1",
+   "function": "MEM 1 (MFD format 1)",
+   "api": "AS3000_LOWER_1_MEM1",
+   "name": "AS3000_LOWER_1_MEM1",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Label from the MSFS 2024 tooltip CJ4.CCP_PUSH_MEM_1; not tried."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "CCP 1",
+   "function": "MEM 2 (MFD format 2)",
+   "api": "AS3000_LOWER_1_MEM2",
+   "name": "AS3000_LOWER_1_MEM2",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Label from the MSFS 2024 tooltip CJ4.CCP_PUSH_MEM_2; not tried."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "CCP 1",
+   "function": "MEM 3 (MFD format 3)",
+   "api": "AS3000_LOWER_1_MEM3",
+   "name": "AS3000_LOWER_1_MEM3",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Label from the MSFS 2024 tooltip CJ4.CCP_PUSH_MEM_3; not tried."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "CCP 1",
+   "function": "PASS BRIEF (passenger briefing)",
+   "api": "CJ4_AVIONICS_CCP_PUSH_PASSBRIEF_1",
+   "name": "CJ4_AVIONICS_CCP_PUSH_PASSBRIEF_1",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "CCP 1",
+   "function": "unlabelled key",
+   "api": "CJ4_AVIONICS_CCP_PUSH_UNKNOWN_1",
+   "name": "CJ4_AVIONICS_CCP_PUSH_UNKNOWN_1",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "CCP 2",
+   "function": "CHART (chart data)",
+   "api": "CJ4_AVIONICS_CCP_PUSH_CHART_2",
+   "name": "CJ4_AVIONICS_CCP_PUSH_CHART_2",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "CCP 2",
+   "function": "CKLST (MFD checklists)",
+   "api": "CJ4_AVIONICS_CCP_PUSH_CKLST_2",
+   "name": "CJ4_AVIONICS_CCP_PUSH_CKLST_2",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "CCP 2",
+   "function": "CURSOR",
+   "api": "CJ4_AVIONICS_CCP_PUSH_CURSR_2",
+   "name": "CJ4_AVIONICS_CCP_PUSH_CURSR_2",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "CCP 2",
+   "function": "DATABASE",
+   "api": "CJ4_AVIONICS_CCP_PUSH_DATABASE_2",
+   "name": "CJ4_AVIONICS_CCP_PUSH_DATABASE_2",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "CCP 2",
+   "function": "MEM 1 (MFD format 1)",
+   "api": "AS3000_LOWER_2_MEM1",
+   "name": "AS3000_LOWER_2_MEM1",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Label from the MSFS 2024 tooltip CJ4.CCP_PUSH_MEM_1; not tried."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "CCP 2",
+   "function": "MEM 2 (MFD format 2)",
+   "api": "AS3000_LOWER_2_MEM2",
+   "name": "AS3000_LOWER_2_MEM2",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Label from the MSFS 2024 tooltip CJ4.CCP_PUSH_MEM_2; not tried."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "CCP 2",
+   "function": "MEM 3 (MFD format 3)",
+   "api": "AS3000_LOWER_2_MEM3",
+   "name": "AS3000_LOWER_2_MEM3",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Label from the MSFS 2024 tooltip CJ4.CCP_PUSH_MEM_3; not tried."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "CCP 2",
+   "function": "PASS BRIEF (passenger briefing)",
+   "api": "CJ4_AVIONICS_CCP_PUSH_PASSBRIEF_2",
+   "name": "CJ4_AVIONICS_CCP_PUSH_PASSBRIEF_2",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "CCP 2",
+   "function": "unlabelled key",
+   "api": "CJ4_AVIONICS_CCP_PUSH_UNKNOWN_2",
+   "name": "CJ4_AVIONICS_CCP_PUSH_UNKNOWN_2",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "DCP (copilot)",
+   "function": "CCP MENU (copilot)",
+   "api": "CJ4_AVIONICS_PUSH_COPILOT_DCP_CCPMENU",
+   "name": "CJ4_AVIONICS_PUSH_COPILOT_DCP_CCPMENU",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "DCP (copilot)",
+   "function": "RADAR MENU (copilot)",
+   "api": "CJ4_AVIONICS_PUSH_COPILOT_DCP_RADARMENU",
+   "name": "CJ4_AVIONICS_PUSH_COPILOT_DCP_RADARMENU",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "DCP (copilot)",
+   "function": "TAWS MENU (copilot)",
+   "api": "CJ4_AVIONICS_PUSH_COPILOT_DCP_TAWSMENU",
+   "name": "CJ4_AVIONICS_PUSH_COPILOT_DCP_TAWSMENU",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "DCP (pilot)",
+   "function": "CCP MENU (pilot)",
+   "api": "CJ4_AVIONICS_PUSH_PILOT_DCP_CCPMENU",
+   "name": "CJ4_AVIONICS_PUSH_PILOT_DCP_CCPMENU",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "DCP (pilot)",
+   "function": "RADAR MENU (pilot)",
+   "api": "CJ4_AVIONICS_PUSH_PILOT_DCP_RADARMENU",
+   "name": "CJ4_AVIONICS_PUSH_PILOT_DCP_RADARMENU",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "DCP (pilot)",
+   "function": "TAWS MENU (pilot)",
+   "api": "CJ4_AVIONICS_PUSH_PILOT_DCP_TAWSMENU",
+   "name": "CJ4_AVIONICS_PUSH_PILOT_DCP_TAWSMENU",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "Reversion (copilot)",
+   "function": "ADC reversion (copilot)",
+   "api": "CJ4_AVIONICS_PUSH_COPILOT_APP_ADC",
+   "name": "CJ4_AVIONICS_PUSH_COPILOT_APP_ADC",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "Reversion (copilot)",
+   "function": "AHRS reversion (copilot)",
+   "api": "CJ4_AVIONICS_PUSH_COPILOT_APP_AHRS",
+   "name": "CJ4_AVIONICS_PUSH_COPILOT_APP_AHRS",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "Reversion (copilot)",
+   "function": "AHRS slave slew (copilot)",
+   "api": "CJ4_AVIONICS_PUSH_COPILOT_APP_SLEW_LR",
+   "name": "CJ4_AVIONICS_PUSH_COPILOT_APP_SLEW_LR",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "",
+   "note": "A left / right slew switch; its values are not known. Label from the MSFS 2024 tooltip CJ4.AHRS_SLAVE_SLEW; not tried."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "Reversion (copilot)",
+   "function": "AHRS slave: manual (copilot)",
+   "api": "CJ4_AVIONICS_PUSH_COPILOT_APP_MAN",
+   "name": "CJ4_AVIONICS_PUSH_COPILOT_APP_MAN",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "Reversion (copilot)",
+   "function": "CDU reversion (copilot)",
+   "api": "CJ4_AVIONICS_PUSH_COPILOT_APP_CDU",
+   "name": "CJ4_AVIONICS_PUSH_COPILOT_APP_CDU",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "Reversion (copilot)",
+   "function": "MFD reversion (copilot)",
+   "api": "CJ4_AVIONICS_PUSH_COPILOT_APP_MFD",
+   "name": "CJ4_AVIONICS_PUSH_COPILOT_APP_MFD",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "Reversion (copilot)",
+   "function": "PFD reversion (copilot)",
+   "api": "CJ4_AVIONICS_PUSH_COPILOT_APP_PFD",
+   "name": "CJ4_AVIONICS_PUSH_COPILOT_APP_PFD",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "Reversion (pilot)",
+   "function": "ADC reversion (pilot)",
+   "api": "CJ4_AVIONICS_PUSH_PILOT_ADC",
+   "name": "CJ4_AVIONICS_PUSH_PILOT_ADC",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "Reversion (pilot)",
+   "function": "AHRS reversion (pilot)",
+   "api": "CJ4_AVIONICS_PUSH_PILOT_APP_AHRS",
+   "name": "CJ4_AVIONICS_PUSH_PILOT_APP_AHRS",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "Reversion (pilot)",
+   "function": "AHRS slave slew (pilot)",
+   "api": "CJ4_AVIONICS_PUSH_PILOT_APP_SLEW_LR",
+   "name": "CJ4_AVIONICS_PUSH_PILOT_APP_SLEW_LR",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "",
+   "note": "A left / right slew switch; its values are not known. Label from the MSFS 2024 tooltip CJ4.AHRS_SLAVE_SLEW; not tried."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "Reversion (pilot)",
+   "function": "AHRS slave: manual (pilot)",
+   "api": "CJ4_AVIONICS_PUSH_PILOT_APP_MAN",
+   "name": "CJ4_AVIONICS_PUSH_PILOT_APP_MAN",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "Reversion (pilot)",
+   "function": "CDU reversion (pilot)",
+   "api": "CJ4_AVIONICS_PUSH_PILOT_APP_CDU",
+   "name": "CJ4_AVIONICS_PUSH_PILOT_APP_CDU",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "Reversion (pilot)",
+   "function": "MFD reversion (pilot)",
+   "api": "CJ4_AVIONICS_PUSH_PILOT_APP_MFD",
+   "name": "CJ4_AVIONICS_PUSH_PILOT_APP_MFD",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "Reversion (pilot)",
+   "function": "PFD reversion (pilot)",
+   "api": "CJ4_AVIONICS_PUSH_PILOT_APP_PFD",
+   "name": "CJ4_AVIONICS_PUSH_PILOT_APP_PFD",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+  },
+  {
+   "panel": "Displays and reversion",
+   "section": "Standby display",
+   "function": "STBY FLT DISPLAY switch",
+   "api": "STBY_FLT_DISPLAY_SWITCH",
+   "name": "STBY_FLT_DISPLAY_SWITCH",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Rests at 0; the number of positions is not known. Label from the MSFS 2024 tooltip CJ4.STBY_FLT_DISPLAY; not tried."
+  },
+  {
    "panel": "FMS CDU 1 (pilot)",
    "section": "Brightness",
    "function": "BRT / DIM",
@@ -1750,6 +2714,22 @@
    "rw": "R/W",
    "behavior": "latched",
    "note": "Reads 1 at rest; behaviour not tried."
+  },
+  {
+   "panel": "FMS CDU 1 (pilot)",
+   "section": "Brightness",
+   "function": "CDU 1 brightness",
+   "api": "FMC_BRT_DIM_1",
+   "name": "FMC_BRT_DIM_1",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "level",
+   "axis_range": [
+    0,
+    1
+   ],
+   "note": "Rests at 0.5; range 0..1 assumed, not tried."
   },
   {
    "panel": "FMS CDU 1 (pilot)",
@@ -2565,7 +3545,24 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
+   "remark": "MSFS 2020 only; in MSFS 2024 use FMC_BRT_DIM_2.",
    "note": "Reads 1 at rest; behaviour not tried."
+  },
+  {
+   "panel": "FMS CDU 2 (copilot)",
+   "section": "Brightness",
+   "function": "CDU 2 brightness",
+   "api": "FMC_BRT_DIM_2",
+   "name": "FMC_BRT_DIM_2",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "level",
+   "axis_range": [
+    0,
+    1
+   ],
+   "note": "Rests at 0.5; range 0..1 assumed, not tried."
   },
   {
    "panel": "FMS CDU 2 (copilot)",
@@ -4188,6 +5185,462 @@
    "note": "Key of the AS3000 upper unit 2; not tried. The CJ4's own displays are Pro Line 21 type, so it may not be wired to anything."
   },
   {
+   "panel": "Exterior and walkaround",
+   "section": "Covers, chocks and caps",
+   "function": "Canopy cover",
+   "api": "CJ4_EXT_CANOPY_COVER",
+   "name": "CJ4_EXT_CANOPY_COVER",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Ground equipment; not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Covers, chocks and caps",
+   "function": "Engine cover left",
+   "api": "CJ4_EXT_ENGINESAFETYCOVER_LEFT",
+   "name": "CJ4_EXT_ENGINESAFETYCOVER_LEFT",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Ground equipment; not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Covers, chocks and caps",
+   "function": "Engine cover right",
+   "api": "CJ4_EXT_ENGINESAFETYCOVER_RIGHT",
+   "name": "CJ4_EXT_ENGINESAFETYCOVER_RIGHT",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Ground equipment; not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Covers, chocks and caps",
+   "function": "Fuel cap left",
+   "api": "CJ4_EXT_FUEL_CAP_LEFT",
+   "name": "CJ4_EXT_FUEL_CAP_LEFT",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Ground equipment; not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Covers, chocks and caps",
+   "function": "Fuel cap right",
+   "api": "CJ4_EXT_FUEL_CAP_RIGHT",
+   "name": "CJ4_EXT_FUEL_CAP_RIGHT",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Ground equipment; not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Covers, chocks and caps",
+   "function": "Pitot cover",
+   "api": "CJ4_EXT_PITOT_COVER",
+   "name": "CJ4_EXT_PITOT_COVER",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Ground equipment; not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Covers, chocks and caps",
+   "function": "Tie downs",
+   "api": "CJ4_EXT_TIE_DOWNS",
+   "name": "CJ4_EXT_TIE_DOWNS",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Ground equipment; not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Covers, chocks and caps",
+   "function": "Wheel chock blocks",
+   "api": "CJ4_EXT_WHEEL_CHOCK_BLOCKS",
+   "name": "CJ4_EXT_WHEEL_CHOCK_BLOCKS",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Ground equipment; not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Doors",
+   "function": "Battery access door",
+   "api": "CJ4_EXT_BATTERY_ACCESS_DOOR",
+   "name": "CJ4_EXT_BATTERY_ACCESS_DOOR",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "WARNING: a door, hatch or seat event of MSFS 2024 can move the pilot out of the cockpit (it happened on a C172); never sent by tools/probe_controls.py. Not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Doors",
+   "function": "Emergency door",
+   "api": "CJ4_EXT_EMERGENCY_DOOR",
+   "name": "CJ4_EXT_EMERGENCY_DOOR",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "WARNING: a door, hatch or seat event of MSFS 2024 can move the pilot out of the cockpit (it happened on a C172); never sent by tools/probe_controls.py. Not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Doors",
+   "function": "Engine left oil service door",
+   "api": "CJ4_EXT_ENGINE_LEFT_OIL_SERVICE_DOOR",
+   "name": "CJ4_EXT_ENGINE_LEFT_OIL_SERVICE_DOOR",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "WARNING: a door, hatch or seat event of MSFS 2024 can move the pilot out of the cockpit (it happened on a C172); never sent by tools/probe_controls.py. Not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Doors",
+   "function": "Engine left service door",
+   "api": "CJ4_EXT_ENGINE_LEFT_SERVICE_DOOR",
+   "name": "CJ4_EXT_ENGINE_LEFT_SERVICE_DOOR",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "WARNING: a door, hatch or seat event of MSFS 2024 can move the pilot out of the cockpit (it happened on a C172); never sent by tools/probe_controls.py. Not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Doors",
+   "function": "Engine right oil service door",
+   "api": "CJ4_EXT_ENGINE_RIGHT_OIL_SERVICE_DOOR",
+   "name": "CJ4_EXT_ENGINE_RIGHT_OIL_SERVICE_DOOR",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "WARNING: a door, hatch or seat event of MSFS 2024 can move the pilot out of the cockpit (it happened on a C172); never sent by tools/probe_controls.py. Not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Doors",
+   "function": "Engine right service door",
+   "api": "CJ4_EXT_ENGINE_RIGHT_SERVICE_DOOR",
+   "name": "CJ4_EXT_ENGINE_RIGHT_SERVICE_DOOR",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "WARNING: a door, hatch or seat event of MSFS 2024 can move the pilot out of the cockpit (it happened on a C172); never sent by tools/probe_controls.py. Not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Doors",
+   "function": "External power door",
+   "api": "CJ4_EXT_EXTERNAL_POWER_DOOR",
+   "name": "CJ4_EXT_EXTERNAL_POWER_DOOR",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "WARNING: a door, hatch or seat event of MSFS 2024 can move the pilot out of the cockpit (it happened on a C172); never sent by tools/probe_controls.py. Not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Doors",
+   "function": "Fuel panel door",
+   "api": "CJ4_EXT_FUEL_PANEL_DOOR",
+   "name": "CJ4_EXT_FUEL_PANEL_DOOR",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "WARNING: a door, hatch or seat event of MSFS 2024 can move the pilot out of the cockpit (it happened on a C172); never sent by tools/probe_controls.py. Not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Doors",
+   "function": "Hydraulic access door",
+   "api": "CJ4_EXT_HYDRAULIC_ACCESS_DOOR",
+   "name": "CJ4_EXT_HYDRAULIC_ACCESS_DOOR",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "WARNING: a door, hatch or seat event of MSFS 2024 can move the pilot out of the cockpit (it happened on a C172); never sent by tools/probe_controls.py. Not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Doors",
+   "function": "Hydraulic service panel door",
+   "api": "CJ4_EXT_HYDRAULIC_SERVICE_PANEL_DOOR",
+   "name": "CJ4_EXT_HYDRAULIC_SERVICE_PANEL_DOOR",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "WARNING: a door, hatch or seat event of MSFS 2024 can move the pilot out of the cockpit (it happened on a C172); never sent by tools/probe_controls.py. Not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Doors",
+   "function": "Left nose cargo door",
+   "api": "CJ4_EXT_LEFT_NOSE_CARGO_DOOR",
+   "name": "CJ4_EXT_LEFT_NOSE_CARGO_DOOR",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "WARNING: a door, hatch or seat event of MSFS 2024 can move the pilot out of the cockpit (it happened on a C172); never sent by tools/probe_controls.py. Not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Doors",
+   "function": "Rear cargo door",
+   "api": "CJ4_EXT_REAR_CARGO_DOOR",
+   "name": "CJ4_EXT_REAR_CARGO_DOOR",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "WARNING: a door, hatch or seat event of MSFS 2024 can move the pilot out of the cockpit (it happened on a C172); never sent by tools/probe_controls.py. Not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Doors",
+   "function": "Right nose cargo door",
+   "api": "CJ4_EXT_RIGHT_NOSE_CARGO_DOOR",
+   "name": "CJ4_EXT_RIGHT_NOSE_CARGO_DOOR",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "WARNING: a door, hatch or seat event of MSFS 2024 can move the pilot out of the cockpit (it happened on a C172); never sent by tools/probe_controls.py. Not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Doors",
+   "function": "Toilet service door",
+   "api": "CJ4_EXT_TOILET_SERVICE_DOOR",
+   "name": "CJ4_EXT_TOILET_SERVICE_DOOR",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "WARNING: a door, hatch or seat event of MSFS 2024 can move the pilot out of the cockpit (it happened on a C172); never sent by tools/probe_controls.py. Not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Pilot",
+   "function": "Pilot: leave the cockpit",
+   "api": "CJ4_INT_PILOT_EXIT",
+   "name": "CJ4_INT_PILOT_EXIT",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "WARNING: a door, hatch or seat event of MSFS 2024 can move the pilot out of the cockpit (it happened on a C172); never sent by tools/probe_controls.py. Not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Pilot",
+   "function": "Pilot: sit in the cockpit",
+   "api": "CJ4_EXT_PILOT_SIT",
+   "name": "CJ4_EXT_PILOT_SIT",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "WARNING: a door, hatch or seat event of MSFS 2024 can move the pilot out of the cockpit (it happened on a C172); never sent by tools/probe_controls.py. Not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Walkaround checks",
+   "function": "Elevator: inspect",
+   "api": "CJ4_EXT_ELEVATOR_CHECK",
+   "name": "CJ4_EXT_ELEVATOR_CHECK",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "A walkaround inspection point; not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Walkaround checks",
+   "function": "Left aileron: inspect",
+   "api": "CJ4_EXT_LEFT_AILERON_CHECK",
+   "name": "CJ4_EXT_LEFT_AILERON_CHECK",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "A walkaround inspection point; not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Walkaround checks",
+   "function": "Left flap: inspect",
+   "api": "CJ4_EXT_LEFT_FLAP_CHECK",
+   "name": "CJ4_EXT_LEFT_FLAP_CHECK",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "A walkaround inspection point; not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Walkaround checks",
+   "function": "Left main gear strut: inspect",
+   "api": "CJ4_EXT_LEFT_MAIN_GEAR_STRUT_CHECK",
+   "name": "CJ4_EXT_LEFT_MAIN_GEAR_STRUT_CHECK",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "A walkaround inspection point; not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Walkaround checks",
+   "function": "Left main gear tire: inspect",
+   "api": "CJ4_EXT_LEFT_MAIN_GEAR_TIRE_CHECK",
+   "name": "CJ4_EXT_LEFT_MAIN_GEAR_TIRE_CHECK",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "A walkaround inspection point; not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Walkaround checks",
+   "function": "Nose gear strut: inspect",
+   "api": "CJ4_EXT_NOSE_GEAR_STRUT_CHECK",
+   "name": "CJ4_EXT_NOSE_GEAR_STRUT_CHECK",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "A walkaround inspection point; not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Walkaround checks",
+   "function": "Nose gear tire: inspect",
+   "api": "CJ4_EXT_NOSE_GEAR_TIRE_CHECK",
+   "name": "CJ4_EXT_NOSE_GEAR_TIRE_CHECK",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "A walkaround inspection point; not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Walkaround checks",
+   "function": "Right aileron: inspect",
+   "api": "CJ4_EXT_RIGHT_AILERON_CHECK",
+   "name": "CJ4_EXT_RIGHT_AILERON_CHECK",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "A walkaround inspection point; not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Walkaround checks",
+   "function": "Right flap: inspect",
+   "api": "CJ4_EXT_RIGHT_FLAP_CHECK",
+   "name": "CJ4_EXT_RIGHT_FLAP_CHECK",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "A walkaround inspection point; not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Walkaround checks",
+   "function": "Right main gear strut: inspect",
+   "api": "CJ4_EXT_RIGHT_MAIN_GEAR_STRUT_CHECK",
+   "name": "CJ4_EXT_RIGHT_MAIN_GEAR_STRUT_CHECK",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "A walkaround inspection point; not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Walkaround checks",
+   "function": "Right main gear tire: inspect",
+   "api": "CJ4_EXT_RIGHT_MAIN_GEAR_TIRE_CHECK",
+   "name": "CJ4_EXT_RIGHT_MAIN_GEAR_TIRE_CHECK",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "A walkaround inspection point; not tried."
+  },
+  {
+   "panel": "Exterior and walkaround",
+   "section": "Walkaround checks",
+   "function": "Rudder: inspect",
+   "api": "CJ4_EXT_RUDDER_CHECK",
+   "name": "CJ4_EXT_RUDDER_CHECK",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "press",
+   "note": "A walkaround inspection point; not tried."
+  },
+  {
+   "panel": "Other",
+   "section": "View",
+   "function": "EFB visibility (sim helper)",
+   "api": "UNKNOWN_BUTTONS_COLLISION_EFB_VISIBILITY_HIDE",
+   "name": "UNKNOWN_BUTTONS_COLLISION_EFB_VISIBILITY_HIDE",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "",
+   "note": "Sim helper for the tablet; not tried."
+  },
+  {
+   "panel": "Other",
+   "section": "View",
+   "function": "Hide the EFB",
+   "api": "HANDLING_EFB_HIDE",
+   "name": "HANDLING_EFB_HIDE",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Cosmetic; not tried."
+  },
+  {
    "panel": "Other",
    "section": "View",
    "function": "Hide the left yoke",
@@ -4210,6 +5663,42 @@
    "rw": "R/W",
    "behavior": "latched",
    "note": "Cosmetic (hides the yoke model); not tried."
+  },
+  {
+   "panel": "Other",
+   "section": "View",
+   "function": "Sun visor, left",
+   "api": "TOGGLE_VISOR_L_VISOR_L",
+   "name": "TOGGLE_VISOR_L_VISOR_L",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Cosmetic; not tried."
+  },
+  {
+   "panel": "Other",
+   "section": "View",
+   "function": "Sun visor, right",
+   "api": "TOGGLE_VISOR_R_VISOR_R",
+   "name": "TOGGLE_VISOR_R_VISOR_R",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "latched",
+   "note": "Cosmetic; not tried."
+  },
+  {
+   "panel": "Other",
+   "section": "View",
+   "function": "Tablet backdrop (sim helper)",
+   "api": "UNKNOWN_TABLET_BACKDROP",
+   "name": "UNKNOWN_TABLET_BACKDROP",
+   "kind": "input_event",
+   "type": "COCKPIT INPUT EVENT",
+   "rw": "R/W",
+   "behavior": "",
+   "note": "Sim helper for the tablet; not tried."
   }
  ]
 }

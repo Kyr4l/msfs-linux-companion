@@ -151,6 +151,20 @@ int main(int argc, char** argv) {
         CHECK(!bad.load(root + "/data/does_not_exist_keypads.json", err));
     }
 
+    // "A|B": the names of one control in MSFS 2020 and 2024, read in that order (empty parts are ignored)
+    {
+        GuideProbe p;
+        p.inputEvent = "ELECTRICAL_Avionics_Bus_1|ELECTRICAL_SWITCH_AVIONICS_BUS";
+        const auto names = p.inputEvents();
+        CHECK(names.size() == 2 && names[0] == "ELECTRICAL_Avionics_Bus_1" && names[1] == "ELECTRICAL_SWITCH_AVIONICS_BUS");
+        p.inputEvent = "ONE";
+        CHECK(p.inputEvents().size() == 1 && p.inputEvents()[0] == "ONE");
+        p.inputEvent = "A||B|";
+        CHECK(p.inputEvents().size() == 2);
+        p.inputEvent.clear();
+        CHECK(p.inputEvents().empty());
+    }
+
     std::printf(failures ? "\n%d check(s) FAILED\n" : "all guide checks passed\n", failures);
     return failures ? 1 : 0;
 }

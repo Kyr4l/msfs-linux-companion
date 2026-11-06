@@ -36,6 +36,7 @@ LOW = -100000.0
 # or cannot be undone: the airframe parachute (CAPS) and the emergency autoland (Safe Return) of the Vision Jet; the Cabri's
 # PROCEDURE_AUTO_START_SHUTDOWN starts and stops the engine by the sim's procedure
 DEFAULT_SKIP = (r"AUTOSTART|AUTO_START|MAGNETO|STARTER|IGNITION|DOOR|WINDOW|HATCH|CANOPY|EXIT|CARGO|STAIR|^UNKNOWN_|CAPS_HANDLE|SAFE_RETURN|"
+                r"FIRE_|_AGT|AGENT|_CUTOFF$|ENG_START$|RAPID_DEPRESS|DIRECT_LAW|"
                 r"^AS1000_.*(SOFTKEY|PUSH|MENU|FPL|PROC|ENT|CLR|DIRECTTO|RANGE)|_(MFD|PFD|MIDCOM)$")
 WAIT_MS = 1200
 

@@ -19,3 +19,5 @@ dist/
 packaging/tools/
 __pycache__/
 *.pyc
+build-flatpak/
+.flatpak-builder/

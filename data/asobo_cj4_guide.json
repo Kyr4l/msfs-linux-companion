@@ -1,7 +1,7 @@
 {
  "aircraft": "Asobo_CJ4",
  "title": "Cessna Citation CJ4 (Asobo)",
- "notice": "The engine start (and the lights, parking brake, flaps and the other switches it uses) was run on a real CJ4: a full start was done through the app and its checks read back from the sim. The other topics are written from the CJ4 Operator's Guide, the Working Title guide and the aircraft's own files (every step names its source); their ticks and answers, and the FMS key sequences, have not been run on the aircraft yet, so tick by hand if one never appears.",
+ "notice": "The engine start (and the lights, parking brake, flaps and the other switches it uses) was run on a real CJ4: a full start was done through the app and its checks read back from the sim. The other topics are written from the CJ4 Operator's Guide, the Working Title guide and the aircraft's own files (every step names its source); their ticks and answers, and the FMS key sequences, have not been run on the aircraft yet, so tick by hand if one never appears. MSFS 2024: the same guide; where MSFS 2024 renamed a control (battery, avionics, landing lights) the step shows both, and the avionics ticks read whichever the sim reports. The 2024 CJ4 was checked with its engines running (2026-11-06), not through a full start.",
  "sources": [
   "CJ4_Checklist.xml shipped with the aircraft (Official/Steam/asobo-aircraft-cj4/SimObjects/Airplanes/Asobo_CJ4/Checklist), the sim's own interactive checklist",
   "State variables read from a running CJ4 (MSFS 11.0.282174.999)",
@@ -306,6 +306,9 @@
      "controls": [
       {
        "api": "ELECTRICAL_Battery_1"
+      },
+      {
+       "api": "ELECTRICAL_SWITCH_BATTERY_MASTER"
       }
      ],
      "check": {
@@ -321,10 +324,13 @@
      "controls": [
       {
        "api": "ELECTRICAL_Avionics_Bus_1"
+      },
+      {
+       "api": "ELECTRICAL_SWITCH_AVIONICS_BUS"
       }
      ],
      "check": {
-      "input_event": "ELECTRICAL_Avionics_Bus_1",
+      "input_event": "ELECTRICAL_Avionics_Bus_1|ELECTRICAL_SWITCH_AVIONICS_BUS",
       "op": "==",
       "value": 2
      }
@@ -470,10 +476,13 @@
      "controls": [
       {
        "api": "ELECTRICAL_Avionics_Bus_1"
+      },
+      {
+       "api": "ELECTRICAL_SWITCH_AVIONICS_BUS"
       }
      ],
      "check": {
-      "input_event": "ELECTRICAL_Avionics_Bus_1",
+      "input_event": "ELECTRICAL_Avionics_Bus_1|ELECTRICAL_SWITCH_AVIONICS_BUS",
       "op": "==",
       "value": 0
      }
@@ -612,6 +621,9 @@
      "controls": [
       {
        "api": "ELECTRICAL_Battery_1"
+      },
+      {
+       "api": "ELECTRICAL_SWITCH_BATTERY_MASTER"
       }
      ],
      "check": {
@@ -668,10 +680,13 @@
      "controls": [
       {
        "api": "ELECTRICAL_Avionics_Bus_1"
+      },
+      {
+       "api": "ELECTRICAL_SWITCH_AVIONICS_BUS"
       }
      ],
      "check": {
-      "input_event": "ELECTRICAL_Avionics_Bus_1",
+      "input_event": "ELECTRICAL_Avionics_Bus_1|ELECTRICAL_SWITCH_AVIONICS_BUS",
       "op": "==",
       "value": 2
      }
@@ -1611,10 +1626,13 @@
      "controls": [
       {
        "api": "ELECTRICAL_Avionics_Bus_1"
+      },
+      {
+       "api": "ELECTRICAL_SWITCH_AVIONICS_BUS"
       }
      ],
      "check": {
-      "input_event": "ELECTRICAL_Avionics_Bus_1",
+      "input_event": "ELECTRICAL_Avionics_Bus_1|ELECTRICAL_SWITCH_AVIONICS_BUS",
       "op": "==",
       "value": 0
      }
@@ -1986,6 +2004,9 @@
      "controls": [
       {
        "api": "LIGHTING_LANDING_1"
+      },
+      {
+       "api": "LIGHTING_LANDING_0"
       }
      ],
      "check": {
@@ -2365,6 +2386,9 @@
      "controls": [
       {
        "api": "LIGHTING_LANDING_1"
+      },
+      {
+       "api": "LIGHTING_LANDING_0"
       }
      ]
     },
@@ -3520,6 +3544,9 @@
      "controls": [
       {
        "api": "LIGHTING_LANDING_1"
+      },
+      {
+       "api": "LIGHTING_LANDING_0"
       }
      ],
      "check": {
@@ -3836,6 +3863,9 @@
       },
       {
        "api": "LIGHTING_TAXI_1"
+      },
+      {
+       "api": "LIGHTING_LANDING_0"
       }
      ],
      "check": {
@@ -3892,10 +3922,13 @@
      "controls": [
       {
        "api": "ELECTRICAL_Avionics_Bus_1"
+      },
+      {
+       "api": "ELECTRICAL_SWITCH_AVIONICS_BUS"
       }
      ],
      "check": {
-      "input_event": "ELECTRICAL_Avionics_Bus_1",
+      "input_event": "ELECTRICAL_Avionics_Bus_1|ELECTRICAL_SWITCH_AVIONICS_BUS",
       "op": "==",
       "value": 1
      }
@@ -4007,6 +4040,9 @@
       },
       {
        "api": "LIGHTING_LOGO_1"
+      },
+      {
+       "api": "LIGHTING_LANDING_0"
       }
      ],
      "check": {
@@ -4021,6 +4057,9 @@
      "controls": [
       {
        "api": "ELECTRICAL_Battery_1"
+      },
+      {
+       "api": "ELECTRICAL_SWITCH_BATTERY_MASTER"
       }
      ],
      "check": {
@@ -5237,6 +5276,9 @@
      "controls": [
       {
        "api": "LIGHTING_LANDING_1"
+      },
+      {
+       "api": "LIGHTING_LANDING_0"
       }
      ],
      "check": {
@@ -5470,6 +5512,9 @@
      "controls": [
       {
        "api": "ELECTRICAL_Battery_1"
+      },
+      {
+       "api": "ELECTRICAL_SWITCH_BATTERY_MASTER"
       }
      ],
      "check": {
@@ -5759,6 +5804,9 @@
      "controls": [
       {
        "api": "ELECTRICAL_Battery_1"
+      },
+      {
+       "api": "ELECTRICAL_SWITCH_BATTERY_MASTER"
       }
      ],
      "check": {
@@ -5775,7 +5823,7 @@
    "text": "Where is the avionics switch?",
    "help": "The switch has three positions (catalog: 1 = OFF, 0 = ON, 2 = DISPATCH). The sim's checklist uses DISPATCH for the start and ON after it.",
    "auto": {
-    "input_event": "ELECTRICAL_Avionics_Bus_1",
+    "input_event": "ELECTRICAL_Avionics_Bus_1|ELECTRICAL_SWITCH_AVIONICS_BUS",
     "rules": [
      {
       "op": "==",
@@ -5825,10 +5873,13 @@
      "controls": [
       {
        "api": "ELECTRICAL_Avionics_Bus_1"
+      },
+      {
+       "api": "ELECTRICAL_SWITCH_AVIONICS_BUS"
       }
      ],
      "check": {
-      "input_event": "ELECTRICAL_Avionics_Bus_1",
+      "input_event": "ELECTRICAL_Avionics_Bus_1|ELECTRICAL_SWITCH_AVIONICS_BUS",
       "op": "==",
       "value": 0
      }
@@ -5848,6 +5899,9 @@
      "controls": [
       {
        "api": "ELECTRICAL_Avionics_Bus_1"
+      },
+      {
+       "api": "ELECTRICAL_SWITCH_AVIONICS_BUS"
       }
      ]
     }

@@ -18,7 +18,8 @@ namespace lr::app {
 // cockpit input event (B:) name. Calculator code needs the MobiFlight module; input events do not.
 struct GuideProbe {
     std::string code;        // "(A:...)" / "(L:...)" calculator code (RPN is fine)
-    std::string inputEvent;  // B: name without the prefix
+    std::string inputEvent;  // B: name without the prefix; "A|B" = the first of these the loaded aircraft reports (one guide for MSFS 2020 and 2024)
+    std::vector<std::string> inputEvents() const;  // inputEvent split at '|'
     bool valid() const { return !code.empty() || !inputEvent.empty(); }
     bool needsMobiFlight() const { return inputEvent.empty() && !code.empty(); }
 };

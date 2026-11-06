@@ -53,7 +53,8 @@ on with the control highlighted. Run `tools/validate_guides.py` after every edit
 * **Node types**: `question` (needs `choices`, at least two; `auto` optional), `steps` (needs `steps` and a `source`;
   `next` empty ends the guide), `info` (text, then `next`), `end`.
 * **auto**: what the simulator can tell. `code` is calculator code that starts with `(`: `(A:...)`, `(L:A32NX_NAME, number)` or `input_event` a cockpit input
-  event name. `rules` map the reading to a choice id. The user can always override the suggestion.
+  event name; `"NAME_2020|NAME_2024"` reads the first of the names the loaded aircraft reports, for an aircraft whose events MSFS 2024
+  renamed (the CJ4's avionics switch). `rules` map the reading to a choice id. The user can always override the suggestion.
 * **check** on a step: the same probe plus `op` (`==` `!=` `>` `<` `>=` `<=`) and `value`; when the simulator confirms
   it the step gets a tick. A step without a `check` is simply read and ticked by hand. Never invent a variable: use
   one you know exists (the standard simulation variables, the aircraft's own L: variables from its catalog or docs).

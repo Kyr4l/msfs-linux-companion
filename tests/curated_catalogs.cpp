@@ -44,7 +44,28 @@ int main(int argc, char** argv) {
         size_t missing = 0;
         for (const auto& n : j["input_events"]) if (!have.count(n.get<std::string>())) { std::printf("  no entry for %s\n", n.get<std::string>().c_str()); ++missing; }
         CHECK(missing == 0);
-        CHECK(j["input_events"].size() == 309);
+        CHECK(j["input_events"].size() == 431);  // 309 from MSFS 2020 + 122 that only MSFS 2024 reports
+    }
+
+    // MSFS 2024: the renamed switches have their own, checked entries, and the 2020 ones say what replaces them
+    {
+        const auto* av = find(cj4, "ELECTRICAL_SWITCH_AVIONICS_BUS", "latched");
+        CHECK(av && av->verified && av->positions == 3 && av->note.find("MSFS 2024") != std::string::npos);
+        const auto* ldg = find(cj4, "LIGHTING_LANDING_0", "latched");
+        CHECK(ldg && ldg->verified);
+        const auto* bat = find(cj4, "ELECTRICAL_SWITCH_BATTERY_MASTER", "latched");
+        CHECK(bat && !bat->verified && bat->positions == 3);  // positions seen, but OFF / EMER could not be read with the engines running
+        for (const char* n : {"ELECTRICAL_Battery_1", "ELECTRICAL_Avionics_Bus_1", "LIGHTING_LANDING_1", "FUEL_Crossfeed_1"}) {
+            const auto* e = find(cj4, n, "");
+            CHECK(e && e->remark.rfind("MSFS 2020 only; in MSFS 2024 use ", 0) == 0);
+        }
+        const auto* std1 = find(cj4, "AUTOPILOT_Baro_1_STD", "press");
+        CHECK(std1 && std1->verified && std1->note.find("XMLVAR_Baro1_ForcedToSTD") != std::string::npos);
+        // the fire bottles and the engine fire lights must warn before anyone binds them
+        for (const char* n : {"CJ4_AVIONICS_PUSH_PILOT_LFIREBOTTLEARMEDLIGHT", "CJ4_AVIONICS_PUSH_PILOT_LENGINEFIRELIGHT"}) {
+            const auto* e = find(cj4, n, "press");
+            CHECK(e && !e->verified && e->note.rfind("DANGER", 0) == 0);
+        }
     }
 
     // rotary knobs: one click per event, +1 / -1
@@ -415,11 +436,17 @@ int main(int argc, char** argv) {
         CHECK(disarm && disarm->toAction().kind == lr::app::ActionKind::SimEvent && disarm->toAction().name == "SPOILERS_ARM_SET" && disarm->toAction().value == 0);
         const auto* alt = byFunction("FCU", "ALT 100/1000: toggle");
         CHECK(alt && alt->verified && alt->toAction().name == "1 (>L:INI_FCU_ALTITUDE_MODE_COMMAND)");
-        // engine masters are the mixture levers of the sim
+        // the engine masters are the cockpit switches (L:INI_MIXTURE_RATIOn_HANDLE), not the sim's mixture: lean stops the engine
+        // without moving the switch (checked in flight, 2026-11-06)
         const auto* off1 = byFunction("Engines", "ENG 1 MASTER: off");
         const auto* off2 = byFunction("Engines", "ENG 2 MASTER: off");
-        CHECK(off1 && off1->toAction().kind == lr::app::ActionKind::SimEvent && off1->toAction().name == "MIXTURE1_LEAN");
-        CHECK(off2 && off2->toAction().name == "MIXTURE2_LEAN" && !off2->verified);
+        const auto* tog1 = byFunction("Engines", "ENG 1 MASTER: toggle");
+        CHECK(off1 && off1->toAction().kind == lr::app::ActionKind::LVarSet && off1->toAction().name == "INI_MIXTURE_RATIO1_HANDLE" &&
+              off1->toAction().value == 0 && off1->verified);
+        CHECK(off2 && off2->toAction().name == "INI_MIXTURE_RATIO2_HANDLE" && off2->toAction().value == 0);
+        CHECK(tog1 && tog1->toAction().kind == lr::app::ActionKind::LVarToggle);
+        const auto* lean1 = byFunction("Sim mixture (hidden)", "Mixture 1: lean");
+        CHECK(lean1 && lean1->toAction().name == "MIXTURE1_LEAN" && !lean1->verified);
         // autobrake: a value per button, not a toggle
         const auto* lo = byFunction("Autobrake", "AUTO BRK: LO");
         CHECK(lo && lo->toAction().kind == lr::app::ActionKind::LVarSet && lo->toAction().value == 1);
@@ -451,6 +478,53 @@ int main(int argc, char** argv) {
         bool hasGear = false;
         for (const auto& e : set.find("microsoft-a320neo")->entries) hasGear |= e.name == "GEAR_UP" && e.standard;
         CHECK(hasGear);
+    }
+
+    // ---- the iniBuilds A400M of MSFS 2024: 751 cockpit input events labelled from its tooltips, plus the L: variables it shares with the
+    // A320neo V2; only what was tried on the aircraft may claim to be verified
+    {
+        Catalog a;
+        if (!a.load(root + "/data/a400m_catalog.json", err)) { std::printf("cannot load the A400M catalog: %s\n", err.c_str()); return 1; }
+        CHECK(a.aircraft == "a400m" && a.curated && a.axisControls && a.standardEvents);
+        std::set<std::string> labels, events;
+        for (const auto& e : a.entries) {
+            CHECK(!e.function.empty() && !e.note.empty());
+            // only what was checked on the aircraft: the landing lights and the ground spoiler arm
+            if (e.verified) CHECK(e.name == "INSTRUMENT_OVH_LDG_LIGHT_IE_ID" || e.name == "A400M_GND_SPOILER");
+            CHECK(labels.insert(e.panel + "/" + e.section + "/" + e.function).second);  // every label names one entry
+            if (e.kind == "input_event") events.insert(e.name);
+        }
+        CHECK(events.size() == 751);
+        auto byFunction = [&](const std::string& section, const std::string& function) -> const CatalogEntry* {
+            for (const auto& e : a.entries)
+                if (e.section == section && e.function == function) return &e;
+            return nullptr;
+        };
+        // a named switch position is the value of the input event (.1 RUN .2 FTHR .3 OFF = 0 / 1 / 2)
+        const auto* fthr = byFunction("Engine masters", "ENG 3 MASTER: FTHR (start)");
+        CHECK(fthr && fthr->toAction().kind == lr::app::ActionKind::InputEvent && fthr->toAction().name == "AIRLINER_ENG3_CUTOFF" && fthr->toAction().value == 1);
+        const auto* ign = byFunction("Engines", "ENG START: IGN START");
+        CHECK(ign && ign->toAction().name == "AIRLINER_ENG_START" && ign->toAction().value == 2);
+        const auto* ldg = byFunction("Exterior lights", "LANDING LIGHTS: ON");
+        CHECK(ldg && ldg->toAction().name == "INSTRUMENT_OVH_LDG_LIGHT_IE_ID" && ldg->toAction().value == 1);
+        // a switch without named positions is a toggle, a push button sends one event
+        const auto* apu = byFunction("APU", "APU MASTER");
+        CHECK(apu && apu->toAction().kind == lr::app::ActionKind::InputEventToggle);
+        const auto* athr = byFunction("FCU", "AP ATHR");
+        CHECK(athr && athr->toAction().kind == lr::app::ActionKind::InputEvent && athr->toAction().value == 1);
+        const auto* spd = byFunction("FCU", "SPEED SELECTOR KNOB: down");
+        CHECK(spd && spd->toAction().value == -1);
+        // the shared iniBuilds variables
+        const auto* hi = byFunction("Autobrake", "AUTO BRK: HI/RTO (L:)");
+        CHECK(hi && hi->toAction().kind == lr::app::ActionKind::LVarSet && hi->toAction().value == 3);
+        const auto* bleed = byFunction("Air", "APU BLEED: toggle (L:)");
+        CHECK(bleed && bleed->toAction().kind == lr::app::ActionKind::LVarToggle);
+        // the ground spoiler arm is the L: variable the cockpit button writes, not the cockpit event (which resets itself)
+        const auto* gs = byFunction("Flight controls", "GND SPOILERS ARM: toggle");
+        CHECK(gs && gs->verified && gs->toAction().kind == lr::app::ActionKind::LVarToggle && gs->toAction().name == "A400M_GND_SPOILER");
+        // the dangerous controls say so
+        const auto* fire = byFunction("Fire", "ENG 2 FIRE handle");
+        CHECK(fire && fire->note.rfind("DANGER", 0) == 0);
     }
 
     std::printf(failures ? "\n%d check(s) FAILED\n" : "all curated catalog checks passed\n", failures);

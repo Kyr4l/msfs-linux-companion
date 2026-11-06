@@ -481,13 +481,15 @@ void Ui::drawBindingsTab() {
         if (ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
         ImGui::EndPopup();
     }
+    // Duplicate / New / Delete above may have resized settings.profiles: `p` can dangle from here on
+    Profile& prof = s.ensureActive();
 
     {
         const std::string det = detectAircraft(status_.aircraft);
-        if (!det.empty() && !sim::sameAircraft(det, p.aircraft)) {
+        if (!det.empty() && !sim::sameAircraft(det, prof.aircraft)) {
             const sim::AircraftId loaded = sim::identifyAircraft(status_.aircraft);
-            const Catalog* profCat = ctx_.catalogFor(p.aircraft);
-            const std::string profLabel = (profCat && sim::sameAircraft(profCat->aircraft, p.aircraft)) ? profCat->label() : p.aircraft;
+            const Catalog* profCat = ctx_.catalogFor(prof.aircraft);
+            const std::string profLabel = (profCat && sim::sameAircraft(profCat->aircraft, prof.aircraft)) ? profCat->label() : prof.aircraft;
             ImGui::TextColored(kYellow, "Loaded: %s. Profile: %s.", loaded.label.c_str(), profLabel.c_str());
             ImGui::SameLine();
             const Profile* match = nullptr;
@@ -509,18 +511,17 @@ void Ui::drawBindingsTab() {
     }
     {
         int wrong = 0;
-        for (const auto& b : p.bindings) {
+        for (const auto& b : prof.bindings) {
             double lo, hi;
             if (b.input.kind == input::InputKind::Axis && ctx_.suggestedAxisRange(b, lo, hi) && axisRangeLooksWrong(b.axis, lo, hi)) ++wrong;
         }
         if (wrong) {
             ImGui::TextColored(kYellow, "%d axis binding%s with the wrong range", wrong, wrong == 1 ? "" : "s");
             ImGui::SameLine();
-            if (ImGui::SmallButton("Fix")) ctx_.fixAxisRanges(p);
+            if (ImGui::SmallButton("Fix")) ctx_.fixAxisRanges(prof);
         }
     }
     ImGui::Separator();
-    Profile& prof = s.ensureActive();
     if (ImGui::Button("Add binding")) openEditor(-1);
     ImGui::SameLine();
     {   // how the list is arranged: one list, grouped, sorted automatically, or in the order made by dragging rows
@@ -831,7 +832,11 @@ void Ui::drawAxisTargetPicker() {
                 group = t.group;
                 ImGui::SeparatorText(group);
             }
-            if (ImGui::Selectable(t.label, &t == current)) {
+            ImGui::PushID(&t);  // the same label is in two groups ("Mixture 1": MIXTURE1_SET and AXIS_MIXTURE1_SET)
+            const bool picked = ImGui::Selectable(t.label, &t == current);
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("K:%s, %g to %g", t.event, t.lo, t.hi);
+            ImGui::PopID();
+            if (picked) {
                 Action a;
                 a.kind = ActionKind::SimEvent;
                 a.name = t.event;
@@ -841,7 +846,6 @@ void Ui::drawAxisTargetPicker() {
                 draft_.axis.integer = true;
                 if (draft_.label.empty()) draft_.label = t.label;
             }
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("K:%s, %g to %g", t.event, t.lo, t.hi);
         }
         ImGui::EndCombo();
     }
@@ -860,7 +864,9 @@ void Ui::drawBindingEditor() {
 
     // Input capture
     const bool capturing = ctx_.engine.capturing();
-    if (auto captured = ctx_.engine.takeCaptured()) {
+    // while the calibration wizard is open the capture is the wizard's (it learns the gate buttons): taking it here turned the axis
+    // being edited into a button binding and the wizard never heard the button
+    if (auto captured = calOpen_ ? std::nullopt : ctx_.engine.takeCaptured()) {
         draft_.input = *captured;
         // New axis binding for an axis event still on the 0..100 default: use the range the event expects.
         double lo, hi;

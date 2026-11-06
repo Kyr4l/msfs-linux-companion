@@ -5,7 +5,7 @@
  "standard_events": true,
  "sources": [
   "Checked on the aircraft with this program (MSFS 2024, 2026-11-04): spoiler arm, ALT 100/1000 and ALT knob, baro, landing lights, APU BLEED, ENG MODE",
-  "The aircraft's WASM log (log.txt in the sim's WASM work folder of microsoft-aircraft-a320neo): engine masters are the mixture levers",
+  "The aircraft's WASM log (log.txt in the sim's WASM work folder of microsoft-aircraft-a320neo) and a check in flight (2026-11-06): ENG MASTER is L:INI_MIXTURE_RATIOn_HANDLE (data/panelstates: 0 cold and dark, 1 ready for takeoff); the aircraft drives the sim's mixture from it",
   "The aircraft's throttle calibration (ThrottleData.ini, same folder): the FlyByWire throttle regions",
   "MobiFlight HubHop presets for the iniBuilds A320 (hubhop.mobiflight.com)"
  ],
@@ -399,73 +399,147 @@
   },
   {
    "panel": "Pedestal",
-   "section": "Engines",
-   "function": "ENG 1 MASTER: on",
+   "section": "Sim mixture (hidden)",
+   "function": "Mixture 1: rich",
    "api": "MIXTURE1_RICH",
    "name": "MIXTURE1_RICH",
    "kind": "sim_event",
    "type": "K: event",
    "rw": "",
    "value": 0,
-   "note": "The aircraft's own log (WASM work folder, log.txt) says 'Engine 1 Mixture LEAN triggered' when ENG 1 MASTER goes off: the masters are the sim's mixture levers (A:GENERAL ENG MIXTURE LEVER POSITION:1, 0 = off). Not switched by this program yet."
+   "note": "The sim's mixture of engine 1, not the cockpit switch: lean stops the engine but ENG 1 MASTER does not move (seen 2026-11-06). Use ENG 1 MASTER instead."
   },
   {
    "panel": "Pedestal",
    "section": "Engines",
-   "function": "ENG 1 MASTER: off",
+   "function": "ENG 1 MASTER: on",
+   "api": "INI_MIXTURE_RATIO1_HANDLE",
+   "name": "INI_MIXTURE_RATIO1_HANDLE",
+   "kind": "lvar",
+   "type": "LVAR",
+   "rw": "R/W",
+   "value": 1,
+   "verified": true,
+   "note": "Checked on the aircraft (2026-11-06, MSFS 2024, in flight): writing 0 to this L: variable alone stopped engine 1 at once ((A:GENERAL ENG COMBUSTION:1) 1 to 0) and the aircraft then set the sim's mixture to 0 itself; writing 1 put the mixture back to 100. It is the switch position the aircraft's panel states store (ini_mixture_ratioN_handle: 0 cold and dark, 1 ready for takeoff). A start still needs ENG MODE IGN/START (no relight was seen at FL430)."
+  },
+  {
+   "panel": "Pedestal",
+   "section": "Sim mixture (hidden)",
+   "function": "Mixture 1: lean",
    "api": "MIXTURE1_LEAN",
    "name": "MIXTURE1_LEAN",
    "kind": "sim_event",
    "type": "K: event",
    "rw": "",
    "value": 0,
-   "note": "The aircraft's own log (WASM work folder, log.txt) says 'Engine 1 Mixture LEAN triggered' when ENG 1 MASTER goes off: the masters are the sim's mixture levers (A:GENERAL ENG MIXTURE LEVER POSITION:1, 0 = off). Not switched by this program yet."
+   "note": "The sim's mixture of engine 1, not the cockpit switch: lean stops the engine but ENG 1 MASTER does not move (seen 2026-11-06). Use ENG 1 MASTER instead."
   },
   {
    "panel": "Pedestal",
    "section": "Engines",
-   "function": "ENG 1 MASTER: toggle",
+   "function": "ENG 1 MASTER: off",
+   "api": "INI_MIXTURE_RATIO1_HANDLE",
+   "name": "INI_MIXTURE_RATIO1_HANDLE",
+   "kind": "lvar",
+   "type": "LVAR",
+   "rw": "R/W",
+   "value": 0,
+   "verified": true,
+   "note": "Checked on the aircraft (2026-11-06, MSFS 2024, in flight): writing 0 to this L: variable alone stopped engine 1 at once ((A:GENERAL ENG COMBUSTION:1) 1 to 0) and the aircraft then set the sim's mixture to 0 itself; writing 1 put the mixture back to 100. It is the switch position the aircraft's panel states store (ini_mixture_ratioN_handle: 0 cold and dark, 1 ready for takeoff). A start still needs ENG MODE IGN/START (no relight was seen at FL430)."
+  },
+  {
+   "panel": "Pedestal",
+   "section": "Sim mixture (hidden)",
+   "function": "Mixture 1: toggle",
    "api": "(A:GENERAL ENG MIXTURE LEVER POSITION:1, percent) 50 > if{ (>K:MIXTURE1_LEAN) } els{ (>K:MIXTURE1_RICH) }",
    "name": "(A:GENERAL ENG MIXTURE LEVER POSITION:1, percent) 50 > if{ (>K:MIXTURE1_LEAN) } els{ (>K:MIXTURE1_RICH) }",
    "kind": "calc_code",
    "type": "CALCULATOR CODE",
    "rw": "",
-   "note": "The aircraft's own log (WASM work folder, log.txt) says 'Engine 1 Mixture LEAN triggered' when ENG 1 MASTER goes off: the masters are the sim's mixture levers (A:GENERAL ENG MIXTURE LEVER POSITION:1, 0 = off). Not switched by this program yet."
+   "note": "The sim's mixture of engine 1, not the cockpit switch: lean stops the engine but ENG 1 MASTER does not move (seen 2026-11-06). Use ENG 1 MASTER instead."
   },
   {
    "panel": "Pedestal",
    "section": "Engines",
-   "function": "ENG 2 MASTER: on",
+   "function": "ENG 1 MASTER: toggle",
+   "api": "INI_MIXTURE_RATIO1_HANDLE",
+   "name": "INI_MIXTURE_RATIO1_HANDLE",
+   "kind": "lvar",
+   "type": "LVAR",
+   "rw": "R/W",
+   "values": "0|1",
+   "note": "Not tried itself: ENG 1 MASTER on / off was checked on the aircraft (2026-11-06, in flight): writing this L: variable (the switch position the aircraft stores) stops or feeds the engine (the aircraft sets the sim's mixture from it). A toggle flips 0 / 1."
+  },
+  {
+   "panel": "Pedestal",
+   "section": "Sim mixture (hidden)",
+   "function": "Mixture 2: rich",
    "api": "MIXTURE2_RICH",
    "name": "MIXTURE2_RICH",
    "kind": "sim_event",
    "type": "K: event",
    "rw": "",
    "value": 0,
-   "note": "The aircraft's own log (WASM work folder, log.txt) says 'Engine 2 Mixture LEAN triggered' when ENG 2 MASTER goes off: the masters are the sim's mixture levers (A:GENERAL ENG MIXTURE LEVER POSITION:2, 0 = off). Not switched by this program yet."
+   "note": "The sim's mixture of engine 2, not the cockpit switch: lean stops the engine but ENG 2 MASTER does not move (seen 2026-11-06). Use ENG 2 MASTER instead."
   },
   {
    "panel": "Pedestal",
    "section": "Engines",
-   "function": "ENG 2 MASTER: off",
+   "function": "ENG 2 MASTER: on",
+   "api": "INI_MIXTURE_RATIO2_HANDLE",
+   "name": "INI_MIXTURE_RATIO2_HANDLE",
+   "kind": "lvar",
+   "type": "LVAR",
+   "rw": "R/W",
+   "value": 1,
+   "note": "Not tried itself: ENG 1 MASTER on / off was checked on the aircraft (2026-11-06, in flight): writing this L: variable (the switch position the aircraft stores) stops or feeds the engine (the aircraft sets the sim's mixture from it). Same variable for engine 2."
+  },
+  {
+   "panel": "Pedestal",
+   "section": "Sim mixture (hidden)",
+   "function": "Mixture 2: lean",
    "api": "MIXTURE2_LEAN",
    "name": "MIXTURE2_LEAN",
    "kind": "sim_event",
    "type": "K: event",
    "rw": "",
    "value": 0,
-   "note": "The aircraft's own log (WASM work folder, log.txt) says 'Engine 2 Mixture LEAN triggered' when ENG 2 MASTER goes off: the masters are the sim's mixture levers (A:GENERAL ENG MIXTURE LEVER POSITION:2, 0 = off). Not switched by this program yet."
+   "note": "The sim's mixture of engine 2, not the cockpit switch: lean stops the engine but ENG 2 MASTER does not move (seen 2026-11-06). Use ENG 2 MASTER instead."
   },
   {
    "panel": "Pedestal",
    "section": "Engines",
-   "function": "ENG 2 MASTER: toggle",
+   "function": "ENG 2 MASTER: off",
+   "api": "INI_MIXTURE_RATIO2_HANDLE",
+   "name": "INI_MIXTURE_RATIO2_HANDLE",
+   "kind": "lvar",
+   "type": "LVAR",
+   "rw": "R/W",
+   "value": 0,
+   "note": "Not tried itself: ENG 1 MASTER on / off was checked on the aircraft (2026-11-06, in flight): writing this L: variable (the switch position the aircraft stores) stops or feeds the engine (the aircraft sets the sim's mixture from it). Same variable for engine 2."
+  },
+  {
+   "panel": "Pedestal",
+   "section": "Sim mixture (hidden)",
+   "function": "Mixture 2: toggle",
    "api": "(A:GENERAL ENG MIXTURE LEVER POSITION:2, percent) 50 > if{ (>K:MIXTURE2_LEAN) } els{ (>K:MIXTURE2_RICH) }",
    "name": "(A:GENERAL ENG MIXTURE LEVER POSITION:2, percent) 50 > if{ (>K:MIXTURE2_LEAN) } els{ (>K:MIXTURE2_RICH) }",
    "kind": "calc_code",
    "type": "CALCULATOR CODE",
    "rw": "",
-   "note": "The aircraft's own log (WASM work folder, log.txt) says 'Engine 2 Mixture LEAN triggered' when ENG 2 MASTER goes off: the masters are the sim's mixture levers (A:GENERAL ENG MIXTURE LEVER POSITION:2, 0 = off). Not switched by this program yet."
+   "note": "The sim's mixture of engine 2, not the cockpit switch: lean stops the engine but ENG 2 MASTER does not move (seen 2026-11-06). Use ENG 2 MASTER instead."
+  },
+  {
+   "panel": "Pedestal",
+   "section": "Engines",
+   "function": "ENG 2 MASTER: toggle",
+   "api": "INI_MIXTURE_RATIO2_HANDLE",
+   "name": "INI_MIXTURE_RATIO2_HANDLE",
+   "kind": "lvar",
+   "type": "LVAR",
+   "rw": "R/W",
+   "values": "0|1",
+   "note": "Not tried itself: ENG 1 MASTER on / off was checked on the aircraft (2026-11-06, in flight): writing this L: variable (the switch position the aircraft stores) stops or feeds the engine (the aircraft sets the sim's mixture from it). A toggle flips 0 / 1."
   },
   {
    "panel": "Pedestal",

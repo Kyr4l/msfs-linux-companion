@@ -45,7 +45,7 @@ def probe_ok(obj, where, errs):
         return
     if code and not (code.startswith("(") and code.count("(") == code.count(")")):
         errs.append("%s: calculator code must start with '(' and balance its parentheses: %r" % (where, code))
-    if ev and not re.fullmatch(r"[A-Za-z0-9_]+", ev):
+    if ev and not re.fullmatch(r"[A-Za-z0-9_]+(\|[A-Za-z0-9_]+)*", ev):
         errs.append("%s: bad input event name %r" % (where, ev))
 
 

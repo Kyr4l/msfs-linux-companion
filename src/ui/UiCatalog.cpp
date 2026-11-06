@@ -371,9 +371,10 @@ void Ui::drawPanelsView(const Catalog& cat, bool pickMode, const std::vector<std
                 ImGui::SameLine();
                 if (ImGui::GetContentRegionAvail().x < ImGui::CalcTextSize(e.api.c_str()).x + 30) ImGui::NewLine();
                 ImGui::PushID(idx);
-                if (idx == catalogSelected_) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.18f, 0.40f, 0.72f, 1.0f));
+                const bool wasSelected = idx == catalogSelected_;  // a click changes the selection: pop only what was pushed
+                if (wasSelected) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.18f, 0.40f, 0.72f, 1.0f));
                 if (ImGui::SmallButton(e.api.size() > 46 ? (e.api.substr(0, 43) + "...").c_str() : e.api.c_str())) catalogSelected_ = idx;
-                if (idx == catalogSelected_) ImGui::PopStyleColor();
+                if (wasSelected) ImGui::PopStyleColor();
                 if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s  %s  %s", e.type.c_str(), e.values.c_str(), e.remark.c_str());
                 ImGui::PopID();
             }

@@ -77,7 +77,7 @@ def main():
 
     # entries that are not cockpit input events: K: events and L: variables the aircraft's model or checklist uses (rules.EXTRA_ENTRIES)
     for e in getattr(rules, "EXTRA_ENTRIES", []):
-        assert e["behavior"] in BEHAVIORS and e["kind"] in ("sim_event", "lvar"), e
+        assert e["behavior"] in BEHAVIORS and e["kind"] in ("sim_event", "lvar", "calc_code"), e
         entries.append(e)
 
     order = {p: i for i, p in enumerate(rules.PANEL_ORDER)}
@@ -85,6 +85,8 @@ def main():
     out = {"aircraft": rules.AIRCRAFT, "title": rules.TITLE, "sources": rules.SOURCES, "entries": entries}
     if getattr(rules, "AXIS_CONTROLS", False):
         out["axis_controls"] = True  # the program adds the ranged axis events every aircraft has (throttle, mixture, brakes, surfaces ...)
+    if getattr(rules, "STANDARD_EVENTS", False):
+        out["standard_events"] = True  # and every standard event (gear, flaps, parking brake ...), as for the A320neo V2
     out_path = args.out or os.path.join(ROOT, "data", "%s_catalog.json" % args.module)
     with open(out_path, "w") as f:
         json.dump(out, f, indent=1)

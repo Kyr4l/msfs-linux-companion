@@ -30,7 +30,7 @@ void Ui::drawVibrationTab() {
     changed |= toggleSwitch("Enabled", &cfg.enabled);
     ImGui::SameLine();
     ImGui::SetNextItemWidth(200);
-    changed |= ImGui::SliderFloat("Strength", &cfg.master, 0.0f, 1.5f, "%.2f");
+    changed |= ImGui::SliderFloat("Strength", &cfg.master, 0.0f, 1.5f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
     ImGui::SameLine();
     if (ImGui::Button("Stop")) ctx_.haptics.stopAll();
     if (cfg.enabled) {
@@ -133,7 +133,7 @@ void Ui::drawVibrationTab() {
             ImGui::TextDisabled("%s", info.description);
             ImGui::TableSetColumnIndex(2);
             ImGui::SetNextItemWidth(-1);
-            changed |= ImGui::SliderFloat("##gain", &rc.gain, 0.0f, 2.0f, "%.2f");
+            changed |= ImGui::SliderFloat("##gain", &rc.gain, 0.0f, 2.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
             ImGui::TableSetColumnIndex(3);
             auto it = hs.contrib.find(info.id);
             ImGui::ProgressBar(it == hs.contrib.end() ? 0.f : it->second, ImVec2(-1, 0));
@@ -146,9 +146,9 @@ void Ui::drawVibrationTab() {
         const sim::Telemetry& t = hs.telemetry;
         if (!t.valid) ImGui::TextDisabled("No data");
         else
-            ImGui::Text("on ground %d  GS %.0f kt  IAS %.0f kt  AGL %.0f ft  G %.2f  VS %.0f fpm\nstall %d overspeed %d  gear %.2f  flaps %.2f  spoilers %.2f  N1 %.0f/%.0f  torque %.0f/%.0f  engine type %.0f  camera %.0f  rev %.2f/%.2f  brakes %.2f/%.2f  rotor %.0f%%  collective %.0f%%",
+            ImGui::Text("on ground %d  GS %.0f kt  IAS %.0f kt  AGL %.0f ft  G %.2f  VS %.0f fpm\nstall %d overspeed %d  gear %.2f  flaps %.2f  spoilers %.2f (has %d)  N1 %.0f/%.0f  torque %.0f/%.0f  engine type %.0f  camera %.0f  rev %.2f/%.2f  brakes %.2f/%.2f  rotor %.0f%%  collective %.0f%%",
                         t.onGround > 0.5, t.groundSpeedKt, t.iasKt, t.altAgl, t.gForce, t.verticalSpeedFpm, t.stallWarning > 0.5, t.overspeedWarning > 0.5,
-                        t.gearPct, t.flapsPct, t.spoilersHandle, t.n1Eng1, t.n1Eng2, t.torqueEng1, t.torqueEng2, t.engineType, t.cameraState, t.reverse1, t.reverse2, t.brakeLeft, t.brakeRight, t.rotorRpmPct * 100.0, t.collective * 100.0);
+                        t.gearPct, t.flapsPct, t.spoilersHandle, t.spoilerAvailable > 0.5, t.n1Eng1, t.n1Eng2, t.torqueEng1, t.torqueEng2, t.engineType, t.cameraState, t.reverse1, t.reverse2, t.brakeLeft, t.brakeRight, t.rotorRpmPct * 100.0, t.collective * 100.0);
     }
 
     if (changed) {
