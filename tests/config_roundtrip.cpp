@@ -263,6 +263,48 @@ int main(int argc, char** argv) {
         fs::remove(work);
     }
 
+    std::printf("profiles: other aircraft and switching automatically\n");
+    {
+        const fs::path work = tmp / "also.json";
+        Settings s;
+        Profile a320;
+        a320.name = "A320neo v2";
+        a320.aircraft = "microsoft-a320neo";
+        a320.alsoAircraft = {"microsoft-a321"};
+        a320.autoSwitch = true;
+        Profile cj4;
+        cj4.name = "CJ4 2024";
+        cj4.aircraft = "Asobo_CJ4";
+        cj4.autoSwitch = true;
+        Profile c172;
+        c172.name = "C172";
+        c172.aircraft = "asobo_c172sp_g1000";
+        s.profiles = {c172, a320, cj4};
+        s.activeProfile = "C172";
+        std::string err;
+        CHECK(saveSettings(work.string(), s, err));
+        Settings t;
+        CHECK(loadSettings(work.string(), t, err));
+        CHECK(t.profiles.size() == 3 && t.profiles[1].alsoAircraft == std::vector<std::string>{"microsoft-a321"} && t.profiles[1].autoSwitch);
+        CHECK(!t.profiles[0].autoSwitch && t.profiles[0].alsoAircraft.empty());
+        // the rule: the A321 picks the A320 profile, spelling does not matter, the CJ4 its own, the active profile is kept when it fits
+        CHECK(profileFitsAircraft(t.profiles[1], "Microsoft_A321") && !profileFitsAircraft(t.profiles[1], "Asobo_CJ4"));
+        const Profile* to = autoSwitchTarget(t, "microsoft-a321");
+        CHECK(to && to->name == "A320neo v2");
+        to = autoSwitchTarget(t, "asobo_cj4");
+        CHECK(to && to->name == "CJ4 2024");
+        CHECK(autoSwitchTarget(t, "asobo_c172sp_g1000") == nullptr);  // the active profile fits
+        CHECK(autoSwitchTarget(t, "microsoft-a330") == nullptr);      // nothing fits: stay
+        t.profiles[2].autoSwitch = false;
+        CHECK(autoSwitchTarget(t, "asobo_cj4") == nullptr);           // fits, but does not switch by itself
+        // a file without the new fields stays as it was
+        Settings plain;
+        plain.profiles.push_back(Profile{});
+        CHECK(saveSettings(work.string(), plain, err));
+        CHECK(slurp(work).find("also_aircraft") == std::string::npos && slurp(work).find("auto_switch") == std::string::npos);
+        fs::remove(work);
+    }
+
     std::printf(failures ? "\n%d check(s) FAILED\n" : "\nall checks passed\n", failures);
     return failures ? 1 : 0;
 }

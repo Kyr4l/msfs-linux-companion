@@ -17,10 +17,11 @@
 
 namespace lr::app::uidetail {
 
-inline const ImVec4 kGreen(0.36f, 0.82f, 0.50f, 1.0f);
-inline const ImVec4 kYellow(0.96f, 0.76f, 0.30f, 1.0f);
-inline const ImVec4 kRed(0.96f, 0.40f, 0.40f, 1.0f);
-inline const ImVec4 kGrey(0.56f, 0.60f, 0.67f, 1.0f);
+// the status colours of the theme in use (ui/Theme.hpp sets them)
+inline const ImVec4& kGreen = ui::palette::kOk;
+inline const ImVec4& kYellow = ui::palette::kWarn;
+inline const ImVec4& kRed = ui::palette::kBad;
+inline const ImVec4& kGrey = ui::palette::kTextDim;
 using ui::palette::kAccent;
 using ui::palette::kCode;
 

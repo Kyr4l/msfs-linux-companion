@@ -1,12 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Kyr4l
 #include "app/Engine.hpp"
+#include "app/LeverZones.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
 
 #include "util/Log.hpp"
+
+namespace lr::app {
+static std::vector<Action> cutoffActions(const Binding& b, bool entering);
+}
 
 namespace lr::app {
 
@@ -498,7 +503,7 @@ void Engine::applyLever(const Binding& b, size_t i, const AxisCalibration& cal, 
             ++axisState_[i].generation;  // whatever an earlier zone still held back is dropped
         }
         // leaving a gate zone first, then the value, then entering the next one
-        if (zoneKnown && zoneBefore == AxisZone::Cutoff) dispatchZone(b, i, b.onCutoffLeave, " (leaves the cut-off)");
+        if (zoneKnown && zoneBefore == AxisZone::Cutoff) dispatchZone(b, i, cutoffActions(b, false), " (leaves the cut-off)");
         if (zoneKnown && zoneBefore == AxisZone::Afterburner) dispatchZone(b, i, b.onAfterburnerLeave, " (leaves the afterburner)");
     }
     const auto now = clock::now();
@@ -535,9 +540,15 @@ void Engine::applyLever(const Binding& b, size_t i, const AxisCalibration& cal, 
         scheduled_.push_back(std::move(again));
     }
     if (zoneChanged) {
-        if (r.zone == AxisZone::Cutoff) dispatchZone(b, i, b.onCutoff, " (cut-off)");
+        if (r.zone == AxisZone::Cutoff) dispatchZone(b, i, cutoffActions(b, true), " (cut-off)");
         if (r.zone == AxisZone::Afterburner) dispatchZone(b, i, b.onAfterburner, " (afterburner)");
     }
+}
+
+// The cut-off zone's actions: the binding's own lists, or what its zone behaviour builds (app/LeverZones.hpp)
+static std::vector<Action> cutoffActions(const Binding& b, bool entering) {
+    if (b.cutoffMode == ZoneMode::Reverse) return reverseZoneActions(b.reverse, leverAxisEvent(b), entering);
+    return entering ? b.onCutoff : b.onCutoffLeave;
 }
 
 void Engine::dispatchZone(const Binding& b, size_t index, const std::vector<Action>& actions, const char* what) {

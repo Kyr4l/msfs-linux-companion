@@ -3,6 +3,8 @@
 #include "ui/Ui.hpp"
 #include "app/AxisTargets.hpp"
 #include "ui/UiCommon.hpp"
+#include "ui/DeviceLayouts.hpp"
+#include "ui/Theme.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -87,6 +89,237 @@ static void sortStages(AxisDetents& d) {
     std::stable_sort(d.stages.begin(), d.stages.end(), [](const LeverStage& a, const LeverStage& b) { return a.at < b.at; });
 }
 
+// Lever recipes (app/LeverZones.hpp): the ones for the profile's aircraft as cards, the others in a list. Applying one fills in the
+// lever below (range, stages, what the zones do); the editor then says whether the lever still is what the recipe made.
+void Ui::drawLeverRecipes(const AxisCalibration* cal) {
+    const float fs = ImGui::GetFontSize();
+    const bool ok = cal && cal->valid();
+    const double gateAt = ok ? Engine::leverAt(draft_.axis.detents, *cal, cal->mil) : -1.0;
+    const int engine = recipeEngine_ > 0 ? recipeEngine_ : leverEngine(draft_);
+    const std::string aircraft = ctx_.settings.ensureActive().aircraft;
+    auto forThis = [&](const LeverRecipe& r) {
+        for (const auto& a : r.aircraft) if (sim::sameAircraft(a, aircraft)) return true;
+        return false;
+    };
+    auto apply = [&](const LeverRecipe& r) {
+        applyLeverRecipe(r, engine, gateAt, draft_);
+        cutoffCustom_ = r.cutoffMode == ZoneMode::Actions && (!r.onCutoff.empty() || !r.onCutoffLeave.empty());
+    };
+
+    fieldLabel("Start from");
+    ImGui::TextDisabled("a recipe fills in the lever below");
+    ImGui::SameLine();
+    ImGui::TextDisabled("· engine");
+    ImGui::SameLine();
+    int eng = engine;
+    ImGui::SetNextItemWidth(fs * 2.5f);
+    if (ImGui::InputInt("##recipe_engine", &eng, 0)) recipeEngine_ = std::clamp(eng, 1, 8);
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("The engine this lever moves: {n} in the recipe's event and variable names");
+
+    // cards for this aircraft (and the user's own), side by side, wrapping
+    const float cardW = fs * 15.5f;
+    int shown = 0;
+    for (size_t i = 0; i < ctx_.leverRecipes.size(); ++i) {
+        const LeverRecipe& r = ctx_.leverRecipes[i];
+        if (!forThis(r) && !r.userMade) continue;
+        if (shown > 0) {
+            const float next = ImGui::GetItemRectMax().x + ImGui::GetStyle().ItemSpacing.x + cardW;
+            if (next < ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x) ImGui::SameLine();
+        }
+        ++shown;
+        ImGui::PushID(static_cast<int>(i));
+        const bool current = draft_.recipe == r.id;
+        if (current) ImGui::PushStyleColor(ImGuiCol_Border, kAccent);
+        ImGui::BeginChild("card", ImVec2(cardW, 0), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
+        ImGui::PushTextWrapPos(0.0f);
+        ImGui::TextUnformatted(r.title.c_str());
+        ImGui::PopTextWrapPos();
+        ImGui::TextColored(r.verified ? kGreen : kYellow, "%s", r.verified ? "checked" : "not tried");
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", r.checked.c_str());
+        ImGui::SameLine();
+        if (current) ImGui::TextDisabled("applied");
+        else if (ImGui::SmallButton("Apply")) apply(r);
+        ImGui::EndChild();
+        if (current) ImGui::PopStyleColor();
+        ImGui::PopID();
+    }
+    if (shown > 0) ImGui::SameLine();
+    ImGui::SetNextItemWidth(fs * 11);
+    if (ImGui::BeginCombo("##other_recipes", shown ? "Other recipes" : "Recipes", ImGuiComboFlags_HeightLarge)) {
+        if (ImGui::Selectable("Plain lever (idle to full)")) { applyLeverPreset(LeverPreset::Linear, draft_, cal, ctx_); draft_.recipe.clear(); cutoffCustom_ = false; }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("No stages, the whole range of the event");
+        for (size_t i = 0; i < ctx_.leverRecipes.size(); ++i) {
+            const LeverRecipe& r = ctx_.leverRecipes[i];
+            if (forThis(r) || r.userMade) continue;
+            ImGui::PushID(static_cast<int>(i));
+            if (ImGui::Selectable(r.title.c_str())) apply(r);
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", r.checked.c_str());
+            ImGui::PopID();
+        }
+        ImGui::EndCombo();
+    }
+
+    // where the lever came from, and whether it still is that
+    const LeverRecipe* from = nullptr;
+    for (const auto& r : ctx_.leverRecipes) if (r.id == draft_.recipe) from = &r;
+    if (from) {
+        fieldLabel("");
+        ImGui::TextDisabled("From \"%s\"", from->title.c_str());
+        if (!leverMatchesRecipe(*from, engine, gateAt, draft_)) {
+            ImGui::SameLine();
+            ImGui::TextColored(kYellow, "changed");
+            ImGui::SameLine();
+            if (ImGui::SmallButton("Back to the recipe")) apply(*from);
+        }
+    }
+    fieldLabel("");
+    if (ImGui::SmallButton("Save as recipe...")) {
+        newRecipeTitle_ = draft_.label.empty() ? "My lever" : draft_.label;
+        ImGui::OpenPopup("save_recipe");
+    }
+    if (ImGui::BeginPopup("save_recipe")) {
+        ImGui::TextUnformatted("Name");
+        ImGui::SetNextItemWidth(fs * 18);
+        ImGui::InputText("##recipe_title", &newRecipeTitle_);
+        ImGui::TextDisabled("Kept in my_levers.json in the settings folder;\nengine numbers become {n}.");
+        const bool named = !newRecipeTitle_.empty();
+        if (!named) ImGui::BeginDisabled();
+        if (ImGui::Button("Save")) {
+            std::string id = "my-" + std::to_string(static_cast<long long>(std::time(nullptr)));
+            LeverRecipe r = recipeFromBinding(draft_, id, newRecipeTitle_);
+            r.aircraft = {aircraft};
+            ctx_.leverRecipes.push_back(r);
+            std::string err;
+            if (!saveUserLeverRecipes(ctx_.userLeverRecipesPath(), ctx_.leverRecipes, err)) LOG_ERROR("Saving your lever recipes failed: %s", err.c_str());
+            else draft_.recipe = id;
+            ImGui::CloseCurrentPopup();
+        }
+        if (!named) ImGui::EndDisabled();
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+    }
+}
+
+// The cut-off zone: nothing (the lever only sends its cut-off value), reverse thrust run by the program, or the user's own actions.
+void Ui::drawCutoffZone() {
+    const float fs = ImGui::GetFontSize();
+    ReverseZone& r = draft_.reverse;
+    enum { kNothing, kReverse, kCustom };
+    const int mode = draft_.cutoffMode == ZoneMode::Reverse ? kReverse
+                   : (cutoffCustom_ || !draft_.onCutoff.empty() || !draft_.onCutoffLeave.empty()) ? kCustom : kNothing;
+    const char* names[] = {"Nothing", "Reverse thrust", "Custom actions"};
+    fieldLabel("What it does");
+    ImGui::SetNextItemWidth(fs * 13);
+    if (ImGui::BeginCombo("##cutoff_mode", names[mode])) {
+        if (ImGui::Selectable(names[kNothing], mode == kNothing)) {
+            draft_.cutoffMode = ZoneMode::Actions;
+            draft_.onCutoff.clear();
+            draft_.onCutoffLeave.clear();
+            cutoffCustom_ = false;
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("The lever only sends its cut-off value");
+        if (ImGui::Selectable(names[kReverse], mode == kReverse)) {
+            draft_.cutoffMode = ZoneMode::Reverse;
+            cutoffCustom_ = false;
+            r.engine = leverEngine(draft_);
+            if (r.reversedCode.empty())  // the aircraft's values from a recipe for it, when there is one
+                for (const auto& rec : ctx_.leverRecipes) {
+                    bool forThis = false;
+                    for (const auto& a : rec.aircraft) forThis |= sim::sameAircraft(a, ctx_.settings.ensureActive().aircraft);
+                    if (!forThis || rec.cutoffMode != ZoneMode::Reverse) continue;
+                    r = rec.reverse;
+                    r.engine = leverEngine(draft_);
+                    r.otherEngine = rec.reverseShared ? (r.engine == 1 ? 2 : 1) : 0;
+                    break;
+                }
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("The program switches reverse on and sends the reverse amount");
+        if (ImGui::Selectable(names[kCustom], mode == kCustom)) {
+            draft_.cutoffMode = ZoneMode::Actions;
+            cutoffCustom_ = true;
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Your own actions when the lever enters and leaves the cut-off");
+        ImGui::EndCombo();
+    }
+
+    if (mode == kCustom) {
+        ImGui::TextUnformatted("Enter cut-off");
+        drawActionList("cutoff", draft_.onCutoff, 2);
+        ImGui::Spacing();
+        ImGui::TextUnformatted("Leave cut-off");
+        drawActionList("cutoff_leave", draft_.onCutoffLeave, 3);
+        return;
+    }
+    if (mode == kNothing) {
+        ImGui::TextDisabled("The lever sends its cut-off value (%g) and nothing else.", draft_.axis.detents.outCutoff);
+        return;
+    }
+
+    // reverse thrust
+    bool shared = r.otherEngine > 0;
+    fieldLabel("");
+    ImGui::Checkbox("Only on the ground", &r.groundOnly);
+    fieldLabel("");
+    if (ImGui::Checkbox("Shared with lever", &shared)) r.otherEngine = shared ? (r.engine == 1 ? 2 : 1) : 0;
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("One reverse switch for both engines (an Airbus):\nreverse stays on while either lever is in its cut-off");
+    if (shared) {
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(fs * 2.5f);
+        ImGui::InputInt("##other_engine", &r.otherEngine, 0);
+        r.otherEngine = std::clamp(r.otherEngine, 1, 8);
+    }
+    fieldLabel("Amount");
+    ImGui::SetNextItemWidth(fs * 8);
+    ImGui::InputDouble("##rev_amount", &r.amount, 0, 0, "%.0f");
+    ImGui::SameLine();
+    ImGui::TextDisabled("axis value in reverse (maximum: the top of the event)");
+    fieldLabel("Reverse idle");
+    ImGui::SetNextItemWidth(fs * 8);
+    ImGui::InputDouble("##rev_idle", &r.idle, 0, 0, "%.0f");
+    ImGui::SameLine();
+    ImGui::TextDisabled("axis value when the lever leaves");
+    if (r.reversedCode.empty()) {
+        fieldLabel("");
+        ImGui::TextColored(kYellow, "Set \"Reverse is on when\" for this aircraft below: until then the zone does nothing.");
+    }
+    if (ImGui::TreeNode("Aircraft values")) {
+        fieldLabel("Reverse switch");
+        ImGui::SetNextItemWidth(fs * 20);
+        ImGui::InputText("##rev_toggle", &r.toggleEvent);
+        ImGui::SameLine();
+        ImGui::TextDisabled("K: event");
+        fieldLabel("Reverse is on when");
+        ImGui::SetNextItemWidth(fs * 24);
+        ImGui::InputTextWithHint("##rev_reversed", "(L:INI_AUTOTHRUST_TLA:{n}, Number) -1 <", &r.reversedCode);
+        ImGui::SameLine();
+        ImGui::TextDisabled("{n} = engine");
+        ImGui::TreePop();
+    }
+
+    ImGui::Spacing();
+    ImGui::TextUnformatted("What happens");
+    ImGui::Indent(fs);
+    ImGui::TextWrapped("1. The lever enters the cut-off: reverse switches on%s, if it is off.", r.groundOnly ? " (on the ground only)" : "");
+    ImGui::TextWrapped("2. Once the aircraft reports reverse, engine %d goes to %.0f.", r.engine, r.amount);
+    ImGui::TextWrapped("3. The lever leaves: engine %d goes to %.0f (reverse idle).", r.engine, r.idle);
+    if (r.otherEngine > 0) ImGui::TextWrapped("4. Reverse switches off once neither lever is in its cut-off.");
+    else ImGui::TextWrapped("4. Reverse switches off.");
+    ImGui::TextDisabled("It never sends forward thrust: without reverse the lever stays at its cut-off value.");
+    ImGui::Unindent(fs);
+    if (ImGui::TreeNode("What it sends")) {
+        const std::string axis = leverAxisEvent(draft_);
+        for (int pass = 0; pass < 2; ++pass) {
+            ImGui::TextDisabled(pass == 0 ? "Entering" : "Leaving");
+            for (const auto& a : reverseZoneActions(r, axis, pass == 0)) {
+                ImGui::Bullet();
+                ImGui::TextWrapped("%s", a.describe().c_str());
+            }
+        }
+        ImGui::TreePop();
+    }
+}
+
 // The throttle with gates: calibration, the part of the lever that is used, presets, the graph and the points of the curve.
 void Ui::drawDetentOptions() {
     AxisConfig& c = draft_.axis;
@@ -116,17 +349,7 @@ void Ui::drawDetentOptions() {
     ImGui::SameLine();
     if (ImGui::RadioButton("Idle to end", d.top == LeverTop::Full)) d.top = LeverTop::Full;
 
-    fieldLabel("Preset");
-    ImGui::SetNextItemWidth(fs * 14);
-    if (ImGui::BeginCombo("##lever_preset", "Choose", ImGuiComboFlags_HeightRegular)) {
-        if (ImGui::Selectable("Linear")) applyLeverPreset(LeverPreset::Linear, draft_, cal, ctx_);
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Idle to end, full event range");
-        if (ImGui::Selectable("Airbus (FlyByWire)")) applyLeverPreset(LeverPreset::AirbusFbw, draft_, cal, ctx_);
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("CL, FLX/MCT, TOGA");
-        if (ImGui::Selectable("F/A-18E left")) applyLeverPreset(LeverPreset::Fa18Left, draft_, cal, ctx_);
-        if (ImGui::Selectable("F/A-18E right")) applyLeverPreset(LeverPreset::Fa18Right, draft_, cal, ctx_);
-        ImGui::EndCombo();
-    }
+    drawLeverRecipes(cal);
 
     if (ok) {
         ImGui::Spacing();
@@ -322,10 +545,14 @@ void Ui::drawAxisOptions() {
 }
 
 void Ui::openEditor(int bindingIndex) {
+    page_ = "Bindings";
+    pagePlugin_.clear();
     Profile& p = ctx_.settings.ensureActive();
     editIndex_ = bindingIndex;
     if (bindingIndex >= 0 && bindingIndex < static_cast<int>(p.bindings.size())) draft_ = p.bindings[static_cast<size_t>(bindingIndex)];
     else draft_ = Binding{};
+    cutoffCustom_ = false;
+    recipeEngine_ = 0;
     insertAt_ = -1;
     draftIsCopy_ = false;
     editorOpen_ = true;
@@ -333,8 +560,12 @@ void Ui::openEditor(int bindingIndex) {
 }
 
 void Ui::openEditorWith(std::vector<Action> press, const std::string& label) {
+    page_ = "Bindings";
+    pagePlugin_.clear();
     ctx_.settings.ensureActive();
     draft_ = Binding{};
+    cutoffCustom_ = false;
+    recipeEngine_ = 0;
     draft_.label = label;
     draft_.onPress = std::move(press);
     editIndex_ = -1;
@@ -349,9 +580,13 @@ void Ui::openEditorWith(std::vector<Action> press, const std::string& label) {
 // button or axis, the same one would fire twice. The editor opens waiting for that input, and the copy is only added to the profile
 // when it is saved, right after the original.
 void Ui::openEditorCopy(int bindingIndex) {
+    page_ = "Bindings";
+    pagePlugin_.clear();
     const Profile& p = ctx_.settings.ensureActive();
     if (bindingIndex < 0 || bindingIndex >= static_cast<int>(p.bindings.size())) return;
     draft_ = p.bindings[static_cast<size_t>(bindingIndex)];
+    cutoffCustom_ = false;
+    recipeEngine_ = 0;
     draft_.input.device.clear();
     draft_.input.code = 0;
     draft_.input.dir = 0;
@@ -382,28 +617,8 @@ void Ui::drawBindingsTab() {
     ImGui::SetNextItemWidth(ImGui::GetFontSize() * 13);
     if (ImGui::BeginCombo("##profile", p.name.c_str())) {
         for (const auto& prof : s.profiles) {
-            const std::string label = prof.name + "   [" + prof.aircraft + "]";
-            if (ImGui::Selectable(label.c_str(), prof.name == p.name)) {
+            if (ImGui::Selectable(prof.name.c_str(), prof.name == p.name)) {
                 s.activeProfile = prof.name;
-                viewAircraft_.clear();
-                ctx_.markDirty();
-            }
-        }
-        ImGui::EndCombo();
-    }
-    ImGui::SameLine();
-    ImGui::AlignTextToFramePadding();
-    ImGui::TextUnformatted("Aircraft");
-    ImGui::SameLine();
-    ImGui::SetNextItemWidth(ImGui::GetFontSize() * 15);
-    if (ImGui::BeginCombo("##profile_aircraft", [&] {
-            const Catalog* c = ctx_.catalogFor(p.aircraft);
-            return (c && sim::sameAircraft(c->aircraft, p.aircraft)) ? c->label() : p.aircraft;
-        }().c_str())) {
-        for (const auto& c : ctx_.catalogs) {
-            if (c.aircraft == kStandardCatalogId) continue;  // not an aircraft
-            if (ImGui::Selectable(c.label().c_str(), sim::sameAircraft(c.aircraft, p.aircraft))) {
-                p.aircraft = c.aircraft;
                 viewAircraft_.clear();
                 ctx_.markDirty();
             }
@@ -419,6 +634,9 @@ void Ui::drawBindingsTab() {
         renamingProfile_ = false;
         ImGui::OpenPopup("profile_name");
     }
+    ImGui::SameLine();
+    if (ImGui::Button("Manage profiles...")) page_ = "Profiles";
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Aircraft of each profile, automatic switching, themes");
     ImGui::SameLine(0, ImGui::GetFontSize() * 0.3f);
     if (dotsButton("##profile_more")) ImGui::OpenPopup("profile_menu");
     {
@@ -486,7 +704,7 @@ void Ui::drawBindingsTab() {
 
     {
         const std::string det = detectAircraft(status_.aircraft);
-        if (!det.empty() && !sim::sameAircraft(det, prof.aircraft)) {
+        if (!det.empty() && !profileFitsAircraft(prof, det)) {
             const sim::AircraftId loaded = sim::identifyAircraft(status_.aircraft);
             const Catalog* profCat = ctx_.catalogFor(prof.aircraft);
             const std::string profLabel = (profCat && sim::sameAircraft(profCat->aircraft, prof.aircraft)) ? profCat->label() : prof.aircraft;
@@ -494,7 +712,7 @@ void Ui::drawBindingsTab() {
             ImGui::SameLine();
             const Profile* match = nullptr;
             for (const auto& prof : s.profiles)
-                if (sim::sameAircraft(prof.aircraft, det)) { match = &prof; break; }
+                if (profileFitsAircraft(prof, det)) { match = &prof; break; }
             if (match) {
                 if (ImGui::SmallButton((std::string("Use ") + match->name).c_str())) {
                     s.activeProfile = match->name;
@@ -546,190 +764,226 @@ void Ui::drawBindingsTab() {
     ImGui::SameLine();
     ImGui::SetNextItemWidth(ImGui::GetFontSize() * 14);
     ImGui::InputTextWithHint("##binding_filter", "Filter", &bindingFilter_);
-    ImGui::SameLine();
-    ImGui::TextDisabled("Unbind these buttons in MSFS.");
 
     const std::vector<std::string> filterWords = searchWords(bindingFilter_);
     const BindingsGroupBy by = s.bindingsGroupBy;
-    const bool canReorder = !s.bindingsAutoSort && filterWords.empty();  // Up and Down move past rows that a filter hides
-    const bool canRegroup = by == BindingsGroupBy::Custom;
+    const bool canReorder = !s.bindingsAutoSort && filterWords.empty() && bindingsFilter_.empty();
     const auto groups = arrangeBindings(prof, by, s.bindingsAutoSort, [this](const std::string& key) { return deviceDisplayName(key); });
-    ImGuiTableFlags tflags = ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable |
-                             ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_PadOuterX;
+    const auto twice = doubleBindings();
+    auto twiceFor = [&](int i) -> const DoubleBinding* {
+        for (const auto& d : twice) if (static_cast<int>(d.binding) == i) return &d;
+        return nullptr;
+    };
     const float fsz = ImGui::GetFontSize();
-    if (ImGui::BeginTable("bindings", 6, tflags, ImVec2(0, 0))) {
-        ImGui::TableSetupScrollFreeze(0, 1);
-        ImGui::TableSetupColumn("On", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFrameHeight() + 2);
-        ImGui::TableSetupColumn("Input", ImGuiTableColumnFlags_WidthStretch, 1.2f);
-        ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch, 1.1f);
-        ImGui::TableSetupColumn("Press", ImGuiTableColumnFlags_WidthStretch, 1.9f);
-        ImGui::TableSetupColumn("Release", ImGuiTableColumnFlags_WidthStretch, 1.3f);
-        ImGui::TableSetupColumn("##actions", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("Edit").x + ImGui::GetStyle().FramePadding.x * 2 + ImGui::GetFrameHeight() + fsz);
-        ImGui::TableHeadersRow();
+    {   // what the list shows
+        const char* names[] = {"All", "Not tried", "Bound twice", "Reverse"};
+        const char* keys[] = {"", "untried", "twice", "reverse"};
+        for (int k = 0; k < 4; ++k) {
+            if (k == 3 && bindingsFilter_ != "reverse") continue;  // only reached from Home
+            if (k) ImGui::SameLine(0, fsz * 0.3f);
+            const bool on = bindingsFilter_ == keys[k];
+            if (on) ImGui::PushStyleColor(ImGuiCol_Button, ui::palette::kAccentSoft);
+            if (ImGui::SmallButton(names[k])) bindingsFilter_ = keys[k];
+            if (on) ImGui::PopStyleColor();
+        }
+        if (!twice.empty()) {
+            ImGui::SameLine(0, fsz);
+            ImGui::TextColored(kRed, "%zu bound twice with MSFS", twice.size());
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Your MSFS control profile \"%s\" also acts on these buttons:\none press, two actions. Remove them there.", twice[0].msfsProfile.c_str());
+        }
+    }
+    auto shownByFilter = [&](int i) {
+        const Binding& b = prof.bindings[static_cast<size_t>(i)];
+        if (!bindingMatches(b, filterWords)) return false;
+        if (bindingsFilter_ == "untried") return b.enabled && !bindingChecked(b);
+        if (bindingsFilter_ == "twice") return twiceFor(i) != nullptr;
+        if (bindingsFilter_ == "reverse") return b.cutoffMode == ZoneMode::Reverse;
+        return true;
+    };
 
-        int toDelete = -1, moveFrom = -1, moveTo = -1;  // Up / Down: two bindings swap places
-        int dropFrom = -1, dropOnRow = -1, dropOnGroup = -1;  // a dragged row, dropped on a row or on the header of a group
-        std::string dropGroup;
-        const std::string dragType = "BINDING_ROW";
-        int rowsShown = 0;
-        for (const auto& g : groups) {
-            std::vector<int> shown;  // the rows of the group that pass the filter box
-            for (int i : g.indices)
-                if (bindingMatches(prof.bindings[static_cast<size_t>(i)], filterWords)) shown.push_back(i);
-            if (shown.empty()) continue;
-            rowsShown += static_cast<int>(shown.size());
-            bool open = true;
-            if (!g.title.empty()) {
-                ImGui::TableNextRow();
-                ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ui::palette::kSurfaceHi));
-                ImGui::TableSetColumnIndex(1);
-                char label[320];
-                snprintf(label, sizeof label, "%s  (%zu)###group:%s", g.title.c_str(), shown.size(), g.key.c_str());
-                open = ImGui::TreeNodeEx(label, ImGuiTreeNodeFlags_SpanAllColumns | ImGuiTreeNodeFlags_DefaultOpen);
-                if (canRegroup && ImGui::BeginDragDropTarget()) {
-                    if (const ImGuiPayload* pl = ImGui::AcceptDragDropPayload(dragType.c_str())) {
-                        dropFrom = *static_cast<const int*>(pl->Data);
-                        dropOnGroup = 1;
-                        dropGroup = g.key;
-                    }
-                    ImGui::EndDragDropTarget();
-                }
-            }
-            if (open) {
-                for (size_t pos = 0; pos < shown.size(); ++pos) {
-                    const int i = shown[pos];
-                    Binding& b = prof.bindings[static_cast<size_t>(i)];
-                    ImGui::PushID(i);
-                    ImGui::TableNextRow();
-                    if (inputIsPressed(b.input)) ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(withAlpha(kGreen, 0.22f)));
-                    ImGui::TableSetColumnIndex(0);
-                    {   // the whole row is the handle to drag it by, and the place to drop another one; the widgets drawn after it stay clickable
-                        const ImVec2 rowPos = ImGui::GetCursorScreenPos();
-                        ImGui::Selectable("##row", false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap | ImGuiSelectableFlags_AllowDoubleClick,
-                                          ImVec2(0, ImGui::GetTextLineHeight() * 2 + ImGui::GetStyle().ItemSpacing.y));
-                        if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) openEditor(i);
-                        if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) ImGui::OpenPopup("row_menu");
-                        if ((canReorder || canRegroup) && ImGui::BeginDragDropSource()) {
-                            ImGui::SetDragDropPayload(dragType.c_str(), &i, sizeof i);
-                            ImGui::Text("%s", b.label.empty() ? ctx_.input.describe(b.input).c_str() : b.label.c_str());
-                            ImGui::EndDragDropSource();
-                        }
-                        if (ImGui::BeginDragDropTarget()) {
-                            const ImGuiPayload* peek = ImGui::GetDragDropPayload();
-                            if (peek && peek->IsDataType(dragType.c_str()) && peek->DataSize == sizeof(int)) {
-                                const int from = *static_cast<const int*>(peek->Data);
-                                if (from >= 0 && from < static_cast<int>(prof.bindings.size()) && from != i) {
-                                    const bool sameGroup = bindingGroupKey(prof.bindings[static_cast<size_t>(from)], by) == bindingGroupKey(b, by);
-                                    // moving a row past others is only meaningful inside its group; "my groups" lets it change group too
-                                    const bool allowed = (canRegroup && (canReorder || !sameGroup)) || (canReorder && sameGroup);
-                                    if (allowed)
-                                        if (const ImGuiPayload* pl = ImGui::AcceptDragDropPayload(dragType.c_str())) { dropFrom = *static_cast<const int*>(pl->Data); dropOnRow = i; }
-                                }
-                            }
-                            ImGui::EndDragDropTarget();
-                        }
-                        ImGui::SetCursorScreenPos(rowPos);
-                    }
-                    if (ImGui::Checkbox("##on", &b.enabled)) ctx_.markDirty();
-                    ImGui::TableSetColumnIndex(1);
-                    ImGui::TextUnformatted(ctx_.input.describe(b.input).c_str());
-                    if (b.input.kind == input::InputKind::Axis) {
-                        const float now = axisNow(b.input);
-                        ImGui::TextDisabled("%s  %s%s%s", deviceDisplayName(b.input.device).c_str(), b.axis.mode == AxisMode::Steps ? "steps" : b.axis.detents.enabled ? "value, gates" : "value",
-                                            now >= 0 ? "  " : "", now >= 0 ? (std::to_string(static_cast<int>(now * 100 + 0.5f)) + "%").c_str() : "");
-                    } else {
-                        ImGui::TextDisabled("%s", deviceDisplayName(b.input.device).c_str());
-                    }
-                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", deviceDisplayName(b.input.device).c_str());  // the column clips a long device name
-                    ImGui::TableSetColumnIndex(2);
-                    ImGui::TextUnformatted(b.label.c_str());
-                    if (b.input.kind == input::InputKind::Axis && b.axis.mode == AxisMode::Steps) ImGui::TextDisabled("Steps of %d%%", static_cast<int>(b.axis.stepPercent + 0.5));
-                    else if (b.input.kind != input::InputKind::Axis && b.repeat) ImGui::TextDisabled("Repeat %d ms", b.repeatIntervalMs);
-                    {
-                        double lo, hi;
-                        if (b.input.kind == input::InputKind::Axis && ctx_.suggestedAxisRange(b, lo, hi) && axisRangeLooksWrong(b.axis, lo, hi)) {
-                            ImGui::SameLine();
-                            ImGui::TextColored(kYellow, "(!)");
-                            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Range should be %g to %g", lo, hi);
-                        }
-                    }
-                    auto actionLine = [&](const Action& a) {
-                        codeText(a.describe().c_str());
-                        if (a.kind == ActionKind::InputEvent || a.kind == ActionKind::InputEventToggle) {
-                            if (auto v = ctx_.bridge.inputEventValue(a.name)) {
-                                ImGui::SameLine();
-                                ImGui::TextColored(*v != 0 ? kGreen : kGrey, "[%g]", *v);
-                            }
-                        }
-                        if (a.kind == ActionKind::LVarSet || a.kind == ActionKind::LVarToggle) {
-                            if (auto v = ctx_.bridge.lvarValue(a.name)) {
-                                ImGui::SameLine();
-                                ImGui::TextColored(*v != 0 ? kGreen : kGrey, "[%g]", *v);
-                            }
-                        }
-                    };
-                    ImGui::TableSetColumnIndex(3);
-                    for (const auto& a : b.onPress) actionLine(a);
-                    ImGui::TableSetColumnIndex(4);
-                    for (const auto& a : b.onRelease) actionLine(a);
-                    ImGui::TableSetColumnIndex(5);
-                    if (ImGui::Button("Edit")) openEditor(i);
-                    ImGui::SameLine(0, fsz * 0.3f);
-                    if (dotsButton("##more")) ImGui::OpenPopup("row_menu");
-                    bool askDelete = false;
-                    if (ImGui::BeginPopup("row_menu")) {
-                        if (ImGui::MenuItem("Edit")) openEditor(i);
-                        if (ImGui::MenuItem("Test")) {
-                            if (b.input.kind == input::InputKind::Axis && b.axis.mode == AxisMode::Value) {
-                                const float now = axisNow(b.input);
-                                const AxisCalibration* cal = b.axis.detents.enabled ? ctx_.settings.calibrationFor(b.input) : nullptr;
-                                const double out = cal && cal->valid() ? Engine::detentOutput(b.axis.detents, *cal, now >= 0 ? now : 0.5, AxisZone::Dry, gateStateNow(*cal)).value
-                                                                       : Engine::axisOutput(b.axis, Engine::axisPosition(b.axis, now >= 0 ? now : 0.5f));
-                                ctx_.engine.fire(Engine::withValue(b.onPress, out, b.axis.integer), "test " + b.label);
-                            } else {
-                                ctx_.engine.fire(b.onPress, "test " + b.label);
-                            }
-                        }
-                        if (ImGui::MenuItem("Copy")) openEditorCopy(i);
-                        ImGui::Separator();
-                        if (ImGui::MenuItem("Move up", nullptr, false, canReorder && pos > 0)) { moveFrom = i; moveTo = shown[pos - 1]; }
-                        if (ImGui::MenuItem("Move down", nullptr, false, canReorder && pos + 1 < shown.size())) { moveFrom = i; moveTo = shown[pos + 1]; }
-                        ImGui::Separator();
-                        if (ImGui::MenuItem("Delete")) askDelete = true;
-                        ImGui::EndPopup();
-                    }
-                    if (askDelete) ImGui::OpenPopup("delete_binding");
-                    if (ImGui::BeginPopup("delete_binding")) {
-                        ImGui::Text("Delete \"%s\"?", b.label.empty() ? ctx_.input.describe(b.input).c_str() : b.label.c_str());
-                        if (ImGui::Button("Delete")) { toDelete = i; ImGui::CloseCurrentPopup(); }
-                        ImGui::SameLine();
-                        if (ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
-                        ImGui::EndPopup();
-                    }
-                    ImGui::PopID();
-                }
-            }
-            if (!g.title.empty() && open) ImGui::TreePop();
+    // the list on the left, the open binding on the right
+    const float listW = std::clamp(ImGui::GetContentRegionAvail().x * 0.36f, fsz * 19, fsz * 28);
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ui::palette::kSurface);
+    ImGui::BeginChild("##blist", ImVec2(listW, 0), ImGuiChildFlags_Borders);
+    ImGui::PopStyleColor();
+    int toDelete = -1, moveFrom = -1, moveTo = -1;
+    int rowsShown = 0;
+    for (const auto& g : groups) {
+        // within a device of known layout, one section per part of it (the throttle's base, grip, EX panel)
+        std::vector<std::pair<std::string, std::vector<int>>> parts;
+        for (int i : g.indices) {
+            if (!shownByFilter(i)) continue;
+            const Binding& b = prof.bindings[static_cast<size_t>(i)];
+            const ui::ControlName known = ui::knownControl(b.input.device, b.input.kind == input::InputKind::Axis, b.input.code);
+            // a part of a known device: its name ("Base"), with the device in front when the list is grouped by device
+            const std::string title = known.section.empty() ? g.title : by == BindingsGroupBy::Device && !g.title.empty() ? g.title + "  \xc2\xb7  " + known.section : known.section;
+            auto it = std::find_if(parts.begin(), parts.end(), [&](const auto& x) { return x.first == title; });
+            if (it == parts.end()) { parts.push_back({title, {}}); it = parts.end() - 1; }
+            it->second.push_back(i);
         }
-        if (rowsShown == 0 && !filterWords.empty()) {
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(1);
-            ImGui::TextDisabled("No matches");
+        if (by == BindingsGroupBy::Device || by == BindingsGroupBy::None) {  // known sections in the order of the hardware
+            auto rank = [](const std::string& t) {
+                for (const char* k : {"Thrust levers", "Base", "Grip", "EX panel"}) if (t.find(k) != std::string::npos) return static_cast<int>(std::string("Thrust levers|Base|Grip|EX panel").find(k));
+                return 1000;
+            };
+            std::stable_sort(parts.begin(), parts.end(), [&](const auto& a, const auto& b) { return rank(a.first) < rank(b.first); });
         }
-        ImGui::EndTable();
-        if (toDelete >= 0) { prof.bindings.erase(prof.bindings.begin() + toDelete); ctx_.markDirty(); }
-        if (moveFrom >= 0) { std::swap(prof.bindings[static_cast<size_t>(moveFrom)], prof.bindings[static_cast<size_t>(moveTo)]); ctx_.markDirty(); }
-        if (dropFrom >= 0 && dropFrom < static_cast<int>(prof.bindings.size())) {
-            if (dropOnGroup >= 0) {
-                prof.bindings[static_cast<size_t>(dropFrom)].group = dropGroup;  // dropped on the header of a group
-                ctx_.markDirty();
-            } else if (dropOnRow >= 0 && dropOnRow < static_cast<int>(prof.bindings.size())) {
-                if (canRegroup) prof.bindings[static_cast<size_t>(dropFrom)].group = prof.bindings[static_cast<size_t>(dropOnRow)].group;
-                if (canReorder) moveBinding(prof.bindings, dropFrom, dropOnRow);
-                ctx_.markDirty();
+        for (const auto& [title, rows] : parts) {
+            if (!title.empty()) {
+                ImGui::Dummy(ImVec2(0, fsz * 0.15f));
+                ImGui::PushStyleColor(ImGuiCol_Text, ui::palette::kTextDim);
+                ImGui::PushFont(nullptr, fsz * 0.8f);
+                ImGui::TextUnformatted(title.c_str());
+                ImGui::PopFont();
+                ImGui::PopStyleColor();
+            }
+            for (size_t pos = 0; pos < rows.size(); ++pos) {
+                const int i = rows[pos];
+                Binding& b = prof.bindings[static_cast<size_t>(i)];
+                ++rowsShown;
+                ImGui::PushID(i);
+                const bool selected = editorOpen_ && editIndex_ == i;
+                const ImVec2 p0 = ImGui::GetCursorScreenPos();
+                const float rowW = ImGui::GetContentRegionAvail().x, rowH = ImGui::GetTextLineHeight() * 2 + fsz * 0.5f;
+                if (ImGui::Selectable("##row", selected, ImGuiSelectableFlags_AllowOverlap, ImVec2(rowW, rowH))) selectBinding(i);
+                if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) ImGui::OpenPopup("row_menu");
+                ImDrawList* dl = ImGui::GetWindowDrawList();
+                if (inputIsPressed(b.input)) dl->AddRectFilled(p0, ImVec2(p0.x + rowW, p0.y + rowH), ImGui::GetColorU32(withAlpha(kGreen, 0.2f)), fsz * 0.3f);
+                if (selected) dl->AddRectFilled(p0, ImVec2(p0.x + 3, p0.y + rowH), ImGui::GetColorU32(kAccent));
+                // key cap
+                const ui::ControlName known = ui::knownControl(b.input.device, b.input.kind == input::InputKind::Axis, b.input.code);
+                std::string cap = known.name.empty() ? ctx_.input.describe(b.input) : known.name;
+                const float capW = fsz * 5.4f, capH = fsz * 1.35f;
+                const ImVec2 c0(p0.x + fsz * 0.5f, p0.y + (rowH - capH) * 0.5f);
+                dl->AddRectFilled(c0, ImVec2(c0.x + capW, c0.y + capH), ImGui::GetColorU32(ui::palette::kGlass), fsz * 0.25f);
+                dl->AddRect(c0, ImVec2(c0.x + capW, c0.y + capH), ImGui::GetColorU32(ui::palette::kBorder), fsz * 0.25f);
+                ImGui::PushFont(nullptr, fsz * 0.8f);
+                ImVec2 ts = ImGui::CalcTextSize(cap.c_str());
+                while (ts.x > capW - fsz * 0.4f && cap.size() > 3) { cap = cap.substr(0, cap.size() - 2) + "."; ts = ImGui::CalcTextSize(cap.c_str()); }
+                dl->AddText(ImVec2(c0.x + (capW - ts.x) * 0.5f, c0.y + (capH - ts.y) * 0.5f), ImGui::GetColorU32(ui::palette::kTextDim), cap.c_str());
+                ImGui::PopFont();
+                // name, what it does, status
+                const float tx = c0.x + capW + fsz * 0.6f, dotX = p0.x + rowW - fsz * 0.8f, textW = dotX - tx - fsz * 0.5f;
+                std::string sub;
+                if (b.input.kind == input::InputKind::Axis && b.axis.detents.enabled) {
+                    for (const auto& st : b.axis.detents.stages) sub += (sub.empty() ? "" : " \xc2\xb7 ") + st.name;
+                    if (b.cutoffMode == ZoneMode::Reverse) sub += (sub.empty() ? "" : " \xc2\xb7 ") + std::string("reverse in cut-off");
+                    if (sub.empty()) sub = "lever with gates";
+                } else if (!b.onPress.empty()) {
+                    sub = b.onPress[0].describe();
+                    if (b.onPress.size() > 1) sub += "  +" + std::to_string(b.onPress.size() - 1);
+                }
+                const std::string name = b.label.empty() ? ctx_.input.describe(b.input) : b.label;
+                const ImVec4 clip(tx, p0.y, tx + textW, p0.y + rowH);
+                dl->AddText(nullptr, 0.0f, ImVec2(tx, p0.y + fsz * 0.2f), ImGui::GetColorU32(b.enabled ? ui::palette::kText : ui::palette::kTextDim), name.c_str(), nullptr, 0.0f, &clip);
+                ImGui::PushFont(nullptr, fsz * 0.84f);
+                dl->AddText(nullptr, 0.0f, ImVec2(tx, p0.y + fsz * 0.2f + ImGui::GetTextLineHeight() * 1.25f), ImGui::GetColorU32(ui::palette::kTextDim), sub.c_str(), nullptr, 0.0f, &clip);
+                ImGui::PopFont();
+                const DoubleBinding* dbl = twiceFor(i);
+                const ImVec2 dc(dotX, p0.y + rowH * 0.5f);
+                if (dbl) dl->AddCircleFilled(dc, fsz * 0.28f, ImGui::GetColorU32(kRed));
+                else if (bindingChecked(b)) dl->AddCircleFilled(dc, fsz * 0.28f, ImGui::GetColorU32(kGreen));
+                else dl->AddCircle(dc, fsz * 0.26f, ImGui::GetColorU32(ui::palette::kTextDim), 0, 1.5f);
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("%s%s", dbl ? ("MSFS also: " + dbl->msfsAction + " (\"" + dbl->msfsProfile + "\")").c_str() : bindingChecked(b) ? "Checked on the aircraft" : "Not tried on the aircraft",
+                                      b.enabled ? "" : "\nSwitched off");
+                bool askDelete = false;
+                if (ImGui::BeginPopup("row_menu")) {
+                    if (ImGui::MenuItem("Edit")) selectBinding(i);
+                    if (ImGui::MenuItem(b.enabled ? "Switch off" : "Switch on")) { b.enabled = !b.enabled; ctx_.markDirty(); }
+                    if (ImGui::MenuItem("Test")) {
+                        if (b.input.kind == input::InputKind::Axis && b.axis.mode == AxisMode::Value) {
+                            const float now = axisNow(b.input);
+                            const AxisCalibration* cal = b.axis.detents.enabled ? ctx_.settings.calibrationFor(b.input) : nullptr;
+                            const double out = cal && cal->valid() ? Engine::detentOutput(b.axis.detents, *cal, now >= 0 ? now : 0.5, AxisZone::Dry, gateStateNow(*cal)).value
+                                                                   : Engine::axisOutput(b.axis, Engine::axisPosition(b.axis, now >= 0 ? now : 0.5f));
+                            ctx_.engine.fire(Engine::withValue(b.onPress, out, b.axis.integer), "test " + b.label);
+                        } else {
+                            ctx_.engine.fire(b.onPress, "test " + b.label);
+                        }
+                    }
+                    if (ImGui::MenuItem("Copy")) openEditorCopy(i);
+                    ImGui::Separator();
+                    if (ImGui::MenuItem("Move up", nullptr, false, canReorder && pos > 0)) { moveFrom = i; moveTo = rows[pos - 1]; }
+                    if (ImGui::MenuItem("Move down", nullptr, false, canReorder && pos + 1 < rows.size())) { moveFrom = i; moveTo = rows[pos + 1]; }
+                    ImGui::Separator();
+                    if (ImGui::MenuItem("Delete")) askDelete = true;
+                    ImGui::EndPopup();
+                }
+                if (askDelete) ImGui::OpenPopup("delete_binding");
+                if (ImGui::BeginPopup("delete_binding")) {
+                    ImGui::Text("Delete \"%s\"?", name.c_str());
+                    if (ImGui::Button("Delete")) { toDelete = i; ImGui::CloseCurrentPopup(); }
+                    ImGui::SameLine();
+                    if (ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
+                    ImGui::EndPopup();
+                }
+                ImGui::PopID();
             }
         }
     }
+    if (rowsShown == 0) ImGui::TextDisabled(prof.bindings.empty() ? "No bindings yet: Add binding, or Home > Bind a control." : "Nothing matches.");
+    ImGui::EndChild();
+    if (toDelete >= 0) {
+        if (editorOpen_ && editIndex_ == toDelete) editorOpen_ = false;
+        else if (editorOpen_ && editIndex_ > toDelete) --editIndex_;
+        prof.bindings.erase(prof.bindings.begin() + toDelete);
+        ctx_.markDirty();
+    }
+    if (moveFrom >= 0) {
+        std::swap(prof.bindings[static_cast<size_t>(moveFrom)], prof.bindings[static_cast<size_t>(moveTo)]);
+        if (editorOpen_ && editIndex_ == moveFrom) editIndex_ = moveTo;
+        else if (editorOpen_ && editIndex_ == moveTo) editIndex_ = moveFrom;
+        ctx_.markDirty();
+    }
+
+    ImGui::SameLine();
+    ImGui::BeginChild("##inspector", ImVec2(0, 0), ImGuiChildFlags_AlwaysUseWindowPadding);
+    if (editorOpen_) drawBindingEditor();
+    else {
+        ImGui::Dummy(ImVec2(0, fsz * 2));
+        ImGui::TextDisabled("Select a binding on the left to see and change it.");
+        ImGui::TextDisabled("Add binding, or Home > Bind a control, makes a new one.");
+    }
+    ImGui::EndChild();
+
+    // a row clicked while the open binding has changes
+    if (pendingSelect_ != -2) ImGui::OpenPopup("unsaved_changes");
+    if (ImGui::BeginPopupModal("unsaved_changes", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar)) {
+        ImGui::Text("Save the changes to \"%s\"?", draft_.label.empty() ? ctx_.input.describe(draft_.input).c_str() : draft_.label.c_str());
+        const int next = pendingSelect_;
+        auto then = [&] { pendingSelect_ = -2; if (next >= 0) openEditor(next); else { editorOpen_ = false; ctx_.engine.cancelCapture(); } };
+        if (ImGui::Button("Save")) { if (!draft_.input.device.empty()) saveDraft(); then(); ImGui::CloseCurrentPopup(); }
+        ImGui::SameLine();
+        if (ImGui::Button("Discard")) { then(); ImGui::CloseCurrentPopup(); }
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel")) { pendingSelect_ = -2; ImGui::CloseCurrentPopup(); }
+        ImGui::EndPopup();
+    }
+}
+
+bool Ui::draftChanged() const {
+    const Profile* p = ctx_.settings.active();
+    if (!p) return false;
+    if (editIndex_ >= 0 && editIndex_ < static_cast<int>(p->bindings.size())) return bindingFingerprint(draft_) != bindingFingerprint(p->bindings[static_cast<size_t>(editIndex_)]);
+    return !draft_.input.device.empty() || !draft_.onPress.empty() || !draft_.label.empty();
+}
+
+void Ui::selectBinding(int index) {
+    if (editorOpen_ && editIndex_ == index) return;
+    if (editorOpen_ && draftChanged()) { pendingSelect_ = index; return; }
+    openEditor(index);
+}
+
+void Ui::saveDraft() {
+    Profile& p = ctx_.settings.ensureActive();
+    if (editIndex_ >= 0 && editIndex_ < static_cast<int>(p.bindings.size())) p.bindings[static_cast<size_t>(editIndex_)] = draft_;
+    else if (insertAt_ >= 0 && insertAt_ <= static_cast<int>(p.bindings.size())) { p.bindings.insert(p.bindings.begin() + insertAt_, draft_); editIndex_ = insertAt_; }
+    else { p.bindings.push_back(draft_); editIndex_ = static_cast<int>(p.bindings.size()) - 1; }
+    insertAt_ = -1;
+    draftIsCopy_ = false;
+    ctx_.markDirty();
+    ctx_.engine.cancelCapture();
 }
 
 void Ui::drawActionList(const char* id, std::vector<Action>& actions, int listIndex) {
@@ -852,21 +1106,27 @@ void Ui::drawAxisTargetPicker() {
 }
 
 void Ui::drawBindingEditor() {
-    {
-        const ImVec2 work = ImGui::GetMainViewport()->WorkSize, origin = ImGui::GetMainViewport()->WorkPos;
-        const float fsz = ImGui::GetFontSize();
-        ImGui::SetNextWindowSize(ImVec2(std::min(work.x * 0.9f, fsz * 58), work.y * 0.88f), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowPos(ImVec2(origin.x + work.x * 0.5f, origin.y + work.y * 0.5f), ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
+    {   // heading of the inspector
+        const char* title = editIndex_ >= 0 ? "Edit binding" : draftIsCopy_ ? "Copy of a binding" : "New binding";
+        ImGui::PushFont(nullptr, ImGui::GetFontSize() * 1.15f);
+        ImGui::TextUnformatted(title);
+        ImGui::PopFont();
+        if (editIndex_ >= 0 && draftChanged()) { ImGui::SameLine(); ImGui::TextColored(kYellow, "unsaved"); }
+        const float closeW = ImGui::CalcTextSize("Close").x + ImGui::GetStyle().FramePadding.x * 2;
+        ImGui::SameLine(std::max(ImGui::GetCursorPosX(), ImGui::GetContentRegionMax().x - closeW));
+        if (ImGui::SmallButton("Close")) {
+            if (draftChanged()) pendingSelect_ = -1;  // asks first; -1 = nothing selected after
+            else editorOpen_ = false;
+        }
+        ImGui::Separator();
     }
-    const char* title = editIndex_ >= 0 ? "Edit binding###binding_editor" : draftIsCopy_ ? "Copy binding###binding_editor" : "New binding###binding_editor";
-    if (!ImGui::Begin(title, &editorOpen_)) { ImGui::End(); return; }
     const float fs = ImGui::GetFontSize();
 
     // Input capture
     const bool capturing = ctx_.engine.capturing();
     // while the calibration wizard is open the capture is the wizard's (it learns the gate buttons): taking it here turned the axis
     // being edited into a button binding and the wizard never heard the button
-    if (auto captured = calOpen_ ? std::nullopt : ctx_.engine.takeCaptured()) {
+    if (auto captured = calOpen_ || homeListening_ ? std::nullopt : ctx_.engine.takeCaptured()) {
         draft_.input = *captured;
         // New axis binding for an axis event still on the 0..100 default: use the range the event expects.
         double lo, hi;
@@ -927,15 +1187,11 @@ void Ui::drawBindingEditor() {
         if (draft_.axis.detents.enabled) {
             ImGui::SeparatorText("Gates");
             if (ImGui::BeginTabBar("gates")) {
-                if (ImGui::BeginTabItem("Cut-off")) {
-                    ImGui::TextUnformatted("Enter cut-off");
-                    drawActionList("cutoff", draft_.onCutoff, 2);
-                    ImGui::Spacing();
-                    ImGui::TextUnformatted("Leave cut-off");
-                    drawActionList("cutoff_leave", draft_.onCutoffLeave, 3);
+                if (ImGui::BeginTabItem("Cut-off zone")) {
+                    drawCutoffZone();
                     ImGui::EndTabItem();
                 }
-                if (ImGui::BeginTabItem("Afterburner")) {
+                if (ImGui::BeginTabItem("Afterburner zone")) {
                     ImGui::TextUnformatted("Enter afterburner");
                     drawActionList("afterburner", draft_.onAfterburner, 4);
                     ImGui::Spacing();
@@ -970,20 +1226,14 @@ void Ui::drawBindingEditor() {
     ImGui::Separator();
     const bool canSave = !draft_.input.device.empty();
     if (!canSave) ImGui::BeginDisabled();
-    if (ImGui::Button("Save", ImVec2(fs * 9, 0))) {
-        Profile& p = ctx_.settings.ensureActive();
-        if (editIndex_ >= 0 && editIndex_ < static_cast<int>(p.bindings.size())) p.bindings[static_cast<size_t>(editIndex_)] = draft_;
-        else if (insertAt_ >= 0 && insertAt_ <= static_cast<int>(p.bindings.size())) p.bindings.insert(p.bindings.begin() + insertAt_, draft_);
-        else p.bindings.push_back(draft_);
-        ctx_.markDirty();
-        editorOpen_ = false;
-        ctx_.engine.cancelCapture();
-    }
+    if (ImGui::Button("Save", ImVec2(fs * 9, 0))) saveDraft();
     if (!canSave) ImGui::EndDisabled();
     ImGui::SameLine();
-    if (ImGui::Button("Cancel", ImVec2(fs * 9, 0))) { editorOpen_ = false; ctx_.engine.cancelCapture(); }
+    if (ImGui::Button(editIndex_ >= 0 ? "Undo changes" : "Cancel", ImVec2(fs * 9, 0))) {
+        if (editIndex_ >= 0) openEditor(editIndex_);  // back to what is saved
+        else { editorOpen_ = false; ctx_.engine.cancelCapture(); }
+    }
     if (!canSave) { ImGui::SameLine(); ImGui::TextDisabled("No input"); }
-    ImGui::End();
     if (!editorOpen_) ctx_.engine.cancelCapture();
 }
 

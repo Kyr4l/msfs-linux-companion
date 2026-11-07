@@ -58,3 +58,25 @@ A lever that is not calibrated behaves as a plain axis. This was run end to end 
 virtual stick drove both levers through idle, military power, afterburner and cut-off in fast cycles through the real program,
 and the aircraft was read back each time (throttle, afterburner state, cut-off state, fuel valves). Not yet watched: a lit
 afterburner and the engines winding down, and the real throttle.
+
+## Recipes and what the cut-off zone does
+
+**Start from** shows the lever recipes for the profile's aircraft as cards, the others in *Other recipes*. A recipe fills in the range,
+the stages and what the zones do, with the engine number of the lever (`{n}`); after that the lever is edited as usual, and the editor
+says *changed* (with *Back to the recipe*) when it no longer is what the recipe made. *Save as recipe...* keeps the lever in
+`my_levers.json` in the settings folder, with its engine numbers turned back into `{n}`. Shipped recipes are in `data/levers.json`:
+Airbus (iniBuilds) with reverse in the cut-off (checked on the A320neo V2), Airbus (FlyByWire), F/A-18E, business jet (Working Title CJ4).
+
+**What it does**, on the *Cut-off zone* tab: *Nothing* (the lever only sends its cut-off value), *Custom actions* (your own lists)
+or **Reverse thrust**. Reverse thrust is run by the program, for aircraft whose reverse is a switch and whose lever then sets the
+amount (the iniBuilds A320neo: `K:THROTTLE_REVERSE_THRUST_TOGGLE`, one switch for both engines):
+
+1. the lever enters the cut-off: reverse switches on (on the ground only, if ticked) when it is off;
+2. once the aircraft reports reverse (*Reverse is on when*, calculator code), the engine goes to the reverse amount;
+3. the lever leaves: the engine goes to reverse idle;
+4. reverse switches off once no lever that shares the switch is in its cut-off.
+
+The amount is never sent unless the aircraft reports reverse: on these aircraft the same axis value without reverse is forward
+thrust. The second lever acts 300 ms after the first, so two levers pulled together switch reverse once. *What it sends* lists the
+exact actions; it is the sequence checked step by step on the A320neo V2 (engines at idle, parking brake set).
+

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Kyr4l
 // msfs-linux-companion (formerly msfs-linuxrebind): HOTAS bindings, cockpit catalogs, guides and haptics for MSFS 2020, on Linux.
+#include <algorithm>
 #include <cerrno>
 #include <csignal>
 #include <ctime>
@@ -30,6 +31,7 @@
 #include "input/Evdev.hpp"
 #include "plugin/PluginManager.hpp"
 #include "sim/SimBridge.hpp"
+#include "util/AtomicFile.hpp"
 #include "util/Isolated.hpp"
 #include "ui/AppIcon.hpp"
 #include "ui/Theme.hpp"
@@ -72,6 +74,7 @@ void usage() {
         "  --config FILE          config file (default $XDG_CONFIG_HOME/msfs-linux-companion/config.json)\n"
         "  --catalog FILE         extra action catalog JSON (all data/*_catalog.json are loaded automatically)\n"
         "  --tab NAME             start on a tab: Bindings, Devices, Guides, Catalog, Cockpit, Vibration, Log, Settings, or a plugin's tab\n"
+        "  --edit-binding N       open the editor on binding N (from 0) of the active profile\n"
         "  --plugin PATH          load this plugin too (a .so, a plugin folder, or a folder of plugins); see docs/PLUGINS.md\n"
         "  --no-plugins           do not load the plugins of the user's and the installed plugin folders\n"
         "  --quiet                do not echo the log to stderr\n"
@@ -96,6 +99,33 @@ void usage() {
 void glfwErrorCallback(int code, const char* desc) { LOG_ERROR("GLFW error %d: %s", code, desc); }
 }  // namespace
 
+// The main window as the user left it: maximized or not, and its normal size (kept apart from config.json, which holds the user's settings).
+struct WindowState {
+    int width = 1280, height = 800;
+    bool maximized = false;
+};
+
+static WindowState loadWindowState(const std::string& path) {
+    WindowState w;
+    std::ifstream in(path);
+    if (!in) return w;
+    try {
+        const auto j = nlohmann::json::parse(in);
+        w.width = std::clamp(j.value("width", w.width), 400, 16384);
+        w.height = std::clamp(j.value("height", w.height), 300, 16384);
+        w.maximized = j.value("maximized", false);
+    } catch (const std::exception& e) {
+        LOG_WARN("window.json not read (%s): default window", e.what());
+    }
+    return w;
+}
+
+static void saveWindowState(const std::string& path, const WindowState& w) {
+    std::string err;
+    const nlohmann::json j{{"width", w.width}, {"height", w.height}, {"maximized", w.maximized}};
+    if (!lr::writeFileAtomically(path, j.dump(1) + "\n", err)) LOG_WARN("window.json not saved: %s", err.c_str());
+}
+
 int main(int argc, char** argv) {
     using namespace lr;
     int platform = 0;
@@ -106,6 +136,7 @@ int main(int argc, char** argv) {
     std::vector<std::string> fireSpecs, readNames, readInputs;
     bool listControls = false;
     std::string dumpControlsPath, scriptPath;
+    int editBinding = -1;
     std::vector<std::string> paramNames;
     int sweepDevice = -1;
     std::string hostOverride, profileOverride, configPath, catalogPath, startTab;
@@ -148,6 +179,13 @@ int main(int argc, char** argv) {
         else if (a == "--config") next(configPath);
         else if (a == "--catalog") next(catalogPath);
         else if (a == "--tab") next(startTab);
+        else if (a == "--edit-binding") {
+            std::string v;
+            next(v);
+            long n = 0;
+            if (!parseNumber(v.c_str(), 0, 100000, 10, n)) { std::fprintf(stderr, "--edit-binding: expected a binding number, not \"%s\"\n", v.c_str()); return 2; }
+            editBinding = static_cast<int>(n);
+        }
         else if (a == "--plugin") { std::string v; next(v); pluginPaths.push_back(v); }
         else if (a == "--no-plugins") noPlugins = true;
         else if (a == "--quiet" || a == "-q") Log::instance().echoToStderr = false;
@@ -243,6 +281,7 @@ int main(int argc, char** argv) {
     } pluginShutdown{input, hapticsEngine, plugins};
     ctx.configPath = configPath.empty() ? app::configFile() : configPath;
     ctx.startTab = startTab;
+    ctx.startEditBinding = editBinding;
 
     {
         std::string err;
@@ -299,6 +338,20 @@ int main(int argc, char** argv) {
             if (!g.load(path, err)) { LOG_WARN("Guide %s not loaded: %s", path.c_str(), err.c_str()); continue; }
             LOG_INFO("Guide %s: %zu topics from %s", g.aircraft.c_str(), g.topics.size(), path.c_str());
             ctx.guides.push_back(std::move(g));
+        }
+        {   // lever recipes: the shipped ones, then the user's own (saved next to the config)
+            const std::string mine = ctx.userLeverRecipesPath();
+            for (const auto& path : app::listDataFiles("levers.json")) {
+                if (std::filesystem::path(path).filename() == "my_levers.json") continue;
+                std::string err;
+                if (!app::loadLeverRecipes(path, false, ctx.leverRecipes, err)) LOG_WARN("Lever recipes %s not loaded: %s", path.c_str(), err.c_str());
+            }
+            std::error_code ec;
+            if (std::filesystem::exists(mine, ec)) {
+                std::string err;
+                if (!app::loadLeverRecipes(mine, true, ctx.leverRecipes, err)) LOG_WARN("Your lever recipes %s not loaded: %s", mine.c_str(), err.c_str());
+            }
+            LOG_INFO("Lever recipes: %zu", ctx.leverRecipes.size());
         }
         ctx.catalogs.refreshStandard();
         ctx.loadLiveCaches();
@@ -490,7 +543,10 @@ int main(int argc, char** argv) {
 
     if (headless) {
         LOG_INFO("Headless mode: press Ctrl+C to quit");
-        while (!g_signalled) std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        while (!g_signalled) {
+            ctx.autoSwitchProfile();
+            std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        }
     } else {
         glfwSetErrorCallback(glfwErrorCallback);
         if (platform != 0) {
@@ -509,15 +565,23 @@ int main(int argc, char** argv) {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-        glfwWindowHintString(GLFW_WAYLAND_APP_ID, "msfs-linux-companion");
-        glfwWindowHintString(GLFW_X11_CLASS_NAME, "msfs-linux-companion");
-        glfwWindowHintString(GLFW_X11_INSTANCE_NAME, "msfs-linux-companion");
-        GLFWwindow* window = glfwCreateWindow(1280, 800, "MSFS Linux Companion", nullptr, nullptr);
+        // under Flatpak the desktop file is named after the Flatpak id: the compositor matches the window to it (icon, name) by the app id
+        const char* flatpakId = std::getenv("FLATPAK_ID");
+        const std::string appId = flatpakId && *flatpakId ? flatpakId : "msfs-linux-companion";
+        glfwWindowHintString(GLFW_WAYLAND_APP_ID, appId.c_str());
+        glfwWindowHintString(GLFW_X11_CLASS_NAME, appId.c_str());
+        glfwWindowHintString(GLFW_X11_INSTANCE_NAME, appId.c_str());
+        // next to the config in use: a run with --config (the tests) keeps its own window state
+        const std::string winStatePath = (std::filesystem::path(ctx.configPath).parent_path() / "window.json").string();
+        WindowState winState = loadWindowState(winStatePath);
+        glfwWindowHint(GLFW_MAXIMIZED, winState.maximized ? GLFW_TRUE : GLFW_FALSE);  // reopens maximized when it was closed maximized
+        GLFWwindow* window = glfwCreateWindow(winState.width, winState.height, "MSFS Linux Companion", nullptr, nullptr);
         if (!window) {
             LOG_ERROR("Window creation failed");
             glfwTerminate();
             return 1;
         }
+        glfwSetWindowUserPointer(window, &winState);
         const int plat = glfwGetPlatform();
         if (plat == GLFW_PLATFORM_X11) {
             // Wayland has no per-window icon API (GLFW reports an error); compositors use the .desktop icon via the app id.
@@ -540,6 +604,7 @@ int main(int argc, char** argv) {
         float xs = 1.f, ys = 1.f;
         glfwGetWindowContentScale(window, &xs, &ys);
         ui::loadFonts();
+        ui::setTheme(ctx.settings.uiTheme.c_str());
         ui::applyTheme(xs, static_cast<float>(ctx.settings.uiScale));
         // Note when the user does something: only then (and for a second after) is the window redrawn at full rate. These
         // callbacks go in first; the ImGui backend installs its own on top and calls ours.
@@ -549,6 +614,13 @@ int main(int argc, char** argv) {
         glfwSetKeyCallback(window, [](GLFWwindow*, int, int, int, int) { noteActivity(3); });
         glfwSetCharCallback(window, [](GLFWwindow*, unsigned) { noteActivity(4); });
         glfwSetWindowFocusCallback(window, [](GLFWwindow*, int) { noteActivity(5); });
+        // the normal (not maximized) size, remembered for the next start
+        glfwSetWindowSizeCallback(window, [](GLFWwindow* w, int width, int height) {
+            if (!glfwGetWindowAttrib(w, GLFW_MAXIMIZED) && !glfwGetWindowAttrib(w, GLFW_ICONIFIED) && width > 0 && height > 0) {
+                auto* st = static_cast<WindowState*>(glfwGetWindowUserPointer(w));
+                if (st) { st->width = width; st->height = height; }
+            }
+        });
         glfwSetCursorEnterCallback(window, [](GLFWwindow*, int) { noteActivity(6); });
         g_lastActivity = glfwGetTime();
         // The window is the least important thread of this program: input, the bridge and vibration keep their priority, the
@@ -593,11 +665,14 @@ int main(int argc, char** argv) {
             int w, h;
             glfwGetFramebufferSize(window, &w, &h);
             glViewport(0, 0, w, h);
-            glClearColor(0.08f, 0.08f, 0.09f, 1.0f);
+            const ImVec4 clear = ui::themeBackground();
+            glClearColor(clear.x, clear.y, clear.z, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
             glfwSwapBuffers(window);
         }
+        winState.maximized = glfwGetWindowAttrib(window, GLFW_MAXIMIZED) == GLFW_TRUE;
+        saveWindowState(winStatePath, winState);
         ImGui_ImplOpenGL3_Shutdown();
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();

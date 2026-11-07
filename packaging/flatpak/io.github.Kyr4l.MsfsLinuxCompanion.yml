@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 Kyr4l
 # Flatpak build of msfs-linux-companion: packaging/build-flatpak.sh builds it and writes dist/msfs-linux-companion-<version>-x86_64.flatpak.
+# Settings and logs stay in the sandbox's own folders (~/.var/app/io.github.Kyr4l.MsfsLinuxCompanion/config and .local/state).
 app-id: io.github.Kyr4l.MsfsLinuxCompanion
 runtime: org.freedesktop.Platform
 runtime-version: '25.08'
@@ -12,9 +13,6 @@ finish-args:
   - --share=ipc
   - --device=all                 # joysticks (/dev/input/event*), the Winwing vibration (/dev/hidraw*), the GPU
   - --share=network              # SimConnect is a TCP socket on 127.0.0.1 (MSFS under Proton listens on a random loopback port)
-  # the same settings and logs as the AppImage (the launcher points XDG_CONFIG_HOME / XDG_STATE_HOME there)
-  - --filesystem=xdg-config/msfs-linux-companion:create
-  - --filesystem=~/.local/state/msfs-linux-companion:create
   # the sim's packages, read only (tooltips, checklists: automatic catalogs and guides); other library folders: flatpak override --filesystem=PATH:ro
   - --filesystem=~/.local/share/Steam:ro
   - --filesystem=~/.steam:ro
@@ -59,12 +57,7 @@ modules:
           - dist
           - local
           - _cpr
-      - type: file
-        path: msfs-linux-companion.sh
     post-install:
-      # the program behind a launcher that keeps the settings in ~/.config/msfs-linux-companion; it finds its data at ../share from /app/libexec
-      - install -Dm755 /app/bin/msfs-linux-companion /app/libexec/msfs-linux-companion
-      - install -Dm755 msfs-linux-companion.sh /app/bin/msfs-linux-companion
       - mv /app/share/applications/msfs-linux-companion.desktop /app/share/applications/io.github.Kyr4l.MsfsLinuxCompanion.desktop
       - sed -i 's/^Icon=.*/Icon=io.github.Kyr4l.MsfsLinuxCompanion/' /app/share/applications/io.github.Kyr4l.MsfsLinuxCompanion.desktop
       - for f in /app/share/icons/hicolor/*/apps/msfs-linux-companion.*; do mv "$f" "${f%/*}/io.github.Kyr4l.MsfsLinuxCompanion.${f##*.}"; done

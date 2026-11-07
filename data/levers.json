@@ -1,0 +1,91 @@
+{
+ "about": "Lever recipes (app/LeverZones.hpp): a throttle lever with gates, ready to apply. {n} is the engine of the lever. 'at_gate' places a stage at that fraction of the max gate of the calibrated lever; 'at' is a fraction of the used range (0 = idle, 1 = top). Your own recipes are saved in my_levers.json in the settings folder.",
+ "recipes": [
+  {
+   "id": "airbus-inibuilds-reverse",
+   "title": "Airbus (iniBuilds), reverse in the cut-off",
+   "checked": "Checked on the A320neo V2, MSFS 2024 (2026-11-06)",
+   "verified": true,
+   "aircraft": ["microsoft-a320neo"],
+   "press": [{"kind": "sim_event", "name": "THROTTLE{n}_AXIS_SET_EX1", "value": 0}],
+   "integer": true,
+   "lever": {
+    "top": "full", "out_cutoff": -8192, "out_idle": -8192, "out_mil": 16384,
+    "stages": [
+     {"name": "CL", "at_gate": 0.55, "value": 0, "band": 0.05},
+     {"name": "FLX/MCT", "at_gate": 1.0, "value": 8192, "band": 0.03},
+     {"name": "TOGA", "at": 1.0, "value": 16384, "band": 0.03}
+    ]
+   },
+   "cutoff": {
+    "mode": "reverse",
+    "toggle_event": "THROTTLE_REVERSE_THRUST_TOGGLE",
+    "reversed": "(L:INI_AUTOTHRUST_TLA:{n}, Number) -1 <",
+    "amount": 16384,
+    "idle": -8192,
+    "ground_only": true,
+    "shared": true
+   }
+  },
+  {
+   "id": "airbus-fbw",
+   "title": "Airbus (FlyByWire A32NX / A380X)",
+   "checked": "From the FlyByWire throttle mapping defaults; not flown",
+   "verified": false,
+   "aircraft": ["A32NX", "A380X"],
+   "press": [{"kind": "sim_event", "name": "THROTTLE{n}_AXIS_SET_EX1", "value": 0}],
+   "integer": true,
+   "lever": {
+    "top": "full", "out_cutoff": -8192, "out_idle": -8192, "out_mil": 16384,
+    "stages": [
+     {"name": "CL", "at_gate": 0.55, "value": 0, "band": 0.05},
+     {"name": "FLX/MCT", "at_gate": 1.0, "value": 8192, "band": 0.03},
+     {"name": "TOGA", "at": 1.0, "value": 16384, "band": 0.03}
+    ]
+   }
+  },
+  {
+   "id": "fa18e",
+   "title": "F/A-18E, cut-off and afterburner",
+   "checked": "Checked on the F/A-18E, MSFS 2020",
+   "verified": true,
+   "aircraft": ["Asobo_FA18E"],
+   "press": [{"kind": "input_event", "name": "ENGINE_Throttle_{n}", "value": 0}],
+   "integer": false,
+   "lever": {"top": "max", "out_cutoff": 0, "out_idle": 0, "out_mil": 0.8, "stages": []},
+   "cutoff": {
+    "enter": [
+     {"kind": "delay", "name": "", "value": 100},
+     {"kind": "input_event", "name": "ENGINE_Throttle_{n}", "value": 0},
+     {"kind": "delay", "name": "", "value": 100},
+     {"kind": "input_event", "name": "ENGINE_Throttle_{n}_STOP", "value": 1}
+    ],
+    "leave": [{"kind": "input_event", "name": "ENGINE_Throttle_{n}_STOP", "value": 0}]
+   },
+   "afterburner": {
+    "enter": [
+     {"kind": "lvar_set", "name": "XMLVAR_LastAB{n}ThrottleSet", "value": 1},
+     {"kind": "delay", "name": "", "value": 100},
+     {"kind": "input_event", "name": "ENGINE_Throttle_{n}_Afterburner", "value": 1}
+    ],
+    "leave": [{"kind": "input_event", "name": "ENGINE_Throttle_{n}_Afterburner", "value": 0}]
+   }
+  },
+  {
+   "id": "bizjet-wt-cj4",
+   "title": "Business jet (Working Title CJ4)",
+   "checked": "Detents from the Working Title CJ4 source; not moved on the aircraft",
+   "verified": false,
+   "aircraft": ["Asobo_CJ4"],
+   "press": [{"kind": "sim_event", "name": "THROTTLE{n}_AXIS_SET_EX1", "value": 0}],
+   "integer": true,
+   "lever": {
+    "top": "full", "out_cutoff": -16384, "out_idle": -16384, "out_mil": 16384,
+    "stages": [
+     {"name": "CLB", "at": 0.80, "value": 9400, "band": 0.04},
+     {"name": "TO", "at": 1.0, "value": 16384, "band": 0.03}
+    ]
+   }
+  }
+ ]
+}

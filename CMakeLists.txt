@@ -1,7 +1,11 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 Kyr4l
 cmake_minimum_required(VERSION 3.20)
-project(msfs-linux-companion VERSION 0.8.16 LANGUAGES CXX)
+project(msfs-linux-companion VERSION 0.9.0 LANGUAGES CXX)
+# Version MAJOR.MINOR.FEATURE (MINOR up to 99, FEATURE one digit), plus a letter for a release with fixes only:
+# 0.9.0 -> fixes 0.9.0a, 0.9.0b -> next feature 0.9.1 (letter cleared). CMake's VERSION takes no letter, so it is here.
+set(COMPANION_VERSION_FIX "")
+set(COMPANION_VERSION "${PROJECT_VERSION}${COMPANION_VERSION_FIX}")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -67,9 +71,13 @@ add_executable(msfs-linux-companion
   src/app/Keypad.cpp
   src/app/BindingView.cpp
   src/app/Engine.cpp
+  src/app/LeverZones.cpp
+  src/app/MsfsControls.cpp
   src/app/Script.cpp
   src/app/Paths.cpp
   src/ui/Ui.cpp
+  src/ui/UiHome.cpp
+  src/ui/UiProfiles.cpp
   src/ui/AppContext.cpp
   src/ui/UiBindings.cpp
   src/ui/UiCalibration.cpp
@@ -86,7 +94,7 @@ target_link_libraries(msfs-linux-companion PRIVATE imgui Threads::Threads ${CMAK
 # Plugins (src/plugin/Plugin.hpp) are loaded into the program and use its functions: they are exported.
 set_target_properties(msfs-linux-companion PROPERTIES ENABLE_EXPORTS ON)
 target_compile_definitions(msfs-linux-companion PRIVATE
-  COMPANION_VERSION="${PROJECT_VERSION}"
+  COMPANION_VERSION="${COMPANION_VERSION}"
   COMPANION_SOURCE_DATA_DIR="${CMAKE_SOURCE_DIR}/data"
 )
 target_compile_options(msfs-linux-companion PRIVATE -Wall -Wextra -Wno-unused-parameter)
@@ -124,7 +132,7 @@ if(COMPANION_BUILD_TESTS)
   target_link_libraries(config_roundtrip PRIVATE Threads::Threads)
   target_compile_definitions(config_roundtrip PRIVATE COMPANION_TEST_FIXTURES="${CMAKE_SOURCE_DIR}/tests/fixtures")
   add_test(NAME config_roundtrip COMMAND config_roundtrip)
-  add_executable(axis_engine tests/axis_engine.cpp src/app/Engine.cpp src/app/Profile.cpp src/app/Paths.cpp src/input/Evdev.cpp
+  add_executable(axis_engine tests/axis_engine.cpp src/app/Engine.cpp src/app/LeverZones.cpp src/app/Profile.cpp src/app/Paths.cpp src/input/Evdev.cpp
                  src/sim/SimBridge.cpp src/sim/SimConnectClient.cpp)
   target_include_directories(axis_engine PRIVATE src third_party)
   target_link_libraries(axis_engine PRIVATE Threads::Threads)
@@ -153,6 +161,10 @@ if(COMPANION_BUILD_TESTS)
   target_include_directories(auto_catalog PRIVATE src third_party)
   target_link_libraries(auto_catalog PRIVATE Threads::Threads)
   add_test(NAME auto_catalog COMMAND auto_catalog ${CMAKE_SOURCE_DIR})
+  add_executable(lever_zones tests/lever_zones.cpp src/app/LeverZones.cpp src/app/Profile.cpp src/input/Evdev.cpp)
+  target_include_directories(lever_zones PRIVATE src third_party)
+  target_link_libraries(lever_zones PRIVATE Threads::Threads)
+  add_test(NAME lever_zones COMMAND lever_zones ${CMAKE_SOURCE_DIR})
   add_executable(guide_flow tests/guide_flow.cpp src/app/Guide.cpp src/app/Keypad.cpp)
   target_include_directories(guide_flow PRIVATE src third_party)
   add_test(NAME guide_flow COMMAND guide_flow ${CMAKE_SOURCE_DIR})

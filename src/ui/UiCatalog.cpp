@@ -289,7 +289,7 @@ void Ui::drawPanelsView(const Catalog& cat, bool pickMode, const std::vector<std
                 const bool doubled = hovered && ImGui::IsMouseDoubleClicked(0);
                 bool selected = false;
                 for (int idx : g.entries) selected |= idx == catalogSelected_;
-                const ImU32 fill = selected ? ImGui::GetColorU32(ImVec4(0.18f, 0.40f, 0.72f, 1.0f))
+                const ImU32 fill = selected ? ImGui::GetColorU32(withAlpha(kAccent, 0.55f))
                                             : hovered ? ImGui::GetColorU32(ImVec4(0.26f, 0.29f, 0.36f, 1.0f))
                                                       : ImGui::GetColorU32(ImVec4(0.20f, 0.22f, 0.27f, 1.0f));
                 dl->AddRectFilled(c0, c1, fill, fs * 0.35f);
@@ -372,7 +372,7 @@ void Ui::drawPanelsView(const Catalog& cat, bool pickMode, const std::vector<std
                 if (ImGui::GetContentRegionAvail().x < ImGui::CalcTextSize(e.api.c_str()).x + 30) ImGui::NewLine();
                 ImGui::PushID(idx);
                 const bool wasSelected = idx == catalogSelected_;  // a click changes the selection: pop only what was pushed
-                if (wasSelected) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.18f, 0.40f, 0.72f, 1.0f));
+                if (wasSelected) ImGui::PushStyleColor(ImGuiCol_Button, withAlpha(kAccent, 0.55f));
                 if (ImGui::SmallButton(e.api.size() > 46 ? (e.api.substr(0, 43) + "...").c_str() : e.api.c_str())) catalogSelected_ = idx;
                 if (wasSelected) ImGui::PopStyleColor();
                 if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s  %s  %s", e.type.c_str(), e.values.c_str(), e.remark.c_str());

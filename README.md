@@ -8,10 +8,14 @@ TCP to the sim running under Proton.
 
 ## Features
 
+* **Home**: what you are flying, the profile, the sim and your devices at a glance; *Bind a control* by pressing it; what needs a
+  look (bindings not tried, buttons your MSFS control profile also uses, a profile that does not fit the aircraft).
 * **Bindings** per aircraft: buttons, hats and axes to sim events, cockpit controls, `L:` variables or RPN code, with press /
-  release actions, repeat while held and two-position switches.
+  release actions, repeat while held and two-position switches. Profiles can list several aircraft and switch by themselves.
+* **Themes**: Slate, Night, Daylight, High contrast, and flight-deck themes (Airbus, Boeing 787, Boeing 777, Citation, Garmin G1000,
+  Fighter HUD); a profile can bring its own.
 * **Throttle calibration** for levers with gates: leave out the cut-off, use idle to the max gate or to the end, add named
-  stages (Airbus CL, FLX/MCT, TOGA).
+  stages (Airbus CL, FLX/MCT, TOGA), start from a recipe, and let the cut-off zone run reverse thrust.
 * **Cockpit catalogs** to pick controls from: A32NX, A380X, A320neo V2 and A400M (MSFS 2024), CJ4 (MSFS 2020 and 2024), F/A-18E, Spirit of St. Louis, Vision Jet, Cabri G2, and an
   automatic one for any other aircraft.
 * **Guides**: step-by-step procedures in the app, with steps the sim confirms ticked for you.
@@ -35,12 +39,15 @@ chmod +x msfs-linux-companion-*-x86_64.AppImage
 ./msfs-linux-companion-*-x86_64.AppImage
 ```
 
-Or the Flatpak (same settings folder as the AppImage; `packaging/build-flatpak.sh` builds it):
+Or the Flatpak (`packaging/build-flatpak.sh` builds it):
 
 ```sh
 flatpak install --user msfs-linux-companion-*-x86_64.flatpak
 flatpak run io.github.Kyr4l.MsfsLinuxCompanion
 ```
+
+The Flatpak keeps its settings in `~/.var/app/io.github.Kyr4l.MsfsLinuxCompanion/config/msfs-linux-companion`. To bring over
+the AppImage's, with the program closed: `cp -a ~/.config/msfs-linux-companion ~/.var/app/io.github.Kyr4l.MsfsLinuxCompanion/config/`.
 
 It reads Steam libraries under `~/.local/share/Steam`, `/mnt`, `/media` and `/run/media`; for one elsewhere:
 `flatpak override --user --filesystem=/path/to/SteamLibrary:ro io.github.Kyr4l.MsfsLinuxCompanion`.

@@ -1,5 +1,3 @@
-# Local copies of files from the (read-only) MSFS install disc
-_cpr/
 # Build output
 build/
 build-*/

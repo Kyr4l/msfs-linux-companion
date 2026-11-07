@@ -13,6 +13,8 @@
 #include "app/Catalog.hpp"
 #include "app/CockpitWatch.hpp"
 #include "app/Guide.hpp"
+#include "app/LeverZones.hpp"
+#include "app/MsfsControls.hpp"
 #include "app/Keypad.hpp"
 #include "app/Engine.hpp"
 #include "app/Profile.hpp"
@@ -32,6 +34,8 @@ struct AppContext {
     std::string configPath;
     CatalogSet catalogs;  // one per aircraft: data/*_catalog.json, what the sim reported, and the standard events
     std::deque<Guide> guides;               // data/*_guide.json
+    std::vector<LeverRecipe> leverRecipes;  // data/*levers.json, then the user's own <config>/my_levers.json (userMade)
+    std::string userLeverRecipesPath() const;
     KeypadSet keypads;                      // data/*_keypads.json: the keyboards the guides point at
     std::vector<GuideProbe> guideProbes;    // what the open guide page wants read from the sim
     const Guide* guideFor(const std::string& aircraft) const;
@@ -44,6 +48,7 @@ struct AppContext {
     plugin::PluginManager* plugins = nullptr;  // what the plugins added (tabs, menus, commands ...); set by main()
     bool dirty = false;
     std::string startTab;  // --tab NAME: tab selected on the first frame
+    int startEditBinding = -1;  // --edit-binding N: the editor opens on binding N of the active profile
     bool quitRequested = false;
     std::string lastSaveError;
 
@@ -56,6 +61,12 @@ struct AppContext {
     const Catalog* catalogFor(const std::string& aircraft) const;  // exact match, else the standard events, else the first
     void loadLiveCaches();                                          // ~/.config/msfs-linux-companion/live/*.json from earlier sessions
     void syncLive();                                                // folds the sim's current lists into the catalog, saves the cache
+    // When the loaded aircraft changes and the active profile is not made for it: the first profile with "switch automatically" that is.
+    void autoSwitchProfile();
+    std::string autoSwitchSeen;  // the aircraft the last check was for
+    std::string autoSwitchedTo;  // the profile the last automatic switch chose (Home says "switched automatically")
+    std::vector<MsfsControlProfile> msfsProfiles;  // the sim's own control profiles (app/MsfsControls.hpp), read when first needed
+    bool msfsProfilesRead = false;
     void forgetLive(const std::string& aircraft);
     // An aircraft without a hand-made catalog: labels its controls from their names and its package's tooltips, and makes a guide from
     // its package's checklist when there is one (app/AutoCatalog.hpp)
@@ -78,10 +89,15 @@ public:
 private:
     void drawMenuBar();
     void drawStatusBar();
-    void drawSidebar();  // the list of pages on the left
     // the page shown: a built-in one by name ("Bindings"), or a plugin's tab (pagePlugin_ = its plugin id)
-    std::string page_ = "Bindings", pagePlugin_;
+    std::string page_ = "Home", pagePlugin_;
+    void drawHomeTab();      // status, "bind a control", what needs a look
+    void drawRail();         // the pages, as icons down the left
+    void drawTopBar();       // the brand, the state of everything, the profile, the bindings switch
+    bool bindingChecked(const Binding& b) const;            // every action matches a catalog entry tried on the aircraft
+    std::vector<DoubleBinding> doubleBindings();             // buttons the sim's own control profile also binds
     void drawBindingsTab();
+    void drawProfilesTab();  // every profile in a table: its aircraft, the automatic switch, its theme
     void drawDevicesTab();
     void drawCatalogTab();
     void drawCockpitTab();     // which input event is the control I just clicked in the cockpit?
@@ -111,6 +127,8 @@ private:
     void drawAxisOptions();
     void drawAxisTargetPicker();  // quick setup: one of the flight controls every aircraft has, with its range
     void drawDetentOptions();  // lever with gates: calibration state, range, stages, presets
+    void drawLeverRecipes(const AxisCalibration* cal);  // recipe cards, "changed since the recipe", save as recipe
+    void drawCutoffZone();     // what the cut-off zone does: nothing, reverse thrust, custom actions
     // The output of a lever over its travel, with the zones, the stages (dragged to move them) and the live position; true when a stage moved.
     bool drawLeverGraph(AxisDetents& d, const AxisCalibration& cal, float now, float width, float height);
     int leverDrag_ = -1;  // the stage being dragged in the lever graph
@@ -126,10 +144,19 @@ private:
 
     // binding editor state
     bool editorOpen_ = false;
+    bool homeListening_ = false;  // Home's "bind a control" waits for a press
+    int pendingSelect_ = -2;      // a row clicked while the open binding had unsaved changes (-2: none)
+    bool draftChanged() const;    // the open binding differs from what is saved
+    void saveDraft();             // writes the open binding into the profile and keeps it open
+    void selectBinding(int index);  // opens it in the inspector, asking first when the open one has changes
+    std::string bindingsFilter_;  // the Bindings list shows only: "" all, "twice", "untried", "reverse" (set from Home)
     int editIndex_ = -1;      // the binding being edited, or -1 for a new one
     int insertAt_ = -1;       // where a new binding goes in the list (a copy goes right after its original); -1 = the end
     bool draftIsCopy_ = false;
     Binding draft_;
+    bool cutoffCustom_ = false;        // the cut-off zone was set to "Custom actions" (its lists may still be empty)
+    int recipeEngine_ = 0;             // the engine the recipes fill in ({n}); 0 = from the binding
+    std::string newRecipeTitle_;
     std::string bindingFilter_;  // Bindings tab: only the rows with all of these words
 
     // cockpit tab
@@ -191,6 +218,10 @@ private:
     // profile management
     std::string newProfileName_;
     bool renamingProfile_ = false;
+    std::string profRenameOf_, profRenameText_;  // Profiles page: the row whose name is being edited
+    bool profRenameFocus_ = false;
+    std::string profAircraftSearch_;
+    std::string profDelete_;  // the profile the delete question is about
 
     bool splashDone_ = false;
     std::string startTab_;

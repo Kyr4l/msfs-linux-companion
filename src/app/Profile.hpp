@@ -68,6 +68,24 @@ struct AxisConfig {
     AxisDetents detents;                  // Value mode: a lever with gates (needs the axis to be calibrated)
 };
 
+// What the cut-off zone of a lever does besides sending its value. Actions: the lists below (empty = nothing). Reverse: the program runs
+// the aircraft's reverse thrust itself (app/LeverZones.hpp), the safe way: it switches reverse on, sends the reverse amount only once the
+// aircraft reports reverse (an axis value sent without reverse would be forward thrust), and switches reverse off when no lever that
+// shares the switch is left in its cut-off.
+enum class ZoneMode { Actions, Reverse };
+
+struct ReverseZone {
+    int engine = 1;              // this lever's engine ({n} in the texts below)
+    int otherEngine = 0;         // the lever that shares the one reverse switch (an Airbus: both); 0 = this lever has its own
+    std::string toggleEvent = "THROTTLE_REVERSE_THRUST_TOGGLE";  // K: event that switches reverse on and off
+    std::string reversedCode;    // calculator code that is true while reverse is engaged on engine {n}
+    std::string axisEvent;       // K: event that sets the lever (THROTTLE{n}_AXIS_SET_EX1); empty = the binding's own
+    double amount = 16384;       // the axis value while in reverse (the aircraft's maximum reverse)
+    double idle = -8192;         // the axis value when the lever leaves (reverse idle)
+    bool groundOnly = true;      // reverse only switches on with the aircraft on the ground
+    bool operator==(const ReverseZone&) const = default;
+};
+
 struct Binding {
     std::string label;
     input::InputId input;
@@ -76,6 +94,9 @@ struct Binding {
     std::vector<Action> onRelease;
     // Lever with gates (axis.detents.enabled): run when the lever enters or leaves the cut-off or the afterburner zone.
     std::vector<Action> onCutoff, onCutoffLeave, onAfterburner, onAfterburnerLeave;
+    ZoneMode cutoffMode = ZoneMode::Actions;  // Reverse: onCutoff / onCutoffLeave are not used, the program runs `reverse`
+    ReverseZone reverse;
+    std::string recipe;         // id of the lever recipe this binding started from (data/levers.json), for "changed since the recipe"
     std::string group;          // the user's own group of this binding in the Bindings tab ("Throttle"); empty = ungrouped
     bool repeat = false;        // re-fire onPress while held (knob turning)
     int repeatDelayMs = 400;
@@ -107,8 +128,12 @@ constexpr const char* kDefaultAircraft = "A32NX";
 struct Profile {
     std::string name = "Default";
     std::string aircraft = kDefaultAircraft;  // which catalog the editor offers; old configs without it are A32NX
+    std::vector<std::string> alsoAircraft;    // other aircraft this profile works with (an A320neo profile for the A321)
+    bool autoSwitch = false;                  // becomes the active profile when one of its aircraft is loaded
+    std::string uiTheme;                      // this profile's colour theme (Settings: "use the profile's theme"); empty = none
     std::vector<Binding> bindings;
 };
+
 
 // Config schema: 1 = original, 2 = profiles carry an "aircraft", 3 = input event (B:) actions, 4 = axis calibrations and lever gates, 5 = lever
 // range to the end of the travel, lever stages, text size. Newer files stay readable by older
@@ -126,6 +151,8 @@ struct Settings {
     bool autoConnect = true;
     bool guideAutodetect = true;  // guides: take the answer the simulator reports instead of asking
     double uiScale = 1.0;         // text and widget size, on top of the screen's own scale (Settings tab)
+    std::string uiTheme = "slate";  // colour theme (ui/Theme.hpp)
+    bool themeFromProfile = false;  // the active profile's theme, when it has one, wins over uiTheme
     std::string activeProfile;
     std::vector<Profile> profiles;
     haptics::HapticsConfig haptics;
@@ -143,6 +170,14 @@ struct Settings {
     const Profile* active() const;
     Profile& ensureActive();
 };
+
+// Whether the profile is made for this aircraft: its own aircraft or one of alsoAircraft (spelling does not matter).
+// The binding as it would be saved, to tell whether an edited copy differs from it.
+std::string bindingFingerprint(const Binding& b);
+bool profileFitsAircraft(const Profile& p, const std::string& aircraftId);
+// The profile to switch to now that `aircraftId` is loaded: none when the active profile already fits it, else the first profile with
+// autoSwitch that fits it (none when there is no such profile).
+const Profile* autoSwitchTarget(const Settings& s, const std::string& aircraftId);
 
 // Parameter range that a sim axis event expects, judged from its name alone (used when the catalog does not know
 // the event): THROTTLEn_AXIS_SET_EX1 and friends take -16384..16383, AXIS_*_SET take -16383..16383.

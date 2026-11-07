@@ -11,6 +11,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include "sim/AircraftId.hpp"
 #include "util/AtomicFile.hpp"
 #include "util/Log.hpp"
 
@@ -239,6 +240,13 @@ static json toJson(const Binding& b) {
         out["zone_actions"] = json{{"cutoff", list(b.onCutoff)}, {"cutoff_leave", list(b.onCutoffLeave)},
                                    {"afterburner", list(b.onAfterburner)}, {"afterburner_leave", list(b.onAfterburnerLeave)}};
     }
+    if (b.cutoffMode == ZoneMode::Reverse && b.input.kind == input::InputKind::Axis) {  // left out otherwise: files stay as before
+        const ReverseZone& r = b.reverse;
+        out["cutoff_zone"] = json{{"mode", "reverse"}, {"engine", r.engine}, {"other_engine", r.otherEngine}, {"toggle_event", r.toggleEvent},
+                                  {"reversed", r.reversedCode}, {"axis_event", r.axisEvent}, {"amount", finiteOr0(r.amount)},
+                                  {"idle", finiteOr0(r.idle)}, {"ground_only", r.groundOnly}};
+    }
+    if (!b.recipe.empty()) out["recipe"] = b.recipe;
     return out;
 }
 
@@ -263,6 +271,22 @@ static Binding bindingFromJson(const json& j) {
         read("afterburner", b.onAfterburner);
         read("afterburner_leave", b.onAfterburnerLeave);
     }
+    if (j.contains("cutoff_zone") && j["cutoff_zone"].is_object() && j["cutoff_zone"].value("mode", "") == "reverse") {
+        const json& z = j["cutoff_zone"];
+        ReverseZone& r = b.reverse;
+        auto num = [&z](const char* key, double fallback) { return z.contains(key) && z[key].is_number() ? z[key].get<double>() : fallback; };
+        auto str = [&z](const char* key, const std::string& fallback) { return z.contains(key) && z[key].is_string() ? z[key].get<std::string>() : fallback; };
+        b.cutoffMode = ZoneMode::Reverse;
+        r.engine = std::clamp(static_cast<int>(num("engine", r.engine)), 1, 8);
+        r.otherEngine = std::clamp(static_cast<int>(num("other_engine", r.otherEngine)), 0, 8);
+        r.toggleEvent = str("toggle_event", r.toggleEvent);
+        r.reversedCode = str("reversed", r.reversedCode);
+        r.axisEvent = str("axis_event", r.axisEvent);
+        r.amount = num("amount", r.amount);
+        r.idle = num("idle", r.idle);
+        r.groundOnly = z.contains("ground_only") && z["ground_only"].is_boolean() ? z["ground_only"].get<bool>() : r.groundOnly;
+    }
+    b.recipe = j.value("recipe", "");
     b.group = j.value("group", "");
     b.repeat = j.value("repeat", false);
     b.repeatDelayMs = j.value("repeat_delay_ms", 400);
@@ -270,6 +294,8 @@ static Binding bindingFromJson(const json& j) {
     b.enabled = j.value("enabled", true);
     return b;
 }
+
+std::string bindingFingerprint(const Binding& b) { return toJson(b).dump(); }
 
 bool axisEventRange(const std::string& eventName, double& lo, double& hi) {
     std::string n = eventName;
@@ -298,6 +324,8 @@ bool loadSettings(const std::string& path, Settings& out, std::string& err) {
         s.autoConnect = j.value("auto_connect", s.autoConnect);
         s.guideAutodetect = j.value("guide_autodetect", s.guideAutodetect);
         if (j.contains("ui_scale") && j["ui_scale"].is_number()) s.uiScale = std::clamp(j["ui_scale"].get<double>(), 0.75, 2.0);
+        if (j.contains("ui_theme") && j["ui_theme"].is_string()) s.uiTheme = j["ui_theme"].get<std::string>();
+        s.themeFromProfile = j.contains("theme_from_profile") && j["theme_from_profile"].is_boolean() && j["theme_from_profile"].get<bool>();
         s.activeProfile = j.value("active_profile", "");
         if (j.contains("bindings_view") && j["bindings_view"].is_object()) {
             const json& v = j["bindings_view"];
@@ -355,6 +383,10 @@ bool loadSettings(const std::string& path, Settings& out, std::string& err) {
             p.name = pj.value("name", "Profile");
             p.aircraft = pj.value("aircraft", std::string(kDefaultAircraft));
             if (p.aircraft.empty()) p.aircraft = kDefaultAircraft;
+            for (const auto& a : pj.value("also_aircraft", json::array()))
+                if (a.is_string() && !a.get<std::string>().empty()) p.alsoAircraft.push_back(a.get<std::string>());
+            p.autoSwitch = pj.contains("auto_switch") && pj["auto_switch"].is_boolean() && pj["auto_switch"].get<bool>();
+            p.uiTheme = pj.contains("ui_theme") && pj["ui_theme"].is_string() ? pj["ui_theme"].get<std::string>() : "";
             for (const auto& bj : pj.value("bindings", json::array())) p.bindings.push_back(bindingFromJson(bj));
             s.profiles.push_back(std::move(p));
         }
@@ -392,7 +424,11 @@ bool saveSettings(const std::string& path, const Settings& s, std::string& err) 
     for (const auto& p : s.profiles) {
         json bindings = json::array();
         for (const auto& b : p.bindings) bindings.push_back(toJson(b));
-        profiles.push_back(json{{"name", p.name}, {"aircraft", p.aircraft}, {"bindings", bindings}});
+        json pj{{"name", p.name}, {"aircraft", p.aircraft}, {"bindings", bindings}};
+        if (!p.alsoAircraft.empty()) pj["also_aircraft"] = p.alsoAircraft;  // left out when unused: files stay as before
+        if (p.autoSwitch) pj["auto_switch"] = true;
+        if (!p.uiTheme.empty()) pj["ui_theme"] = p.uiTheme;
+        profiles.push_back(pj);
     }
     json rules = json::object(), devices = json::object();
     for (const auto& [id, rc] : s.haptics.rules) rules[id] = json{{"enabled", rc.enabled}, {"gain", finiteOr0(rc.gain)}};
@@ -403,7 +439,7 @@ bool saveSettings(const std::string& path, const Settings& s, std::string& err) 
     json calibrations = json::array();
     for (const auto& c : s.calibrations) calibrations.push_back(toJson(c));
     json j{{"version", kConfigVersion}, {"host", s.host}, {"port", s.port}, {"auto_connect", s.autoConnect}, {"guide_autodetect", s.guideAutodetect},
-           {"ui_scale", finiteOr0(s.uiScale)}, {"active_profile", s.activeProfile}, {"profiles", profiles}, {"calibrations", calibrations},
+           {"ui_scale", finiteOr0(s.uiScale)}, {"ui_theme", s.uiTheme}, {"theme_from_profile", s.themeFromProfile}, {"active_profile", s.activeProfile}, {"profiles", profiles}, {"calibrations", calibrations},
            {"bindings_view", {{"group_by", s.bindingsGroupBy == BindingsGroupBy::Device ? "device" : s.bindingsGroupBy == BindingsGroupBy::InputType ? "type" : s.bindingsGroupBy == BindingsGroupBy::Custom ? "custom" : "none"}, {"auto_sort", s.bindingsAutoSort}}},
            {"haptics", {{"enabled", s.haptics.enabled}, {"master", finiteOr0(s.haptics.master)}, {"rules", rules}, {"devices", devices}}}};
     if (!s.disabledPlugins.empty() || !s.pluginSettings.empty()) {  // left out when there is nothing: files without plugins stay as before
@@ -434,6 +470,22 @@ bool saveSettings(const std::string& path, const Settings& s, std::string& err) 
         return false;
     }
     return writeFileAtomically(path, j.dump(2) + "\n", err);
+}
+
+bool profileFitsAircraft(const Profile& p, const std::string& aircraftId) {
+    if (aircraftId.empty()) return false;
+    if (sim::sameAircraft(p.aircraft, aircraftId)) return true;
+    for (const auto& a : p.alsoAircraft)
+        if (sim::sameAircraft(a, aircraftId)) return true;
+    return false;
+}
+
+const Profile* autoSwitchTarget(const Settings& s, const std::string& aircraftId) {
+    if (aircraftId.empty()) return nullptr;
+    if (const Profile* active = s.active(); active && profileFitsAircraft(*active, aircraftId)) return nullptr;
+    for (const auto& p : s.profiles)
+        if (p.autoSwitch && profileFitsAircraft(p, aircraftId)) return &p;
+    return nullptr;
 }
 
 }  // namespace lr::app

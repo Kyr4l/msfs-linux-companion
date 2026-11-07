@@ -95,12 +95,23 @@ direction. `tools/virtual_joystick.py demo` creates a fake joystick to try all o
 
 ## Aircraft profiles
 
-Each profile belongs to an aircraft (A32NX or A380X). The aircraft decides which catalog the editor and
-the *Catalog* tab offer; it never changes existing bindings, so you can re-assign a profile at any time.
+Each profile is made for one or more aircraft. The first one decides which catalog the editor and the *Catalog* tab offer; it
+never changes existing bindings, so you can re-assign a profile at any time.
 
-* **New profile** asks for the aircraft; the default is the aircraft currently loaded in the sim.
-* When the loaded aircraft does not match the active profile, the Bindings tab says so and offers a
-  one-click *Switch to "<profile>"* (or *Create a profile for it*). Nothing is switched automatically.
+The **Profiles** page (on the rail, or *Manage profiles...* in Bindings) lists every profile in a table:
+
+* **Aircraft**: click the cell to tick the aircraft the profile works with, for example an A320neo profile that also flies the
+  A321. The list marks the aircraft loaded in the sim and names the other profiles that already have each aircraft.
+* **Switch automatically**: when the loaded aircraft changes and the active profile is not made for it, the first profile in
+  the list with this switch on that has the aircraft becomes the active one. It only happens on a change of aircraft, so a
+  profile picked by hand stays. Drag the dots on the left (or *Move up* / *Move down* in the row menu) to set which profile
+  wins; a line above the table names any aircraft that several switching profiles want. Without the switch, the Bindings tab
+  says the profiles do not match and offers a one-click *Use "<profile>"* (or *New profile*).
+* **Theme**: the colours of the companion while this profile is active, when *Use the profile's theme* is on in Settings.
+* **Bindings**: how many; an empty profile offers *Copy from...* another profile.
+* The row menu: *Edit bindings*, *Use this profile*, *Rename* (or double-click the name), *Duplicate* (the copy does not switch
+  automatically), *Delete*.
+* **New profile** adds a row for the aircraft loaded in the sim, with the switch off.
 * *Catalog* has an aircraft selector for browsing the other aircraft's list ("browsing only" is shown).
 * Numbered controls such as `ENG {NUM} BLEED` are expanded into one entry per unit (1 to 4, as the
   FlyByWire docs define the placeholder; the ADIRS and the air-conditioning packs stop at 3). A number

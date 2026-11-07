@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Kyr4l
 #include "ui/Ui.hpp"
 #include "ui/UiCommon.hpp"
+#include "ui/Theme.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -84,6 +85,42 @@ void Ui::drawSettingsTab() {
                 if (ImGui::Selectable(z.label, std::fabs(s.uiScale - z.scale) < 1e-3)) { s.uiScale = z.scale; ctx_.markDirty(); }
             ImGui::EndCombo();
         }
+    }
+    {   // colour themes, as small cards with their colours
+        const float fs = ImGui::GetFontSize();
+        int count = 0;
+        const ui::ThemeInfo* list = ui::themes(count);
+        fieldLabel("Theme");
+        const float startX = ImGui::GetCursorPosX(), cardW = fs * 9.5f, cardH = fs * 2.2f;
+        const char* group = "";
+        for (int i = 0; i < count; ++i) {
+            if (std::strcmp(group, list[i].group) != 0) {
+                group = list[i].group;
+                if (i) { ImGui::NewLine(); fieldLabel(""); }
+                ImGui::TextDisabled("%s", group);
+                ImGui::SameLine(startX + fs * 4.5f);
+            } else {
+                ImGui::SameLine();
+                if (ImGui::GetCursorPosX() + cardW > ImGui::GetContentRegionMax().x) { ImGui::NewLine(); ImGui::SetCursorPosX(startX + fs * 4.5f); }
+            }
+            ImGui::PushID(i);
+            const bool on = s.uiTheme == list[i].id;
+            const ImVec2 p = ImGui::GetCursorScreenPos();
+            if (ImGui::InvisibleButton("theme", ImVec2(cardW, cardH))) { s.uiTheme = list[i].id; ctx_.markDirty(); }
+            ImDrawList* dl = ImGui::GetWindowDrawList();
+            dl->AddRectFilled(p, ImVec2(p.x + cardW, p.y + cardH), ImGui::GetColorU32(ui::palette::kSurface), fs * 0.35f);
+            dl->AddRect(p, ImVec2(p.x + cardW, p.y + cardH), ImGui::GetColorU32(on ? kAccent : ImGui::IsItemHovered() ? ui::palette::kTextDim : ui::palette::kBorder), fs * 0.35f, 0, on ? 2.0f : 1.0f);
+            for (int k = 0; k < 3; ++k) {
+                const ImVec2 a(p.x + fs * 0.65f + k * fs * 0.8f, p.y + cardH * 0.5f);
+                dl->AddCircleFilled(a, fs * 0.3f, ImGui::GetColorU32(ui::themeSwatch(list[i].id, k)));
+                dl->AddCircle(a, fs * 0.3f, ImGui::GetColorU32(withAlpha(ui::palette::kTextDim, 0.5f)));
+            }
+            dl->AddText(ImVec2(p.x + fs * 2.9f, p.y + (cardH - fs) * 0.5f), ImGui::GetColorU32(ui::palette::kText), list[i].name);
+            ImGui::PopID();
+        }
+        fieldLabel("");
+        if (ImGui::Checkbox("Use the profile's theme", &s.themeFromProfile)) ctx_.markDirty();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("A profile with a theme of its own (Profiles page) colours the companion while it is active");
     }
     ImGui::SeparatorText("Connection");
     bool changed = false;

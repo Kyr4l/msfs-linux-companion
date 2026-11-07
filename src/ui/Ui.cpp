@@ -63,11 +63,18 @@ bool Ui::inputIsPressed(const input::InputId& id) const {
 }
 
 void Ui::draw() {
-    if (std::fabs(ui::themeUserScale() - static_cast<float>(ctx_.settings.uiScale)) > 1e-3f) ui::applyTheme(static_cast<float>(ctx_.settings.uiScale));
+    {   // the theme: the active profile's when asked for and it has one, else the chosen one
+        const Profile* ap = ctx_.settings.active();
+        const std::string& want = ctx_.settings.themeFromProfile && ap && !ap->uiTheme.empty() ? ap->uiTheme : ctx_.settings.uiTheme;
+        const bool themeChanged = want != ui::themeId();
+        if (themeChanged) ui::setTheme(want.c_str());
+        if (themeChanged || std::fabs(ui::themeUserScale() - static_cast<float>(ctx_.settings.uiScale)) > 1e-3f) ui::applyTheme(static_cast<float>(ctx_.settings.uiScale));
+    }
     cockpitDrawn_ = false;
     devices_ = ctx_.input.devices();
     status_ = ctx_.bridge.status();
     ctx_.syncLive();  // folds new input events / L: vars reported by the sim into the catalog
+    ctx_.autoSwitchProfile();
     if (ctx_.engine.hasScheduled()) ctx_.engine.tick();  // what a Delay of a Test button held back
 
     const ImGuiViewport* vp = ImGui::GetMainViewport();
@@ -88,18 +95,22 @@ void Ui::draw() {
                 if (h.name == startTab_) { pagePlugin_ = h.plugin; break; }
         startTab_.clear();
     }
-    drawSidebar();
+    if (ctx_.startEditBinding >= 0) {
+        if (ctx_.startEditBinding < static_cast<int>(ctx_.settings.ensureActive().bindings.size())) openEditor(ctx_.startEditBinding);
+        ctx_.startEditBinding = -1;
+    }
+    drawTopBar();
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetStyle().ItemSpacing.y);  // the rail starts right under the bar
+    drawRail();
     ImGui::SameLine(0, 0);
     const ImGuiStyle& style = ImGui::GetStyle();
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(style.WindowPadding.x * 1.4f, style.WindowPadding.y));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(style.WindowPadding.x * 1.4f, style.WindowPadding.y * 1.3f));
     ImGui::BeginChild("##page", ImVec2(0, 0), ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
     ImGui::PopStyleVar();
-    drawStatusBar();
-    ImGui::Spacing();
     bool drawn = false;
     if (pagePlugin_.empty()) {
         struct Page { const char* name; void (Ui::*draw)(); };
-        static const Page pages[] = {{"Bindings", &Ui::drawBindingsTab}, {"Devices", &Ui::drawDevicesTab}, {"Guides", &Ui::drawGuidesTab},
+        static const Page pages[] = {{"Home", &Ui::drawHomeTab}, {"Bindings", &Ui::drawBindingsTab}, {"Profiles", &Ui::drawProfilesTab}, {"Devices", &Ui::drawDevicesTab}, {"Guides", &Ui::drawGuidesTab},
                                      {"Catalog", &Ui::drawCatalogTab},   {"Cockpit", &Ui::drawCockpitTab}, {"Vibration", &Ui::drawVibrationTab},
                                      {"Log", &Ui::drawLogTab},           {"Settings", &Ui::drawSettingsTab}};
         for (const auto& pg : pages)
@@ -124,7 +135,7 @@ void Ui::draw() {
                 drawn = true;
             }
     }
-    if (!drawn) { page_ = "Bindings"; pagePlugin_.clear(); }  // a plugin that went away, an unknown --tab
+    if (!drawn) { page_ = "Home"; pagePlugin_.clear(); }  // a plugin that went away, an unknown --tab
     ImGui::EndChild();
     ImGui::End();
     if (ctx_.plugins)
@@ -136,7 +147,6 @@ void Ui::draw() {
 
     if (cockpit_.running() && !cockpitDrawn_) stopCockpitWatch();  // the tab was left: no more reading of every input event
     if (!splashDone_) drawSplash();
-    if (editorOpen_) drawBindingEditor();
     drawCalibrationWizard();
 
     // Debounced auto-save.
@@ -189,55 +199,6 @@ void Ui::drawMenuBar() {
     if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_S)) ctx_.save();
 }
 
-// The pages on the left, like the sections of a settings app; the version at the bottom.
-void Ui::drawSidebar() {
-    const float fs = ImGui::GetFontSize();
-    ImGui::PushStyleColor(ImGuiCol_ChildBg, ui::palette::kSurface);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(fs * 0.6f, fs * 0.8f));
-    ImGui::PushFont(nullptr, fs * 1.1f);
-    const float titleW = ImGui::CalcTextSize("MSFS Companion").x;
-    ImGui::PopFont();
-    ImGui::BeginChild("##sidebar", ImVec2(std::max(fs * 10.5f, titleW + fs * 2.2f), 0), ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_NoScrollbar);
-    ImGui::PopStyleVar();
-    ImGui::PushFont(nullptr, fs * 1.1f);
-    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + fs * 0.4f);
-    ImGui::TextUnformatted("MSFS Companion");
-    ImGui::PopFont();
-    ImGui::Dummy(ImVec2(0, fs * 0.4f));
-    auto item = [&](const char* name, const std::string& plugin) {
-        const bool selected = page_ == name && pagePlugin_ == plugin;
-        ImGui::PushID(plugin.c_str());
-        const ImVec2 p = ImGui::GetCursorScreenPos();
-        const float w = ImGui::GetContentRegionAvail().x, h = fs * 2.0f;
-        if (ImGui::InvisibleButton(name, ImVec2(w, h))) { page_ = name; pagePlugin_ = plugin; }
-        const bool hovered = ImGui::IsItemHovered();
-        ImDrawList* dl = ImGui::GetWindowDrawList();
-        if (selected || hovered)
-            dl->AddRectFilled(p, ImVec2(p.x + w, p.y + h), ImGui::GetColorU32(selected ? ui::palette::kAccentSoft : ImGui::GetStyleColorVec4(ImGuiCol_FrameBg)), fs * 0.35f);
-        if (selected) dl->AddRectFilled(ImVec2(p.x, p.y + h * 0.22f), ImVec2(p.x + 3.0f, p.y + h * 0.78f), ImGui::GetColorU32(kAccent), 1.5f);
-        dl->AddText(ImVec2(p.x + fs * 0.8f, p.y + (h - fs) * 0.5f), ImGui::GetColorU32(selected ? ImGuiCol_Text : hovered ? ImGuiCol_Text : ImGuiCol_TextDisabled), name);
-        ImGui::PopID();
-    };
-    for (const char* name : {"Bindings", "Devices", "Guides", "Catalog", "Cockpit", "Vibration"}) item(name, "");
-    if (ctx_.plugins && !ctx_.plugins->tabs().empty()) {
-        ImGui::Dummy(ImVec2(0, fs * 0.3f));
-        ImGui::Separator();
-        ImGui::Dummy(ImVec2(0, fs * 0.3f));
-        for (const auto& h : ctx_.plugins->tabs()) item(h.name.c_str(), h.plugin);
-    }
-    ImGui::Dummy(ImVec2(0, fs * 0.3f));
-    ImGui::Separator();
-    ImGui::Dummy(ImVec2(0, fs * 0.3f));
-    for (const char* name : {"Log", "Settings"}) item(name, "");
-    // version at the bottom
-    const float bottom = ImGui::GetWindowHeight() - fs * 2.0f;
-    if (ImGui::GetCursorPosY() < bottom) ImGui::SetCursorPosY(bottom);
-    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + fs * 0.4f);
-    ImGui::TextDisabled("Version %s", COMPANION_VERSION);
-    ImGui::EndChild();
-    ImGui::PopStyleColor();
-}
-
 // The state of everything the program talks to, as badges, and the switch that pauses the bindings.
 void Ui::drawStatusBar() {
     const float fs = ImGui::GetFontSize(), gap = fs * 0.5f;
@@ -277,6 +238,31 @@ void Ui::drawStatusBar() {
             shown = known && known->curated ? known->label() : (loadedId.label.empty() ? baseName(status_.aircraft) : loadedId.label);
         }
         if (pill(ImVec4(0, 0, 0, 0), shown.c_str()) && !status_.aircraft.empty()) ImGui::SetTooltip("%s", status_.aircraft.c_str());
+    }
+    ImGui::SameLine(0, gap);
+    {   // the active profile: a menu to pick another one
+        Settings& s = ctx_.settings;
+        const Profile& p = s.ensureActive();
+        const bool autoNow = ctx_.autoSwitchedTo == p.name;
+        std::string label = "Profile  " + p.name + (autoNow ? "  (auto)" : "") + "###topprofile";
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, ImGui::GetFrameHeight() * 0.5f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(fs * 0.7f, ImGui::GetStyle().FramePadding.y));
+        if (ImGui::Button(label.c_str())) ImGui::OpenPopup("top_profiles");
+        ImGui::PopStyleVar(2);
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip(autoNow ? "Switched to automatically for the loaded aircraft" : "Click to use another profile");
+        if (ImGui::BeginPopup("top_profiles")) {
+            for (const auto& q : s.profiles) {
+                if (ImGui::Selectable(q.name.c_str(), q.name == p.name)) {
+                    s.activeProfile = q.name;
+                    ctx_.autoSwitchedTo.clear();
+                    viewAircraft_.clear();
+                    ctx_.markDirty();
+                }
+            }
+            ImGui::Separator();
+            if (ImGui::Selectable("Manage profiles...")) { page_ = "Profiles"; pagePlugin_.clear(); }
+            ImGui::EndPopup();
+        }
     }
     ImGui::SameLine(0, gap);
     snprintf(text, sizeof text, devices_.size() == 1 ? "%zu device" : "%zu devices", devices_.size());

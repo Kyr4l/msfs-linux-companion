@@ -42,6 +42,10 @@ const Guide* AppContext::guideFor(const std::string& aircraft) const {
     return nullptr;
 }
 
+std::string AppContext::userLeverRecipesPath() const {
+    return (std::filesystem::path(configPath).parent_path() / "my_levers.json").string();
+}
+
 void AppContext::refreshWatches() {
     const Profile& p = settings.ensureActive();
     std::vector<std::string> vars;
@@ -141,6 +145,20 @@ void AppContext::loadLiveCaches() {
         LOG_INFO("Cached controls for %s: %zu entries", cached.aircraft.c_str(), cached.entries.size());
     }
     catalogs.refreshStandard();
+}
+
+void AppContext::autoSwitchProfile() {
+    const std::string id = sim::identifyAircraft(bridge.status().aircraft).id;
+    if (id == autoSwitchSeen) return;  // only on a change of aircraft: a profile picked by hand afterwards stays
+    autoSwitchSeen = id;
+    if (id.empty()) return;
+    if (const Profile* to = autoSwitchTarget(settings, id)) {
+        LOG_INFO("Aircraft %s loaded: switched to the profile \"%s\"", id.c_str(), to->name.c_str());
+        settings.activeProfile = to->name;
+        autoSwitchedTo = to->name;
+        markDirty();
+        pushProfileToEngine();
+    }
 }
 
 void AppContext::syncLive() {

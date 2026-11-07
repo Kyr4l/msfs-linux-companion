@@ -11,7 +11,7 @@ APPDIR="$BUILD/AppDir"
 DIST="$ROOT/dist"
 TOOL="$ROOT/packaging/tools/appimagetool-x86_64.AppImage"
 ARCH="${ARCH:-x86_64}"
-VERSION="$(sed -n 's/^project(msfs-linux-companion VERSION \([0-9.]*\).*/\1/p' "$ROOT/CMakeLists.txt")"
+VERSION="$(sed -n 's/^project(msfs-linux-companion VERSION \([0-9.]*\).*/\1/p' "$ROOT/CMakeLists.txt")$(sed -n 's/^set(COMPANION_VERSION_FIX "\([a-z]*\)").*/\1/p' "$ROOT/CMakeLists.txt")"
 
 RUNTIME="$ROOT/packaging/tools/runtime-$ARCH"
 if [ ! -f "$RUNTIME" ]; then

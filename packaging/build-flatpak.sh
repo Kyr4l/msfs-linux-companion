@@ -9,9 +9,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP=io.github.Kyr4l.MsfsLinuxCompanion
 MANIFEST="$ROOT/packaging/flatpak/$APP.yml"
-BUILD="$ROOT/build-flatpak"
+# outside the repo: the build holds symlinks to / (var/run -> /run) that editors and indexers would crawl
+BUILD="${XDG_CACHE_HOME:-$HOME/.cache}/msfs-linux-companion/build-flatpak"
 DIST="$ROOT/dist"
-VERSION="$(sed -n 's/^project(msfs-linux-companion VERSION \([0-9.]*\).*/\1/p' "$ROOT/CMakeLists.txt")"
+VERSION="$(sed -n 's/^project(msfs-linux-companion VERSION \([0-9.]*\).*/\1/p' "$ROOT/CMakeLists.txt")$(sed -n 's/^set(COMPANION_VERSION_FIX "\([a-z]*\)").*/\1/p' "$ROOT/CMakeLists.txt")"
 JOBS="${JOBS:-2}"
 
 if command -v flatpak-builder >/dev/null; then BUILDER=(flatpak-builder)
