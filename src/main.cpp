@@ -6,6 +6,8 @@
 #include <csignal>
 #include <ctime>
 #include <filesystem>
+#include <malloc.h>
+#include <poll.h>
 #include <sys/resource.h>
 #include <sys/syscall.h>
 #include <unistd.h>
@@ -26,6 +28,9 @@
 #include "app/Paths.hpp"
 #include "app/Profile.hpp"
 #include "app/Script.hpp"
+#include "desktop/DesktopService.hpp"
+#include "desktop/SingleInstance.hpp"
+#include "desktop/Tray.hpp"
 #include "haptics/Haptics.hpp"
 #include "haptics/WinwingHid.hpp"
 #include "input/Evdev.hpp"
@@ -68,6 +73,7 @@ void usage() {
         "msfs-linux-companion [options]\n"
         "  --wayland | --x11      force the GLFW platform (default: Wayland if available, else X11)\n"
         "  --headless             no window; run the active profile until SIGINT\n"
+        "  --tray                 start in the system tray, without the window\n"
         "  --host HOST            SimConnect host (default from config, 127.0.0.1)\n"
         "  --port PORT            SimConnect TCP port (default from config, 500)\n"
         "  --profile NAME         activate this profile for the session\n"
@@ -130,6 +136,7 @@ int main(int argc, char** argv) {
     using namespace lr;
     int platform = 0;
     bool headless = false;
+    bool startInTray = false;
     bool probeWinwing = false;
     bool motorSweep = false;
     bool dumpConfig = false;
@@ -149,6 +156,7 @@ int main(int argc, char** argv) {
         if (a == "--wayland") platform = GLFW_PLATFORM_WAYLAND;
         else if (a == "--x11") platform = GLFW_PLATFORM_X11;
         else if (a == "--headless") headless = true;
+        else if (a == "--tray") startInTray = true;
         else if (a == "--probe-winwing") probeWinwing = true;
         else if (a == "--dump-winwing-config") dumpConfig = true;
         else if (a == "--fire") { std::string v; next(v); fireSpecs.push_back(v); }
@@ -198,6 +206,16 @@ int main(int argc, char** argv) {
     }
     std::signal(SIGINT, onSignal);
     std::signal(SIGTERM, onSignal);
+    mallopt(M_ARENA_MAX, 2);  // the program runs for days: its threads share their memory pools instead of keeping one each
+
+    // One copy with a window or a tray icon per user: a second one would send every joystick movement to the desktop twice.
+    const bool oneShot = dumpConfig || motorSweep || probeWinwing || !fireSpecs.empty() || !readNames.empty() || !readInputs.empty() || listControls ||
+                         !paramNames.empty() || !scriptPath.empty();
+    desktop::SingleInstance instance;
+    if (!oneShot && !headless && (!isolatedRun() || std::getenv("MSFS_LINUX_COMPANION_TEST_TRAY")) && !instance.acquire()) {
+        std::puts("msfs-linux-companion is already running: its window was asked to open");
+        return 0;
+    }
     Log::instance().openFile(app::newSessionLogPath());  // flushed line by line; see docs/TROUBLESHOOTING.md, "When the sim crashes"
 
     if (dumpConfig) {
@@ -265,20 +283,24 @@ int main(int argc, char** argv) {
     input::InputManager input;
     haptics::WinwingHidManager winwing;
     haptics::HapticsEngine hapticsEngine(bridge, winwing);
+    desktop::DesktopService desktopService(bridge, engine, winwing);
     app::AppContext ctx(bridge, engine, input, hapticsEngine, winwing);
+    ctx.desktop = &desktopService;
     plugin::PluginManager plugins;
     ctx.plugins = &plugins;
     // Whichever way main() ends from here on: the threads that call into the plugins stop first, then the plugins' shutdown hooks run.
     struct PluginShutdown {
         input::InputManager& input;
+        desktop::DesktopService& desktopService;
         haptics::HapticsEngine& haptics;
         plugin::PluginManager& plugins;
         ~PluginShutdown() {
             input.stop();
+            desktopService.stop();  // lets go of every key and removes the virtual devices
             haptics.stop();
             plugins.shutdown();
         }
-    } pluginShutdown{input, hapticsEngine, plugins};
+    } pluginShutdown{input, desktopService, hapticsEngine, plugins};
     ctx.configPath = configPath.empty() ? app::configFile() : configPath;
     ctx.startTab = startTab;
     ctx.startEditBinding = editBinding;
@@ -377,7 +399,19 @@ int main(int argc, char** argv) {
     hapticsEngine.start();
     engine.setProbes([&input](const std::string& dev, int code) { return input.buttonDown(dev, code); },
                      [&input](const std::string& dev, int code) { return input.axisValue(dev, code); });
-    input.start([&engine, &plugins](const input::InputEvent& ev) { plugins.onInput(ev); engine.onInput(ev); }, [&engine] { return engine.tick(); });
+    desktopService.setAxisProbe([&input](const std::string& dev, int code) { return input.axisValue(dev, code); });
+    {
+        std::vector<std::pair<std::string, std::string>> prefixes;
+        for (const auto& pad : ctx.keypads.pads)
+            if (!pad.hEventPrefix.empty()) prefixes.emplace_back(pad.aircraft, pad.hEventPrefix);
+        desktopService.setKeypads(std::move(prefixes));
+    }
+    desktopService.configure(ctx.settings.desktop, ctx.settings.mcdu);
+    input.start([&engine, &plugins, &desktopService](const input::InputEvent& ev) { plugins.onInput(ev); engine.onInput(ev); desktopService.onInput(ev); },
+                [&engine, &desktopService] {
+                    const int a = engine.tick(), b = desktopService.tick();
+                    return a < 0 ? b : b < 0 ? a : std::min(a, b);
+                });
     plugins.start();
 
     if (!fireSpecs.empty() || !readNames.empty() || !readInputs.empty() || listControls || !paramNames.empty() || !scriptPath.empty()) {
@@ -548,18 +582,58 @@ int main(int argc, char** argv) {
             std::this_thread::sleep_for(std::chrono::milliseconds(250));
         }
     } else {
+        bool wantWindow = false;
+        desktop::Tray tray;
+        {
+            const char* flatpak = std::getenv("FLATPAK_ID");
+            desktop::Tray::Callbacks callbacks;
+            callbacks.open = [&wantWindow] { wantWindow = true; };
+            callbacks.quit = [&ctx] { ctx.quitRequested = true; };
+            callbacks.desktopControls = [&ctx](bool on) {
+                ctx.settings.desktop.enabled = on;
+                ctx.pushDesktopConfig();
+                ctx.dirty = true;
+            };
+            tray.start(std::move(callbacks), flatpak && *flatpak ? flatpak : "msfs-linux-companion");
+        }
+        // What runs with or without the window. All of it returns at once when nothing is due.
+        auto serviceTick = [&] {
+            desktopService.poll();
+            tray.setDesktopControls(ctx.settings.desktop.enabled);
+            tray.process();
+            if (instance.showRequested()) wantWindow = true;
+            if (desktopService.mcdu().applyRuntimePrefs(ctx.settings.mcdu)) ctx.dirty = true;
+            // The last line of defence for a program that runs all the time: leaking memory ends it, it never takes the machine down.
+            static auto nextCheck = std::chrono::steady_clock::now();
+            if (std::chrono::steady_clock::now() >= nextCheck) {
+                nextCheck = std::chrono::steady_clock::now() + std::chrono::seconds(30);
+                long pages = 0, resident = 0;
+                if (FILE* f = std::fopen("/proc/self/statm", "r")) {
+                    if (std::fscanf(f, "%ld %ld", &pages, &resident) != 2) resident = 0;
+                    std::fclose(f);
+                }
+                constexpr long long kMaxResidentBytes = 3LL << 30;
+                if (resident * sysconf(_SC_PAGESIZE) > kMaxResidentBytes) {
+                    LOG_ERROR("Using %ld MB of memory: quitting to protect the system", resident * sysconf(_SC_PAGESIZE) / (1024 * 1024));
+                    ctx.quitRequested = true;
+                }
+            }
+        };
+
+        enum class WindowExit { Hidden, Quit, Failed };
+        auto runWindow = [&]() -> WindowExit {
         glfwSetErrorCallback(glfwErrorCallback);
         if (platform != 0) {
             if (!glfwPlatformSupported(platform)) {
                 LOG_ERROR("Requested platform is not supported by this GLFW build");
-                return 1;
+                return WindowExit::Failed;
             }
             glfwInitHint(GLFW_PLATFORM, platform);
         }
         glfwInitHint(GLFW_WAYLAND_LIBDECOR, GLFW_WAYLAND_PREFER_LIBDECOR);
         if (!glfwInit()) {
             LOG_ERROR("glfwInit failed (no display? use --headless)");
-            return 1;
+            return WindowExit::Failed;
         }
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -579,7 +653,7 @@ int main(int argc, char** argv) {
         if (!window) {
             LOG_ERROR("Window creation failed");
             glfwTerminate();
-            return 1;
+            return WindowExit::Failed;
         }
         glfwSetWindowUserPointer(window, &winState);
         const int plat = glfwGetPlatform();
@@ -630,12 +704,18 @@ int main(int argc, char** argv) {
         ImGui_ImplOpenGL3_Init("#version 330");
 
         app::Ui ui(ctx);
+        double statStart = glfwGetTime();
+        unsigned frames = 0;
         while (!glfwWindowShouldClose(window) && !g_signalled && !ctx.quitRequested) {
+            serviceTick();
+            if (wantWindow) {  // started again, or the tray icon was clicked, while the window is open
+                wantWindow = false;
+                if (plat == GLFW_PLATFORM_X11) glfwFocusWindow(window);
+                else glfwRequestWindowAttention(window);
+            }
             // Bindings run on their own threads; the window only has to look current. Full rate while the user interacts
             // (and a second after, for hover and tooltips), four frames a second otherwise, none while minimised.
             {   // a line in the session log every 10 s: how many frames were drawn and what woke the window
-                static double statStart = glfwGetTime();
-                static unsigned frames = 0;
                 ++frames;
                 const double now = glfwGetTime();
                 if (now - statStart >= 10.0) {
@@ -673,11 +753,46 @@ int main(int argc, char** argv) {
         }
         winState.maximized = glfwGetWindowAttrib(window, GLFW_MAXIMIZED) == GLFW_TRUE;
         saveWindowState(winStatePath, winState);
+        ui.closing();
         ImGui_ImplOpenGL3_Shutdown();
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
         glfwDestroyWindow(window);
         glfwTerminate();
+        if (ctx.dirty) ctx.save();
+        if (g_signalled || ctx.quitRequested) return WindowExit::Quit;
+        return ctx.settings.closeToTray && tray.available() ? WindowExit::Hidden : WindowExit::Quit;
+        };
+
+        // In the tray there is no window, no GPU context and no font atlas: all of it is created again when the window is opened.
+        bool show = !startInTray;
+        bool shownOnce = false;
+        for (;;) {
+            if (show) {
+                const WindowExit exit = runWindow();
+                if (exit == WindowExit::Quit) break;
+                if (exit == WindowExit::Failed && !shownOnce && !startInTray) return 1;
+                shownOnce = shownOnce || exit == WindowExit::Hidden;
+                show = false;
+                wantWindow = false;
+                malloc_trim(0);
+            }
+            while (!g_signalled && !ctx.quitRequested && !wantWindow) {
+                serviceTick();
+                if (ctx.dirty) ctx.save();
+                ctx.autoSwitchProfile();
+                pollfd fds[2];
+                nfds_t count = 0;
+                if (tray.fd() >= 0) fds[count++] = {tray.fd(), tray.events(), 0};
+                if (instance.fd() >= 0) fds[count++] = {instance.fd(), POLLIN, 0};
+                const bool connected = bridge.status().state == sim::ConnState::Connected;
+                int timeout = connected ? 250 : 1000;
+                if (const int t = tray.timeoutMs(); t >= 0) timeout = std::min(timeout, t);
+                ::poll(fds, count, timeout);
+            }
+            if (g_signalled || ctx.quitRequested) break;
+            show = true;
+        }
     }
 
     input.stop();

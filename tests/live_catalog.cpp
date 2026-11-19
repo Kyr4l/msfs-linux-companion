@@ -392,6 +392,29 @@ int main() {
         std::vector<ProbeTarget> many;
         for (unsigned i = 0; i < 20; ++i) many.push_back({"127.0.0.1", static_cast<unsigned short>(4000 + i), 100 + i});
         CHECK(lr::sim::chooseProbeCandidates(many, true, {}).size() == 6);          // ... but never twenty
+
+        // Flatpak: no process list, newest sockets first, the ones that did not answer rest
+        auto sb = lr::sim::chooseSandboxCandidates(many, {});
+        CHECK(sb.size() == 6 && sb[0].inode == 119 && sb[5].inode == 114);
+        sb = lr::sim::chooseSandboxCandidates(many, {119, 118, 117, 116, 115, 114});
+        CHECK(sb.size() == 6 && sb[0].inode == 113);                                // the next ones on the next scan
+        const std::vector<ProbeTarget> dual = {{"127.0.0.1", 500, 7}, {"::1", 500, 7}, {"127.0.0.1", 600, 8}};
+        CHECK(lr::sim::chooseSandboxCandidates(dual, {}).size() == 2);              // 0.0.0.0 seen in tcp and tcp6: once
+        CHECK(lr::sim::chooseSandboxCandidates(dual, {7, 8}).empty());
+
+        const std::string log =
+            "[2026-11-07 12:03:51] AppID 2537590 adding PID 21596 as a tracked process \"reaper\"\n"
+            "[2026-11-07 12:03:56] AppID 2537590 adding PID 21835 as a tracked process\n"
+            "[2026-11-07 12:03:56] AppID 2537590 no longer tracking PID 21596, exit code -1\n"
+            "[2026-11-07 12:04:10] SSGL: InternalUpdateClientGame indicates change to games list\n"
+            "[2026-11-07 12:05:00] AppID 440 adding PID 3000 as a tracked process\n";
+        CHECK(lr::sim::steamAppRunning(log, {"1250410", "2537590"}));               // 21835 is still tracked
+        CHECK(!lr::sim::steamAppRunning(log, {"1250410"}));                          // MSFS 2020 is not running
+        const std::string quit = log + "[2026-11-07 13:00:00] AppID 2537590 no longer tracking PID 21835, exit code 0\n"
+                                       "[2026-11-07 13:00:00] Remove 2537590 from running list\n";
+        CHECK(!lr::sim::steamAppRunning(quit, {"1250410", "2537590"}));             // the sim has quit
+        CHECK(lr::sim::steamAppRunning(quit + "[2026-11-07 14:00:00] AppID 2537590 adding PID 9 as a tracked process\n", {"2537590"}));
+        CHECK(!lr::sim::steamAppRunning(log + "[2026-11-07 15:00:00] Client version: 1792618285\n", {"2537590"}));  // Steam restarted
     }
 
     std::printf(failures ? "\n%d check(s) FAILED\n" : "all live catalog checks passed\n", failures);

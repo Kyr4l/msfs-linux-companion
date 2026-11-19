@@ -9,10 +9,14 @@ sdk: org.freedesktop.Sdk
 command: msfs-linux-companion
 finish-args:
   - --socket=wayland
-  - --socket=fallback-x11
+  - --socket=x11                                # the MCDU of the iniBuilds Airbuses: its text is read off the simulator's pop-out window
   - --share=ipc
   - --device=all                 # joysticks (/dev/input/event*), the Winwing vibration (/dev/hidraw*), the GPU
   - --share=network              # SimConnect is a TCP socket on 127.0.0.1 (MSFS under Proton listens on a random loopback port)
+  - --socket=pulseaudio                         # the Comms page of the MCDU: mute the microphone and the voice app
+  - --socket=session-bus                        # the tray icon, the media page, and the Progress page: watching progress needs the bus itself, a filtered one cannot do it
+  - --filesystem=xdg-config/autostart:create    # "Start at login"
+  - --filesystem=xdg-documents:ro               # antiMicroX profiles to import
   # the sim's packages, read only (tooltips, checklists: automatic catalogs and guides); other library folders: flatpak override --filesystem=PATH:ro
   - --filesystem=~/.local/share/Steam:ro
   - --filesystem=~/.steam:ro

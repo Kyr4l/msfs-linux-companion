@@ -26,8 +26,16 @@
 #include "util/Log.hpp"
 
 namespace lr::plugin { class PluginManager; }
+namespace lr::desktop { class DesktopService; }
 
 namespace lr::app {
+
+// The keys a binding or an MCDU shortcut can press.
+struct ShortcutKeyChoice {
+    const char* label;
+    int code;
+};
+const std::vector<ShortcutKeyChoice>& shortcutKeyChoices();
 
 struct AppContext {
     Settings settings;
@@ -46,6 +54,8 @@ struct AppContext {
     haptics::HapticsEngine& haptics;
     haptics::WinwingHidManager& winwing;
     plugin::PluginManager* plugins = nullptr;  // what the plugins added (tabs, menus, commands ...); set by main()
+    desktop::DesktopService* desktop = nullptr;  // desktop controls and the MCDU; set by main()
+    void pushDesktopConfig();
     bool dirty = false;
     std::string startTab;  // --tab NAME: tab selected on the first frame
     int startEditBinding = -1;  // --edit-binding N: the editor opens on binding N of the active profile
@@ -85,6 +95,7 @@ class Ui {
 public:
     explicit Ui(AppContext& ctx);
     void draw();
+    void closing();  // the window goes away: nothing it asked the simulator for stays running
 
 private:
     void drawMenuBar();
@@ -100,7 +111,7 @@ private:
     void drawProfilesTab();  // every profile in a table: its aircraft, the automatic switch, its theme
     void drawDevicesTab();
     void drawCatalogTab();
-    void drawCockpitTab();     // which input event is the control I just clicked in the cockpit?
+    void drawCockpitFinder();  // on the Catalog page: which input event is the control I just clicked in the cockpit?
     void stopCockpitWatch();
     void drawGuidesTab();
     void drawGuideNode(const Guide& g, const Catalog* cat);
@@ -112,6 +123,21 @@ private:
     void drawPluginsSection();
     bool pluginsChanged_ = false;  // a plugin was switched on or off: takes effect at the next start
     void drawVibrationTab();
+    void drawDesktopTab();   // joystick to mouse and keyboard while the simulator is not running
+    void drawMcduTab();      // the WINCTRL MCDU and a panel on screen
+    void drawMcduPanel(float width);
+    void listenForDesktopInput();
+    bool mcduPanelDrawn_ = false;
+    int mcduKeysList_ = 0;  // which shortcuts the MCDU page edits: Keys, Keys 2, Comms
+    std::string desktopImportPath_, desktopImportError_;
+    std::vector<std::string> desktopImportNotes_;
+    bool desktopImportDone_ = false, desktopListening_ = false, desktopShowAll_ = false, desktopHasSelection_ = false;
+    std::vector<input::DeviceSnapshot> desktopBaseline_;
+    std::string desktopDevice_;     // the device listed on the Desktop page
+    input::InputId desktopSelected_;
+    void drawDesktopList(float width);
+    void drawDesktopAxis(const input::InputId& axis);
+    void drawDesktopButton(const input::InputId& button);
     void drawSplash();
     void drawBindingEditor();
     void drawActionList(const char* id, std::vector<Action>& actions, int listIndex);
@@ -163,6 +189,7 @@ private:
     CockpitWatch cockpit_;
     uint64_t cockpitSerial_ = 0;       // the last change of the bridge that was taken over
     bool cockpitShowNoisy_ = false;
+    bool cockpitOpen_ = false;         // "Find by clicking" is on (the Catalog page)
     bool cockpitDrawn_ = false;        // the tab was drawn in this frame: watching ends when it is not
     // 0 = press, 1 = release, 2 / 3 = enters / leaves the cut-off zone, 4 / 5 = enters / leaves the afterburner zone
     int catalogTarget_ = 0;

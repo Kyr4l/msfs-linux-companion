@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "desktop/DesktopTypes.hpp"
 #include "haptics/Haptics.hpp"
 #include "input/Evdev.hpp"
 
@@ -161,6 +162,9 @@ struct Settings {
     bool bindingsAutoSort = false;  // sorted by group and input instead of in the order of the file (which is the manual, dragged order)
     std::vector<std::string> disabledPlugins;              // ids of the plugins not to load
     std::map<std::string, std::string> pluginSettings;     // each plugin's own settings by id, as JSON text (see plugin::Host::settings)
+    desktop::Config desktop;       // what the joysticks do while the simulator is not running
+    desktop::McduConfig mcdu;      // the WINCTRL MCDU
+    bool closeToTray = true;       // closing the window leaves the program running in the tray
 
     const AxisCalibration* calibrationFor(const input::InputId& axis) const;
     void setCalibration(const AxisCalibration& c);  // replaces the one of the same axis

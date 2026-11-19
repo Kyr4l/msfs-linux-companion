@@ -14,6 +14,7 @@
 #include <imgui_stdlib.h>
 
 #include "app/Paths.hpp"
+#include "desktop/DesktopService.hpp"
 #include "plugin/PluginManager.hpp"
 #include "util/Log.hpp"
 
@@ -24,6 +25,13 @@ using namespace uidetail;
 // ---------------------------------------------------------------- Ui
 
 Ui::Ui(AppContext& ctx) : ctx_(ctx), startTab_(ctx.startTab) {}
+
+void Ui::closing() {
+    if (cockpit_.running()) stopCockpitWatch();
+    ctx_.guideProbes.clear();
+    ctx_.refreshWatches();
+    if (ctx_.desktop) ctx_.desktop->mcdu().setPanelOpen(false);
+}
 
 std::string Ui::deviceDisplayName(const std::string& key) const {
     for (const auto& d : devices_)
@@ -71,6 +79,7 @@ void Ui::draw() {
         if (themeChanged || std::fabs(ui::themeUserScale() - static_cast<float>(ctx_.settings.uiScale)) > 1e-3f) ui::applyTheme(static_cast<float>(ctx_.settings.uiScale));
     }
     cockpitDrawn_ = false;
+    mcduPanelDrawn_ = false;
     devices_ = ctx_.input.devices();
     status_ = ctx_.bridge.status();
     ctx_.syncLive();  // folds new input events / L: vars reported by the sim into the catalog
@@ -89,6 +98,7 @@ void Ui::draw() {
     drawMenuBar();
     if (!startTab_.empty()) {  // --tab NAME: a built-in page, or a plugin's tab of that name
         page_ = startTab_;
+        if (page_ == "Cockpit") page_ = "Catalog", cockpitOpen_ = true;  // the Cockpit page became part of the Catalog page
         pagePlugin_.clear();
         if (ctx_.plugins)
             for (const auto& h : ctx_.plugins->tabs())
@@ -111,7 +121,7 @@ void Ui::draw() {
     if (pagePlugin_.empty()) {
         struct Page { const char* name; void (Ui::*draw)(); };
         static const Page pages[] = {{"Home", &Ui::drawHomeTab}, {"Bindings", &Ui::drawBindingsTab}, {"Profiles", &Ui::drawProfilesTab}, {"Devices", &Ui::drawDevicesTab}, {"Guides", &Ui::drawGuidesTab},
-                                     {"Catalog", &Ui::drawCatalogTab},   {"Cockpit", &Ui::drawCockpitTab}, {"Vibration", &Ui::drawVibrationTab},
+                                     {"Catalog", &Ui::drawCatalogTab}, {"Vibration", &Ui::drawVibrationTab}, {"Desktop", &Ui::drawDesktopTab}, {"MCDU", &Ui::drawMcduTab},
                                      {"Log", &Ui::drawLogTab},           {"Settings", &Ui::drawSettingsTab}};
         for (const auto& pg : pages)
             if (page_ == pg.name) {
@@ -146,6 +156,7 @@ void Ui::draw() {
         }
 
     if (cockpit_.running() && !cockpitDrawn_) stopCockpitWatch();  // the tab was left: no more reading of every input event
+    if (!mcduPanelDrawn_ && ctx_.desktop) ctx_.desktop->mcdu().setPanelOpen(false);
     if (!splashDone_) drawSplash();
     drawCalibrationWizard();
 
@@ -175,6 +186,7 @@ void Ui::drawMenuBar() {
                 ctx_.bridge.setEndpoint(ctx_.settings.host, static_cast<uint16_t>(ctx_.settings.port));
                 ctx_.bridge.setAutoConnect(ctx_.settings.autoConnect);
                 ctx_.pushHapticsConfig();
+                ctx_.pushDesktopConfig();
             } else {
                 LOG_ERROR("Reload failed: %s", err.c_str());
             }

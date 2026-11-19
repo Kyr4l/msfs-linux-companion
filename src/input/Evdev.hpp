@@ -81,6 +81,7 @@ private:
     void closeDevice(size_t idx);
     bool openDevice(const std::string& path);
     void readDevice(size_t idx);
+    void wake();
 
     std::vector<Device> devices_;
     mutable std::mutex m_;
@@ -92,6 +93,7 @@ private:
     EventCallback onEvent_;
     TickCallback onTick_;
     int inotifyFd_ = -1;
+    int wakeFd_ = -1;  // stop() and rescan() wake the thread: it does not have to look every few milliseconds
     std::vector<std::string> failedPaths_;
 };
 

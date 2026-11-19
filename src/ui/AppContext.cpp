@@ -15,6 +15,7 @@
 
 #include "app/AutoCatalog.hpp"
 #include "app/Paths.hpp"
+#include "desktop/DesktopService.hpp"
 #include "sim/AircraftId.hpp"
 #include "util/Log.hpp"
 
@@ -222,6 +223,10 @@ void AppContext::forgetLive(const std::string& aircraft) {
 
 void AppContext::pushHapticsConfig() {
     haptics.setConfig(settings.haptics);
+}
+
+void AppContext::pushDesktopConfig() {
+    if (desktop) desktop->configure(settings.desktop, settings.mcdu);
 }
 
 void AppContext::markDirty() {

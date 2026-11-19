@@ -55,6 +55,15 @@ void drawIcon(ImDrawList* dl, const char* page, ImVec2 p, float s, ImU32 c) {
     } else if (n == "Vibration") {
         const ImVec2 w[] = {P(0.08f, 0.5f), P(0.26f, 0.5f), P(0.36f, 0.24f), P(0.52f, 0.78f), P(0.62f, 0.5f), P(0.92f, 0.5f)};
         dl->AddPolyline(w, 6, c, 0, t);
+    } else if (n == "Desktop") {  // a monitor on its stand
+        dl->AddRect(P(0.1f, 0.18f), P(0.9f, 0.7f), c, s * 0.06f, 0, t);
+        dl->AddLine(P(0.5f, 0.7f), P(0.5f, 0.86f), c, t);
+        dl->AddLine(P(0.3f, 0.86f), P(0.7f, 0.86f), c, t);
+    } else if (n == "MCDU") {  // a screen above a keypad
+        dl->AddRect(P(0.2f, 0.08f), P(0.8f, 0.92f), c, s * 0.06f, 0, t);
+        dl->AddRect(P(0.3f, 0.18f), P(0.7f, 0.48f), c, 0.0f, 0, t);
+        for (float y : {0.62f, 0.78f})
+            for (float x : {0.34f, 0.5f, 0.66f}) dl->AddCircleFilled(P(x, y), t * 0.8f, c);
     } else if (n == "Log") {
         for (float y : {0.28f, 0.5f, 0.72f}) dl->AddLine(P(0.16f, y), P(y > 0.6f ? 0.6f : 0.84f, y), c, t);
     } else if (n == "Settings") {
@@ -128,8 +137,9 @@ void Ui::drawRail() {
     item("Devices", "Devices", "");
     item("Guides", "Guides", "");
     item("Catalog", "Catalog", "");
-    item("Cockpit", "Cockpit", "");
     item("Vibration", "Vibrate", "");
+    item("Desktop", "Desktop", "");
+    item("MCDU", "MCDU", "");
     if (ctx_.plugins)
         for (const auto& h : ctx_.plugins->tabs()) {
             const std::string shortName = h.name.size() > 8 ? h.name.substr(0, 7) + "." : h.name;

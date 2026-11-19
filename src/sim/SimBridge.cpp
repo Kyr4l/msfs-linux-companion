@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Kyr4l
 #include "sim/SimBridge.hpp"
 #include "sim/ProbeSelect.hpp"
+#include "sim/SteamLog.hpp"
 
 #include <arpa/inet.h>
 #include <dirent.h>
@@ -623,6 +624,12 @@ std::vector<Listener> loopbackListeners() {
     return out;
 }
 
+// A Flatpak (or another sandbox with its own process list): the wineserver cannot be seen from here.
+bool inSandbox() {
+    static const bool sandbox = access("/.flatpak-info", F_OK) == 0;
+    return sandbox;
+}
+
 // Sends a SimConnect Open to host:port and reports whether a RECV_OPEN comes back within the timeout.
 bool simConnectAnswers(const std::string& host, uint16_t port, int timeoutMs) {
     SimConnectClient probe;
@@ -645,15 +652,30 @@ std::vector<SimBridge::Endpoint> SimBridge::scanForSimConnect() {
     std::vector<Endpoint> found;
     if (isolatedRun()) return found;  // a test run next to a real simulator must never probe or connect to it
     const WineSockets wine = wineserverSockets();
-    const auto candidates = chooseProbeCandidates(loopbackListeners(), wine.processFound, wine.inodes);
+    const bool sandboxed = !wine.processFound && inSandbox();
+    std::vector<ProbeTarget> candidates;
+    if (!sandboxed) {
+        candidates = chooseProbeCandidates(loopbackListeners(), wine.processFound, wine.inodes);
+    } else if (steamSaysSimRunning()) {
+        const auto now = clock::now();
+        std::set<unsigned long> resting;
+        for (auto it = probeResting_.begin(); it != probeResting_.end();) {
+            if (it->second <= now) it = probeResting_.erase(it);
+            else resting.insert((it++)->first);
+        }
+        candidates = chooseSandboxCandidates(loopbackListeners(), resting);
+    }
     if (candidates.empty()) return found;  // the simulator is not running (or has not opened its port yet)
-    LOG_INFO("SimConnect: configured port did not answer, probing %zu loopback listener(s)%s", candidates.size(), wine.inodes.empty() ? "" : " owned by wineserver");
+    LOG_INFO("SimConnect: configured port did not answer, probing %zu loopback listener(s)%s", candidates.size(),
+             sandboxed ? " (sandbox: Steam says the simulator runs)" : wine.inodes.empty() ? "" : " owned by wineserver");
     for (const auto& l : candidates) {
         if (simConnectAnswers(l.host, l.port, 700)) {
             LOG_INFO("SimConnect: found the simulator on %s:%u", l.host.c_str(), l.port);
             found.push_back({l.host, l.port});
             break;
         }
+        // other local services get our handshake at most once a minute
+        if (sandboxed) probeResting_[l.inode] = clock::now() + std::chrono::minutes(1);
     }
     return found;
 }
@@ -1403,7 +1425,7 @@ void SimBridge::threadMain() {
             } else {
                 drainQueue();
                 std::unique_lock<std::mutex> lock(m_);
-                cv_.wait_for(lock, std::chrono::milliseconds(200));
+                cv_.wait_for(lock, std::chrono::milliseconds(1000));  // wake() ends this at once
             }
             continue;
         }

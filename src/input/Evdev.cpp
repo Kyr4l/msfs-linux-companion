@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <linux/input.h>
 #include <poll.h>
+#include <sys/eventfd.h>
 #include <sys/inotify.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
@@ -76,8 +77,17 @@ struct InputManager::Device {
     std::array<float, 16> axisReported{};  // last position reported to listeners (normalised)
 };
 
-InputManager::InputManager() = default;
-InputManager::~InputManager() { stop(); }
+InputManager::InputManager() { wakeFd_ = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC); }
+InputManager::~InputManager() {
+    stop();
+    if (wakeFd_ >= 0) ::close(wakeFd_);
+}
+
+void InputManager::wake() {
+    if (wakeFd_ < 0) return;
+    const uint64_t one = 1;
+    (void)!::write(wakeFd_, &one, sizeof one);
+}
 
 void InputManager::start(EventCallback onEvent, TickCallback onTick) {
     if (running_) return;
@@ -90,10 +100,14 @@ void InputManager::start(EventCallback onEvent, TickCallback onTick) {
 void InputManager::stop() {
     if (!running_) return;
     running_ = false;
+    wake();
     if (thread_.joinable()) thread_.join();
 }
 
-void InputManager::rescan() { rescanRequested_ = true; }
+void InputManager::rescan() {
+    rescanRequested_ = true;
+    wake();
+}
 
 std::vector<DeviceSnapshot> InputManager::devices() const {
     std::lock_guard<std::mutex> lock(m_);
@@ -426,10 +440,12 @@ void InputManager::threadMain() {
 
         pfds.clear();
         for (const auto& d : devices_) pfds.push_back({d.fd, POLLIN, 0});
+        const size_t inotifyIndex = pfds.size();
         if (inotifyFd_ >= 0) pfds.push_back({inotifyFd_, POLLIN, 0});
-        // Sleep until a device has something, the engine needs its next tick, or a re-scan is due (at most 250 ms: the
-        // thread also notices that it should stop). Idle, this is four wake-ups a second instead of a hundred.
-        int timeoutMs = 250;
+        const size_t wakeIndex = pfds.size();
+        if (wakeFd_ >= 0) pfds.push_back({wakeFd_, POLLIN, 0});
+        // Sleep until a device has something, the engine needs its next tick, a re-scan is due or somebody wakes the thread.
+        int timeoutMs = wakeFd_ >= 0 ? 2000 : 250;
         if (rescanPending) {
             const auto until = std::chrono::duration_cast<std::chrono::milliseconds>(rescanAt - std::chrono::steady_clock::now()).count();
             timeoutMs = static_cast<int>(std::max<long long>(1, std::min<long long>(timeoutMs, until + 1)));
@@ -443,7 +459,11 @@ void InputManager::threadMain() {
                     if (i >= devices_.size()) break;
                 }
             }
-            if (inotifyFd_ >= 0 && (pfds.back().revents & POLLIN)) {
+            if (wakeFd_ >= 0 && (pfds[wakeIndex].revents & POLLIN)) {
+                uint64_t drained;
+                (void)!::read(wakeFd_, &drained, sizeof drained);
+            }
+            if (inotifyFd_ >= 0 && (pfds[inotifyIndex].revents & POLLIN)) {
                 char buf[4096];
                 while (::read(inotifyFd_, buf, sizeof buf) > 0) {}
                 rescanRequested_ = true;

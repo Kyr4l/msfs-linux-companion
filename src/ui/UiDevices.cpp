@@ -49,16 +49,28 @@ void Ui::drawDevicesTab() {
             ImGui::TextWrapped("%s  %04x:%04x  %zu buttons, %d hats, %d axes", d.path.c_str(), d.vendor, d.product, d.buttonCodes.size(), d.hatCount, d.axisCount);
             ImGui::PopStyleColor();
             const float cell = ImGui::GetTextLineHeight() * 1.9f;
+            // key caps in the theme's own colours: released like a field (with an edge, light themes have white on white),
+            // pressed in its "ok" colour with black or white text, whichever reads
+            const ImVec4 okC = ui::palette::kOk;
+            const bool okIsLight = 0.2126f * okC.x + 0.7152f * okC.y + 0.0722f * okC.z > 0.5f;
+            const ImVec4 okInk = okIsLight ? ImVec4(0.05f, 0.07f, 0.06f, 1) : ImVec4(1, 1, 1, 1);
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
             for (size_t i = 0; i < d.buttonCodes.size(); ++i) {
                 if (i != 0) sameLineIfFits(cell);
                 const bool on = d.buttonState[i];
-                ImGui::PushStyleColor(ImGuiCol_Button, on ? ImVec4(0.2f, 0.7f, 0.3f, 1) : ImVec4(0.25f, 0.25f, 0.28f, 1));
+                const ImGuiStyle& st = ImGui::GetStyle();
+                ImGui::PushStyleColor(ImGuiCol_Button, on ? okC : st.Colors[ImGuiCol_FrameBg]);
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, on ? okC : st.Colors[ImGuiCol_FrameBgHovered]);
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, on ? okC : st.Colors[ImGuiCol_FrameBgActive]);
+                ImGui::PushStyleColor(ImGuiCol_Border, on ? okC : ui::palette::kBorder);
+                ImGui::PushStyleColor(ImGuiCol_Text, on ? okInk : ui::palette::kText);
                 char label[32];
                 snprintf(label, sizeof label, "%zu", i + 1);
                 ImGui::Button(label, ImVec2(cell, cell));
                 if (ImGui::IsItemHovered()) ImGui::SetTooltip("Button %zu (code %d)", i + 1, d.buttonCodes[i]);
-                ImGui::PopStyleColor();
+                ImGui::PopStyleColor(5);
             }
+            ImGui::PopStyleVar();
             for (size_t a = 0; a < d.axisCodes.size(); ++a) {
                 char label[64], overlay[16];
                 snprintf(label, sizeof label, "Axis %zu (%s)", a + 1, input::axisName(d.axisCodes[a]));

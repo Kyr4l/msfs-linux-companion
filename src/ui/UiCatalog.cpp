@@ -549,7 +549,13 @@ void Ui::drawCatalogTab() {
                 ImGui::TextColored(kYellow, "Load this aircraft in MSFS to list its controls");
         }
     }
-    ImGui::TextDisabled("Double-click an entry to bind it.");
+    if (ImGui::Button(cockpitOpen_ ? "Stop finding" : "Find by clicking")) {
+        cockpitOpen_ = !cockpitOpen_;
+        if (!cockpitOpen_ && cockpit_.running()) stopCockpitWatch();
+    }
+    ImGui::SameLine();
+    ImGui::TextDisabled(cockpitOpen_ ? "Click a control in the sim to see its input event." : "Double-click an entry to bind it.");
+    if (cockpitOpen_) drawCockpitFinder();
     drawCatalogBrowser("tab", false);
 }
 

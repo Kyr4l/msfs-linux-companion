@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Kyr4l
 #include "haptics/WinwingHid.hpp"
+#include "mcdu/McduProtocol.hpp"
 #include "util/Isolated.hpp"
 
 #include <dirent.h>
@@ -222,6 +223,7 @@ void WinwingHidManager::rescan() {
     DIR* dir = opendir("/sys/class/hidraw");
     if (!dir) { scans_++; return; }  // no hidraw class (a sandbox): nothing to find, but the scan is done
     std::vector<std::string> seen;
+    std::pair<std::string, uint16_t> mcdu{"", 0};
     while (dirent* e = readdir(dir)) {
         if (strncmp(e->d_name, "hidraw", 6) != 0) continue;
         const std::string sys = std::string("/sys/class/hidraw/") + e->d_name + "/device/uevent";
@@ -230,6 +232,10 @@ void WinwingHidManager::rescan() {
         if (p == std::string::npos) continue;
         unsigned bus = 0, vid = 0, pid = 0;
         if (sscanf(uevent.c_str() + p, "HID_ID=%x:%x:%x", &bus, &vid, &pid) != 3 || vid != WINWING_VID) continue;
+        if (mcdu::isMcduProduct(static_cast<uint16_t>(pid))) {  // the discovery frames below are not for this panel
+            mcdu = {std::string("/dev/") + e->d_name, static_cast<uint16_t>(pid)};
+            continue;
+        }
         std::string name = "Winwing device";
         if (size_t n = uevent.find("HID_NAME="); n != std::string::npos) {
             size_t end = uevent.find('\n', n);
@@ -273,6 +279,7 @@ void WinwingHidManager::rescan() {
         devs_.push_back(std::move(d));
     }
     closedir(dir);
+    mcdu_ = mcdu;
     for (size_t i = 0; i < devs_.size();) {
         if (std::find(seen.begin(), seen.end(), devs_[i].info.path) == seen.end()) {
             if (devs_[i].fd >= 0) ::close(devs_[i].fd);
@@ -283,6 +290,11 @@ void WinwingHidManager::rescan() {
         }
     }
     scans_++;
+}
+
+std::pair<std::string, uint16_t> WinwingHidManager::mcduDevice() const {
+    std::lock_guard<std::mutex> lock(m_);
+    return mcdu_;
 }
 
 std::vector<WinwingDeviceInfo> WinwingHidManager::devices() const {

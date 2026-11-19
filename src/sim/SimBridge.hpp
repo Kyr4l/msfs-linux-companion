@@ -228,6 +228,7 @@ private:
     bool telemetryDefined_ = false;  // the data definition exists on this connection (defined once)
     int wakeFd_ = -1;                // eventfd: written when another thread has work for the bridge thread
     int failedConnects_ = 0;         // consecutive failed attempts, for the retry pace
+    std::unordered_map<unsigned long, std::chrono::steady_clock::time_point> probeResting_;  // sandbox: listener inode -> may be probed again from
     void wake();
 
     bool telemetryRequested_ = false;

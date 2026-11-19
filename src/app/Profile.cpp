@@ -378,6 +378,75 @@ bool loadSettings(const std::string& path, Settings& out, std::string& err) {
             const json settings = pl.value("settings", json::object());
             for (const auto& [id, v] : settings.items()) s.pluginSettings[id] = v.dump();
         }
+        s.closeToTray = !j.contains("close_to_tray") || !j["close_to_tray"].is_boolean() || j["close_to_tray"].get<bool>();
+        if (j.contains("desktop") && j["desktop"].is_object()) {
+            const json& d = j["desktop"];
+            s.desktop.enabled = d.value("enabled", false);
+            s.desktop.importedFrom = d.value("imported_from", "");
+            for (const auto& bj : d.value("bindings", json::array())) {
+                if (s.desktop.bindings.size() >= desktop::kMaxBindings) break;
+                desktop::Binding b;
+                b.label = bj.value("label", "");
+                b.input.device = bj.value("device", "");
+                b.input.kind = input::kindFromName(bj.value("kind", "button"));
+                b.input.code = bj.value("code", 0);
+                b.input.dir = bj.value("dir", 0);
+                b.side = bj.value("side", 0);
+                b.deadZone = std::clamp(bj.value("dead_zone", b.deadZone), 0.0, 0.99);
+                b.maxZone = std::clamp(bj.value("max_zone", b.maxZone), 0.01, 1.0);
+                b.mouseSpeed = std::clamp(bj.value("mouse_speed", b.mouseSpeed), 1, 300);
+                b.wheelSpeed = std::clamp(bj.value("wheel_speed", b.wheelSpeed), 1, 100);
+                const std::string axisMode = bj.value("mode", "normal"), mouseCurve = bj.value("curve", "precision");
+                b.mode = axisMode == "negative" ? desktop::AxisMode::Negative : axisMode == "positive" ? desktop::AxisMode::Positive : axisMode == "negativehalf" ? desktop::AxisMode::NegativeHalf
+                         : axisMode == "positivehalf" ? desktop::AxisMode::PositiveHalf : desktop::AxisMode::Normal;
+                b.curve = mouseCurve == "linear" ? desktop::MouseCurve::Linear : mouseCurve == "quadratic" ? desktop::MouseCurve::Quadratic : mouseCurve == "cubic" ? desktop::MouseCurve::Cubic
+                          : mouseCurve == "quadratic-extreme" ? desktop::MouseCurve::QuadraticExtreme : mouseCurve == "power" ? desktop::MouseCurve::Power : desktop::MouseCurve::EnhancedPrecision;
+                b.sensitivity = std::clamp(bj.value("sensitivity", b.sensitivity), 0.001, 1000.0);
+                for (const auto& oj : bj.value("outputs", json::array())) {
+                    const std::string kind = oj.value("kind", "key");
+                    desktop::Output o;
+                    o.kind = kind == "mouse_button" ? desktop::OutputKind::MouseButton : kind == "mouse_move" ? desktop::OutputKind::MouseMove : kind == "wheel" ? desktop::OutputKind::Wheel : desktop::OutputKind::Key;
+                    o.code = oj.value("code", 0);
+                    b.outputs.push_back(o);
+                }
+                if (!b.input.device.empty() && !b.outputs.empty()) s.desktop.bindings.push_back(std::move(b));
+            }
+        }
+        if (j.contains("mcdu") && j["mcdu"].is_object()) {
+            const json& m = j["mcdu"];
+            s.mcdu.screenPercent = std::clamp(m.value("screen_percent", s.mcdu.screenPercent), 10, 100);
+            s.mcdu.keysPercent = std::clamp(m.value("keys_percent", s.mcdu.keysPercent), 0, 100);
+            s.mcdu.ledPercent = std::clamp(m.value("led_percent", s.mcdu.ledPercent), 0, 100);
+            s.mcdu.autoBrightness = m.value("auto_brightness", false);
+            s.mcdu.sleepMinutes = std::clamp(m.value("sleep_minutes", s.mcdu.sleepMinutes), 0, 240);
+            s.mcdu.keyboardLayout = m.value("keyboard_layout", s.mcdu.keyboardLayout);
+            s.mcdu.systemLook = m.value("system_look", s.mcdu.systemLook);
+            s.mcdu.gpuView = m.value("gpu_view", s.mcdu.gpuView);
+            s.mcdu.diskView = m.value("disk_view", s.mcdu.diskView);
+            s.mcdu.diskMount = m.value("disk_mount", s.mcdu.diskMount);
+            s.mcdu.gpuIndex = std::clamp(m.value("gpu_index", 0), 0, 7);
+            s.mcdu.refreshSeconds = std::clamp(m.value("refresh_seconds", s.mcdu.refreshSeconds), 1, 5);
+            s.mcdu.clockUtc = m.value("clock_utc", false);
+            s.mcdu.clock12h = m.value("clock_12h", false);
+            auto readShortcuts = [&m](const char* key, std::vector<desktop::Shortcut>& out, int slots) {
+                for (const auto& sj : m.value(key, json::array())) {
+                    if (out.size() >= static_cast<size_t>(slots)) break;
+                    desktop::Shortcut sc;
+                    sc.label = sj.value("label", "");
+                    for (const auto& k : sj.value("keys", json::array()))
+                        if (k.is_number_integer() && sc.keys.size() < 4) sc.keys.push_back(k.get<int>());
+                    out.push_back(std::move(sc));
+                }
+            };
+            readShortcuts("shortcuts", s.mcdu.shortcuts, desktop::kShortcutSlots);
+            readShortcuts("shortcuts2", s.mcdu.shortcuts2, desktop::kShortcutSlots);
+            readShortcuts("comms_shortcuts", s.mcdu.commsShortcuts, desktop::kCommsSlots);
+            s.mcdu.homeAirport = m.value("home_airport", "");
+            s.mcdu.commsApp = m.value("comms_app", s.mcdu.commsApp);
+            for (const auto& app : m.value("direct_apps", json::array()))
+                if (app.is_string() && s.mcdu.directApps.size() < static_cast<size_t>(desktop::kDirectApps)) s.mcdu.directApps.push_back(app.get<std::string>());
+            s.mcdu.netBits = m.value("net_bits", false);
+        }
         for (const auto& pj : j.value("profiles", json::array())) {
             Profile p;
             p.name = pj.value("name", "Profile");
@@ -449,6 +518,38 @@ bool saveSettings(const std::string& path, const Settings& s, std::string& err) 
             if (!v.is_discarded()) settings[id] = std::move(v);
         }
         j["plugins"] = json{{"disabled", s.disabledPlugins}, {"settings", settings}};
+    }
+    if (!s.closeToTray) j["close_to_tray"] = false;  // these are left out at their defaults: files stay as before
+    if (!s.desktop.isDefault()) {
+        json bindingsJ = json::array();
+        for (const auto& b : s.desktop.bindings) {
+            json outputs = json::array();
+            for (const auto& o : b.outputs) {
+                const char* kind = o.kind == desktop::OutputKind::MouseButton ? "mouse_button" : o.kind == desktop::OutputKind::MouseMove ? "mouse_move" : o.kind == desktop::OutputKind::Wheel ? "wheel" : "key";
+                outputs.push_back(json{{"kind", kind}, {"code", o.code}});
+            }
+            bindingsJ.push_back(json{{"label", b.label}, {"device", b.input.device}, {"kind", input::kindName(b.input.kind)}, {"code", b.input.code}, {"dir", b.input.dir}, {"side", b.side},
+                                     {"dead_zone", finiteOr0(b.deadZone)}, {"max_zone", finiteOr0(b.maxZone)}, {"mouse_speed", b.mouseSpeed}, {"wheel_speed", b.wheelSpeed}, {"outputs", outputs},
+                                     {"mode", b.mode == desktop::AxisMode::Negative ? "negative" : b.mode == desktop::AxisMode::Positive ? "positive" : b.mode == desktop::AxisMode::NegativeHalf ? "negativehalf"
+                                              : b.mode == desktop::AxisMode::PositiveHalf ? "positivehalf" : "normal"},
+                                     {"curve", b.curve == desktop::MouseCurve::Linear ? "linear" : b.curve == desktop::MouseCurve::Quadratic ? "quadratic" : b.curve == desktop::MouseCurve::Cubic ? "cubic"
+                                               : b.curve == desktop::MouseCurve::QuadraticExtreme ? "quadratic-extreme" : b.curve == desktop::MouseCurve::Power ? "power" : "precision"},
+                                     {"sensitivity", finiteOr0(b.sensitivity)}});
+        }
+        j["desktop"] = json{{"enabled", s.desktop.enabled}, {"imported_from", s.desktop.importedFrom}, {"bindings", bindingsJ}};
+    }
+    if (!s.mcdu.isDefault()) {
+        auto shortcutList = [](const std::vector<desktop::Shortcut>& list) {
+            json out = json::array();
+            for (const auto& sc : list) out.push_back(json{{"label", sc.label}, {"keys", sc.keys}});
+            return out;
+        };
+        const json shortcuts = shortcutList(s.mcdu.shortcuts);
+        j["mcdu"] = json{{"screen_percent", s.mcdu.screenPercent}, {"keys_percent", s.mcdu.keysPercent}, {"led_percent", s.mcdu.ledPercent}, {"auto_brightness", s.mcdu.autoBrightness},
+                         {"sleep_minutes", s.mcdu.sleepMinutes}, {"keyboard_layout", s.mcdu.keyboardLayout}, {"shortcuts", shortcuts}, {"system_look", s.mcdu.systemLook},
+                         {"gpu_view", s.mcdu.gpuView}, {"disk_view", s.mcdu.diskView}, {"disk_mount", s.mcdu.diskMount}, {"gpu_index", s.mcdu.gpuIndex}, {"refresh_seconds", s.mcdu.refreshSeconds},
+                         {"clock_utc", s.mcdu.clockUtc}, {"clock_12h", s.mcdu.clock12h}, {"shortcuts2", shortcutList(s.mcdu.shortcuts2)},
+                         {"comms_shortcuts", shortcutList(s.mcdu.commsShortcuts)}, {"home_airport", s.mcdu.homeAirport}, {"net_bits", s.mcdu.netBits}, {"comms_app", s.mcdu.commsApp}, {"direct_apps", s.mcdu.directApps}};
     }
     try {
         // First save over a file written by an older schema: keep a copy of it once, untouched, so an

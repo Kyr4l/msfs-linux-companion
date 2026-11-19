@@ -14,6 +14,7 @@
 #include <map>
 #include <mutex>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace lr::haptics {
@@ -65,6 +66,8 @@ public:
     void rescan();
     int scanCount() const { return scans_.load(); }  // 0 until the first rescan() finished
     std::vector<WinwingDeviceInfo> devices() const;
+    // The MCDU found by the last scan: its hidraw path and product id ("" when none). It is never opened here: it has its own protocol (mcdu/McduService.hpp).
+    std::pair<std::string, uint16_t> mcduDevice() const;
     void setIdentity(const std::string& key, const WinwingIdentity& id);
 
     // Writes motor levels (0..255). Only sends frames when a value changed unless force is set.
@@ -95,6 +98,7 @@ private:
 
     mutable std::mutex m_;
     std::vector<Dev> devs_;
+    std::pair<std::string, uint16_t> mcdu_{"", 0};
     std::vector<std::pair<std::string, WinwingIdentity>> overrides_;
     std::atomic<int> scans_{0};
     std::map<std::string, std::string> openErrorReported_;  // path -> the last open error that was logged (guarded by m_)

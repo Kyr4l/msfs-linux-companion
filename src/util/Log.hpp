@@ -53,12 +53,18 @@ public:
             localtime_r(&t, &tm);
             const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count() % 1000;
             static const char kLevel[] = {'D', 'I', 'W', 'E'};
-            std::fprintf(file_, "%02d:%02d:%02d.%03d %c %s\n", tm.tm_hour, tm.tm_min, tm.tm_sec, static_cast<int>(ms), kLevel[static_cast<int>(level)], text.c_str());
+            const int written = std::fprintf(file_, "%02d:%02d:%02d.%03d %c %s\n", tm.tm_hour, tm.tm_min, tm.tm_sec, static_cast<int>(ms), kLevel[static_cast<int>(level)], text.c_str());
+            if (written > 0) fileBytes_ += static_cast<size_t>(written);
             // Warnings and errors reach the disk at once, everything else within a quarter of a second: a crash of the
             // sim does not stop this process, so nothing is lost, and the disk is not written on every debug line.
             if (level >= LogLevel::Warn || now - lastFlush_ > std::chrono::milliseconds(250)) {
                 std::fflush(file_);
                 lastFlush_ = now;
+            }
+            if (fileBytes_ > kMaxFileBytes) {  // the program can run for months: the file stops here, the log in memory goes on
+                std::fputs("(log file full)\n", file_);
+                std::fclose(file_);
+                file_ = nullptr;
             }
         }
         entries_.push_back({now, level, std::move(text)});
@@ -71,6 +77,7 @@ public:
         std::lock_guard<std::mutex> lock(m_);
         if (file_) { std::fclose(file_); file_ = nullptr; }
         file_ = std::fopen(path.c_str(), "w");
+        fileBytes_ = 0;
         return file_ != nullptr;
     }
 
@@ -108,7 +115,9 @@ private:
     mutable std::mutex m_;
     std::deque<LogEntry> entries_;
     size_t capacity_ = 3000;
+    static constexpr size_t kMaxFileBytes = 16u << 20;
     std::FILE* file_ = nullptr;
+    size_t fileBytes_ = 0;
     std::chrono::system_clock::time_point lastFlush_{};
     uint64_t serial_ = 0;
 };

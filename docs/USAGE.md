@@ -12,7 +12,7 @@ Throttle levers with gates have their own page: [THROTTLE.md](THROTTLE.md).
    *From catalog* → *Save*. *Test* fires the press actions immediately.
 4. Leave the same buttons **unassigned in the MSFS controls menu**, otherwise both fire.
 
-**Which input is this control? (Cockpit tab).** Press *Start*, keep your hands off the cockpit for three seconds (what changes by itself, such
+**Which input is this control? (Catalog page, *Find by clicking*).** Press *Find by clicking*, keep your hands off the cockpit for three seconds (what changes by itself, such
 as a clock or a needle, is learned and hidden), then click or turn a control in the simulator with the mouse: the cockpit input events (B:) whose value
 changes are listed, newest first, with what they changed from and to. *Bind* opens a new binding that sets the event to that value and
 waits for the button, *Toggle* does the same for a switch with whole positions (0 to N-1) and steps through them at each press, *Copy* puts the

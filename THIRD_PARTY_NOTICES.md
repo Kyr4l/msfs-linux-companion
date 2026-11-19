@@ -29,5 +29,9 @@ community reverse engineering ([winctrl-xplane-plugin](https://github.com/rswile
 [WinctrlConfig](https://github.com/f3nr1l/WinctrlConfig), the Linux `hid-winwing` driver) and confirmed on real hardware.
 No code from those projects is copied.
 
+The USB protocol of the WINCTRL MCDU follows [mcdu-dotnet](https://github.com/vradarserver/cduhub) (BSD-3-Clause, Copyright (c) 2025 Andrew Whewell) and
+[winwing_mcdu](https://github.com/schenlap/winwing_mcdu). The panel set-up packets in `src/mcdu/McduProtocol.cpp` are the ones mcdu-dotnet documents. The mouse curve
+and the default speeds of the desktop controls match [antiMicroX](https://github.com/AntiMicroX/antimicrox) (GPL-3.0).
+
 "Microsoft Flight Simulator", "SimConnect", "WINWING", "WINCTRL" and "URSA MINOR" belong to their respective owners.
 This project is independent and not affiliated with them.

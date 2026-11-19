@@ -234,7 +234,8 @@ void HapticsEngine::threadMain() {
         const auto now = clock::now();
         if (now >= nextScan) {
             hid_.rescan();
-            nextScan = now + std::chrono::seconds(3);
+            // a device plugged in is noticed within seconds while flying; on the desktop the scan is rarer
+            nextScan = now + std::chrono::seconds(bridge_.status().state == sim::ConnState::Connected ? 3 : 8);
         }
         HapticsConfig cfg;
         std::map<std::string, Pulse> pulses;
@@ -330,7 +331,8 @@ void HapticsEngine::threadMain() {
         const bool busy = ((cfg.enabled || !outputs_.empty()) && fresh) || motorsOn || pulsing;
         {
             std::unique_lock<std::mutex> lock(m_);
-            if (running_) cv_.wait_for(lock, std::chrono::milliseconds(busy ? 33 : (haveOutput ? 250 : 500)));
+            const bool simUp = bridge_.status().state == sim::ConnState::Connected;
+            if (running_) cv_.wait_for(lock, std::chrono::milliseconds(busy ? 33 : !simUp ? 2000 : (haveOutput ? 250 : 500)));
         }
     }
     hid_.allOff();
