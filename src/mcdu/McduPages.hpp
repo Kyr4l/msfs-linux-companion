@@ -105,6 +105,7 @@ private:
     std::string look_ = "list", gpuView_ = "both", diskView_ = "switch", diskMount_;
     int gpuIndex_ = 0, refreshSeconds_ = 2;
     bool utc_ = false, h12_ = false, prefsChanged_ = false;
+    bool cpuCores_ = false;  // the CPU page shows every core
     SystemSample system_;
     desktop::MediaInfo media_;
     std::string typed_, toast_;

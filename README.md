@@ -81,6 +81,7 @@ in the `Community` folder. Details, command-line options and upgrading: [docs/IN
 | [Throttle calibration](docs/THROTTLE.md) | gates, ranges, stages, the Airbus and F/A-18E presets |
 | [Vibration](docs/VIBRATION.md) | how the Winwing motors are driven, supported devices |
 | [Desktop controls and MCDU](docs/MCDU.md) | joystick to mouse and keyboard, tray, start at login, the WINCTRL MCDU |
+| [Lights](docs/LIGHTS.md) | the Lights page and how to describe a device's lights in one shareable file |
 | [Troubleshooting](docs/TROUBLESHOOTING.md) | device permissions (udev), session logs when the sim crashes |
 | [What was tested](docs/TESTED.md) | what was checked on real hardware and aircraft, and what was not |
 | [Performance](docs/PERFORMANCE.md) | what the program costs next to the sim |

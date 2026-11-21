@@ -4,8 +4,11 @@
 
 #include <algorithm>
 #include <cerrno>
+#include <cmath>
 #include <cstring>
 #include <ctime>
+#include <fstream>
+#include <sstream>
 
 #include <fcntl.h>
 #include <poll.h>
@@ -14,7 +17,9 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
+#include "app/Paths.hpp"
 #include "desktop/DesktopLauncher.hpp"
+#include "mcdu/McduFont.hpp"
 #include "util/Isolated.hpp"
 #include "util/Log.hpp"
 
@@ -27,6 +32,7 @@ constexpr auto kWeatherInterval = std::chrono::minutes(10);  // airports publish
 constexpr auto kWeatherRetry = std::chrono::minutes(1);
 constexpr auto kMediaInterval = std::chrono::milliseconds(1500);
 constexpr int kBrightnessStep = 10;
+constexpr auto kRepeatDelay = std::chrono::milliseconds(500), kRepeatEvery = std::chrono::milliseconds(150);  // BRT / DIM held
 constexpr size_t kMaxQueuedKeys = 32;
 constexpr int kReadCoalesceMs = 25;  // the light sensors report all the time: reports are read in small batches, not one wake-up each
 
@@ -110,6 +116,7 @@ bool McduService::applyRuntimePrefs(desktop::McduConfig& cfg) {
     if (!runtimeChanged_) return false;
     runtimeChanged_ = false;
     cfg.screenPercent = runtimePrefs_.screenPercent;
+    cfg.autoScreen = runtimePrefs_.autoScreen;
     cfg.diskMount = runtimePrefs_.diskMount;
     cfg.gpuIndex = runtimePrefs_.gpuIndex;
     cfg.refreshSeconds = runtimePrefs_.refreshSeconds;
@@ -216,6 +223,7 @@ void McduService::openDevice(const std::string& path) {
     std::fill(std::begin(lastLevels_), std::end(lastLevels_), -1);
     for (const Report& r : initReports())
         if (!write(r.data(), r.size())) return;
+    fontSent_ = "built-in";  // the set-up gives the unit its own font back
     applyLights(true);
     LOG_INFO("MCDU: %s opened", path.c_str());
     std::lock_guard<std::mutex> lock(m_);
@@ -283,7 +291,10 @@ void McduService::readDevice() {
     }
     if (!got) return;
     keysDown_ = previous;
-    ambient_ = (input.lightLeft + input.lightRight) * 100 / (2 * 0xfff);
+    // The sensors span a huge range (about 2,700 of 4,095 in afternoon light indoors, 38 to 61 in the evening, seen on a
+    // unit with firmware 1.09): a logarithmic scale, as the eye judges light, keeps ordinary rooms off the bottom of it.
+    const double raw = (input.lightLeft + input.lightRight) / 2.0;
+    ambient_ = static_cast<int>(std::lround(100.0 * std::log1p(std::max(raw, 0.0)) / std::log1p(4095.0)));
 }
 
 void McduService::handleKey(Key key) {
@@ -294,9 +305,9 @@ void McduService::handleKey(Key key) {
         return;
     }
     if (key == Key::Brt || key == Key::Dim) {
-        active_.screenPercent = std::clamp(active_.screenPercent + (key == Key::Brt ? kBrightnessStep : -kBrightnessStep), 10, 100);
-        noteRuntimePrefs();
-        applyLights(false);
+        stepBrightness(key == Key::Brt);
+        holdStart_ = Clock::now();  // held on: more steps from kRepeatDelay (see run())
+        nextRepeat_ = holdStart_ + kRepeatDelay;
         return;
     }
     if (activeSim_.active) {
@@ -308,6 +319,7 @@ void McduService::handleKey(Key key) {
             }
             const std::string code = iniBuildsKeyCode(key, product);
             if (!code.empty() && hooks_.fireCode) hooks_.fireCode(code);
+            mirror_.boost();
             return;
         }
         const char* id = keyId(key);
@@ -324,11 +336,13 @@ void McduService::handleKey(Key key) {
 void McduService::applyLights(bool force) {
     if (fd_ < 0) return;
     int screen = active_.screenPercent, keys = active_.keysPercent, leds = active_.ledPercent;
-    if (active_.autoBrightness && ambient_ >= 0) {
-        screen = std::clamp(15 + ambient_ * 85 / 100, 15, 100);
-        keys = std::clamp(ambient_ * active_.keysPercent / 60, 5, 100);
+    if (active_.autoBrightness && ambient_ >= 0) {  // each light on its curve; BRT / DIM move the screen curve
+        screen = std::clamp(desktop::curveAt(active_.autoScreen, ambient_), 5, 100);
+        keys = std::clamp(desktop::curveAt(active_.autoKeys, ambient_), 0, 100);
+        leds = std::clamp(desktop::curveAt(active_.autoLeds, ambient_), 0, 100);
     }
     if (sleeping_) screen = keys = leds = 0;
+    screenShown_ = screen;
     const int levels[3] = {percentToLevel(keys), percentToLevel(screen), percentToLevel(leds)};
     const Light ids[3] = {Light::Keys, Light::Screen, Light::Leds};
     for (int i = 0; i < 3; ++i) {
@@ -338,8 +352,8 @@ void McduService::applyLights(bool force) {
         lastLevels_[i] = levels[i];
     }
     LampState lamps{};
-    if (activeSim_.active && link_.hasScreen()) lamps = link_.lamps();
-    else if (!sleeping_) lamps[6] = true;  // RDY: the unit is in use
+    if (activeSim_.active && link_.hasScreen()) lamps = link_.lamps();  // otherwise every lamp stays off: only an aircraft lights them
+    else if (activeSim_.active && activeSim_.hasLamps) lamps = activeSim_.lamps;
     if (force || !lampsValid_ || lamps != lastLamps_) {
         for (size_t i = 0; i < kLamps.size(); ++i) {
             const auto report = encodeLight(kLamps[i], lamps[i] ? 1 : 0);
@@ -351,10 +365,10 @@ void McduService::applyLights(bool force) {
 }
 
 // The lamps as the on-screen panel draws them, with or without a unit plugged in.
-static LampState panelLamps(bool sleeping, bool sim, const SimLink& link) {
+static LampState panelLamps(const SimState& simState, bool sim, const SimLink& link) {
     LampState lamps{};
     if (sim && link.hasScreen()) lamps = link.lamps();
-    else if (!sleeping) lamps[6] = true;
+    else if (sim && simState.hasLamps) lamps = simState.lamps;
     return lamps;
 }
 
@@ -413,7 +427,7 @@ void McduService::renderScreen(Clock::time_point now) {
     std::lock_guard<std::mutex> lock(m_);
     shown_ = next;
     status_.sideLabels = sleeping_ || activeSim_.active ? SideLabels{} : pages_.sideLabels();
-    status_.lamps = panelLamps(sleeping_, activeSim_.active, link_);
+    status_.lamps = panelLamps(activeSim_, activeSim_.active, link_);
 }
 
 void McduService::sendScreen(Clock::time_point now) {
@@ -425,6 +439,59 @@ void McduService::sendScreen(Clock::time_point now) {
     nextSend_ = now + kScreenInterval;
     std::lock_guard<std::mutex> lock(m_);
     ++status_.screensSent;
+}
+
+void McduService::stepBrightness(bool up) {
+    const int step = up ? kBrightnessStep : -kBrightnessStep;
+    if (active_.autoBrightness) {  // the whole screen curve up or down, its shape kept as far as it goes
+        for (int& v : active_.autoScreen) v = std::clamp(v + step, 5, 100);
+    } else {
+        active_.screenPercent = std::clamp(active_.screenPercent + step, 10, 100);
+    }
+    noteRuntimePrefs();
+    applyLights(false);
+}
+
+void McduService::applyFont() {
+    if (fd_ < 0 || active_.font == fontSent_) return;
+    const std::string wanted = active_.font;
+    fontSent_ = wanted;  // tried once: a font that cannot be sent is not tried again on every turn
+    if (wanted == "b612" || wanted == "aircraft") {
+        auto readFile = [](const std::string& suffix, std::string& out) {
+            for (const auto& path : app::listDataFiles(suffix)) {
+                std::ifstream f(path, std::ios::binary);
+                std::stringstream ss;
+                ss << f.rdbuf();
+                out = ss.str();
+                if (!out.empty()) return true;
+            }
+            return false;
+        };
+        std::string fontText, mapText, err;
+        FontUpload up;
+        // B612 ships with the program; "aircraft" is made on this machine from captures of the aircraft's own MCDU (never shipped)
+        if (!readFile(wanted + "-font-21x31.json", fontText) || !readFile("WinWingFontPacketMap-3x31.json", mapText)) err = "font files not found";
+        else if (!buildFontUpload(fontText, mapText, percentToLevel(active_.screenPercent), up, err)) err = "font files: " + err;
+        if (!err.empty()) {
+            LOG_WARN("MCDU: font %s not sent: %s", wanted.c_str(), err.c_str());
+            return;
+        }
+        Screen empty;  // the unit shows the font as it arrives: an empty screen meanwhile
+        for (const Report& r : encodeScreen(empty))
+            if (!write(r.data(), r.size())) return;
+        for (const auto& p : up.packets)
+            if (!write(p.data(), p.size())) return;
+        LOG_INFO("MCDU: font %s sent (%zu packets)", up.name.c_str(), up.packets.size());
+    } else {
+        // The unit keeps a sent font until it loses power: its set-up sent again does not bring its own font back cleanly (the
+        // screen moved by a few pixels, stray lines at the top, seen on firmware 1.09). Nothing is sent: unplugging it does.
+        LOG_INFO("MCDU: built-in font from the next time the unit is plugged in");
+        return;
+    }
+    sentValid_ = false;  // the screen and the lights again, as after opening
+    std::fill(std::begin(lastLevels_), std::end(lastLevels_), -1);
+    lampsValid_ = false;
+    applyLights(true);
 }
 
 void McduService::blankDevice() {
@@ -462,6 +529,7 @@ void McduService::run() {
             status_.simScreen = activeSim_.active && (link_.hasScreen() || mirrorShown_);
             status_.sleeping = sleeping_;
             status_.ambientPercent = ambient_;
+            status_.screenLevelPercent = screenShown_;
         }
         if (reconfigure) {
             pages_.configure(active_);
@@ -523,6 +591,18 @@ void McduService::run() {
             const int refresh = sleeping_ || activeSim_.active ? 0 : pages_.refreshMs();
             nextRefresh_ = refresh > 0 ? now + std::chrono::milliseconds(refresh) : Clock::time_point::max();
         }
+        // BRT or DIM held down: a step every kRepeatEvery after kRepeatDelay
+        const bool brtHeld = keysDown_.test(static_cast<size_t>(Key::Brt)), dimHeld = keysDown_.test(static_cast<size_t>(Key::Dim));
+        if (fd_ >= 0 && (brtHeld != dimHeld) && !sleeping_ && holdStart_ != Clock::time_point{}) {
+            if (now >= nextRepeat_) {
+                stepBrightness(brtHeld);
+                nextRepeat_ = now + kRepeatEvery;
+            }
+        } else {
+            holdStart_ = Clock::time_point{};
+        }
+        applyLights(false);  // the room light changes on its own: only a changed level is sent
+        applyFont();
         sendScreen(now);
 
         // Sleep until something is due.
@@ -530,6 +610,8 @@ void McduService::run() {
         if (fd_ >= 0 && (!sentValid_ || !(sent_ == desired_))) until = std::min(until, nextSend_);
         if (fd_ < 0 && !wanted.empty()) until = std::min(until, retryOpenAt_);
         if (canSleep && !sleeping_) until = std::min(until, sleepAt);
+        if (holdStart_ != Clock::time_point{}) until = std::min(until, nextRepeat_);
+        if (fd_ >= 0 && active_.autoBrightness) until = std::min(until, now + std::chrono::seconds(1));  // the room light, once a second
         if (!activeSim_.active && !sleeping_ && pages_.wantsWeather() && !pages_.homeAirport().empty()) until = std::min(until, std::max(nextWeather_, Clock::now() + std::chrono::seconds(1)));
         if (activeSim_.active && activeSim_.simBridge && !link_.connected()) until = std::min(until, now + std::chrono::seconds(1));
         const auto waitMs = std::chrono::duration_cast<std::chrono::milliseconds>(until - Clock::now()).count();

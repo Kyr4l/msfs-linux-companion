@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 Kyr4l
 cmake_minimum_required(VERSION 3.20)
-project(msfs-linux-companion VERSION 0.9.9 LANGUAGES CXX)
+project(msfs-linux-companion VERSION 0.9.14 LANGUAGES CXX)
 # Version MAJOR.MINOR.FEATURE (MINOR up to 99, FEATURE one digit), plus a letter for a release with fixes only:
 # 0.9.0 -> fixes 0.9.0a, 0.9.0b -> next feature 0.9.1 (letter cleared). CMake's VERSION takes no letter, so it is here.
 set(COMPANION_VERSION_FIX "")
@@ -69,6 +69,7 @@ add_executable(msfs-linux-companion
   src/app/Guide.cpp
   src/app/CockpitWatch.cpp
   src/app/Keypad.cpp
+  src/app/Lights.cpp
   src/app/BindingView.cpp
   src/app/Engine.cpp
   src/app/LeverZones.cpp
@@ -89,6 +90,7 @@ add_executable(msfs-linux-companion
   src/ui/UiVibration.cpp
   src/ui/UiDesktop.cpp
   src/ui/UiMcdu.cpp
+  src/ui/UiLights.cpp
   src/plugin/PluginManager.cpp
   src/desktop/AmgpImport.cpp
   src/desktop/AudioControl.cpp
@@ -112,6 +114,7 @@ add_executable(msfs-linux-companion
   src/mcdu/McduSimLink.cpp
   src/mcdu/SystemInfo.cpp
   src/mcdu/ScreenReader.cpp
+  src/mcdu/McduFont.cpp
   src/mcdu/ScreenMirror.cpp
   src/mcdu/X11Capture.cpp
 )
@@ -169,11 +172,14 @@ if(COMPANION_BUILD_TESTS)
   add_test(NAME live_catalog COMMAND live_catalog)
   # the MCDU protocol and pages, the antiMicroX import and the desktop engine: no hardware, no window
   add_executable(desktop_mcdu tests/desktop_mcdu.cpp src/desktop/AmgpImport.cpp src/desktop/AudioControl.cpp src/desktop/DesktopEngine.cpp src/desktop/DesktopLauncher.cpp src/desktop/ProgressTracker.cpp src/desktop/SdBus.cpp src/mcdu/McduPages.cpp src/mcdu/McduProtocol.cpp
-                 src/mcdu/McduSimLink.cpp src/mcdu/Metar.cpp src/mcdu/SystemInfo.cpp src/mcdu/ScreenReader.cpp src/input/Evdev.cpp)
+                 src/mcdu/McduSimLink.cpp src/mcdu/Metar.cpp src/mcdu/SystemInfo.cpp src/mcdu/ScreenReader.cpp src/mcdu/McduFont.cpp src/input/Evdev.cpp src/app/Lights.cpp src/app/Paths.cpp)
   # reads captured pop-out pictures (.ppm) with the character samples of this machine: a developer tool, not a test
   add_executable(mcdu_read tests/mcdu_read.cpp src/mcdu/ScreenReader.cpp src/mcdu/McduProtocol.cpp)
   target_include_directories(desktop_mcdu PRIVATE src third_party)
   target_include_directories(mcdu_read PRIVATE src)
+  # shows candidate symbols and brightness steps on a plugged-in MCDU (the companion must be closed): a developer tool
+  add_executable(mcdu_glyphs tests/mcdu_glyphs.cpp src/mcdu/McduProtocol.cpp src/mcdu/McduFont.cpp)
+  target_include_directories(mcdu_glyphs PRIVATE src third_party)
   target_link_libraries(desktop_mcdu PRIVATE Threads::Threads ${CMAKE_DL_LIBS})
   target_compile_definitions(desktop_mcdu PRIVATE COMPANION_TEST_FIXTURES="${CMAKE_SOURCE_DIR}/tests/fixtures")
   add_test(NAME desktop_mcdu COMMAND desktop_mcdu)

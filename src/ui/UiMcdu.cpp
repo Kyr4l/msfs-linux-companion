@@ -6,11 +6,15 @@
 #include "ui/Theme.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cfloat>
+#include <cmath>
+#include <cstdio>
 
 #include <imgui.h>
 #include <imgui_stdlib.h>
 
+#include "app/Paths.hpp"
 #include "desktop/DesktopService.hpp"
 #include "mcdu/McduPages.hpp"
 
@@ -34,6 +38,107 @@ ImU32 cellColor(mcdu::Color c) {
         case mcdu::Color::Khaki: return IM_COL32(190, 180, 120, 255);
     }
     return IM_COL32_WHITE;
+}
+
+// Automatic brightness: the screen, keys and lights levels against the room light, four points each to drag up or down.
+// pick: the curve whose points can be dragged; drag: the point held. True when a level changed.
+bool drawBrightnessCurves(desktop::McduConfig& cfg, int room, int& pick, int& drag, float fs) {
+    struct Curve { const char* name; std::array<int, 4>* points; int lowest; ImU32 color; };
+    const Curve curves[3] = {{"Screen", &cfg.autoScreen, 5, IM_COL32(95, 163, 255, 255)},
+                             {"Keys", &cfg.autoKeys, 0, IM_COL32(102, 209, 122, 255)},
+                             {"Lights", &cfg.autoLeds, 0, IM_COL32(224, 133, 90, 255)}};
+    pick = std::clamp(pick, 0, 2);
+    bool changed = false;
+    for (int i = 0; i < 3; ++i) {
+        const Curve& c = curves[i];
+        char label[48];
+        if (room >= 0) std::snprintf(label, sizeof label, "%s  %d %%##curve%d", c.name, desktop::curveAt(*c.points, room), i);
+        else std::snprintf(label, sizeof label, "%s##curve%d", c.name, i);
+        if (i) ImGui::SameLine();
+        ImVec4 col = ImGui::ColorConvertU32ToFloat4(c.color);
+        ImGui::PushStyleColor(ImGuiCol_Button, pick == i ? ImVec4(col.x, col.y, col.z, 0.30f) : ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(col.x, col.y, col.z, 0.45f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(col.x, col.y, col.z, 0.60f));
+        ImGui::PushStyleColor(ImGuiCol_Text, pick == i ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : col);  // the legend
+        if (ImGui::Button(label)) pick = i;
+        ImGui::PopStyleColor(4);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Reset##curves")) {
+        const desktop::McduConfig d;
+        cfg.autoScreen = d.autoScreen;
+        cfg.autoKeys = d.autoKeys;
+        cfg.autoLeds = d.autoLeds;
+        changed = true;
+    }
+
+    const float width = std::min(ImGui::GetContentRegionAvail().x, fs * 32), height = fs * 12;
+    const ImVec2 origin = ImGui::GetCursorScreenPos();
+    ImGui::InvisibleButton("##curves", ImVec2(width, height));
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    const float left = origin.x + fs * 3, right = origin.x + width - fs, top = origin.y + fs * 0.8f, bottom = origin.y + height - fs * 1.8f;
+    auto px = [&](int i) { return left + (right - left) * i / (desktop::kCurvePoints - 1); };
+    auto py = [&](int v) { return bottom - (bottom - top) * v / 100.f; };
+    const ImU32 grid = IM_COL32(255, 255, 255, 18), ink = ImGui::GetColorU32(ImGuiCol_TextDisabled);
+    dl->AddRectFilled(origin, ImVec2(origin.x + width, origin.y + height), IM_COL32(0, 0, 0, 70), fs * 0.5f);
+    for (int v = 0; v <= 100; v += 25) dl->AddLine(ImVec2(left, py(v)), ImVec2(right, py(v)), grid);
+    for (int v : {0, 50, 100}) {
+        char t[8];
+        std::snprintf(t, sizeof t, "%d%%", v);
+        dl->AddText(ImVec2(left - ImGui::CalcTextSize(t).x - fs * 0.4f, py(v) - fs * 0.5f), ink, t);
+    }
+    const char* rooms[4] = {"Dark", "Dim", "Lit", "Bright"};
+    for (int i = 0; i < 4; ++i) {
+        const float w = ImGui::CalcTextSize(rooms[i]).x;
+        const float x = i == 0 ? px(i) : i == 3 ? px(i) - w : px(i) - w / 2;
+        dl->AddText(ImVec2(x, bottom + fs * 0.4f), ink, rooms[i]);
+    }
+    if (room >= 0) {  // the room light now, dashed
+        const float x = left + (right - left) * std::clamp(room, 0, 100) / 100.f;
+        for (float y = top; y < bottom; y += fs * 0.6f) dl->AddLine(ImVec2(x, y), ImVec2(x, std::min(y + fs * 0.3f, bottom)), IM_COL32(229, 199, 107, 255), 1.5f);
+    }
+    for (int k = 0; k < 3; ++k) {  // the picked curve last, on top
+        const int i = (pick + 1 + k) % 3;
+        ImVec2 pts[4];
+        for (int j = 0; j < 4; ++j) pts[j] = ImVec2(px(j), py((*curves[i].points)[j]));
+        dl->AddPolyline(pts, 4, curves[i].color, ImDrawFlags_None, i == pick ? 3.5f : 1.5f);
+    }
+
+    // the point under the mouse: of the picked curve first, else of any curve (which picks it)
+    const ImVec2 mouse = ImGui::GetIO().MousePos;
+    auto near = [&](int i) {
+        int best = -1;
+        float bestD = fs * 0.9f;
+        for (int j = 0; j < 4; ++j) {
+            const float d = std::hypot(mouse.x - px(j), mouse.y - py((*curves[i].points)[j]));
+            if (d < bestD) { bestD = d; best = j; }
+        }
+        return best;
+    };
+    int hoverCurve = pick, hoverPoint = ImGui::IsItemHovered() ? near(pick) : -1;
+    for (int i = 0; i < 3 && hoverPoint < 0 && ImGui::IsItemHovered(); ++i)
+        if (i != pick && (hoverPoint = near(i)) >= 0) hoverCurve = i;
+    if (ImGui::IsItemActivated()) {
+        drag = hoverPoint;
+        if (hoverPoint >= 0) pick = hoverCurve;
+    }
+    if (!ImGui::IsItemActive()) drag = -1;
+    if (drag >= 0) {
+        const Curve& c = curves[pick];
+        const int v = std::clamp(static_cast<int>(std::lround((bottom - mouse.y) / (bottom - top) * 100.f)), c.lowest, 100);
+        if ((*c.points)[drag] != v) { (*c.points)[drag] = v; changed = true; }
+    }
+    if (drag >= 0 || hoverPoint >= 0) {
+        ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+        const int i = drag >= 0 ? pick : hoverCurve, j = drag >= 0 ? drag : hoverPoint;
+        ImGui::SetTooltip("%s  %s  %d %%", curves[i].name, rooms[j], (*curves[i].points)[j]);
+    }
+    for (int j = 0; j < 4; ++j) {
+        const ImVec2 p(px(j), py((*curves[pick].points)[j]));
+        dl->AddCircleFilled(p, fs * 0.45f, IM_COL32(15, 18, 23, 255));
+        dl->AddCircleFilled(p, fs * (drag == j ? 0.38f : 0.32f), curves[pick].color);
+    }
+    return changed;
 }
 
 // The UI font has no arrows or box: the same symbols in plain characters.
@@ -252,15 +357,35 @@ void Ui::drawMcduTab() {
     choice("Disks", cfg.diskView, {{"switch", "Switch key"}, {"pick", "Pick from list"}, {"page", "All on a page"}});
 
     ImGui::SeparatorText("Brightness");
-    ImGui::SetNextItemWidth(fs * 14);
-    if (ImGui::SliderInt("Screen", &cfg.screenPercent, 10, 100, "%d %%")) apply();
-    ImGui::SetNextItemWidth(fs * 14);
-    if (ImGui::SliderInt("Keys", &cfg.keysPercent, 0, 100, "%d %%")) apply();
-    ImGui::SetNextItemWidth(fs * 14);
-    if (ImGui::SliderInt("Lights", &cfg.ledPercent, 0, 100, "%d %%")) apply();
     if (ImGui::Checkbox("Automatic", &cfg.autoBrightness)) apply();
+    if (cfg.autoBrightness) {
+        const mcdu::ServiceStatus ms = ctx_.desktop->mcdu().status();
+        ImGui::SameLine();
+        if (ms.ambientPercent >= 0) ImGui::Text("   Room light %d %%", ms.ambientPercent);
+        else ImGui::TextDisabled("   Room light: no unit");
+        if (drawBrightnessCurves(cfg, ms.ambientPercent, mcduCurve_, mcduCurveDrag_, fs)) apply();
+    } else {
+        ImGui::SetNextItemWidth(fs * 14);
+        if (ImGui::SliderInt("Screen", &cfg.screenPercent, 10, 100, "%d %%")) apply();
+        ImGui::SetNextItemWidth(fs * 14);
+        if (ImGui::SliderInt("Keys", &cfg.keysPercent, 0, 100, "%d %%")) apply();
+        ImGui::SetNextItemWidth(fs * 14);
+        if (ImGui::SliderInt("Lights", &cfg.ledPercent, 0, 100, "%d %%")) apply();
+    }
     ImGui::SetNextItemWidth(fs * 14);
     if (ImGui::SliderInt("Sleep after", &cfg.sleepMinutes, 0, 120, cfg.sleepMinutes ? "%d min" : "Never")) apply();
+    ImGui::SetNextItemWidth(fs * 14);
+    if (ImGui::BeginCombo("Font", cfg.font == "b612" ? "B612" : cfg.font == "aircraft" ? "Aircraft" : "Built-in")) {
+        if (ImGui::Selectable("Built-in", cfg.font == "built-in")) { cfg.font = "built-in"; apply(); }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("After unplugging the unit");
+        if (ImGui::Selectable("B612", cfg.font == "b612")) { cfg.font = "b612"; apply(); }
+        const bool made = !app::listDataFiles("aircraft-font-21x31.json").empty();  // made on this machine from captures
+        ImGui::BeginDisabled(!made);
+        if (ImGui::Selectable("Aircraft", cfg.font == "aircraft")) { cfg.font = "aircraft"; apply(); }
+        ImGui::EndDisabled();
+        if (!made && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) ImGui::SetTooltip("Not made yet");
+        ImGui::EndCombo();
+    }
 
     ImGui::SeparatorText("Type page");
     int layout = cfg.keyboardLayout == "azerty" ? 1 : 0;

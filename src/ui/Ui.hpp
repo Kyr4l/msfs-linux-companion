@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Kyr4l
 #pragma once
 #include <deque>
+#include <future>
 #include <map>
 #include <optional>
 #include <set>
@@ -16,6 +17,7 @@
 #include "app/LeverZones.hpp"
 #include "app/MsfsControls.hpp"
 #include "app/Keypad.hpp"
+#include "app/Lights.hpp"
 #include "app/Engine.hpp"
 #include "app/Profile.hpp"
 #include "app/SimPackages.hpp"
@@ -125,9 +127,22 @@ private:
     void drawVibrationTab();
     void drawDesktopTab();   // joystick to mouse and keyboard while the simulator is not running
     void drawMcduTab();      // the WINCTRL MCDU and a panel on screen
+    void drawLightsTab();    // the lights of the devices that have a data/*_lights.json, read only
+    struct LightsRead {
+        std::string key;                             // the device read
+        std::vector<std::vector<LightRgb>> states;   // per state, per LED
+        std::string error;
+    };
+    std::vector<LightDevice> lightDevices_;
+    bool lightsLoaded_ = false;
+    size_t lightDevice_ = 0, lightState_ = 1;
+    int lightSelected_ = 0;                          // LED id shown in detail
+    std::future<LightsRead> lightsReading_;          // a read runs off the UI thread (up to 36 requests to the device)
+    std::optional<LightsRead> lightsRead_;
     void drawMcduPanel(float width);
     void listenForDesktopInput();
     bool mcduPanelDrawn_ = false;
+    int mcduCurve_ = 0, mcduCurveDrag_ = -1;  // the brightness curve picked on the MCDU page, the point being dragged
     int mcduKeysList_ = 0;  // which shortcuts the MCDU page edits: Keys, Keys 2, Comms
     std::string desktopImportPath_, desktopImportError_;
     std::vector<std::string> desktopImportNotes_;
@@ -138,7 +153,6 @@ private:
     void drawDesktopList(float width);
     void drawDesktopAxis(const input::InputId& axis);
     void drawDesktopButton(const input::InputId& button);
-    void drawSplash();
     void drawBindingEditor();
     void drawActionList(const char* id, std::vector<Action>& actions, int listIndex);
     void drawCatalogBrowser(const char* id, bool pickMode);
@@ -250,7 +264,6 @@ private:
     std::string profAircraftSearch_;
     std::string profDelete_;  // the profile the delete question is about
 
-    bool splashDone_ = false;
     std::string startTab_;
 
     // guides

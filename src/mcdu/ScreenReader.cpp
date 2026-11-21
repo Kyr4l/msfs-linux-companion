@@ -16,6 +16,15 @@ constexpr uint32_t kMaxSamples = 20000;
 constexpr int kPix = kGlyphW * kGlyphH;
 constexpr int kHalfW = 7, kHalfH = 11;          // a cell: 15 x 23 pixels around its centre
 constexpr int kShortlist = 8;                   // samples looked at closely, with the picture moved by a pixel each way
+constexpr int kCoarse = 24;                     // samples compared pixel by pixel after the quick pass on summaries
+constexpr int kPoolW = 5, kPoolH = 6, kPool = kPoolW * kPoolH;  // a character summarised in 4 x 4 pixel blocks
+constexpr float kSizeSkip = 4.5f;               // a sample this many pixels taller or wider is not the same character
+
+void pool(const float* pix, float* out) {
+    std::fill(out, out + kPool, 0.f);
+    for (int y = 0; y < kGlyphH; ++y)
+        for (int x = 0; x < kGlyphW; ++x) out[std::min(y / 4, kPoolH - 1) * kPoolW + std::min(x / 4, kPoolW - 1)] += pix[y * kGlyphW + x];
+}
 constexpr float kGeoWeight = 0.06f, kUnsure = 0.55f;
 
 // Where the screen sits in the pop-out at the size it opens with (pixels): its dark blue ground, inside a black border.
@@ -48,7 +57,7 @@ bool punctuation(char32_t ch) { return ch == U'.' || ch == U'-' || ch == U'/' ||
 }  // namespace
 
 struct ScreenReader::Prepared {
-    std::vector<float> pix, geo, mass;
+    std::vector<float> pix, geo, mass, pooled;
     std::vector<char32_t> ch;
     std::vector<uint8_t> small;
     size_t size() const { return ch.size(); }
@@ -143,11 +152,13 @@ ScreenReader::ScreenReader(const GlyphBank& bank) : cache_(static_cast<size_t>(k
     p->pix.resize(n * kPix);
     p->geo.resize(n * 3);
     p->mass.resize(n);
+    p->pooled.resize(n * kPool);
     for (size_t i = 0; i < n; ++i) {
         const GlyphSample& s = bank.samples()[i];
         float m = 0.f;
         for (int k = 0; k < kPix; ++k) m += (p->pix[i * kPix + k] = s.pix[static_cast<size_t>(k)] / 255.f);
         p->mass[i] = m;
+        pool(&p->pix[i * kPix], &p->pooled[i * kPool]);
         for (int k = 0; k < 3; ++k) p->geo[i * 3 + k] = s.geo[static_cast<size_t>(k)];
         p->ch.push_back(s.ch);
         p->small.push_back(s.small ? 1 : 0);
@@ -159,10 +170,10 @@ void ScreenReader::reset() {
     for (auto& c : cache_) c.valid = false;
 }
 
-ScreenReader::CellResult ScreenReader::readCell(const uint8_t* img, int stride, int r, int c) const {
+ScreenReader::CellResult ScreenReader::readCell(const uint8_t* img, int stride, int r, int cx, int cy, int yTop, int yBottom) const {
     CellResult out;
-    const int cx = static_cast<int>(std::lround(kX0 + c * kPitchX)), cy = static_cast<int>(std::lround(kY0 + r * kPitchY));
-    const int x0 = std::max(cx - kHalfW, 0), x1 = std::min(cx + kHalfW, kRefW - 1), y0 = std::max(cy - kHalfH, 0), y1 = std::min(cy + kHalfH, kRefH - 1);
+    const int x0 = std::max(cx - kHalfW, 0), x1 = std::min(cx + kHalfW, kRefW - 1);
+    const int y0 = std::max({cy - kHalfH, yTop, 0}), y1 = std::min({cy + kHalfH, yBottom, kRefH - 1});
     if (x1 < x0 || y1 < y0) return out;
     const int pw = x1 - x0 + 1, ph = y1 - y0 + 1;
     float v[kGlyphH * 15];
@@ -179,12 +190,16 @@ ScreenReader::CellResult ScreenReader::readCell(const uint8_t* img, int stride, 
     float sr = 0, sg = 0, sb = 0;
     for (int y = 0; y < ph; ++y)
         for (int x = 0; x < pw; ++x)
-            if (v[y * pw + x] > 0.55f * m) {
-                ++on;
+        {
+            const float val = v[y * pw + x];
+            if (val > 0.35f * m)  // the outline takes in thin, dim strokes too (the tail that tells Q from O)
                 minX = std::min(minX, x), maxX = std::max(maxX, x), minY = std::min(minY, y), maxY = std::max(maxY, y);
+            if (val > 0.55f * m) {
+                ++on;
                 const uint8_t* px = img + (y0 + y) * stride + (x0 + x) * 4;
                 sb += px[0], sg += px[1], sr += px[2];
             }
+        }
     if (on < 4) return out;
     out.blank = false;
     out.color = classifyColor(sr / on, sg / on, sb / on);
@@ -198,6 +213,14 @@ ScreenReader::CellResult ScreenReader::readCell(const uint8_t* img, int stride, 
             cv[(oy + y) * kGlyphW + ox + x] = val > 0.25f * m ? std::min(val / m, 1.f) : 0.f;
         }
     const float geo[3] = {static_cast<float>(bh), static_cast<float>(bw), static_cast<float>(minY + y0 - cy)};
+    if (dump_) {
+        DumpedCell d;
+        d.row = r;
+        d.sample.geo = {geo[0], geo[1], geo[2]};
+        for (int k = 0; k < kPix; ++k) d.sample.pix[static_cast<size_t>(k)] = static_cast<uint8_t>(std::lround(std::clamp(cv[k], 0.f, 1.f) * 255.f));
+        d.sample.small = bh < 16;
+        dump_->push_back(d);
+    }
     const Prepared& b = *bank_;
     const size_t n = b.size();
     if (n == 0) { out.unsure = true, out.ch = U'?'; return out; }
@@ -208,32 +231,50 @@ ScreenReader::CellResult ScreenReader::readCell(const uint8_t* img, int stride, 
         const float* g = &b.geo[i * 3];
         return diff / std::max(uni, 1e-3f) + kGeoWeight * (std::fabs(g[0] - geo[0]) + std::fabs(g[1] - geo[1]) + std::fabs(g[2] - geo[2]));
     };
-    // first pass on all samples, then the closest few again with the picture shifted by one pixel
+    // 1. a quick pass on 4 x 4 block summaries, skipping samples of a clearly different size; 2. the closest few pixel by pixel;
+    // 3. the closest of those again with the picture moved by a pixel each way. About 15 times less work than comparing every sample.
+    auto keep = [](auto* list, int& count, int cap, float d, size_t i) {
+        if (count < cap) { list[count++] = {d, i}; return; }
+        auto worst = std::max_element(list, list + count);
+        if (d < worst->first) *worst = {d, i};
+    };
+    float cp[kPool];
+    pool(cv, cp);
+    std::pair<float, size_t> coarse[kCoarse];
+    int nc = 0;
+    std::vector<std::pair<float, size_t>> all;
+    if (exhaustive_) all.reserve(n);
+    for (int pass = 0; pass < 2 && nc == 0; ++pass)  // nothing of about this size: every sample then
+        for (size_t i = 0; i < n; ++i) {
+            const float* g = &b.geo[i * 3];
+            if (pass == 0 && (std::fabs(g[0] - geo[0]) > kSizeSkip || std::fabs(g[1] - geo[1]) > kSizeSkip)) continue;
+            const float* sp = &b.pooled[i * kPool];
+            float diff = 0.f, uni = 0.f;
+            for (int k = 0; k < kPool; ++k) diff += std::fabs(sp[k] - cp[k]), uni += std::max(sp[k], cp[k]);
+            keep(coarse, nc, kCoarse, diff / std::max(uni, 1e-3f) + kGeoWeight * (std::fabs(g[0] - geo[0]) + std::fabs(g[1] - geo[1]) + std::fabs(g[2] - geo[2])), i);
+        }
+    if (exhaustive_) for (size_t i = 0; i < n; ++i) all.push_back({0.f, i});
     std::pair<float, size_t> best[kShortlist];
     int nb = 0;
-    for (size_t i = 0; i < n; ++i) {
-        const float d = distance(i, cv);
-        if (nb < kShortlist) best[nb++] = {d, i};
-        else {
-            auto worst = std::max_element(best, best + nb);
-            if (d < worst->first) *worst = {d, i};
+    if (exhaustive_) for (const auto& c : all) keep(best, nb, kShortlist, distance(c.second, cv), c.second);
+    else for (int k = 0; k < nc; ++k) keep(best, nb, kShortlist, distance(coarse[k].second, cv), coarse[k].second);
+    static thread_local float shifted[8][kPix];  // the picture moved by one pixel each way, made once per character
+    int ns = 0;
+    for (int dy = -1; dy <= 1; ++dy)
+        for (int dx = -1; dx <= 1; ++dx) {
+            if (!dy && !dx) continue;
+            float* s = shifted[ns++];
+            for (int y = 0; y < kGlyphH; ++y)
+                for (int x = 0; x < kGlyphW; ++x) {
+                    const int sy = y - dy, sx = x - dx;
+                    s[y * kGlyphW + x] = sy >= 0 && sy < kGlyphH && sx >= 0 && sx < kGlyphW ? cv[sy * kGlyphW + sx] : 0.f;
+                }
         }
-    }
-    float shifted[kPix];
     float bestD = 1e9f;
     size_t bestI = 0;
     for (int k = 0; k < nb; ++k) {
         float d = best[k].first;
-        for (int dy = -1; dy <= 1; ++dy)
-            for (int dx = -1; dx <= 1; ++dx) {
-                if (!dy && !dx) continue;
-                for (int y = 0; y < kGlyphH; ++y)
-                    for (int x = 0; x < kGlyphW; ++x) {
-                        const int sy = y - dy, sx = x - dx;
-                        shifted[y * kGlyphW + x] = sy >= 0 && sy < kGlyphH && sx >= 0 && sx < kGlyphW ? cv[sy * kGlyphW + sx] : 0.f;
-                    }
-                d = std::min(d, distance(best[k].second, shifted));
-            }
+        for (int s = 0; s < ns; ++s) d = std::min(d, distance(best[k].second, shifted[s]));
         if (d < bestD) bestD = d, bestI = best[k].second;
     }
     out.ch = b.ch[bestI];
@@ -260,39 +301,141 @@ ReadResult ScreenReader::read(const uint8_t* bgrx, int width, int height, int st
         res.scale = scale;
         const float offX = px0 - kPanelX * scale, offY = py0 - kPanelY * scaleY;
         scaled_.resize(static_cast<size_t>(kRefW) * kRefH * 4);
-        for (int y = 0; y < kRefH; ++y) {
-            const float fy = std::clamp(offY + (y + 0.5f) * scaleY - 0.5f, 0.f, height - 1.f);
-            const int y0 = static_cast<int>(fy), y1 = std::min(y0 + 1, height - 1);
-            const float wy = fy - y0;
-            for (int x = 0; x < kRefW; ++x) {
-                const float fx = std::clamp(offX + (x + 0.5f) * scale - 0.5f, 0.f, width - 1.f);
-                const int x0 = static_cast<int>(fx), x1 = std::min(x0 + 1, width - 1);
-                const float wx = fx - x0;
-                for (int k = 0; k < 3; ++k) {
-                    const float a = bgrx[y0 * stride + x0 * 4 + k], b = bgrx[y0 * stride + x1 * 4 + k], c = bgrx[y1 * stride + x0 * 4 + k], d = bgrx[y1 * stride + x1 * 4 + k];
-                    scaled_[(static_cast<size_t>(y) * kRefW + x) * 4 + k] = static_cast<uint8_t>(std::lround((a * (1 - wx) + b * wx) * (1 - wy) + (c * (1 - wx) + d * wx) * wy));
+        // Each pixel of the measured size takes the average of the area it covers: a bigger pop-out shrinks without losing thin
+        // strokes (a point sample of it misses them and the small letters change: H reads as N). A smaller one is spread out.
+        auto taps = [](float off, float step, int count, int limit) {
+            std::vector<std::vector<std::pair<int, float>>> out(static_cast<size_t>(count));
+            for (int i = 0; i < count; ++i) {
+                const float a = off + i * step, b = a + step;
+                if (step <= 1.f) {  // spreading: the two nearest pixels
+                    const float f = std::clamp(a + step / 2.f - 0.5f, 0.f, limit - 1.f);
+                    const int p0 = static_cast<int>(f), p1 = std::min(p0 + 1, limit - 1);
+                    out[static_cast<size_t>(i)] = {{p0, 1.f - (f - p0)}, {p1, f - p0}};
+                    continue;
                 }
-                scaled_[(static_cast<size_t>(y) * kRefW + x) * 4 + 3] = 0;
+                for (int p = std::max(0, static_cast<int>(std::floor(a))); p < std::min(limit, static_cast<int>(std::ceil(b))); ++p) {
+                    const float w = std::min(b, p + 1.f) - std::max(a, static_cast<float>(p));
+                    if (w > 0.f) out[static_cast<size_t>(i)].push_back({p, w / step});
+                }
             }
+            return out;
+        };
+        const float key[6] = {offX, offY, scale, scaleY, static_cast<float>(width), static_cast<float>(height)};
+        if (!std::equal(key, key + 6, taps_.key) || taps_.x.empty()) {  // made again only when the pop-out changes size or the screen moves
+            std::copy(key, key + 6, taps_.key);
+            taps_.x = taps(offX, scale, kRefW, width);
+            taps_.y = taps(offY, scaleY, kRefH, height);
         }
+        const auto& tx = taps_.x;
+        const auto& ty = taps_.y;
+        for (int y = 0; y < kRefH; ++y)
+            for (int x = 0; x < kRefW; ++x) {
+                float acc[3] = {0.f, 0.f, 0.f};
+                for (const auto& [sy, wy] : ty[static_cast<size_t>(y)])
+                    for (const auto& [sx, wx] : tx[static_cast<size_t>(x)]) {
+                        const uint8_t* p = bgrx + sy * stride + sx * 4;
+                        for (int k = 0; k < 3; ++k) acc[k] += p[k] * wy * wx;
+                    }
+                uint8_t* q = &scaled_[(static_cast<size_t>(y) * kRefW + x) * 4];
+                for (int k = 0; k < 3; ++k) q[k] = static_cast<uint8_t>(std::clamp(std::lround(acc[k]), 0l, 255l));
+                q[3] = 0;
+            }
         img = scaled_.data();
         st = kRefW * 4;
     }
+    // Characters are found row by row from their outlines, not cut at fixed places: some text sits half a cell off the grid,
+    // and a run of amber boxes is drawn as one frame whose edge reaches into the next cell.
     CellResult cells[kRows][kCols];
-    for (int r = 0; r < kRows; ++r)
-        for (int c = 0; c < kCols; ++c) {
-            // a cell that looks exactly as before is not read again
-            const int cx = static_cast<int>(std::lround(kX0 + c * kPitchX)), cy = static_cast<int>(std::lround(kY0 + r * kPitchY));
-            uint64_t h = 1469598103934665603ull;
-            for (int y = std::max(cy - kHalfH, 0); y <= std::min(cy + kHalfH, kRefH - 1); ++y) {
-                const uint8_t* row = img + y * st;
-                for (int x = std::max(cx - kHalfW, 0); x <= std::min(cx + kHalfW, kRefW - 1); ++x)
-                    for (int k = 0; k < 3; ++k) h = (h ^ row[x * 4 + k]) * 1099511628211ull;
+    // the lines of the picture that have text on them, as bands (a gap of one line is still the same band)
+    std::vector<std::pair<int, int>> bands;
+    {
+        int start = -1, gap = 0;
+        for (int y = 0; y < kRefH; ++y) {
+            bool any = false;
+            for (int x = 0; x < kRefW && !any; x += 1) {
+                const uint8_t* p = img + y * st + x * 4;
+                any = std::max({p[0], p[1], p[2]}) >= 50;
             }
-            Cache& cache = cache_[static_cast<size_t>(r * kCols + c)];
-            if (!cache.valid || cache.hash != h) cache = {h, true, readCell(img, st, r, c)};
-            cells[r][c] = cache.cell;
+            if (any) {
+                if (start < 0) start = y;
+                gap = 0;
+            } else if (start >= 0 && ++gap > 1) {
+                bands.push_back({start, y - gap});
+                start = -1, gap = 0;
+            }
         }
+        if (start >= 0) bands.push_back({start, kRefH - 1});
+    }
+    for (int r = 0; r < kRows; ++r) {
+        // The row's text as drawn: the band of lit lines nearest to where the grid puts the row. Aircraft place and size their
+        // text a little differently (the A319 a few pixels lower and larger than the A330); centring on the band keeps the next
+        // row out of the character.
+        const int gridY = static_cast<int>(std::lround(kY0 + r * kPitchY));
+        int cy = gridY, top = std::max(gridY - 9, 0), bottom = std::min(gridY + 9, kRefH - 1);
+        {
+            // every band centred near the row belongs to it: dashes and the dot of "--.-" are two bands a few lines apart
+            int u0 = -1, u1 = -1;
+            for (const auto& [b0, b1] : bands) {
+                if (std::abs((b0 + b1) / 2 - gridY) > 10 || b1 - b0 > 26) continue;
+                u0 = u0 < 0 ? b0 : std::min(u0, b0);
+                u1 = std::max(u1, b1);
+            }
+            if (u0 >= 0 && u1 - u0 <= 26) cy = (u0 + u1) / 2, top = u0, bottom = u1;
+        }
+        bool lit[kRefW];
+        for (int x = 0; x < kRefW; ++x) {
+            lit[x] = false;
+            for (int y = top; y <= bottom && !lit[x]; ++y) {
+                const uint8_t* p = img + y * st + x * 4;
+                lit[x] = std::max({p[0], p[1], p[2]}) >= 50;
+            }
+        }
+        std::vector<std::pair<int, int>> spans;  // first and last column of each lit run
+        for (int x = 0; x < kRefW;) {
+            if (!lit[x]) { ++x; continue; }
+            const int start = x;
+            while (x < kRefW && lit[x]) ++x;
+            // a character in two parts (") is one character: join runs closer than 3 pixels when the result still fits a cell
+            if (!spans.empty() && start - spans.back().second <= 3 && x - 1 - spans.back().first < kPitchX * 0.85f) spans.back().second = x - 1;
+            else spans.push_back({start, x - 1});
+        }
+        int taken[kCols];
+        std::fill(taken, taken + kCols, -1);
+        for (const auto& [first, last] : spans) {
+            const float width = static_cast<float>(last - first + 1);
+            // wider than one character: as many characters as fit, counting the gap a run of touching ones lacks at its end
+            // (two touching magenta letters "FL" are about 1.4 cells wide; the widest single letter is about 0.8)
+            const int parts = width > kPitchX * 1.15f ? std::max(1, static_cast<int>(std::lround((width + 4.f) / kPitchX))) : 1;
+            for (int k = 0; k < parts; ++k) {
+                const float cxf = first + width * (k + 0.5f) / parts - 0.5f;
+                int c = static_cast<int>(std::lround((cxf - kX0) / kPitchX));
+                if (c >= 0 && c < kCols && taken[c] >= 0) {
+                    // text half a cell off the grid can round two neighbours to one column ("FL080"): the later one takes the next
+                    // column on its side when that one is free
+                    const int side = cxf > static_cast<float>(taken[c]) ? c + 1 : c - 1;
+                    c = side >= 0 && side < kCols && taken[side] < 0 ? side : -1;
+                }
+                if (c < 0 || c >= kCols || taken[c] >= 0) continue;
+                const int cx = static_cast<int>(std::lround(cxf));
+                taken[c] = cx;
+                // a character that looks exactly as before is not read again
+                uint64_t h = 1469598103934665603ull ^ static_cast<uint64_t>(cx);
+                h ^= static_cast<uint64_t>(cy) << 20 ^ static_cast<uint64_t>(top) << 32 ^ static_cast<uint64_t>(bottom) << 44;
+                for (int y = std::max(cy - kHalfH, 0); y <= std::min(cy + kHalfH, kRefH - 1); ++y) {
+                    const uint8_t* row = img + y * st;
+                    for (int x = std::max(cx - kHalfW, 0); x <= std::min(cx + kHalfW, kRefW - 1); ++x)
+                        for (int q = 0; q < 3; ++q) h = (h ^ row[x * 4 + q]) * 1099511628211ull;
+                }
+                Cache& cache = cache_[static_cast<size_t>(r * kCols + c)];
+                if (!cache.valid || cache.hash != h) {
+                    const size_t dumped = dump_ ? dump_->size() : 0;
+                    cache = {h, true, readCell(img, st, r, cx, cy, top, bottom)};
+                    if (dump_ && dump_->size() > dumped) dump_->back().col = c;  // only a sample this cell added
+                }
+                cells[r][c] = cache.cell;
+            }
+        }
+    }
     for (int r = 0; r < kRows; ++r) {
         // punctuation has no size of its own: it takes the size of the closest letter or digit
         for (int c = 0; c < kCols; ++c) {

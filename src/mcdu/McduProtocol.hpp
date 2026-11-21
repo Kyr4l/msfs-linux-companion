@@ -88,9 +88,9 @@ inline constexpr std::array<Light, 9> kLamps = {Light::Fail, Light::Fm, Light::M
 
 std::array<uint8_t, 14> encodeLight(Light light, uint8_t value);
 std::vector<Report> initReports();                  // the set-up the panel wants once, before the first screen
-std::vector<Report> encodeScreen(const Screen& s);  // always the whole screen: cells cannot be addressed one by one
+std::vector<Report> encodeScreen(const Screen& s, bool anyGlyph = false);  // anyGlyph: send every character as it is (to try the font)  // always the whole screen: cells cannot be addressed one by one
 
 // The UTF-8 the panel gets for a character. Its font is not known beyond ASCII and these symbols: anything else is shown as '?'.
-std::string glyphBytes(char32_t ch);
+std::string glyphBytes(char32_t ch, bool anyGlyph = false);
 
 }  // namespace lr::mcdu

@@ -29,6 +29,7 @@ struct ServiceStatus {
     std::string devicePath, seat, error;
     bool simMode = false, simScreen = false, sleeping = false;
     int ambientPercent = -1;
+    int screenLevelPercent = -1;  // the screen level sent last (Automatic included)
     uint64_t screensSent = 0;
     SideLabels sideLabels;  // what the side keys do on the page on screen
     LampState lamps{};      // in the order of kLamps
@@ -40,6 +41,8 @@ struct SimState {
     std::string hEventPrefix;      // keys become H events <prefix><key>; empty: this aircraft's keys are not known
     bool simBridge = false;        // the aircraft has a SimBridge screen (the A32NX)
     bool iniBuildsKeys = false;    // the keys are the L: variables of the iniBuilds Airbuses
+    bool hasLamps = false;         // the aircraft says which lamps are lit (iniBuilds: L:INI_FMC<n>_*)
+    LampState lamps{};
     bool operator==(const SimState&) const = default;
 };
 
@@ -89,6 +92,8 @@ private:
     void sendScreen(Clock::time_point now);
     void applyLights(bool force);
     void blankDevice();
+    void applyFont();  // sends the chosen font when it is not the one the unit has
+    void stepBrightness(bool up);  // BRT / DIM: one step of the screen level
 
     Hooks hooks_;
     mutable std::mutex m_;
@@ -131,10 +136,13 @@ private:
     KeyBits keysDown_;
     Screen desired_, sent_;
     bool sentValid_ = false;
+    std::string fontSent_ = "built-in";  // the font the unit has now
     Clock::time_point nextSend_{}, nextRefresh_{}, nextSystem_{}, nextMedia_{}, lastKey_{};
     bool sleeping_ = false;
     int ambient_ = -1;
     int lastLevels_[3] = {-1, -1, -1};
+    int screenShown_ = -1;
+    Clock::time_point holdStart_{}, nextRepeat_{};  // BRT / DIM held down
     LampState lastLamps_{};
     bool lampsValid_ = false;
 };

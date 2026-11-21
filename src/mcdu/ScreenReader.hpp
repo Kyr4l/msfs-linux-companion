@@ -41,6 +41,11 @@ private:
 std::string defaultGlyphBankPath();  // $XDG_DATA_HOME/msfs-linux-companion/mcdu-glyphs.bin
 Color classifyColor(float r, float g, float b);
 
+struct DumpedCell {  // a character as the reader sees it, before it is matched (for learning samples)
+    int row = 0, col = 0;
+    GlyphSample sample;
+};
+
 struct ReadResult {
     Screen screen;
     int glyphs = 0;  // cells with a character in them
@@ -58,6 +63,16 @@ public:
     // The picture as the X server sends it: 4 bytes a pixel, blue green red unused.
     ReadResult read(const uint8_t* bgrx, int width, int height, int stride);
     void reset();  // forget what was read: the next picture is read whole
+    // every character read from now on is also added there (all cells are read again so that each one is)
+    void setDump(std::vector<DumpedCell>* dump) {
+        dump_ = dump;
+        if (dump) reset();
+    }
+    // compare every sample (slow): to check that the quick pass loses nothing
+    void setExhaustive(bool on) {
+        if (on != exhaustive_) reset();
+        exhaustive_ = on;
+    }
 
 private:
     struct Prepared;
@@ -72,11 +87,15 @@ private:
         bool valid = false;
         CellResult cell;
     };
-    CellResult readCell(const uint8_t* img, int stride, int r, int c) const;
+    // the character centred on column cx of row r, whose text lies between yTop and yBottom (its centre cy)
+    CellResult readCell(const uint8_t* img, int stride, int r, int cx, int cy, int yTop, int yBottom) const;
 
     std::shared_ptr<const Prepared> bank_;
     std::vector<Cache> cache_;
     std::vector<uint8_t> scaled_;
+    struct Taps { float key[6] = {}; std::vector<std::vector<std::pair<int, float>>> x, y; } taps_;  // the scaling table of the last size
+    std::vector<DumpedCell>* dump_ = nullptr;
+    bool exhaustive_ = false;
 };
 
 }  // namespace lr::mcdu

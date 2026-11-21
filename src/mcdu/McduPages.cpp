@@ -395,7 +395,9 @@ void PageHost::buildSystem(Frame& f) {
 
     metric(1, "CPU", system_.cpuPercent < 0 ? -1 : static_cast<int>(std::lround(system_.cpuPercent)), degrees(system_.cpuTempC), "CPU", [this] { go(PageId::Cpu); });
     const int memPercent = system_.memTotalGb > 0 ? static_cast<int>(std::lround(system_.memUsedGb * 100.0 / system_.memTotalGb)) : -1;
-    metric(2, "RAM " + format("%.1f", system_.memUsedGb) + "/" + format("%.0f GB", system_.memTotalGb), memPercent, "", "Memory", [this] { go(PageId::Memory); });
+    std::string ram = "RAM " + format("%.1f", system_.memUsedGb) + "/" + format("%.0fG", system_.memTotalGb);
+    if (system_.swapTotalGb > 0) ram += (system_.zram ? " ZRAM " : " SWAP ") + format("%.1fG", system_.swapUsedGb);
+    metric(2, ram, memPercent, "", "Memory", [this] { go(PageId::Memory); });
 
     const auto& gpus = system_.gpus;
     if (gpus.empty()) {
@@ -444,25 +446,58 @@ void PageHost::buildSystem(Frame& f) {
 }
 
 void PageHost::buildCpu(Frame& f) {
-    f.screen.putCentered(0, "CPU");
-    f.tag(1, "LOAD");
-    f.screen.put(2, 0, system_.cpuPercent < 0 ? "--" : format("%.0f %%", system_.cpuPercent), Color::Green);
-    f.tag(2, "TEMPERATURE");
-    f.screen.put(4, 0, system_.cpuTempC < 0 ? "--" : std::to_string(system_.cpuTempC) + "\xc2\xb0" "C", Color::Green);
-    f.tag(3, "LOAD AVERAGE");
-    f.screen.put(6, 0, format("%.2f ", system_.load1) + format("%.2f ", system_.load5) + format("%.2f", system_.load15), Color::Green);
+    Screen& s = f.screen;
+    s.putCentered(0, cpuCores_ ? "CPU CORES" : "CPU");
+    if (cpuCores_) {
+        // two columns of cores: "12 ||||||  57"; the right one from row 3 (row 2 has the SUMMARY> key)
+        const auto& cores = system_.corePercent;
+        const size_t shown = std::min<size_t>(cores.size(), 20);
+        for (size_t i = 0; i < shown; ++i) {
+            const int row = i < 11 ? 1 + static_cast<int>(i) : 3 + static_cast<int>(i - 11), col = i < 11 ? 0 : 12;
+            const int p = cores[i];
+            auto pad = [](std::string t, size_t w) { return std::string(w > t.size() ? w - t.size() : 0, ' ') + t; };
+            s.put(row, col, pad(std::to_string(i), 2), Color::White, true);
+            if (p < 0) { s.put(row, col + 3, "--"); continue; }
+            s.put(row, col + 3, barText(p, 6), levelColor(p));
+            s.put(row, col + 9, pad(std::to_string(std::min(p, 100)), 3), levelColor(p), true);
+        }
+        if (cores.size() > shown) s.putRight(0, "+" + std::to_string(cores.size() - shown), Color::Amber, true);
+        if (cores.empty()) s.putCentered(5, "NOT AVAILABLE", Color::Amber);
+    } else {
+        f.tag(1, "LOAD");
+        s.put(2, 0, system_.cpuPercent < 0 ? "--" : format("%.0f %%", system_.cpuPercent), Color::Green);
+        f.tag(2, "TEMPERATURE");
+        s.put(4, 0, system_.cpuTempC < 0 ? "--" : std::to_string(system_.cpuTempC) + "\xc2\xb0" "C", Color::Green);
+        f.tag(3, "CLOCK");
+        s.put(6, 0, system_.cpuGhz < 0 ? "--" : format("%.2f GHZ", system_.cpuGhz), Color::Green);
+        if (system_.cpuWatts >= 0) {  // only where the power counter is readable (root-only by default)
+            f.tag(4, "POWER");
+            s.put(8, 0, format("%.0f W", system_.cpuWatts), Color::Green);
+        }
+        f.tag(5, "LOAD AVERAGE");
+        s.put(10, 0, format("%.2f ", system_.load1) + format("%.2f ", system_.load5) + format("%.2f", system_.load15), Color::Green);
+    }
+    f.right(1, cpuCores_ ? "Summary" : "Cores", [this] { cpuCores_ = !cpuCores_; });
     f.left(6, "Return", [this] { go(PageId::System); });
     f.right(6, "Rate " + std::to_string(refreshSeconds_) + "S", [this] { cycleRate(); });
 }
 
 void PageHost::buildMemory(Frame& f) {
-    f.screen.putCentered(0, "MEMORY");
+    Screen& s = f.screen;
+    s.putCentered(0, "MEMORY");
     f.tag(1, "USED");
-    f.screen.put(2, 0, format("%.1f GB", system_.memUsedGb), Color::Green);
+    s.put(2, 0, format("%.1f GB", system_.memUsedGb), Color::Green);
     f.tag(2, "AVAILABLE");
-    f.screen.put(4, 0, format("%.1f GB", system_.memAvailableGb), Color::Green);
-    f.tag(3, "SWAP");
-    f.screen.put(6, 0, format("%.1f", system_.swapUsedGb) + "/" + format("%.0f GB", system_.swapTotalGb), Color::Green);
+    s.put(4, 0, format("%.1f GB", system_.memAvailableGb), Color::Green);
+    f.tag(3, system_.zram ? "SWAP (ZRAM)" : "SWAP");
+    s.put(6, 0, system_.swapTotalGb > 0 ? format("%.1f", system_.swapUsedGb) + "/" + format("%.0f GB", system_.swapTotalGb) : std::string("NONE"), Color::Green);
+    if (system_.zram) {
+        // what was swapped out, the memory it takes once compressed, and how well it packs
+        f.tag(4, "ZRAM STORED / IN MEMORY");
+        s.put(8, 0, format("%.2f", system_.zramStoredGb) + " / " + format("%.2f GB", system_.zramMemoryGb), Color::Green);
+        f.tag(5, "COMPRESSION");
+        s.put(10, 0, system_.zramMemoryGb > 0.0005 ? format("%.1f : 1", system_.zramStoredGb / system_.zramMemoryGb) : std::string("--"), Color::Green);
+    }
     f.left(6, "Return", [this] { go(PageId::System); });
     f.right(6, "Rate " + std::to_string(refreshSeconds_) + "S", [this] { cycleRate(); });
 }

@@ -110,11 +110,42 @@ void DesktopService::poll() {
         for (const auto& [aircraft, prefix] : prefixes_)
             if (sim::sameAircraft(aircraft, id.id)) sim.hEventPrefix = prefix;
         sim.simBridge = sim::sameAircraft("A32NX", id.id);
-        for (const char* aircraft : {"microsoft-a320neo", "microsoft-a321", "microsoft-a330"})
+        for (const char* aircraft : {"microsoft-a320neo", "microsoft-a321", "microsoft-a330", "microsoft-belugaxl"})
             sim.iniBuildsKeys = sim.iniBuildsKeys || sim::sameAircraft(aircraft, id.id);
+        // Any other aircraft built on the iniBuilds Airbus systems has the same MCDU variables: found in its L: list, once per aircraft
+        // (only the "is the list there" status is asked every second; the list itself, a thousand names, is copied once).
+        if (!sim.iniBuildsKeys) {
+            if (iniCheckedFor_ != id.id) iniCheckedFor_ = id.id, iniChecked_ = false, iniFound_ = false;
+            if (!iniChecked_) {
+                const sim::LiveStatus live = bridge_.liveStatus();
+                if (live.lvarsDone && sim::sameAircraft(live.aircraftId, id.id)) {
+                    const sim::LiveSnapshot snap = bridge_.liveSnapshot();
+                    iniFound_ = std::any_of(snap.lvars.begin(), snap.lvars.end(), [](const std::string& n) { return n == "INI_MCDU1_LSK1L" || n == "L:INI_MCDU1_LSK1L"; });
+                    iniChecked_ = true;
+                    if (iniFound_) LOG_INFO("Desktop: %s has the iniBuilds MCDU keys", id.id.c_str());
+                }
+            }
+            sim.iniBuildsKeys = iniFound_;
+        }
+    }
+    const auto unit = winwing_.mcduDevice();
+    // The lamps of the iniBuilds Airbuses (read only): the unit's seat picks the side, in the order of mcdu::kLamps
+    std::vector<std::string> watch;
+    if (sim.iniBuildsKeys) {
+        const std::string side = unit.second == 0xbb3e ? "2" : "1";
+        for (const char* n : {"FAIL", "FM", "MCDU", "FM1", "IND", "RDY", "DASH", "FM2"}) watch.push_back("L:INI_FMC" + side + "_" + n);
+    }
+    if (watch != lampWatch_) {
+        bridge_.watchLVars(watch, "mcdu-lamps");  // its own list: the profile's watches stay
+        lampWatch_ = watch;
+    }
+    if (!watch.empty()) {
+        auto on = [&](size_t i) { const auto v = bridge_.lvarValue(watch[i]); return v && *v > 0.5; };
+        // kLamps: FAIL, FM, MCDU, MENU, FM1, IND, RDY, line, FM2 (the aircraft's MCDU lamp lights the MCDU MENU pair)
+        sim.lamps = {on(0), on(1), on(2), on(2), on(3), on(4), on(5), on(6), on(7)};
+        sim.hasLamps = std::any_of(watch.begin(), watch.end(), [&](const std::string& n) { return bridge_.lvarValue(n).has_value(); });
     }
     mcdu_.setSim(sim);
-    const auto unit = winwing_.mcduDevice();
     mcdu_.setDevice(unit.first, unit.second);
 
     // The virtual keyboard of the MCDU's pages: there before the first key (a new device takes the desktop a moment to notice), gone while the sim runs.

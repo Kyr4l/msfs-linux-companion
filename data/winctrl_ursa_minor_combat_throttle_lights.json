@@ -1,0 +1,378 @@
+{
+ "_about": "WINCTRL URSA MINOR Combat Throttle Metal.EX: where SimAppPro stores its lighting (read with Winwing opcode 0x05). 3 groups of 12 LEDs (red, green, blue, level); which part each LED lights is inferred from the colours of one user's profile and a photo, not tried one by one.",
+ "name": "URSA MINOR Combat Throttle",
+ "usb": "4098:b970",
+ "driver": "winwing",
+ "winwing": {
+  "device": "0x40",
+  "family": "0xb9"
+ },
+ "aspect": 1.5,
+ "states": [
+  {
+   "name": "Start-up",
+   "offset": "0x210"
+  },
+  {
+   "name": "Normal",
+   "offset": "0x240"
+  },
+  {
+   "name": "State 3",
+   "offset": "0x270"
+  }
+ ],
+ "leds": [
+  {
+   "id": 1,
+   "name": "B labels",
+   "guess": true
+  },
+  {
+   "id": 2,
+   "name": "Panel labels",
+   "guess": true
+  },
+  {
+   "id": 3,
+   "name": "B1 bar",
+   "guess": true
+  },
+  {
+   "id": 4,
+   "name": "B2 bar",
+   "guess": true
+  },
+  {
+   "id": 5,
+   "name": "B3 bar",
+   "guess": true
+  },
+  {
+   "id": 6,
+   "name": "B4 bar",
+   "guess": true
+  },
+  {
+   "id": 7,
+   "name": "B5 bar",
+   "guess": true
+  },
+  {
+   "id": 8,
+   "name": "B6 bar",
+   "guess": true
+  },
+  {
+   "id": 9,
+   "name": "B7 bar",
+   "guess": true
+  },
+  {
+   "id": 10,
+   "name": "B8 bar",
+   "guess": true
+  },
+  {
+   "id": 11,
+   "name": "Mode, selected",
+   "guess": true
+  },
+  {
+   "id": 12,
+   "name": "Mode, others",
+   "guess": true
+  }
+ ],
+ "parts": [
+  {
+   "text": "IDLE / OFF",
+   "shape": "lever",
+   "rect": [
+    0.03,
+    0.03,
+    0.56,
+    0.22
+   ]
+  },
+  {
+   "text": "SW4-6",
+   "shape": "toggle",
+   "rect": [
+    0.63,
+    0.04,
+    0.14,
+    0.2
+   ],
+   "text_led": 2
+  },
+  {
+   "text": "SW1-3",
+   "shape": "toggle",
+   "rect": [
+    0.8,
+    0.04,
+    0.14,
+    0.2
+   ],
+   "text_led": 2
+  },
+  {
+   "text": "B1",
+   "shape": "key",
+   "rect": [
+    0.03,
+    0.3,
+    0.12,
+    0.14
+   ],
+   "text_led": 1,
+   "bar_led": 3
+  },
+  {
+   "text": "B2",
+   "shape": "key",
+   "rect": [
+    0.17,
+    0.3,
+    0.12,
+    0.14
+   ],
+   "text_led": 1,
+   "bar_led": 4
+  },
+  {
+   "text": "B3",
+   "shape": "key",
+   "rect": [
+    0.31,
+    0.3,
+    0.12,
+    0.14
+   ],
+   "text_led": 1,
+   "bar_led": 5
+  },
+  {
+   "text": "B4",
+   "shape": "key",
+   "rect": [
+    0.45,
+    0.3,
+    0.12,
+    0.14
+   ],
+   "text_led": 1,
+   "bar_led": 6
+  },
+  {
+   "text": "B5",
+   "shape": "key",
+   "rect": [
+    0.03,
+    0.47,
+    0.12,
+    0.14
+   ],
+   "text_led": 1,
+   "bar_led": 7
+  },
+  {
+   "text": "B6",
+   "shape": "key",
+   "rect": [
+    0.17,
+    0.47,
+    0.12,
+    0.14
+   ],
+   "text_led": 1,
+   "bar_led": 8
+  },
+  {
+   "text": "B7",
+   "shape": "key",
+   "rect": [
+    0.31,
+    0.47,
+    0.12,
+    0.14
+   ],
+   "text_led": 1,
+   "bar_led": 9
+  },
+  {
+   "text": "B8",
+   "shape": "key",
+   "rect": [
+    0.45,
+    0.47,
+    0.12,
+    0.14
+   ],
+   "text_led": 1,
+   "bar_led": 10
+  },
+  {
+   "text": "SW7 SW8 SW9",
+   "shape": "rocker",
+   "rect": [
+    0.63,
+    0.3,
+    0.15,
+    0.31
+   ],
+   "text_led": 2
+  },
+  {
+   "text": "SW10 SW11 SW12",
+   "shape": "rocker",
+   "rect": [
+    0.8,
+    0.3,
+    0.15,
+    0.31
+   ],
+   "text_led": 2
+  },
+  {
+   "text": "",
+   "shape": "knob",
+   "rect": [
+    0.03,
+    0.68,
+    0.11,
+    0.26
+   ]
+  },
+  {
+   "text": "MODE",
+   "shape": "label",
+   "rect": [
+    0.15,
+    0.68,
+    0.14,
+    0.08
+   ],
+   "text_led": 2
+  },
+  {
+   "text": "M3",
+   "shape": "tag",
+   "rect": [
+    0.15,
+    0.82,
+    0.045,
+    0.08
+   ],
+   "text_led": 12
+  },
+  {
+   "text": "M2",
+   "shape": "tag",
+   "rect": [
+    0.2,
+    0.82,
+    0.045,
+    0.08
+   ],
+   "text_led": 11
+  },
+  {
+   "text": "M1",
+   "shape": "tag",
+   "rect": [
+    0.25,
+    0.82,
+    0.045,
+    0.08
+   ],
+   "text_led": 12
+  },
+  {
+   "text": "E1",
+   "shape": "label",
+   "rect": [
+    0.33,
+    0.66,
+    0.07,
+    0.06
+   ],
+   "text_led": 2
+  },
+  {
+   "text": "",
+   "shape": "knob",
+   "rect": [
+    0.33,
+    0.73,
+    0.07,
+    0.15
+   ]
+  },
+  {
+   "text": "E2",
+   "shape": "label",
+   "rect": [
+    0.33,
+    0.89,
+    0.07,
+    0.06
+   ],
+   "text_led": 2
+  },
+  {
+   "text": "E3",
+   "shape": "label",
+   "rect": [
+    0.45,
+    0.66,
+    0.07,
+    0.06
+   ],
+   "text_led": 2
+  },
+  {
+   "text": "",
+   "shape": "knob",
+   "rect": [
+    0.45,
+    0.73,
+    0.07,
+    0.15
+   ]
+  },
+  {
+   "text": "E4",
+   "shape": "label",
+   "rect": [
+    0.45,
+    0.89,
+    0.07,
+    0.06
+   ],
+   "text_led": 2
+  },
+  {
+   "text": "",
+   "shape": "knob",
+   "rect": [
+    0.7,
+    0.66,
+    0.14,
+    0.24
+   ]
+  },
+  {
+   "text": "RUD TRIM",
+   "shape": "label",
+   "rect": [
+    0.66,
+    0.91,
+    0.22,
+    0.06
+   ],
+   "text_led": 2
+  }
+ ]
+}

@@ -30,9 +30,15 @@ struct DiskSample {
 
 struct SystemSample {
     double cpuPercent = -1;
+    std::vector<int> corePercent;             // every logical core, -1 until measured twice
+    double cpuGhz = -1;                       // the fastest core right now
+    double cpuWatts = -1;                     // the CPU package (RAPL); -1: not readable
+    bool cpuPowerDenied = false;              // RAPL is there but root-only (the default since 2020)
     int cpuTempC = -1;
     double load1 = 0, load5 = 0, load15 = 0;
     double memUsedGb = 0, memAvailableGb = 0, memTotalGb = 0, swapUsedGb = 0, swapTotalGb = 0;
+    bool zram = false;                        // swap lives in compressed memory
+    double zramStoredGb = 0, zramMemoryGb = 0;  // what was swapped out, and the memory it takes once compressed
     long uptimeSeconds = 0;
     std::vector<GpuSample> gpus;
     std::vector<DiskSample> disks;
@@ -64,6 +70,9 @@ private:
     void readNvidia(Gpu& gpu, unsigned index, GpuSample& out);
 
     uint64_t prevBusy_ = 0, prevTotal_ = 0;
+    std::vector<std::pair<uint64_t, uint64_t>> prevCores_;  // busy, total
+    uint64_t prevEnergy_ = 0;
+    double prevEnergyTime_ = 0;
     uint64_t prevDown_ = 0, prevUp_ = 0;
     double prevNetTime_ = 0;
     bool gpusScanned_ = false;

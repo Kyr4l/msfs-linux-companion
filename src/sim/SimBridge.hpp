@@ -10,6 +10,7 @@
 #include <deque>
 #include <mutex>
 #include <set>
+#include <map>
 #include <string>
 #include <thread>
 #include <optional>
@@ -55,7 +56,10 @@ struct Telemetry {
            engineType = 0,                   // ENGINE TYPE: 0 piston, 1 jet, 3 turbine helicopter, 5 turboprop
            torqueEng1 = 0, torqueEng2 = 0,   // percent of the rated torque
            cameraState = 0,                  // CAMERA STATE: 2 cockpit ... 10 drone aircraft are views of a flight; 11 and up are menus, the world map, hangars
-           spoilerAvailable = 0;             // SPOILER AVAILABLE: the aircraft has spoilers. Its handle variable moves without them (a lever bound in the sim)
+           spoilerAvailable = 0,             // SPOILER AVAILABLE: the aircraft has spoilers. Its handle variable moves without them (a lever bound in the sim)
+           gearCenter = 1, gearLeft = 1, gearRight = 1;  // each leg 0..1; gearPct is their average (see SimBridge::handleTelemetry)
+    int gearLegsSeen = 0;      // the legs seen out of 0 on this aircraft (bits: center, left, right): a leg it lacks stays 0
+    bool gearInPercent = false;  // a leg came as 0..100 on this aircraft
 
     // MSFS 2024 runs a world with the menu's aircraft behind its menus and says "in a flight" there, so only a flight camera tells a flight
     // (seen: camera 34 in the menu, with the menu's aircraft airborne at 188 kt and an overspeed warning). 0 = not reported yet.
@@ -139,8 +143,9 @@ public:
     void sendHEvent(const std::string& name, const std::string& origin = {});
     void setLVar(const std::string& name, double value, const std::string& origin = {});
     void toggleLVar(const std::string& name, const std::string& origin = {});
-    // L: vars to read continuously through the MobiFlight module (replaces the previous list).
-    void watchLVars(std::vector<std::string> names);
+    // L: vars to read continuously through the MobiFlight module (replaces the previous list of that owner; the lists of
+    // all owners are read together). The default owner is the app's profile and guides.
+    void watchLVars(std::vector<std::string> names, const std::string& owner = {});
     std::optional<double> lvarValue(const std::string& name) const;
     void execCalculatorCode(const std::string& code, const std::string& origin = {});
     // B: input events: cockpit switches exposed by the loaded aircraft (SimConnect input events, no add-on needed)
@@ -244,7 +249,8 @@ private:
     bool mfSetupDone_ = false;
     bool mfClientReady_ = false;      // our own "<name>.Command/.Response/.LVars" areas exist
     bool mfClientRequested_ = false;
-    std::vector<std::string> lvarWatch_;         // wanted
+    std::vector<std::string> lvarWatch_;         // wanted: the lists of all owners, merged
+    std::map<std::string, std::vector<std::string>> lvarOwners_;
     std::vector<std::string> lvarRegistered_;    // what the module currently has, index = datum id
     std::unordered_map<std::string, double> lvarValues_;
     std::chrono::steady_clock::time_point lvarRegisteredAt_{};

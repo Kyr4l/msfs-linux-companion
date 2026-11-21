@@ -727,7 +727,7 @@ int main(int argc, char** argv) {
                 }
             }
             const double idleFor = glfwGetTime() - g_lastActivity;
-            const bool lively = idleFor < 1.0 || glfwGetTime() < 4.0;  // the first seconds include the splash
+            const bool lively = idleFor < 1.0 || glfwGetTime() < 4.0;  // the first seconds: devices and the sim are being found
             glfwWaitEventsTimeout(lively ? 1.0 / 30.0 : 0.25);
             if (glfwGetWindowAttrib(window, GLFW_ICONIFIED)) {
                 if (ctx.dirty) ctx.save();

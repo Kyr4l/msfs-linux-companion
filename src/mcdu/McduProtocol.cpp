@@ -171,8 +171,12 @@ std::vector<Report> initReports() {
     return out;
 }
 
-std::string glyphBytes(char32_t ch) {
-    const bool known = (ch >= 0x20 && ch <= 0x7e) || ch == 0xb0 || (ch >= 0x2190 && ch <= 0x2193) || ch == 0x2610;
+std::string glyphBytes(char32_t ch, bool anyGlyph) {
+    // what the unit's font has (tried on a unit with firmware 1.09; anything else shows as a filled block): ASCII, °, the arrows,
+    // ☐, Δ (the overfly mark), ▶ ◀ and ⬡ (drawn as a diamond). □ is drawn as ☐.
+    if (ch == 0x25a1) ch = 0x2610;
+    const bool known = anyGlyph || (ch >= 0x20 && ch <= 0x7e) || ch == 0xb0 || (ch >= 0x2190 && ch <= 0x2193) || ch == 0x2610 || ch == 0x0394 ||
+                       ch == 0x25b6 || ch == 0x25c0 || ch == 0x2b21;
     if (!known) return "?";
     std::string s;
     if (ch < 0x80) s.push_back(static_cast<char>(ch));
@@ -181,7 +185,7 @@ std::string glyphBytes(char32_t ch) {
     return s;
 }
 
-std::vector<Report> encodeScreen(const Screen& s) {
+std::vector<Report> encodeScreen(const Screen& s, bool anyGlyph) {
     std::vector<Report> out;
     out.reserve(18);
     Report r{};
@@ -205,7 +209,7 @@ std::vector<Report> encodeScreen(const Screen& s) {
         else if (i + 1 == total) code += 2;
         add(static_cast<uint8_t>(code & 0xff));
         add(static_cast<uint8_t>(code >> 8));
-        for (char b : glyphBytes(c.ch)) add(static_cast<uint8_t>(b));
+        for (char b : glyphBytes(c.ch, anyGlyph)) add(static_cast<uint8_t>(b));
     }
     if (n > 1) out.push_back(r);  // the rest of the last report stays zero
     return out;

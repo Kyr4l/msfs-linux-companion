@@ -39,8 +39,12 @@ static std::string utf8(char32_t c) {
 int main(int argc, char** argv) {
     std::string bankPath = defaultGlyphBankPath();
     std::vector<std::string> files;
+    bool exhaustive = false;  // --exhaustive: compare every sample, as a reference for the quick pass
+    std::string dumpPath;  // --dump FILE: every character read, as raw samples (row, col, geo, pixels) for labelling
     for (int i = 1; i < argc; ++i) {
         if (!std::strcmp(argv[i], "--bank") && i + 1 < argc) bankPath = argv[++i];
+        else if (!std::strcmp(argv[i], "--dump") && i + 1 < argc) dumpPath = argv[++i];
+        else if (!std::strcmp(argv[i], "--exhaustive")) exhaustive = true;
         else files.push_back(argv[i]);
     }
     GlyphBank bank;
@@ -51,10 +55,23 @@ int main(int argc, char** argv) {
         int w = 0, h = 0;
         if (!loadPpm(file, img, w, h)) { std::fprintf(stderr, "cannot read %s\n", file.c_str()); return 1; }
         ScreenReader reader(bank);
+        std::vector<DumpedCell> dumped;
+        if (!dumpPath.empty()) reader.setDump(&dumped);
+        reader.setExhaustive(exhaustive);
         const auto t0 = std::chrono::steady_clock::now();
         const ReadResult r = reader.read(img.data(), w, h, w * 4);
         const double ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
         const auto t1 = std::chrono::steady_clock::now();
+        if (!dumpPath.empty()) {
+            std::ofstream out(dumpPath + "." + std::to_string(&file - files.data()), std::ios::binary);
+            for (const auto& d : dumped) {
+                const int32_t rc[2] = {d.row, d.col};
+                out.write(reinterpret_cast<const char*>(rc), 8);
+                out.write(reinterpret_cast<const char*>(d.sample.geo.data()), 12);
+                out.write(reinterpret_cast<const char*>(d.sample.pix.data()), static_cast<std::streamsize>(d.sample.pix.size()));
+            }
+            reader.setDump(nullptr);
+        }
         reader.read(img.data(), w, h, w * 4);  // the same picture again: nothing to read
         const double again = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t1).count();
         std::printf("== %s  (%d characters, %d unsure, %.1f ms, unchanged %.2f ms)\n", file.c_str(), r.glyphs, r.unsure, ms, again);

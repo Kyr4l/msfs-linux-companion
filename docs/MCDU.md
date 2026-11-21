@@ -78,3 +78,10 @@ The comparison needs samples of the aircraft's characters, in `~/.local/share/ms
 (Flatpak: `~/.var/app/io.github.Kyr4l.MsfsLinuxCompanion/data/msfs-linux-companion/`). They come from the aircraft's font, so
 they are not part of this repository; without them the unit shows "NO CHARACTER SAMPLES" and the keys still work.
 The Flatpak needs X11 access for this (`--socket=x11`).
+
+## Font
+
+The MCDU page's **Font** setting chooses the screen's font: **Built-in** (the unit's own), **B612** (the font Airbus had made for
+cockpit screens) or **Aircraft**, made on your machine from large captures of the aircraft's own MCDU (`mcdu_aircraft-font-21x31.json`
+in the config folder; it is never shipped, the shapes are the aircraft's). B612 is sent to the unit when it is plugged in or when the setting changes (604 packets, about a second; the screen is
+blank meanwhile). The unit keeps a sent font until it loses power: after choosing Built-in, unplug the unit once to get its own font back.

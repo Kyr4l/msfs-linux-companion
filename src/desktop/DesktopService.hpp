@@ -58,6 +58,9 @@ private:
     bool enabled_ = false;
     std::vector<std::pair<std::string, std::string>> prefixes_;
     bool simUp_ = false, processRunning_ = false, stopped_ = false;
+    std::string iniCheckedFor_;  // the aircraft whose L: variables were looked at for the iniBuilds MCDU keys
+    bool iniFound_ = false, iniChecked_ = false;
+    std::vector<std::string> lampWatch_;  // the iniBuilds lamp variables being watched (empty: none)
     Clock::time_point nextPoll_{}, nextScan_{}, lastSimSeen_{};
 
     std::mutex tapMutex_;

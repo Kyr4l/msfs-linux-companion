@@ -47,7 +47,10 @@ const TelemetryVar kTelemetryVars[] = {
     {"G FORCE", "GForce", &Telemetry::gForce},
     {"STALL WARNING", "Bool", &Telemetry::stallWarning},
     {"OVERSPEED WARNING", "Bool", &Telemetry::overspeedWarning},
-    {"GEAR TOTAL PCT EXTENDED", "Percent Over 100", &Telemetry::gearPct},
+    // not GEAR TOTAL PCT EXTENDED: MSFS 2024 gives it as 0..1 whatever the unit asked (0.01 with the gear down), the legs are right
+    {"GEAR CENTER POSITION", "Percent Over 100", &Telemetry::gearCenter},
+    {"GEAR LEFT POSITION", "Percent Over 100", &Telemetry::gearLeft},
+    {"GEAR RIGHT POSITION", "Percent Over 100", &Telemetry::gearRight},
     {"TRAILING EDGE FLAPS LEFT PERCENT", "Percent Over 100", &Telemetry::flapsPct},
     {"SPOILERS HANDLE POSITION", "Percent Over 100", &Telemetry::spoilersHandle},
     {"TURB ENG N1:1", "Percent", &Telemetry::n1Eng1},
@@ -367,13 +370,16 @@ void SimBridge::toggleLVar(const std::string& name, const std::string& origin) {
 // A watched name is an L: variable name, or raw calculator code in parentheses such as "(A:LIGHT NAV, Bool)".
 static bool isRawCode(const std::string& n) { return !n.empty() && n.front() == '('; }
 
-void SimBridge::watchLVars(std::vector<std::string> names) {
-    std::vector<std::string> clean;
-    for (auto& n : names) {
-        std::string v = isRawCode(n) ? n : stripPrefix(n, "L:");
-        if (!v.empty() && std::find(clean.begin(), clean.end(), v) == clean.end()) clean.push_back(v);
-    }
+void SimBridge::watchLVars(std::vector<std::string> names, const std::string& owner) {
     std::lock_guard<std::mutex> lock(m_);
+    if (names.empty()) lvarOwners_.erase(owner);
+    else lvarOwners_[owner] = std::move(names);
+    std::vector<std::string> clean;
+    for (const auto& [who, list] : lvarOwners_)
+        for (const auto& n : list) {
+            std::string v = isRawCode(n) ? n : stripPrefix(n, "L:");
+            if (!v.empty() && std::find(clean.begin(), clean.end(), v) == clean.end()) clean.push_back(v);
+        }
     if (clean == lvarWatch_) return;
     lvarRetries_ = 0;
     lvarWatch_ = std::move(clean);
@@ -460,6 +466,20 @@ void SimBridge::handleTelemetry(const RecvClientData& d) {
         std::memcpy(&v, p + off + 4, 8);
         off += 12;
         if (id < kTelemetryCount) t.*(kTelemetryVars[id].field) = v;
+    }
+    {
+        // the gear: the average of the legs the aircraft has (a leg that never left 0 is not there), each brought to 0..1;
+        // the unit is fixed per aircraft once any leg comes as 0..100 (a sim giving percent for "percent over 100")
+        const double legs[3] = {t.gearCenter, t.gearLeft, t.gearRight};
+        for (double v : legs) t.gearInPercent |= v > 1.5;
+        double sum = 0;
+        int count = 0;
+        for (int i = 0; i < 3; ++i) {
+            const double v = std::clamp(t.gearInPercent ? legs[i] / 100.0 : legs[i], 0.0, 1.0);
+            if (v > 0.001) t.gearLegsSeen |= 1 << i;
+            if (t.gearLegsSeen & (1 << i)) sum += v, ++count;
+        }
+        t.gearPct = count ? sum / count : 0.0;
     }
     if (!t.valid) LOG_INFO("Telemetry flowing (%u datums per update)", d.defineCount);
     if (t.cameraState != camera) LOG_INFO("Camera state %.0f (%s)", t.cameraState, t.flightCamera() ? "a flight" : "not a flight: no vibration");
@@ -1066,6 +1086,8 @@ void SimBridge::handleMessage(const RecvMessage& m) {
                 {
                     std::lock_guard<std::mutex> lock(m_);
                     status_.aircraft = e.fileName;
+                    telemetry_.gearLegsSeen = 0;  // its legs and unit are learned again
+                    telemetry_.gearInPercent = false;
                 }
                 onAircraftPath(e.fileName);
             }

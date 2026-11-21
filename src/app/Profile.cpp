@@ -418,7 +418,20 @@ bool loadSettings(const std::string& path, Settings& out, std::string& err) {
             s.mcdu.keysPercent = std::clamp(m.value("keys_percent", s.mcdu.keysPercent), 0, 100);
             s.mcdu.ledPercent = std::clamp(m.value("led_percent", s.mcdu.ledPercent), 0, 100);
             s.mcdu.autoBrightness = m.value("auto_brightness", false);
+            auto curve = [&m](const char* key, std::array<int, 4>& c, int lowest) {
+                const auto it = m.find(key);
+                if (it == m.end() || !it->is_array() || it->size() != c.size()) return;
+                for (size_t i = 0; i < c.size(); ++i)
+                    if ((*it)[i].is_number_integer()) c[i] = std::clamp((*it)[i].get<int>(), lowest, 100);
+            };
+            curve("auto_screen", s.mcdu.autoScreen, 5);
+            curve("auto_keys", s.mcdu.autoKeys, 0);
+            curve("auto_lights", s.mcdu.autoLeds, 0);
             s.mcdu.sleepMinutes = std::clamp(m.value("sleep_minutes", s.mcdu.sleepMinutes), 0, 240);
+            {
+                const std::string f = m.value("font", s.mcdu.font);
+                s.mcdu.font = f == "b612" || f == "aircraft" ? f : "built-in";
+            }
             s.mcdu.keyboardLayout = m.value("keyboard_layout", s.mcdu.keyboardLayout);
             s.mcdu.systemLook = m.value("system_look", s.mcdu.systemLook);
             s.mcdu.gpuView = m.value("gpu_view", s.mcdu.gpuView);
@@ -545,8 +558,8 @@ bool saveSettings(const std::string& path, const Settings& s, std::string& err) 
             return out;
         };
         const json shortcuts = shortcutList(s.mcdu.shortcuts);
-        j["mcdu"] = json{{"screen_percent", s.mcdu.screenPercent}, {"keys_percent", s.mcdu.keysPercent}, {"led_percent", s.mcdu.ledPercent}, {"auto_brightness", s.mcdu.autoBrightness},
-                         {"sleep_minutes", s.mcdu.sleepMinutes}, {"keyboard_layout", s.mcdu.keyboardLayout}, {"shortcuts", shortcuts}, {"system_look", s.mcdu.systemLook},
+        j["mcdu"] = json{{"screen_percent", s.mcdu.screenPercent}, {"keys_percent", s.mcdu.keysPercent}, {"led_percent", s.mcdu.ledPercent}, {"auto_brightness", s.mcdu.autoBrightness}, {"auto_screen", s.mcdu.autoScreen}, {"auto_keys", s.mcdu.autoKeys}, {"auto_lights", s.mcdu.autoLeds},
+                         {"sleep_minutes", s.mcdu.sleepMinutes}, {"font", s.mcdu.font}, {"keyboard_layout", s.mcdu.keyboardLayout}, {"shortcuts", shortcuts}, {"system_look", s.mcdu.systemLook},
                          {"gpu_view", s.mcdu.gpuView}, {"disk_view", s.mcdu.diskView}, {"disk_mount", s.mcdu.diskMount}, {"gpu_index", s.mcdu.gpuIndex}, {"refresh_seconds", s.mcdu.refreshSeconds},
                          {"clock_utc", s.mcdu.clockUtc}, {"clock_12h", s.mcdu.clock12h}, {"shortcuts2", shortcutList(s.mcdu.shortcuts2)},
                          {"comms_shortcuts", shortcutList(s.mcdu.commsShortcuts)}, {"home_airport", s.mcdu.homeAirport}, {"net_bits", s.mcdu.netBits}, {"comms_app", s.mcdu.commsApp}, {"direct_apps", s.mcdu.directApps}};

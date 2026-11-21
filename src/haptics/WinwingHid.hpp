@@ -75,6 +75,8 @@ public:
     void allOff();  // sends level 0 to the motors of devices that were actually driven
     // Read-only dump of flash config words [first, last] of every controller (for a baseline / diff).
     std::vector<std::string> dumpConfig(const std::string& key, uint32_t first = 0, uint32_t last = 0x110);
+    // Reads `length` bytes of a controller's stored settings (opcode 0x05, read only), e.g. its lighting. False when a part did not answer.
+    bool readConfigBlock(const std::string& key, int device, int family, uint32_t offset, size_t length, std::vector<uint8_t>& out);
     // Broadcast identity request; returns every controller behind the USB device with its name.
     std::vector<ControllerInfo> discover(const std::string& key);
     // SET_LEDX level on an explicit address (raw motor test / sweep).

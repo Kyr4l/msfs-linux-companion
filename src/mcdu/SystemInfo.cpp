@@ -4,6 +4,8 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cerrno>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -307,14 +309,49 @@ void SystemInfo::readNvidia(Gpu&, unsigned index, GpuSample& out) {
 SystemSample SystemInfo::read() {
     SystemSample s;
     char line[256];
-    if (readLine("/proc/stat", line, sizeof line)) {
-        unsigned long long user = 0, nice = 0, system = 0, idle = 0, iowait = 0, irq = 0, softirq = 0, steal = 0;
-        if (sscanf(line, "cpu %llu %llu %llu %llu %llu %llu %llu %llu", &user, &nice, &system, &idle, &iowait, &irq, &softirq, &steal) >= 4) {
+    if (FILE* f = fopen("/proc/stat", "r")) {
+        // the whole processor first, then one line per logical core
+        while (fgets(line, sizeof line, f) && !std::strncmp(line, "cpu", 3)) {
+            unsigned long long user = 0, nice = 0, system = 0, idle = 0, iowait = 0, irq = 0, softirq = 0, steal = 0;
+            int core = -1;
+            if (line[3] != ' ' && sscanf(line + 3, "%d", &core) != 1) continue;
+            const char* values = std::strchr(line, ' ');
+            if (!values || sscanf(values, "%llu %llu %llu %llu %llu %llu %llu %llu", &user, &nice, &system, &idle, &iowait, &irq, &softirq, &steal) < 4) continue;
             const uint64_t busy = user + nice + system + irq + softirq + steal, total = busy + idle + iowait;
-            if (prevTotal_ && total > prevTotal_) s.cpuPercent = 100.0 * static_cast<double>(busy - prevBusy_) / static_cast<double>(total - prevTotal_);
-            prevBusy_ = busy;
-            prevTotal_ = total;
+            if (core < 0) {
+                if (prevTotal_ && total > prevTotal_) s.cpuPercent = 100.0 * static_cast<double>(busy - prevBusy_) / static_cast<double>(total - prevTotal_);
+                prevBusy_ = busy;
+                prevTotal_ = total;
+            } else if (core < 1024) {
+                if (prevCores_.size() <= static_cast<size_t>(core)) prevCores_.resize(static_cast<size_t>(core) + 1);
+                if (s.corePercent.size() <= static_cast<size_t>(core)) s.corePercent.resize(static_cast<size_t>(core) + 1, -1);
+                auto& [pBusy, pTotal] = prevCores_[static_cast<size_t>(core)];
+                if (pTotal && total > pTotal) s.corePercent[static_cast<size_t>(core)] = static_cast<int>(std::lround(100.0 * static_cast<double>(busy - pBusy) / static_cast<double>(total - pTotal)));
+                pBusy = busy, pTotal = total;
+            }
         }
+        fclose(f);
+    }
+    // the fastest core's clock
+    for (size_t i = 0; i < s.corePercent.size(); ++i) {
+        char path[96];
+        snprintf(path, sizeof path, "/sys/devices/system/cpu/cpu%zu/cpufreq/scaling_cur_freq", i);
+        if (readLine(path, line, sizeof line)) s.cpuGhz = std::max(s.cpuGhz, std::atof(line) / 1e6);
+    }
+    // package power from the energy counter (Intel and AMD both use the intel-rapl names)
+    if (FILE* f = fopen("/sys/class/powercap/intel-rapl:0/energy_uj", "r")) {
+        unsigned long long uj = 0;
+        timespec ts{};
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        const double now = ts.tv_sec + ts.tv_nsec / 1e9;
+        if (fscanf(f, "%llu", &uj) == 1) {
+            if (prevEnergyTime_ > 0 && uj >= prevEnergy_ && now > prevEnergyTime_) s.cpuWatts = static_cast<double>(uj - prevEnergy_) / 1e6 / (now - prevEnergyTime_);
+            prevEnergy_ = uj;
+            prevEnergyTime_ = now;
+        }
+        fclose(f);
+    } else {
+        s.cpuPowerDenied = errno == EACCES;
     }
     s.cpuTempC = readCpuTemp();
     if (readLine("/proc/loadavg", line, sizeof line)) sscanf(line, "%lf %lf %lf", &s.load1, &s.load5, &s.load15);
@@ -335,6 +372,23 @@ SystemSample SystemInfo::read() {
         s.memUsedGb = static_cast<double>(total - available) / kKbPerGb;
         s.swapTotalGb = static_cast<double>(swapTotal) / kKbPerGb;
         s.swapUsedGb = static_cast<double>(swapTotal - swapFree) / kKbPerGb;
+    }
+    // zram: swap kept in compressed memory (mm_stat: original size, compressed size, memory used, in bytes)
+    if (FILE* f = fopen("/proc/swaps", "r")) {
+        while (fgets(line, sizeof line, f)) {
+            int n = -1;
+            if (sscanf(line, "/dev/zram%d", &n) != 1 || n < 0 || n > 63) continue;
+            char path[64];
+            snprintf(path, sizeof path, "/sys/block/zram%d/mm_stat", n);
+            char stat[256];
+            unsigned long long orig = 0, compr = 0, used = 0;
+            if (readLine(path, stat, sizeof stat) && sscanf(stat, "%llu %llu %llu", &orig, &compr, &used) == 3) {
+                s.zram = true;
+                s.zramStoredGb += static_cast<double>(orig) / (1024.0 * 1024.0 * 1024.0);
+                s.zramMemoryGb += static_cast<double>(used) / (1024.0 * 1024.0 * 1024.0);
+            }
+        }
+        fclose(f);
     }
     if (readLine("/proc/uptime", line, sizeof line)) {
         double up = 0;

@@ -12,20 +12,24 @@ namespace lr::haptics {
 class FlapsMotion {
 public:
     using clock = std::chrono::steady_clock;
-    static constexpr double kStep = 0.005;  // 0.5 % of the travel: above the jitter at rest, passed within a fraction of a second by real travel
-    static constexpr std::chrono::milliseconds kHold{600};
+    // A step is 1 % of the travel; the flaps move after two steps the same way within kPair. MSFS 2024 airliners wobble by up to
+    // 1 % with the flaps still, back and forth (0.43 / 0.44 at 180 kt, iniBuilds Beluga XL): that never makes two steps one way.
+    static constexpr double kStep = 0.01;
+    static constexpr std::chrono::milliseconds kHold{700};
+    static constexpr std::chrono::milliseconds kPair{1500};
     static constexpr std::chrono::seconds kFollow{2};  // at rest the reference follows a slow drift, so the drift never adds up to a step
 
     // value: flaps position 0..1. Returns true while the flaps are moving.
     bool update(double value, clock::time_point now) {
-        if (!anchored_ || std::fabs(value - anchor_) >= kStep) {
-            if (anchored_) movingUntil_ = now + kHold;
-            anchored_ = true;
-            anchor_ = value;
-            anchorAt_ = now;
+        if (!anchored_) {
+            anchored_ = true, anchor_ = value, anchorAt_ = now;
+        } else if (std::fabs(value - anchor_) >= kStep) {
+            const int dir = value > anchor_ ? 1 : -1;
+            if (dir == lastDir_ && now - lastStepAt_ <= kPair) movingUntil_ = now + kHold;
+            lastDir_ = dir, lastStepAt_ = now;
+            anchor_ = value, anchorAt_ = now;
         } else if (now - anchorAt_ > kFollow) {
-            anchor_ = value;
-            anchorAt_ = now;
+            anchor_ = value, anchorAt_ = now;
         }
         return now < movingUntil_;
     }
@@ -34,7 +38,8 @@ public:
 private:
     bool anchored_ = false;
     double anchor_ = 0;
-    clock::time_point anchorAt_{}, movingUntil_{};
+    clock::time_point anchorAt_{}, movingUntil_{}, lastStepAt_{};
+    int lastDir_ = 0;
 };
 
 }  // namespace lr::haptics

@@ -27,6 +27,7 @@ public:
     bool screen(Screen& out) const;  // the latest text, while it is recent
     std::string hint() const;        // what to do when there is no text yet, for the screen of the unit ("" when there is text)
     bool takeChanged() { return changed_.exchange(false); }
+    void boost();  // a key was pressed: look often for a moment, the page is about to change
 
 private:
     using Clock = std::chrono::steady_clock;
@@ -44,6 +45,7 @@ private:
     Clock::time_point latestAt_{};
     std::string hint_;
     std::atomic<bool> changed_{false};
+    Clock::time_point boostUntil_{};
 };
 
 }  // namespace lr::mcdu

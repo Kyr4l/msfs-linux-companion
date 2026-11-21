@@ -2,6 +2,8 @@
 // Copyright (C) 2026 Kyr4l
 #pragma once
 // What the joysticks do on the desktop while the simulator is not running, and how the MCDU behaves there. Saved in the config file.
+#include <algorithm>
+#include <array>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -60,9 +62,20 @@ inline constexpr int kShortcutSlots = 12;
 inline constexpr int kDirectApps = 6;
 inline constexpr int kCommsSlots = 1;  // the Comms page: the fourth side key is yours, the others control the sound
 
+inline constexpr int kCurvePoints = 4;
+// A brightness curve's level at a room light (0..100 %).
+inline int curveAt(const std::array<int, 4>& c, int room) {
+    const float p = std::clamp(room, 0, 100) / 100.f * (kCurvePoints - 1);
+    const int i = std::min(static_cast<int>(p), kCurvePoints - 2);
+    return static_cast<int>(c[i] + (c[i + 1] - c[i]) * (p - i) + 0.5f);
+}
+
 struct McduConfig {
     int screenPercent = 80, keysPercent = 60, ledPercent = 80;
     bool autoBrightness = false;  // follow the panel's light sensors
+    // Automatic: each light's level at room light 0, 33, 67 and 100 % (dark, dim, lit, bright), straight lines between.
+    // Made for an average desk: the screen dims well in the dark, the key labels and lamps stay readable.
+    std::array<int, 4> autoScreen{35, 60, 90, 100}, autoKeys{70, 85, 100, 100}, autoLeds{60, 80, 100, 100};
     int sleepMinutes = 30;        // screen and lights off after this long without a key; 0 = never
     std::string keyboardLayout = "qwerty";  // "qwerty" or "azerty": the Type page sends physical keys
     std::vector<Shortcut> shortcuts;        // the Keys page; empty = the built-in set
@@ -79,11 +92,12 @@ struct McduConfig {
     int gpuIndex = 0;                       // the GPU shown when only one is
     int refreshSeconds = 2;                 // 1, 2 or 5
     bool clockUtc = false, clock12h = false;
+    std::string font = "built-in";          // the screen's font: "built-in" (the unit's own), "b612" or "aircraft" (sent to the unit)
     bool isDefault() const {
         const McduConfig d;
-        return screenPercent == d.screenPercent && keysPercent == d.keysPercent && ledPercent == d.ledPercent && autoBrightness == d.autoBrightness &&
+        return screenPercent == d.screenPercent && keysPercent == d.keysPercent && ledPercent == d.ledPercent && autoBrightness == d.autoBrightness && autoScreen == d.autoScreen && autoKeys == d.autoKeys && autoLeds == d.autoLeds &&
                sleepMinutes == d.sleepMinutes && keyboardLayout == d.keyboardLayout && shortcuts.empty() && shortcuts2.empty() && commsShortcuts.empty() && directApps.empty() && commsApp == d.commsApp && homeAirport.empty() && !netBits && systemLook == d.systemLook && gpuView == d.gpuView &&
-               diskView == d.diskView && diskMount.empty() && gpuIndex == 0 && refreshSeconds == d.refreshSeconds && !clockUtc && !clock12h;
+               diskView == d.diskView && diskMount.empty() && gpuIndex == 0 && refreshSeconds == d.refreshSeconds && !clockUtc && !clock12h && font == d.font;
     }
 };
 

@@ -23,6 +23,9 @@
 #include "mcdu/McduProtocol.hpp"
 #include "mcdu/McduSimLink.hpp"
 #include "mcdu/ScreenReader.hpp"
+#include "app/Lights.hpp"
+#include "mcdu/McduFont.hpp"
+#include <nlohmann/json.hpp>
 
 using namespace lr;
 
@@ -52,6 +55,7 @@ static void testScreenEncoding() {
     const auto r3 = encodeScreen(u);
     CHECK(r3[0][6] == 0xe2 && r3[0][7] == 0x86 && r3[0][8] == 0x90);
     CHECK(glyphBytes(U'€') == "?");  // not in the panel's font
+    CHECK(glyphBytes(U'Δ') == "Δ" && glyphBytes(U'□') == "☐" && glyphBytes(U'▲') == "?");  // as the unit shows them (firmware 1.09)
 }
 
 static void testInitAndLights() {
@@ -184,6 +188,75 @@ static void testScreenReader() {
     CHECK(reader2.read(nullptr, W, H, W * 4).glyphs == 0);
     CHECK(classifyColor(80, 80, 80) == Color::Grey && classifyColor(200, 200, 200) == Color::White && classifyColor(80, 160, 80) == Color::Green &&
           classifyColor(240, 120, 0) == Color::Amber && classifyColor(80, 200, 200) == Color::Cyan);
+}
+
+// The throttle's light file as shipped, and how stored bytes become colours.
+static void testLights() {
+    using namespace app;
+    std::ifstream f(std::string(COMPANION_TEST_FIXTURES) + "/../../data/winctrl_ursa_minor_combat_throttle_lights.json");
+    std::stringstream ss;
+    ss << f.rdbuf();
+    LightDevice d;
+    std::string err;
+    CHECK(parseLightDevice(ss.str(), d, err));
+    CHECK(d.vendor == 0x4098 && d.product == 0xb970 && d.driver == "winwing" && d.device == 0x40 && d.family == 0xb9);
+    CHECK(d.states.size() == 3 && d.states[0].offset == 0x210 && d.states[2].offset == 0x270 && d.leds.size() == 12);
+    for (const auto& p : d.parts) CHECK(p.x >= 0 && p.y >= 0 && p.x + p.w <= 1.001f && p.y + p.h <= 1.001f && p.textLed <= 12 && p.barLed <= 12);
+    // the user's Normal state as read from the throttle (0x240): white, orange x 9, green, white
+    std::vector<uint8_t> bytes = {0xff, 0xff, 0xff, 0xb3, 0xd6, 0x7e, 0x2c, 0xcc};
+    for (int i = 0; i < 8; ++i) bytes.insert(bytes.end(), {0xd6, 0x7e, 0x2c, 0xe6});
+    bytes.insert(bytes.end(), {0x73, 0xff, 0x00, 0xe6, 0xff, 0xff, 0xff, 0x99});
+    const auto c = decodeLightState(d, bytes);
+    CHECK(c.size() == 12 && c[0].r == 0xff && c[0].level == 0xb3 && c[2].g == 0x7e && c[10].g == 0xff && c[11].level == 0x99);
+    CHECK(decodeLightState(d, {1, 2, 3}).empty());
+    CHECK(!parseLightDevice("{\"name\":\"x\"}", d, err) && !parseLightDevice("not json", d, err));
+}
+
+// B612 for the unit: the shipped font file and packet map make the series SimAppPro sends, with the glyphs in their places.
+static void testCurves() {
+    const desktop::McduConfig d;
+    CHECK(desktop::curveAt(d.autoScreen, 0) == 35);
+    CHECK(desktop::curveAt(d.autoScreen, 100) == 100);
+    CHECK(desktop::curveAt(d.autoKeys, 200) == 100);
+    CHECK(desktop::curveAt(d.autoKeys, -5) == 70);
+    CHECK(desktop::curveAt({0, 30, 60, 90}, 50) == 45);  // halfway between the dim and lit points
+}
+
+static void testFont() {
+    using namespace mcdu;
+    auto slurp = [](const std::string& rel) {
+        std::ifstream f(std::string(COMPANION_TEST_FIXTURES) + "/../../data/mcdu_" + rel, std::ios::binary);
+        std::stringstream ss;
+        ss << f.rdbuf();
+        return ss.str();
+    };
+    const std::string font = slurp("b612-font-21x31.json"), map = slurp("WinWingFontPacketMap-3x31.json");
+    FontUpload up;
+    std::string err;
+    CHECK(buildFontUpload(font, map, 0xcc, up, err));
+    CHECK(up.name == "B612" && up.glyphWidth == 23 && up.glyphHeight == 31 && up.packets.size() == 604);
+    bool sizes = true, prefix = true;
+    for (const auto& p : up.packets) {
+        sizes = sizes && (p.size() == 14 || p.size() == 64);
+        prefix = prefix && (p[0] == 0xf0 || p[0] == 0x02 || p.size() == 14);
+    }
+    CHECK(sizes);
+    // the large "A": its first lit row must be in the series where the map puts that glyph
+    const auto fj = nlohmann::json::parse(font), mj = nlohmann::json::parse(map);
+    std::vector<uint8_t> blob;
+    for (const auto& p : up.packets) blob.insert(blob.end(), p.begin(), p.end());
+    CHECK(blob.size() > static_cast<size_t>(mj.at("DisplayBrightnessOffset").get<int>()) && blob[mj.at("DisplayBrightnessOffset").get<size_t>()] == 0xcc);
+    CHECK(blob[mj.at("XOffsetOffset").get<size_t>()] == 0x24 + 16 && blob[mj.at("YOffsetOffset").get<size_t>()] == 0x14);
+    int lit = 0;
+    for (const auto& g : fj.at("LargeGlyphs"))
+        if (g.at("Character") == "A")
+            for (const auto& row : g.at("BitArray")) {
+                const std::string bits = row.get<std::string>();
+                lit += static_cast<int>(std::count(bits.begin(), bits.end(), 'X') + std::count(bits.begin(), bits.end(), '1'));
+            }
+    CHECK(lit > 20);  // the bitmap is not empty
+    CHECK(!buildFontUpload(font, "{\"GlyphHeight\": 29, \"GlyphWidth\": 23, \"Packets\": []}", 0, up, err));
+    CHECK(!buildFontUpload("not json", map, 0, up, err));
 }
 
 static void testMarkup() {
@@ -968,6 +1041,9 @@ int main() {
     testKeys();
     testIniBuildsKeys();
     testScreenReader();
+    testLights();
+    testCurves();
+    testFont();
     testMarkup();
     testImport();
     testEngine();

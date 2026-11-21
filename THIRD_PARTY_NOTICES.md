@@ -33,5 +33,10 @@ The USB protocol of the WINCTRL MCDU follows [mcdu-dotnet](https://github.com/vr
 [winwing_mcdu](https://github.com/schenlap/winwing_mcdu). The panel set-up packets in `src/mcdu/McduProtocol.cpp` are the ones mcdu-dotnet documents. The mouse curve
 and the default speeds of the desktop controls match [antiMicroX](https://github.com/AntiMicroX/antimicrox) (GPL-3.0).
 
+The MCDU font upload (`src/mcdu/McduFont.cpp`) follows mcdu-dotnet's `McduFontPacketMap` and `FontWriter`, and two of its data files are shipped as they
+are in `data/`: `mcdu_WinWingFontPacketMap-3x31.json` (the recorded font packets) and `mcdu_b612-font-21x31.json` (the B612 font as 21 x 31 bitmaps),
+under its BSD-3-Clause license (`data/mcdu/cduhub-LICENSE.txt`, Copyright (c) 2025 Andrew Whewell). The glyphs are those of
+[B612](https://github.com/polarsys/b612), Copyright 2012 The B612 Project Authors, under the SIL Open Font License 1.1 (`data/mcdu/B612-OFL.txt`).
+
 "Microsoft Flight Simulator", "SimConnect", "WINWING", "WINCTRL" and "URSA MINOR" belong to their respective owners.
 This project is independent and not affiliated with them.

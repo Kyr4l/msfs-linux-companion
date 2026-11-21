@@ -35,6 +35,19 @@ int main() {
         for (int i = 0; i < 60 * 30; ++i) { moving += f.update(0.002 + 0.001 * i / 30.0, t); t += 33ms; }
         CHECK(moving == 0);
     }
+    // MSFS 2024 iniBuilds Beluga XL at 180 kt with the flaps still: the value wobbles between 0.43 and 0.44 (2026-11-21 flight log)
+    {
+        FlapsMotion f;
+        auto t = FlapsMotion::clock::time_point{} + 1h;
+        unsigned seed = 7;
+        int moving = 0;
+        for (int i = 0; i < 30 * 120; ++i) {
+            seed = seed * 1103515245u + 12345u;
+            moving += f.update(0.430 + 0.010 * ((seed >> 16) % 1000) / 999.0, t);
+            t += 33ms;
+        }
+        CHECK(moving == 0);
+    }
     // flaps 0 -> 1 on an airliner: about 20 % of the travel in 6 s; vibrates during the travel, stops within a second after it
     {
         FlapsMotion f;
@@ -42,7 +55,7 @@ int main() {
         for (int i = 0; i < 30; ++i) { f.update(0.002, t); t += 33ms; }
         int moving = 0, samples = 0;
         for (int i = 0; i <= 180; ++i) { moving += f.update(0.002 + 0.2 * i / 180.0, t); ++samples; t += 33ms; }
-        CHECK(moving > samples * 9 / 10);
+        CHECK(moving > samples * 8 / 10);  // from the second 1 % step on (0.6 s into a slow 6 s travel)
         bool still = true;
         for (int i = 0; i < 30; ++i) { still = f.update(0.202, t); t += 33ms; }
         CHECK(!still);

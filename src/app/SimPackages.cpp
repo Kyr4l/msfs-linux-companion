@@ -6,6 +6,7 @@
 #include "util/Log.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -229,6 +230,23 @@ PackageText readPackageText(const AircraftPackage& pkg) {
             }
         }
     t.title = maker.empty() ? name : name.empty() ? maker : maker + " " + name;
+    // An aircraft built on another one can keep that one's model name (the Beluga XL says "A330-300"): when the model is a type
+    // code (it has a digit) missing from the package's folder name, and the folder names the package's own title instead, that
+    // title is used ("Airbus BelugaXL"). Names like "Skyhawk" or "Citation Longitude" in short folders keep "maker model".
+    const std::string folderKey = sim::aircraftKey(dir.filename().string()), modelKey = sim::aircraftKey(model);
+    const bool typeCode = std::any_of(model.begin(), model.end(), [](unsigned char c) { return std::isdigit(c) != 0; });
+    if (typeCode && !modelKey.empty() && folderKey.find(modelKey) == std::string::npos)
+        if (const auto m = childNoCase(dir, "manifest.json")) {
+            try {
+                const std::string own = nlohmann::json::parse(readFile(*m)).value("title", "");
+                std::string ownKey = sim::aircraftKey(own);
+                const std::string makerKey = sim::aircraftKey(maker);
+                const bool hasMaker = !makerKey.empty() && ownKey.rfind(makerKey, 0) == 0;
+                if (hasMaker) ownKey.erase(0, makerKey.size());
+                if (ownKey.size() >= 3 && folderKey.find(ownKey) != std::string::npos) t.title = hasMaker || maker.empty() ? own : maker + " " + own;
+            } catch (const std::exception&) {
+            }
+        }
     return t;
 }
 

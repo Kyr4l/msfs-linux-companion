@@ -364,6 +364,20 @@ void WinwingHidManager::allOff() {
     for (const auto& k : keys) setMotors(k, 0, 0, true);
 }
 
+bool WinwingHidManager::readConfigBlock(const std::string& key, int device, int family, uint32_t offset, size_t length, std::vector<uint8_t>& out) {
+    out.clear();
+    if (length == 0 || length > 1024) return false;
+    for (uint32_t off = offset; out.size() < length; off += 4) {
+        uint8_t v[4];
+        std::lock_guard<std::mutex> lock(m_);  // word by word: vibration and discovery go on between the words
+        Dev* d = find(key);
+        if (!d || d->fd < 0 || !readCfg(*d, device, family, off, v)) return false;
+        out.insert(out.end(), v, v + 4);
+    }
+    out.resize(length);
+    return true;
+}
+
 std::vector<std::string> WinwingHidManager::dumpConfig(const std::string& key, uint32_t first, uint32_t last) {
     std::vector<std::string> lines;
     std::lock_guard<std::mutex> lock(m_);

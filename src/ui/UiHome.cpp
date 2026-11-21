@@ -55,6 +55,10 @@ void drawIcon(ImDrawList* dl, const char* page, ImVec2 p, float s, ImU32 c) {
     } else if (n == "Vibration") {
         const ImVec2 w[] = {P(0.08f, 0.5f), P(0.26f, 0.5f), P(0.36f, 0.24f), P(0.52f, 0.78f), P(0.62f, 0.5f), P(0.92f, 0.5f)};
         dl->AddPolyline(w, 6, c, 0, t);
+    } else if (n == "Lights") {  // a bulb
+        dl->AddCircle(P(0.5f, 0.4f), s * 0.24f, c, 20, t);
+        dl->AddLine(P(0.4f, 0.72f), P(0.6f, 0.72f), c, t);
+        dl->AddLine(P(0.42f, 0.84f), P(0.58f, 0.84f), c, t);
     } else if (n == "Desktop") {  // a monitor on its stand
         dl->AddRect(P(0.1f, 0.18f), P(0.9f, 0.7f), c, s * 0.06f, 0, t);
         dl->AddLine(P(0.5f, 0.7f), P(0.5f, 0.86f), c, t);
@@ -138,6 +142,7 @@ void Ui::drawRail() {
     item("Guides", "Guides", "");
     item("Catalog", "Catalog", "");
     item("Vibration", "Vibrate", "");
+    item("Lights", "Lights", "");
     item("Desktop", "Desktop", "");
     item("MCDU", "MCDU", "");
     if (ctx_.plugins)

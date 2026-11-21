@@ -121,7 +121,7 @@ void Ui::draw() {
     if (pagePlugin_.empty()) {
         struct Page { const char* name; void (Ui::*draw)(); };
         static const Page pages[] = {{"Home", &Ui::drawHomeTab}, {"Bindings", &Ui::drawBindingsTab}, {"Profiles", &Ui::drawProfilesTab}, {"Devices", &Ui::drawDevicesTab}, {"Guides", &Ui::drawGuidesTab},
-                                     {"Catalog", &Ui::drawCatalogTab}, {"Vibration", &Ui::drawVibrationTab}, {"Desktop", &Ui::drawDesktopTab}, {"MCDU", &Ui::drawMcduTab},
+                                     {"Catalog", &Ui::drawCatalogTab}, {"Vibration", &Ui::drawVibrationTab}, {"Lights", &Ui::drawLightsTab}, {"Desktop", &Ui::drawDesktopTab}, {"MCDU", &Ui::drawMcduTab},
                                      {"Log", &Ui::drawLogTab},           {"Settings", &Ui::drawSettingsTab}};
         for (const auto& pg : pages)
             if (page_ == pg.name) {
@@ -157,7 +157,6 @@ void Ui::draw() {
 
     if (cockpit_.running() && !cockpitDrawn_) stopCockpitWatch();  // the tab was left: no more reading of every input event
     if (!mcduPanelDrawn_ && ctx_.desktop) ctx_.desktop->mcdu().setPanelOpen(false);
-    if (!splashDone_) drawSplash();
     drawCalibrationWizard();
 
     // Debounced auto-save.
@@ -300,64 +299,6 @@ void Ui::drawStatusBar() {
     ImGui::SameLine(0, gap * 2);
     if (ImGui::GetCursorPosX() < right) ImGui::SetCursorPosX(right);
     if (toggleSwitch("Bindings active", &enabled)) ctx_.engine.setEnabled(enabled);
-}
-
-// ---------------------------------------------------------------- Splash
-
-// Shown over the main window until the background threads finished their first device scans
-// (joysticks via evdev, Winwing controllers via hidraw discovery) so a slow start never looks like a hang.
-void Ui::drawSplash() {
-    const double t = ImGui::GetTime();
-    const bool inputDone = ctx_.input.scanCount() > 0;
-    const bool winwingDone = ctx_.winwing.scanCount() > 0;
-    if ((inputDone && winwingDone && t > 0.8) || t > 15.0) {
-        splashDone_ = true;
-        return;
-    }
-    const ImGuiViewport* vp = ImGui::GetMainViewport();
-    ImGui::SetNextWindowPos(ImVec2(vp->WorkPos.x + vp->WorkSize.x * 0.5f, vp->WorkPos.y + vp->WorkSize.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-    ImGui::SetNextWindowSize(ImVec2(460, 0));
-    ImGui::SetNextWindowBgAlpha(0.96f);
-    ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
-                             ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoNav;
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(24, 20));
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
-    ImGui::Begin("##splash", nullptr, flags);
-    ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * 1.6f);
-    ImGui::TextUnformatted("MSFS Linux Companion");
-    ImGui::PopFont();
-    ImGui::TextDisabled("Version %s", COMPANION_VERSION);
-    ImGui::Spacing();
-    auto line = [&](bool done, const char* what, const char* pending) {
-        dot(done ? kGreen : kYellow);
-        ImGui::TextUnformatted(done ? what : pending);
-    };
-    char joy[96];
-    snprintf(joy, sizeof joy, "Joysticks: %zu found", devices_.size());
-    line(inputDone, joy, "Joysticks: scanning");
-    const auto ww = ctx_.winwing.devices();
-    char wwText[96];
-    snprintf(wwText, sizeof wwText, "Winwing devices: %zu found", ww.size());
-    line(winwingDone, wwText, "Winwing devices: scanning");
-    const bool simUp = status_.state == sim::ConnState::Connected;
-    line(simUp, "Simulator: connected", status_.state == sim::ConnState::Disconnected ? "Simulator: waiting" : "Simulator: connecting");
-    ImGui::Spacing();
-    // Indeterminate progress bar.
-    const float w = ImGui::GetContentRegionAvail().x;
-    const float phase = static_cast<float>(std::fmod(t * 0.6, 1.0));
-    ImDrawList* dl = ImGui::GetWindowDrawList();
-    const ImVec2 p = ImGui::GetCursorScreenPos();
-    const float h = 6.0f;
-    dl->AddRectFilled(p, ImVec2(p.x + w, p.y + h), ImGui::GetColorU32(ImGuiCol_FrameBg), 3.0f);
-    const float segW = w * 0.3f;
-    float x0 = p.x + (w + segW) * phase - segW;
-    float x1 = x0 + segW;
-    x0 = std::max(x0, p.x);
-    x1 = std::min(x1, p.x + w);
-    if (x1 > x0) dl->AddRectFilled(ImVec2(x0, p.y), ImVec2(x1, p.y + h), ImGui::GetColorU32(ImGuiCol_ButtonActive), 3.0f);
-    ImGui::Dummy(ImVec2(w, h));
-    ImGui::End();
-    ImGui::PopStyleVar(2);
 }
 
 }  // namespace lr::app
