@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "desktop/DesktopTypes.hpp"
 #include "desktop/SdBus.hpp"
 
 namespace lr::desktop {
@@ -31,6 +32,7 @@ public:
 
     void setDesktopControls(bool on);
     void setStatus(const std::string& text);
+    void setIcon(TrayIcon icon);  // shown at once
 
 private:
     static int onItem(sdbus::Message* m, void* self, sdbus::Error* err);
@@ -43,6 +45,7 @@ private:
     void appendMenuProps(sdbus::Message* reply, int id);
     void menuClicked(int id);
     void signalLayout();
+    void buildPixmaps();
 
     const sdbus::Api* api_ = nullptr;
     sdbus::Bus* bus_ = nullptr;
@@ -50,7 +53,9 @@ private:
     sdbus::Slot* pendingRegister_ = nullptr;
     Callbacks cb_;
     std::string iconName_, status_;
-    std::vector<uint8_t> pixmap_;  // the icon as ARGB, for hosts that cannot find it by name
+    struct Pixmap { int size; std::vector<uint8_t> argb; };
+    std::vector<Pixmap> pixmaps_;  // the icon as ARGB: for hosts that cannot find it by name, and the only icon in one colour
+    TrayIcon icon_ = TrayIcon::Colour;
     bool registered_ = false;
     bool desktopControls_ = false;
     unsigned revision_ = 1;

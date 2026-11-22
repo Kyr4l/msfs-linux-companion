@@ -165,6 +165,7 @@ struct Settings {
     desktop::Config desktop;       // what the joysticks do while the simulator is not running
     desktop::McduConfig mcdu;      // the WINCTRL MCDU
     bool closeToTray = true;       // closing the window leaves the program running in the tray
+    desktop::TrayIcon trayIcon = desktop::TrayIcon::Colour;
 
     const AxisCalibration* calibrationFor(const input::InputId& axis) const;
     void setCalibration(const AxisCalibration& c);  // replaces the one of the same axis

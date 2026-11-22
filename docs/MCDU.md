@@ -20,6 +20,7 @@ The page lists every axis with its live position. Select one to set its dead zon
 
 * **Close to tray**: closing the window leaves the program in the tray. The window, its GPU context and its fonts are freed until it is opened again.
 * **Start at login**: starts in the tray with your desktop session (`--tray`).
+* **Tray icon** (Settings › Appearance): **Colour**, or the same icon in one colour to match the panel: **Light** for a dark panel, **Dark** for a light one.
 * Starting the program again opens the window of the running copy. There is never more than one.
 
 ## The MCDU
@@ -53,7 +54,34 @@ With MSFS running the unit belongs to the aircraft:
 |---|---|---|
 | FlyByWire A32NX | from SimBridge (must be running, port 8380) | through SimBridge, otherwise H events (needs MobiFlight) |
 | iniBuilds A320neo V2, A321, A330 | read off the MCDU pop-out window (Right Alt + click), see below | yes (needs MobiFlight) |
-| Others | "NO MCDU DATA" | not mapped yet |
+| Others (Cessna 172 and its G1000 NXi, light aircraft, helicopters) | the program's own avionics pages, see below | yes (needs MobiFlight) |
+
+### Avionics pages (aircraft without an MCDU)
+
+For an aircraft whose MCDU is not known, the unit shows pages of the program's own, laid out like an Airbus MCDU and made from the
+sim's standard variables and events (read and sent through the MobiFlight module), so they work in most aircraft. Green: actual
+values and engaged modes; cyan: values to change; white: labels and actions.
+
+| Key | Page | Line keys |
+|---|---|---|
+| RAD NAV | RADIO COMM, RADIO NAV (← → or RAD NAV again) | 1: active, 2: standby, 3: SWAP; NAV 4: CRS |
+| PERF | FCU: SPD, HDG, ALT, V/S, the mode line (lateral, vertical, AP FD) | 1-2: targets; 3-5: HDG, ALT, NAV, V/S, APR, FLC; 6: AP, FD |
+| ATC COMM | XPDR: code, mode (STBY, ON, ALT), IDENT, QNH, STD | L1 code, R1-R3 mode, L2 IDENT, L4 QNH, R4 STD |
+| FUEL PRED | FUEL PRED: ETE and fuel at the next waypoint, FOB, FF, left/right, endurance, range | |
+| DATA | ENGINE: RPM or N1, FF, oil, EGT, CHT | |
+| PROG | PROG: bearing and distance to the next waypoint, DTK, XTK, GS, TAS, wind, OAT, altitude | |
+| MCDU MENU | AVIONICS (back to the last page), G1000 PFD, G1000 MFD | |
+
+A value is typed in the scratchpad, then put in its field with the field's line key; the key of a field with an empty scratchpad
+copies the field into the scratchpad. Frequencies as `11830`, `118.3` or `118.305`; squawk as four digits; QNH as `2992`, `29.92`
+or `1013`; V/S with **+/-** for a descent. A wrong entry gives FORMAT ERROR or ENTRY OUT OF RANGE and stays in the scratchpad;
+CLR removes the message, then the last character. The sim does not give waypoint names this way: the next waypoint is "NEXT".
+
+On the G1000 PFD and MFD pages the 12 line keys are the 12 softkeys; DIR = Direct-to, F-PLN = FPL, PERF = PROC, DATA = MENU,
+CLR = CLR, OVFY = ENT, ← → = FMS outer knob, ↑ ↓ = FMS inner knob, +/- = push the FMS knob (cursor), MCDU MENU leaves. The softkey
+labels are not shown: the G1000 does not tell them. The event names come from the Working Title G1000 NXi source
+(`AS1000_PFD_SOFTKEYS_1` ...). Values were read live in the MSFS 2024 C172 (G1000 NXi); **the keys were not tried in the aircraft
+yet**, nor the transponder mode, or leaving STD on the G1000.
 
 The Weather page asks aviationweather.gov for the report of your airport while the page is on screen, at most every 10 minutes. Only the airport code is sent.
 The Comms page mutes through the sound server, so it works whichever window has the focus. **Mic** is the default microphone for every program. **Voice** and **Deafen** act on the audio

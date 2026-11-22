@@ -379,6 +379,8 @@ bool loadSettings(const std::string& path, Settings& out, std::string& err) {
             for (const auto& [id, v] : settings.items()) s.pluginSettings[id] = v.dump();
         }
         s.closeToTray = !j.contains("close_to_tray") || !j["close_to_tray"].is_boolean() || j["close_to_tray"].get<bool>();
+        if (const std::string t = j.value("tray_icon", ""); t == "light") s.trayIcon = desktop::TrayIcon::Light;
+        else if (t == "dark") s.trayIcon = desktop::TrayIcon::Dark;
         if (j.contains("desktop") && j["desktop"].is_object()) {
             const json& d = j["desktop"];
             s.desktop.enabled = d.value("enabled", false);
@@ -533,6 +535,7 @@ bool saveSettings(const std::string& path, const Settings& s, std::string& err) 
         j["plugins"] = json{{"disabled", s.disabledPlugins}, {"settings", settings}};
     }
     if (!s.closeToTray) j["close_to_tray"] = false;  // these are left out at their defaults: files stay as before
+    if (s.trayIcon != desktop::TrayIcon::Colour) j["tray_icon"] = s.trayIcon == desktop::TrayIcon::Light ? "light" : "dark";
     if (!s.desktop.isDefault()) {
         json bindingsJ = json::array();
         for (const auto& b : s.desktop.bindings) {

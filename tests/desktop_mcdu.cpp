@@ -19,6 +19,7 @@
 #include "desktop/DesktopEngine.hpp"
 #include "desktop/DesktopLauncher.hpp"
 #include "desktop/ProgressTracker.hpp"
+#include "mcdu/AvionicsPages.hpp"
 #include "mcdu/McduPages.hpp"
 #include "mcdu/McduProtocol.hpp"
 #include "mcdu/McduSimLink.hpp"
@@ -553,6 +554,114 @@ mcdu::SystemSample sampleSystem() {
 }
 }  // namespace
 
+static void testAvionics() {
+    using namespace mcdu;
+    using A = AvionicsPages;
+    CHECK(A::frequencyHz("11830", false) == 118300000);
+    CHECK(A::frequencyHz("118.3", false) == 118300000);
+    CHECK(A::frequencyHz("118.305", false) == 118305000);
+    CHECK(A::frequencyHz("121.5", false) == 121500000);
+    CHECK(!A::frequencyHz("108.00", false));  // a NAV frequency for a COM
+    CHECK(A::frequencyHz("1135", true) == 113500000);
+    CHECK(A::frequencyHz("110.55", true) == 110550000);
+    CHECK(!A::frequencyHz("12A", false));
+    CHECK(A::squawkBco16("7000") == 0x7000);
+    CHECK(A::squawkBco16("1200") == 0x1200);
+    CHECK(!A::squawkBco16("1280"));
+    CHECK(!A::squawkBco16("700"));
+    CHECK(std::fabs(*A::baroMillibars("2992") - 1013.2) < 0.1);
+    CHECK(std::fabs(*A::baroMillibars("29.92") - 1013.2) < 0.1);
+    CHECK(A::baroMillibars("1013") == 1013.0);
+    CHECK(!A::baroMillibars("500"));
+
+    std::map<std::string, double> sim = {{"(A:COM ACTIVE FREQUENCY:1, MHz)", 118.3}, {"(A:COM STANDBY FREQUENCY:1, MHz)", 121.5},
+                                         {"(A:TRANSPONDER CODE:1, Bco16)", 0x1200}, {"(A:TRANSPONDER STATE:1, Number)", 4},
+                                         {"(A:AUTOPILOT HEADING LOCK DIR, Degrees)", 270}, {"(A:AUTOPILOT HEADING LOCK, Bool)", 1}};
+    const A::Read read = [&](const std::string& c) -> std::optional<double> {
+        const auto it = sim.find(c);
+        if (it == sim.end()) return std::nullopt;
+        return it->second;
+    };
+    for (const auto& [code, v] : sim) CHECK(std::find(A::codes().begin(), A::codes().end(), code) != A::codes().end());
+    A pages;
+    Screen s;
+    pages.render(s, read);
+    CHECK(rowText(s, 0).find("MCDU MENU") != std::string::npos && rowText(s, 2).find("<AVIONICS") != std::string::npos);
+    // RAD NAV: RADIO COMM, then RADIO NAV
+    CHECK(pages.onKey(Key::Rad, read).empty());
+    CHECK(pages.page() == AvionicsPage::Comm);
+    pages.render(s, read);
+    CHECK(rowText(s, 2).find("118.300") != std::string::npos && rowText(s, 4).find("121.500") != std::string::npos);
+    CHECK(rowText(s, 2).find("---") != std::string::npos);  // COM2 not read yet
+    // an empty scratchpad: the line key copies the field there
+    pages.onKey(Key::L1, read);
+    pages.render(s, read);
+    CHECK(rowText(s, 13).find("118.300") != std::string::npos);
+    for (int i = 0; i < 7; ++i) pages.onKey(Key::Clr, read);
+    // type 122.80 into COM1 standby, then swap
+    for (Key k : {Key::D1, Key::D2, Key::D2, Key::D8, Key::D0}) pages.onKey(k, read);
+    auto out = pages.onKey(Key::L2, read);
+    CHECK(out.size() == 1 && out[0] == "122800000 (>K:COM_STBY_RADIO_SET_HZ)");
+    out = pages.onKey(Key::L3, read);
+    CHECK(out.size() == 1 && out[0] == "(>K:COM_STBY_RADIO_SWAP)");
+    for (Key k : {Key::D9, Key::D9}) pages.onKey(k, read);
+    CHECK(pages.onKey(Key::L2, read).empty());  // 99: not a frequency, kept with a message
+    pages.render(s, read);
+    CHECK(rowText(s, 13).find("ENTRY OUT OF RANGE") != std::string::npos);
+    pages.onKey(Key::Clr, read);  // CLR takes the message away first
+    pages.render(s, read);
+    CHECK(rowText(s, 13).find("99") != std::string::npos);
+    pages.onKey(Key::Clr, read);
+    pages.onKey(Key::Clr, read);
+    pages.onKey(Key::RightArrow, read);
+    CHECK(pages.page() == AvionicsPage::Nav);
+    // ATC COMM: the transponder
+    pages.onKey(Key::Atc, read);
+    CHECK(pages.page() == AvionicsPage::Xpdr);
+    pages.render(s, read);
+    CHECK(rowText(s, 2).find("1200") != std::string::npos && rowText(s, 6).find("ALT") != std::string::npos && rowText(s, 2).find("STBY>") != std::string::npos);
+    for (Key k : {Key::D7, Key::D0, Key::D0, Key::D0}) pages.onKey(k, read);
+    out = pages.onKey(Key::L1, read);
+    CHECK(out.size() == 1 && out[0] == "28672 (>K:XPNDR_SET)");
+    out = pages.onKey(Key::R1, read);  // STBY
+    CHECK(out.size() == 1 && out[0] == "1 (>A:TRANSPONDER STATE:1, Number)");
+    for (Key k : {Key::D2, Key::D9, Key::D9, Key::D2}) pages.onKey(k, read);
+    out = pages.onKey(Key::L4, read);
+    CHECK(out.size() == 1 && out[0] == "16211 (>K:KOHLSMAN_SET)");
+    // PERF: the FCU; a target with a value, the mode key, V/S below zero
+    pages.onKey(Key::Perf, read);
+    CHECK(pages.page() == AvionicsPage::Fcu);
+    pages.render(s, read);
+    CHECK(rowText(s, 2).find("270") != std::string::npos);
+    CHECK(rowText(s, 11).find("HDG") != std::string::npos);  // the mode line
+    for (Key k : {Key::D5, Key::D0, Key::D0, Key::PlusMinus}) pages.onKey(k, read);
+    out = pages.onKey(Key::R2, read);
+    CHECK(out.size() == 1 && out[0] == "500 neg (>K:AP_VS_VAR_SET_ENGLISH)");
+    out = pages.onKey(Key::L3, read);
+    CHECK(out.size() == 1 && out[0] == "(>K:AP_PANEL_HEADING_HOLD)");
+    // MCDU MENU: AVIONICS goes back to the last page; the G1000 PFD and MFD
+    pages.onKey(Key::Menu, read);
+    pages.onKey(Key::L1, read);
+    CHECK(pages.page() == AvionicsPage::Fcu);
+    pages.onKey(Key::Menu, read);
+    pages.onKey(Key::L2, read);
+    CHECK(pages.page() == AvionicsPage::Pfd);
+    out = pages.onKey(Key::R6, read);
+    CHECK(out.size() == 1 && out[0] == "(>H:AS1000_PFD_SOFTKEYS_12)");
+    pages.onKey(Key::Menu, read);
+    pages.onKey(Key::L3, read);
+    out = pages.onKey(Key::Ovfy, read);
+    CHECK(out.size() == 1 && out[0] == "(>H:AS1000_MFD_ENT_Push)");
+    out = pages.onKey(Key::UpArrow, read);
+    CHECK(out.size() == 1 && out[0] == "(>H:AS1000_MFD_FMS_Lower_INC)");
+    out = pages.onKey(Key::Perf, read);
+    CHECK(out.size() == 1 && out[0] == "(>H:AS1000_MFD_PROC_Push)");
+    pages.render(s, read);
+    CHECK(rowText(s, 0).find("G1000 MFD") != std::string::npos);
+    pages.onKey(Key::Menu, read);
+    CHECK(pages.page() == AvionicsPage::Menu);
+}
+
 static void testPages() {
     using namespace mcdu;
     FakeActions a;
@@ -1043,6 +1152,7 @@ int main() {
     testScreenReader();
     testLights();
     testCurves();
+    testAvionics();
     testFont();
     testMarkup();
     testImport();

@@ -600,6 +600,7 @@ int main(int argc, char** argv) {
         auto serviceTick = [&] {
             desktopService.poll();
             tray.setDesktopControls(ctx.settings.desktop.enabled);
+            tray.setIcon(ctx.settings.trayIcon);
             tray.process();
             if (instance.showRequested()) wantWindow = true;
             if (desktopService.mcdu().applyRuntimePrefs(ctx.settings.mcdu)) ctx.dirty = true;

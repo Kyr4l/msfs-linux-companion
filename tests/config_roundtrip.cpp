@@ -174,6 +174,20 @@ int main(int argc, char** argv) {
         CHECK(t.profiles.size() == 1 && t.profiles[0].bindings.size() == 1 && t.profiles[0].bindings[0].onPress[0].value == 0.0 && t.profiles[0].bindings[0].axis.outMax == 0.0);
     }
 
+    std::printf("the tray icon is kept, the colour one by default\n");
+    {
+        std::string err;
+        const fs::path f = tmp / "tray.json";
+        Settings s;
+        CHECK(saveSettings(f.string(), s, err));
+        Settings t;
+        CHECK(loadSettings(f.string(), t, err) && t.trayIcon == lr::desktop::TrayIcon::Colour);
+        s.trayIcon = lr::desktop::TrayIcon::Dark;
+        CHECK(saveSettings(f.string(), s, err));
+        Settings u;
+        CHECK(loadSettings(f.string(), u, err) && u.trayIcon == lr::desktop::TrayIcon::Dark);
+    }
+
     std::printf("the settings of the gates stay in the file while the gates are off\n");
     {
         Settings s;

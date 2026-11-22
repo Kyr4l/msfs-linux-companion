@@ -20,6 +20,16 @@ constexpr auto kPollInterval = std::chrono::seconds(1);
 constexpr auto kScanInterval = std::chrono::seconds(5);
 constexpr auto kSimGoneAfter = std::chrono::seconds(15);  // a sim that restarts or reconnects does not hand the throttle to the desktop in between
 constexpr auto kTapHold = std::chrono::milliseconds(12);
+
+bool looksLikeAirbus(std::string name) {
+    std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    if (name.find("airbus") != std::string::npos || name.find("beluga") != std::string::npos) return true;
+    for (size_t i = 0; i + 3 < name.size(); ++i)  // a3 and two digits: A310, A319, a320neo, A330 ...
+        if (name[i] == 'a' && name[i + 1] == '3' && std::isdigit(static_cast<unsigned char>(name[i + 2])) && std::isdigit(static_cast<unsigned char>(name[i + 3])) &&
+            (i == 0 || !std::isalnum(static_cast<unsigned char>(name[i - 1]))))
+            return true;
+    return false;
+}
 }  // namespace
 
 DesktopService::DesktopService(sim::SimBridge& bridge, app::Engine& engine, haptics::WinwingHidManager& winwing)
@@ -37,7 +47,9 @@ DesktopService::DesktopService(sim::SimBridge& bridge, app::Engine& engine, hapt
               a.kind = app::ActionKind::CalcCode;
               a.name = code;
               simEngine_.fire({a}, "MCDU");
-          }}) {}
+          },
+          [this](const std::vector<std::string>& codes) { bridge_.watchLVars(codes, "mcdu-avionics"); },
+          [this](const std::string& code) { return bridge_.lvarValue(code); }}) {}
 
 DesktopService::~DesktopService() { stop(); }
 
@@ -112,9 +124,11 @@ void DesktopService::poll() {
         sim.simBridge = sim::sameAircraft("A32NX", id.id);
         for (const char* aircraft : {"microsoft-a320neo", "microsoft-a321", "microsoft-a330", "microsoft-belugaxl"})
             sim.iniBuildsKeys = sim.iniBuildsKeys || sim::sameAircraft(aircraft, id.id);
-        // Any other aircraft built on the iniBuilds Airbus systems has the same MCDU variables: found in its L: list, once per aircraft
+        // Any other Airbus built on the iniBuilds systems has the same MCDU variables: found in its L: list, once per aircraft
         // (only the "is the list there" status is asked every second; the list itself, a thousand names, is copied once).
-        if (!sim.iniBuildsKeys) {
+        // The sim keeps L: variables for the whole session, so after an iniBuilds Airbus every aircraft lists them: only an
+        // aircraft that looks like an Airbus (A3xx in its name, Airbus, Beluga) is asked.
+        if (!sim.iniBuildsKeys && looksLikeAirbus(id.id + " " + id.label)) {
             if (iniCheckedFor_ != id.id) iniCheckedFor_ = id.id, iniChecked_ = false, iniFound_ = false;
             if (!iniChecked_) {
                 const sim::LiveStatus live = bridge_.liveStatus();

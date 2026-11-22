@@ -86,6 +86,20 @@ void Ui::drawSettingsTab() {
             ImGui::EndCombo();
         }
     }
+    {
+        static const char* const names[] = {"Colour", "Light", "Dark"};
+        static const char* const tips[] = {"", "For a dark panel", "For a light panel"};
+        fieldLabel("Tray icon");
+        ImGui::SetNextItemWidth(ImGui::GetFontSize() * 9);
+        const int current = static_cast<int>(s.trayIcon);
+        if (ImGui::BeginCombo("##tray_icon", names[current])) {
+            for (int i = 0; i < 3; ++i) {
+                if (ImGui::Selectable(names[i], i == current)) { s.trayIcon = static_cast<desktop::TrayIcon>(i); ctx_.markDirty(); }
+                if (*tips[i] && ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tips[i]);
+            }
+            ImGui::EndCombo();
+        }
+    }
     {   // colour themes, as small cards with their colours
         const float fs = ImGui::GetFontSize();
         int count = 0;

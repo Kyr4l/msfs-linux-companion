@@ -32,6 +32,7 @@ constexpr auto kWeatherInterval = std::chrono::minutes(10);  // airports publish
 constexpr auto kWeatherRetry = std::chrono::minutes(1);
 constexpr auto kMediaInterval = std::chrono::milliseconds(1500);
 constexpr int kBrightnessStep = 10;
+constexpr int kAvionicsRefreshMs = 250;  // the avionics pages follow the sim's values
 constexpr auto kRepeatDelay = std::chrono::milliseconds(500), kRepeatEvery = std::chrono::milliseconds(150);  // BRT / DIM held
 constexpr size_t kMaxQueuedKeys = 32;
 constexpr int kReadCoalesceMs = 25;  // the light sensors report all the time: reports are read in small batches, not one wake-up each
@@ -310,6 +311,13 @@ void McduService::handleKey(Key key) {
         nextRepeat_ = holdStart_ + kRepeatDelay;
         return;
     }
+    if (avionicsMode()) {
+        const auto read = [this](const std::string& code) { return hooks_.readCode ? hooks_.readCode(code) : std::nullopt; };
+        for (const auto& code : avionics_.onKey(key, read))
+            if (hooks_.fireCode) hooks_.fireCode(code);
+        nextRefresh_ = Clock::time_point{};
+        return;
+    }
     if (activeSim_.active) {
         if (activeSim_.iniBuildsKeys) {
             uint16_t product;
@@ -331,6 +339,10 @@ void McduService::handleKey(Key key) {
     pages_.onKey(key);
     if (pages_.takePrefsChanged()) noteRuntimePrefs();
     nextRefresh_ = Clock::time_point{};  // the page shows the key at once
+}
+
+bool McduService::avionicsMode() const {
+    return activeSim_.active && !activeSim_.aircraft.empty() && !activeSim_.simBridge && !activeSim_.iniBuildsKeys && activeSim_.hEventPrefix.empty();
 }
 
 void McduService::applyLights(bool force) {
@@ -380,6 +392,7 @@ void McduService::renderScreen(Clock::time_point now) {
         mirrorShown_ = false;
         if (link_.hasScreen()) next = link_.screen();
         else if (activeSim_.iniBuildsKeys && mirror_.screen(next)) mirrorShown_ = true;
+        else if (avionicsMode()) avionics_.render(next, [this](const std::string& code) { return hooks_.readCode ? hooks_.readCode(code) : std::nullopt; });
         else {
             next.putCentered(0, "MSFS");
             next.putCentered(4, activeSim_.aircraft.empty() ? "NO AIRCRAFT" : activeSim_.aircraft, Color::Green);
@@ -526,7 +539,7 @@ void McduService::run() {
             if (cfgChanged_) { active_ = cfg_; cfgChanged_ = false; reconfigure = true; }
             if (!(activeSim_ == sim_)) { activeSim_ = sim_; simChanged = true; }
             status_.simMode = activeSim_.active;
-            status_.simScreen = activeSim_.active && (link_.hasScreen() || mirrorShown_);
+            status_.simScreen = activeSim_.active && (link_.hasScreen() || mirrorShown_ || avionicsMode());
             status_.sleeping = sleeping_;
             status_.ambientPercent = ambient_;
             status_.screenLevelPercent = screenShown_;
@@ -547,6 +560,12 @@ void McduService::run() {
             sleeping_ = false;
             lastKey_ = now;
             nextRefresh_ = Clock::time_point{};
+            avionics_.reset();
+        }
+        // the avionics pages' values: read only while they can be on screen
+        if (avionicsMode() != avionicsWatched_) {
+            avionicsWatched_ = avionicsMode();
+            if (hooks_.watchCodes) hooks_.watchCodes(avionicsWatched_ ? AvionicsPages::codes() : std::vector<std::string>{});
         }
         if (!openPath_.empty() && openPath_ != wanted) closeDevice("unplugged");
         if (fd_ < 0 && !wanted.empty() && now >= retryOpenAt_) openDevice(wanted);
@@ -588,7 +607,7 @@ void McduService::run() {
         if (now >= nextRefresh_) {
             renderScreen(now);
             applyLights(false);
-            const int refresh = sleeping_ || activeSim_.active ? 0 : pages_.refreshMs();
+            const int refresh = sleeping_ ? 0 : avionicsMode() ? kAvionicsRefreshMs : activeSim_.active ? 0 : pages_.refreshMs();
             nextRefresh_ = refresh > 0 ? now + std::chrono::milliseconds(refresh) : Clock::time_point::max();
         }
         // BRT or DIM held down: a step every kRepeatEvery after kRepeatDelay
@@ -646,6 +665,7 @@ void McduService::run() {
         }
         link_.process(linkIndex >= 0 ? pfds[linkIndex].revents : 0);
     }
+    if (avionicsWatched_ && hooks_.watchCodes) hooks_.watchCodes({});
     blankDevice();
     closeDevice("stopped");
     link_.setWanted(false);

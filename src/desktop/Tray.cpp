@@ -38,7 +38,7 @@ constexpr const char* kItemXml =
     "<method name=\"SecondaryActivate\"><arg type=\"i\" direction=\"in\"/><arg type=\"i\" direction=\"in\"/></method>"
     "<method name=\"ContextMenu\"><arg type=\"i\" direction=\"in\"/><arg type=\"i\" direction=\"in\"/></method>"
     "<method name=\"Scroll\"><arg type=\"i\" direction=\"in\"/><arg type=\"s\" direction=\"in\"/></method>"
-    "<signal name=\"NewToolTip\"/><signal name=\"NewStatus\"><arg type=\"s\"/></signal>"
+    "<signal name=\"NewToolTip\"/><signal name=\"NewIcon\"/><signal name=\"NewStatus\"><arg type=\"s\"/></signal>"
     "</interface></node>";
 
 constexpr const char* kMenuXml =
@@ -74,14 +74,7 @@ bool Tray::start(Callbacks callbacks, const std::string& iconName) {
     cb_ = std::move(callbacks);
     iconName_ = iconName;
     status_ = "MSFS Linux Companion";
-    // the icon as the protocol wants it: ARGB, most significant byte first
-    pixmap_.resize(static_cast<size_t>(ui::kAppIconSize) * ui::kAppIconSize * 4);
-    for (size_t i = 0; i + 3 < pixmap_.size(); i += 4) {
-        pixmap_[i] = ui::kAppIconRgba[i + 3];
-        pixmap_[i + 1] = ui::kAppIconRgba[i];
-        pixmap_[i + 2] = ui::kAppIconRgba[i + 1];
-        pixmap_[i + 3] = ui::kAppIconRgba[i + 2];
-    }
+    buildPixmaps();
     int r = api_->open_user(&bus_);
     if (r < 0) {
         LOG_WARN("Tray: no session bus (%s)", strerror(-r));
@@ -96,6 +89,35 @@ bool Tray::start(Callbacks callbacks, const std::string& iconName) {
     if (api_->add_match(bus_, &slot, match.c_str(), &Tray::onWatcherChanged, this) >= 0) slots_.push_back(slot);
     registerWithWatcher();
     return true;
+}
+
+void Tray::buildPixmaps() {
+    // the icon as the protocol wants it: ARGB, most significant byte first
+    auto add = [this](int size, const unsigned char* rgba) {
+        Pixmap p{size, std::vector<uint8_t>(static_cast<size_t>(size) * size * 4)};
+        for (size_t i = 0; i + 3 < p.argb.size(); i += 4) {
+            p.argb[i] = rgba[i + 3];
+            p.argb[i + 1] = rgba[i];
+            p.argb[i + 2] = rgba[i + 1];
+            p.argb[i + 3] = rgba[i + 2];
+        }
+        pixmaps_.push_back(std::move(p));
+    };
+    pixmaps_.clear();
+    if (icon_ == TrayIcon::Colour) add(ui::kAppIconSize, ui::kAppIconRgba);
+    else
+        for (const ui::TrayIconImage& img : icon_ == TrayIcon::Light ? ui::kTrayLight : ui::kTrayDark) add(img.size, img.rgba);
+}
+
+void Tray::setIcon(TrayIcon icon) {
+    if (icon == icon_) return;
+    icon_ = icon;
+    buildPixmaps();
+    if (!bus_) return;
+    sdbus::Message* s = nullptr;
+    if (api_->message_new_signal(bus_, &s, kItemPath, kItemInterface, "NewIcon") < 0) return;
+    api_->send(bus_, s, nullptr);
+    api_->message_unref(s);
 }
 
 void Tray::registerWithWatcher() {
@@ -171,17 +193,20 @@ void Tray::appendItemProperty(sdbus::Message* r, const std::string& name) {
     else if (name == "Title") a.message_append(r, "v", "s", "MSFS Linux Companion");
     else if (name == "Status") a.message_append(r, "v", "s", "Active");
     else if (name == "WindowId") a.message_append(r, "v", "i", 0);
-    else if (name == "IconName") a.message_append(r, "v", "s", iconName_.c_str());
+    // by name the host would take the app's icon from the icon theme: the one-colour icons go as pictures only
+    else if (name == "IconName") a.message_append(r, "v", "s", icon_ == TrayIcon::Colour ? iconName_.c_str() : "");
     else if (name == "OverlayIconName" || name == "AttentionIconName") a.message_append(r, "v", "s", "");
     else if (name == "ItemIsMenu") a.message_append(r, "v", "b", 0);
     else if (name == "Menu") a.message_append(r, "v", "o", kMenuPath);
     else if (name == "IconPixmap") {
         a.message_open_container(r, 'v', "a(iiay)");
         a.message_open_container(r, 'a', "(iiay)");
-        a.message_open_container(r, 'r', "iiay");
-        a.message_append(r, "ii", ui::kAppIconSize, ui::kAppIconSize);
-        a.message_append_array(r, 'y', pixmap_.data(), pixmap_.size());
-        a.message_close_container(r);
+        for (const Pixmap& p : pixmaps_) {
+            a.message_open_container(r, 'r', "iiay");
+            a.message_append(r, "ii", p.size, p.size);
+            a.message_append_array(r, 'y', p.argb.data(), p.argb.size());
+            a.message_close_container(r);
+        }
         a.message_close_container(r);
         a.message_close_container(r);
     } else if (name == "ToolTip") {

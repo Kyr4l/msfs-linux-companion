@@ -16,6 +16,8 @@ enum class OutputKind { Key, MouseButton, MouseMove, Wheel };
 enum class Direction { Up = 0, Down = 1, Left = 2, Right = 3 };
 // How the travel of an axis is read (antiMicroX's throttle setting). Negative and Positive stretch the whole travel over one side, the half modes fold it.
 enum class AxisMode { Normal, Negative, Positive, NegativeHalf, PositiveHalf };
+// the tray icon: the app icon in its colours, or in one colour to match the panel (Light for a dark panel, Dark for a light one)
+enum class TrayIcon { Colour, Light, Dark };
 enum class MouseCurve { EnhancedPrecision, Linear, Quadratic, Cubic, QuadraticExtreme, Power };
 
 struct Output {

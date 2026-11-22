@@ -8,6 +8,7 @@
 #include <deque>
 #include <functional>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <thread>
 #include <vector>
@@ -15,6 +16,7 @@
 #include "desktop/AudioControl.hpp"
 #include "desktop/DesktopTypes.hpp"
 #include "desktop/ProgressWatcher.hpp"
+#include "mcdu/AvionicsPages.hpp"
 #include "mcdu/McduPages.hpp"
 #include "mcdu/McduProtocol.hpp"
 #include "mcdu/McduSimLink.hpp"
@@ -52,6 +54,9 @@ public:
         std::function<void(const std::vector<int>&)> tapKeys;
         std::function<void(const std::string& hEvent)> fireHEvent;
         std::function<void(const std::string& code)> fireCode;  // calculator code
+        // values read as calculator code (the avionics pages): the codes to keep reading ({} for none), the last value of one
+        std::function<void(const std::vector<std::string>& codes)> watchCodes;
+        std::function<std::optional<double>(const std::string& code)> readCode;
     };
 
     explicit McduService(Hooks hooks);
@@ -119,6 +124,9 @@ private:
     SimLink link_;
     ScreenMirror mirror_;  // the iniBuilds Airbuses: the text read off their pop-out window
     bool mirrorShown_ = false;
+    AvionicsPages avionics_;  // an aircraft without an MCDU: the companion's own pages
+    bool avionicsWatched_ = false;
+    bool avionicsMode() const;
     SystemInfo systemInfo_;
     desktop::MediaControl mediaControl_;
     WeatherClient weather_;
