@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- msfs-linux-companion logo: a lever knob. CC0. -->
+<!-- msfs-linux-companion logo: a heading indicator (compass card, heading bug, aircraft). CC0. -->
 <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
-  <rect x="8" y="8" width="240" height="240" rx="56" fill="#1b2740"/>
-  <rect x="112" y="104" width="32" height="112" rx="16" fill="#e8edf5"/>
-  <circle cx="128" cy="84" r="40" fill="#ff9f1c"/>
+  <circle cx="128" cy="128" r="124" fill="#1b2740"/>
+  <circle cx="128" cy="128" r="118" fill="none" stroke="#2e3f62" stroke-width="6"/>
+  <g fill="none" stroke="#e8edf5" stroke-linecap="round" stroke-linejoin="round">
+    <path stroke-width="14" d="M172 51.6 L182 34.4 M204.4 84 L221.6 74 M204.4 172 L221.6 182 M172 204.4 L182 221.6 M84 204.4 L74 221.6 M51.6 172 L34.4 182 M51.6 84 L34.4 74 M84 51.6 L74 34.4"/>
+    <path stroke-width="20" d="M204 128 H228 M128 204 V228 M28 128 H52"/>
+    <path stroke-width="20" d="M128 84 V176 M80 136 L128 116 L176 136 M108 176 H148"/>
+  </g>
+  <path fill="#ff9f1c" d="M104 16 H152 V36 L128 56 L104 36 Z"/>
 </svg>

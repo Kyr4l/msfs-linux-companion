@@ -1,3 +1,5 @@
+<img src="packaging/icons/msfs-linux-companion.svg" width="96" alt="" align="right">
+
 # msfs-linux-companion
 
 Bind your HOTAS to Microsoft Flight Simulator 2020 and 2024 **from Linux**, including the cockpit controls the in-game
@@ -20,6 +22,10 @@ TCP to the sim running under Proton.
   automatic one for any other aircraft.
 * **Guides**: step-by-step procedures in the app, with steps the sim confirms ticked for you.
 * **Vibration** for Winwing URSA MINOR devices, driven by flight data.
+* **WINCTRL MCDU**: mirrors the aircraft's MCDU (A32NX, A380X, iniBuilds Airbuses). For aircraft without one, like the C172
+  and its G1000 NXi, it shows Airbus-style pages for radios, autopilot, transponder, fuel and engine, and drives the G1000.
+* **Desktop controls**: joysticks as mouse and keyboard while the sim is not running; tray icon (colour, light or dark),
+  start at login.
 * **Plugins** for new aircraft, tabs and commands.
 * Wayland or X11, or `--headless`. Uses about 0.2 % of one core next to a running sim.
 

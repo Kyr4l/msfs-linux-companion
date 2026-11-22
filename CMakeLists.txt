@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 Kyr4l
 cmake_minimum_required(VERSION 3.20)
-project(msfs-linux-companion VERSION 0.9.15 LANGUAGES CXX)
+project(msfs-linux-companion VERSION 0.9.16 LANGUAGES CXX)
 # Version MAJOR.MINOR.FEATURE (MINOR up to 99, FEATURE one digit), plus a letter for a release with fixes only:
 # 0.9.0 -> fixes 0.9.0a, 0.9.0b -> next feature 0.9.1 (letter cleared). CMake's VERSION takes no letter, so it is here.
 set(COMPANION_VERSION_FIX "")

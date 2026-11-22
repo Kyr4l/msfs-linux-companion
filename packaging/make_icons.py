@@ -11,35 +11,55 @@ import pathlib
 from PIL import Image, ImageDraw
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-ORANGE, LIGHT, NAVY = "#ff9f1c", "#e8edf5", "#1b2740"
+ORANGE, LIGHT, NAVY, RIM = "#ff9f1c", "#e8edf5", "#1b2740", "#2e3f62"
+
+# The mark, in the SVG's units divided by 4 (a 64 x 64 grid): a compass card, the heading bug and the aircraft.
+TICKS = [((43, 12.9), (45.5, 8.6)), ((51.1, 21), (55.4, 18.5)), ((51.1, 43), (55.4, 45.5)), ((43, 51.1), (45.5, 55.4)),
+         ((21, 51.1), (18.5, 55.4)), ((12.9, 43), (8.6, 45.5)), ((12.9, 21), (8.6, 18.5)), ((21, 12.9), (18.5, 8.6))]
+CARDINALS = [((51, 32), (57, 32)), ((32, 51), (32, 57)), ((7, 32), (13, 32))]
+AIRCRAFT = [[(32, 21), (32, 44)], [(20, 34), (32, 29), (44, 34)], [(27, 44), (37, 44)]]
+BUG = [(26, 4), (38, 4), (38, 9), (32, 14), (26, 9)]
 
 
-def render(size, supersample=4):
-    s = lambda v: v * supersample  # noqa: E731
-    W = 256 * supersample
+def stroke(d, points, width, color, k):
+    """A line with round caps and joins, as the SVG draws it."""
+    pts = [(x * k, y * k) for x, y in points]
+    d.line(pts, fill=color, width=round(width * k))
+    r = width * k / 2
+    for x, y in pts:
+        d.ellipse([x - r, y - r, x + r, y + r], fill=color)
+
+
+def draw_mark(d, k, ink, accent):
+    for line in TICKS:
+        stroke(d, line, 3.5, ink, k)
+    for line in CARDINALS + AIRCRAFT:
+        stroke(d, line, 5, ink, k)
+    d.polygon([(x * k, y * k) for x, y in BUG], fill=accent)
+
+
+def render(size, supersample=8):
+    """The app icon: the mark on the dark face of an instrument, so it shows on light and dark backgrounds alike."""
+    W = size * supersample
+    k = W / 64
     im = Image.new("RGBA", (W, W), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
-    d.rounded_rectangle([s(8), s(8), s(248), s(248)], radius=s(56), fill=NAVY)      # tile
-    d.rounded_rectangle([s(112), s(104), s(144), s(216)], radius=s(16), fill=LIGHT)  # lever
-    d.ellipse([s(88), s(44), s(168), s(124)], fill=ORANGE)                           # knob
+    d.ellipse([k * 1, k * 1, k * 63, k * 63], fill=NAVY)                                   # face
+    d.ellipse([k * 2.5, k * 2.5, k * 61.5, k * 61.5], outline=RIM, width=round(k * 1.5))  # bezel
+    draw_mark(d, k, LIGHT, ORANGE)
     return im.resize((size, size), Image.LANCZOS)
 
 
-# The tray icon in one colour, like the panel's own icons: the app icon's tile, with the lever and knob cut out of it.
+# The tray icon in one colour, like the panel's own icons: the mark alone, without the face.
 # Light is for a dark panel, Dark for a light one.
 TRAY = {"Light": "#fcfcfc", "Dark": "#232629"}
 TRAY_SIZES = (22, 32, 64)
 
 
 def render_tray(size, color, supersample=8):
-    s = lambda v: v * supersample  # noqa: E731
-    W = 256 * supersample
-    clear = (0, 0, 0, 0)
-    im = Image.new("RGBA", (W, W), clear)
-    d = ImageDraw.Draw(im)
-    d.rounded_rectangle([s(8), s(8), s(248), s(248)], radius=s(56), fill=color)      # tile
-    d.rounded_rectangle([s(112), s(104), s(144), s(216)], radius=s(16), fill=clear)  # lever
-    d.ellipse([s(88), s(44), s(168), s(124)], fill=clear)                            # knob
+    W = size * supersample
+    im = Image.new("RGBA", (W, W), (0, 0, 0, 0))
+    draw_mark(ImageDraw.Draw(im), W / 64, color, color)
     return im.resize((size, size), Image.LANCZOS)
 
 

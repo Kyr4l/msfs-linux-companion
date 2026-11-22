@@ -20,7 +20,7 @@ The page lists every axis with its live position. Select one to set its dead zon
 
 * **Close to tray**: closing the window leaves the program in the tray. The window, its GPU context and its fonts are freed until it is opened again.
 * **Start at login**: starts in the tray with your desktop session (`--tray`).
-* **Tray icon** (Settings › Appearance): **Colour**, or the same icon in one colour to match the panel: **Light** for a dark panel, **Dark** for a light one.
+* **Tray icon** (Settings › Appearance): **Colour** (the logo, a heading indicator), or the logo in one colour to match the panel: **Light** for a dark panel, **Dark** for a light one.
 * Starting the program again opens the window of the running copy. There is never more than one.
 
 ## The MCDU
