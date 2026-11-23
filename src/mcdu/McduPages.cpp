@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Kyr4l
 #include "mcdu/McduPages.hpp"
+#include "mcdu/McduPagesInternal.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -14,65 +15,7 @@
 
 namespace lr::mcdu {
 
-namespace {
-constexpr size_t kTypedEcho = 22;
-constexpr size_t kDisksPerPage = 5;
-
-std::string upper(std::string s) {
-    for (char& c : s)
-        if (static_cast<unsigned char>(c) < 0x80) c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
-    return s;
-}
-
-std::string fit(const std::string& s, size_t width) {
-    const std::vector<char32_t> chars = decodeUtf8(s);
-    if (chars.size() <= width) return s;
-    std::string out;
-    for (size_t i = 0; i < width; ++i) out += chars[i] < 0x80 ? static_cast<char>(chars[i]) : '?';
-    return out;
-}
-
-std::string format(const char* pattern, double v) {
-    char buf[32];
-    snprintf(buf, sizeof buf, pattern, v);
-    return buf;
-}
-
-std::string two(int v) {
-    char buf[16];
-    snprintf(buf, sizeof buf, "%02d", v);
-    return buf;
-}
-
-std::string sizeText(double gb) { return gb >= 1024.0 ? format("%.1f TB", gb / 1024.0) : format("%.0f GB", gb); }
-
-Color levelColor(int percent) { return percent >= 90 ? Color::Red : percent >= 70 ? Color::Amber : Color::Green; }
-
-std::string barText(int percent, int width) {
-    const int filled = std::clamp(static_cast<int>(std::lround(percent * width / 100.0)), 0, width);
-    return std::string(static_cast<size_t>(filled), '|') + std::string(static_cast<size_t>(width - filled), '.');
-}
-}  // namespace
-
-struct PageHost::Frame {
-    Screen screen;
-    SideLabels labels;
-    std::array<std::function<void()>, 12> actions;
-
-    void left(int line, const std::string& label, std::function<void()> fn, Color c = Color::Cyan) {
-        screen.put(line * 2, 0, "<" + fit(upper(label), 11), c);
-        side(line - 1, label, std::move(fn));
-    }
-    void right(int line, const std::string& label, std::function<void()> fn, Color c = Color::Cyan) {
-        screen.putRight(line * 2, fit(upper(label), 11) + ">", c);
-        side(line + 5, label, std::move(fn));
-    }
-    void side(int index, const std::string& label, std::function<void()> fn) {
-        labels[static_cast<size_t>(index)] = label;
-        actions[static_cast<size_t>(index)] = std::move(fn);
-    }
-    void tag(int line, const std::string& text) { screen.put(line * 2 - 1, 0, fit(text, 24), Color::White, true); }
-};
+using namespace pages;
 
 std::vector<desktop::Shortcut> defaultShortcuts() {
     return {
@@ -158,6 +101,20 @@ void PageHost::configure(const desktop::McduConfig& cfg) {
     refreshSeconds_ = cfg.refreshSeconds;
     utc_ = cfg.clockUtc;
     h12_ = cfg.clock12h;
+    loadColors_ = cfg.loadColors;
+    const bool airbus = cfg.pageStyle == "airbus";
+    if (airbus != airbus_) {
+        airbus_ = airbus;
+        go(PageId::Menu);
+        scratch_.clear();
+    }
+}
+
+Color PageHost::levelColor(int percent) const {
+    const desktop::LoadColors& c = loadColors_;
+    if (c.on && c.alert.on && percent > c.alert.above) return colorNamed(c.alert.color);
+    if (c.on && c.warn.on && percent > c.warn.above) return colorNamed(c.warn.color);
+    return colorNamed(c.normal);
 }
 
 bool PageHost::takePrefsChanged() {
@@ -183,7 +140,7 @@ bool PageHost::takeWeatherRequest() {
 }
 
 bool PageHost::wantsSystem() const {
-    return page_ == PageId::System || page_ == PageId::Cpu || page_ == PageId::Memory || page_ == PageId::Gpus || page_ == PageId::Disks || page_ == PageId::Power || page_ == PageId::Comms;
+    return page_ == PageId::System || page_ == PageId::Network || page_ == PageId::Cpu || page_ == PageId::Memory || page_ == PageId::Gpus || page_ == PageId::Disks || page_ == PageId::Power || page_ == PageId::Comms;
 }
 
 int PageHost::refreshMs() const {
@@ -219,7 +176,27 @@ int PageHost::chronoSeconds() const {
     return chronoHeld_ + static_cast<int>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - chronoStart_).count());
 }
 
+void PageHost::sideKey(Key key) {
+    Frame f;
+    build(f);
+    const auto& action = f.actions[static_cast<size_t>(static_cast<int>(key) - static_cast<int>(Key::L1))];
+    if (action) {
+        toast_.clear();
+        action();
+    }
+}
+
+void PageHost::scrollDisks(bool down) {
+    const size_t count = system_.disks.size();
+    if (down && diskScroll_ + kDisksPerPage < count) diskScroll_ += kDisksPerPage;
+    if (!down) diskScroll_ -= std::min(diskScroll_, kDisksPerPage);
+}
+
 void PageHost::onKey(Key key) {
+    if (airbus_) {
+        airbusKey(key);
+        return;
+    }
     switch (key) {  // the page keys work everywhere
         case Key::Menu: go(PageId::Menu); return;
         case Key::Init: go(PageId::Clock); return;
@@ -236,19 +213,11 @@ void PageHost::onKey(Key key) {
         default: break;
     }
     if (key >= Key::L1 && key <= Key::R6) {
-        Frame f;
-        build(f);
-        const auto& action = f.actions[static_cast<size_t>(static_cast<int>(key) - static_cast<int>(Key::L1))];
-        if (action) {
-            toast_.clear();
-            action();
-        }
+        sideKey(key);
         return;
     }
     if (page_ == PageId::Disks && (key == Key::UpArrow || key == Key::DownArrow)) {
-        const size_t count = system_.disks.size();
-        if (key == Key::DownArrow && diskScroll_ + kDisksPerPage < count) diskScroll_ += kDisksPerPage;
-        if (key == Key::UpArrow) diskScroll_ -= std::min(diskScroll_, kDisksPerPage);
+        scrollDisks(key == Key::DownArrow);
         return;
     }
     if (page_ == PageId::Weather) {  // the scratchpad, as on the real unit: type the airport, then press the key next to it
@@ -274,7 +243,11 @@ void PageHost::onKey(Key key) {
         if (c && directText_.size() < 40) directText_ += c;
         return;
     }
-    if (page_ != PageId::Type) return;
+    if (page_ == PageId::Type) typeKey(key);
+}
+
+// RAD NAV: the key goes to the PC, and what it types is echoed
+void PageHost::typeKey(Key key) {
     std::vector<int> keys = typedKeys(key, azerty_);
     if (keys.empty()) return;
     if (shift_ && key >= Key::A && key <= Key::Z) keys.insert(keys.begin(), KEY_LEFTSHIFT);
@@ -300,7 +273,13 @@ void PageHost::render(Screen& out, const std::tm& now) {
 }
 
 void PageHost::build(Frame& f) {
+    if (airbus_) {
+        buildAirbus(f);
+        return;
+    }
     switch (page_) {
+        case PageId::DataIndex:
+        case PageId::Network: buildSystem(f); break;  // pages of the Airbus style only
         case PageId::Menu: buildMenu(f); break;
         case PageId::Clock: buildClock(f); break;
         case PageId::System: buildSystem(f); break;
@@ -445,25 +424,34 @@ void PageHost::buildSystem(Frame& f) {
     f.right(6, "Rate " + std::to_string(refreshSeconds_) + "S", [this] { cycleRate(); });
 }
 
+// two columns of cores: "12 ||||||  57"; the right one from row 3 (row 2 has a side key on the classic page)
+void PageHost::drawCores(Screen& s) const {
+    const auto& cores = system_.corePercent;
+    const size_t shown = std::min<size_t>(cores.size(), 20);
+    for (size_t i = 0; i < shown; ++i) {
+        const int row = i < 11 ? 1 + static_cast<int>(i) : 3 + static_cast<int>(i - 11), col = i < 11 ? 0 : 12;
+        const int p = cores[i];
+        auto pad = [](std::string t, size_t w) { return std::string(w > t.size() ? w - t.size() : 0, ' ') + t; };
+        s.put(row, col, pad(std::to_string(i), 2), Color::White, true);
+        if (p < 0) { s.put(row, col + 3, "--"); continue; }
+        s.put(row, col + 3, barText(p, 6), levelColor(p));
+        s.put(row, col + 9, pad(std::to_string(std::min(p, 100)), 3), levelColor(p), true);
+    }
+    if (cores.size() > shown) s.putRight(0, "+" + std::to_string(cores.size() - shown), Color::Amber, true);
+    if (cores.empty()) s.putCentered(5, "NOT AVAILABLE", Color::Amber);
+}
+
+std::string PageHost::netSpeed(double bytes) const {
+    if (bytes < 0) return "--";
+    if (netBits_) return format("%.1f MBIT", bytes * 8.0 / 1e6);
+    return bytes >= 1e6 ? format("%.1f MB/S", bytes / 1e6) : format("%.0f KB/S", bytes / 1e3);
+}
+
 void PageHost::buildCpu(Frame& f) {
     Screen& s = f.screen;
     s.putCentered(0, cpuCores_ ? "CPU CORES" : "CPU");
-    if (cpuCores_) {
-        // two columns of cores: "12 ||||||  57"; the right one from row 3 (row 2 has the SUMMARY> key)
-        const auto& cores = system_.corePercent;
-        const size_t shown = std::min<size_t>(cores.size(), 20);
-        for (size_t i = 0; i < shown; ++i) {
-            const int row = i < 11 ? 1 + static_cast<int>(i) : 3 + static_cast<int>(i - 11), col = i < 11 ? 0 : 12;
-            const int p = cores[i];
-            auto pad = [](std::string t, size_t w) { return std::string(w > t.size() ? w - t.size() : 0, ' ') + t; };
-            s.put(row, col, pad(std::to_string(i), 2), Color::White, true);
-            if (p < 0) { s.put(row, col + 3, "--"); continue; }
-            s.put(row, col + 3, barText(p, 6), levelColor(p));
-            s.put(row, col + 9, pad(std::to_string(std::min(p, 100)), 3), levelColor(p), true);
-        }
-        if (cores.size() > shown) s.putRight(0, "+" + std::to_string(cores.size() - shown), Color::Amber, true);
-        if (cores.empty()) s.putCentered(5, "NOT AVAILABLE", Color::Amber);
-    } else {
+    if (cpuCores_) drawCores(s);
+    else {
         f.tag(1, "LOAD");
         s.put(2, 0, system_.cpuPercent < 0 ? "--" : format("%.0f %%", system_.cpuPercent), Color::Green);
         f.tag(2, "TEMPERATURE");
@@ -565,15 +553,15 @@ void PageHost::buildMedia(Frame& f) {
     } else {
         s.put(1, 0, "NO PLAYER", Color::Amber, true);
     }
-    f.left(1, "Prev", [this] { actions_.media(desktop::MediaCommand::Previous); say("PREVIOUS"); });
+    if (!media_.present || media_.canPrevious) f.left(1, "Prev", [this] { actions_.media(desktop::MediaCommand::Previous); say("PREVIOUS"); });
     f.left(2, media_.playing ? "Pause" : "Play", [this] { actions_.media(desktop::MediaCommand::PlayPause); });
-    f.left(3, "Next", [this] { actions_.media(desktop::MediaCommand::Next); say("NEXT"); });
+    if (!media_.present || media_.canNext) f.left(3, "Next", [this] { actions_.media(desktop::MediaCommand::Next); say("NEXT"); });
     f.right(1, "Vol up", [this] { actions_.tapKeys({KEY_VOLUMEUP}); say("VOLUME UP"); });
     f.right(2, "Vol down", [this] { actions_.tapKeys({KEY_VOLUMEDOWN}); say("VOLUME DOWN"); });
     f.right(3, "Mute", [this] { actions_.tapKeys({KEY_MUTE}); say("MUTE"); });
     f.left(4, "Player", [this] { actions_.media(desktop::MediaCommand::NextPlayer); });
-    f.right(4, media_.shuffle ? "Shuffle on" : "Shuffle off", [this] { actions_.media(desktop::MediaCommand::Shuffle); }, media_.shuffle ? Color::Green : Color::Cyan);
-    f.right(5, media_.repeat ? "Repeat on" : "Repeat off", [this] { actions_.media(desktop::MediaCommand::Repeat); }, media_.repeat ? Color::Green : Color::Cyan);
+    if (media_.hasShuffle) f.right(4, media_.shuffle ? "Shuffle on" : "Shuffle off", [this] { actions_.media(desktop::MediaCommand::Shuffle); }, media_.shuffle ? Color::Green : Color::Cyan);
+    if (media_.hasRepeat) f.right(5, media_.repeat ? "Repeat on" : "Repeat off", [this] { actions_.media(desktop::MediaCommand::Repeat); }, media_.repeat ? Color::Green : Color::Cyan);
     f.left(6, "Return", [this] { go(PageId::Menu); });
 }
 
@@ -709,15 +697,10 @@ void PageHost::buildComms(Frame& f) {
             actions_.tapKeys(keys);
             say("SENT " + upper(label));
         });
-    auto speed = [this](double bytes) {
-        if (bytes < 0) return std::string("--");
-        if (netBits_) return format("%.1f MBIT", bytes * 8.0 / 1e6);
-        return bytes >= 1e6 ? format("%.1f MB/S", bytes / 1e6) : format("%.0f KB/S", bytes / 1e3);
-    };
     s.putRight(1, "DOWN", Color::White, true);
-    s.putRight(2, speed(system_.downBytesPerSecond) + ">", Color::Green);
+    s.putRight(2, netSpeed(system_.downBytesPerSecond) + ">", Color::Green);
     s.putRight(3, "UP", Color::White, true);
-    s.putRight(4, speed(system_.upBytesPerSecond) + ">", Color::Green);
+    s.putRight(4, netSpeed(system_.upBytesPerSecond) + ">", Color::Green);
     auto units = [this] { netBits_ = !netBits_; prefsChanged_ = true; };
     f.side(6, "Units", units);
     f.side(7, "Units", units);
@@ -754,19 +737,7 @@ void PageHost::buildWeather(Frame& f) {
             field(5, 13, "QNH", m.pressure);
             s.put(7, 0, "METAR", Color::White, true);
             s.putRight(7, m.time, Color::White, true);
-            // the report itself, wrapped between words
-            std::string line;
-            int row = 8;
-            std::istringstream words(m.raw);
-            std::string word;
-            while (words >> word && row <= 11) {
-                if (!line.empty() && line.size() + 1 + word.size() > static_cast<size_t>(kCols)) {
-                    s.put(row++, 0, line, Color::Cyan, true);
-                    line.clear();
-                }
-                line += (line.empty() ? "" : " ") + word;
-            }
-            if (row <= 11 && !line.empty()) s.put(row, 0, line, Color::Cyan, true);
+            putWrapped(s, m.raw, 8, 11);  // the report itself
             break;
         }
         case WeatherStatus::Loading: s.putCentered(7, "LOADING", Color::Amber); break;

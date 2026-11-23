@@ -14,7 +14,7 @@ Both archives are the plain, unencrypted ones of the package; the aircraft's mod
 Nothing here was tried through this program on a running aircraft yet, so no entry is marked verified; each note says where the entry
 comes from.
 """
-from common import NOT_TRIED, knob, latched, press, unknown
+from common import NOT_TRIED, knob, latched, level, press, unknown
 
 AIRCRAFT = "Microsoft_SF50"
 TITLE = "Cirrus Vision Jet G2 (Microsoft SF50)"
@@ -41,7 +41,24 @@ P_EXT = "Walkaround"
 P_OTHER = "Other"
 PANEL_ORDER = [P_AP, P_ENG, P_FUEL, P_ELEC, P_LIGHT, P_ICE, P_HAND, P_CABIN, P_SAFE, P_GTC, P_EXT, P_OTHER]
 
-VERIFIED = {}
+# Probed on MSFS 2024 12.2.282174.999 (2026-11-23, aircraft on the ground, engine running): the sim's own value of each event read back after it
+# was set, then put back. Only the controls that are safe with the engine running were tried.
+_PROBE = "Tried on MSFS 2024 (the sim's own value read back): "
+_PROBE_MODE = _PROBE + "holds 0 (off) or 1 (on): sending 1 engages the mode, 0 leaves it; it toggles between the two."
+_PROBE_LEVEL = _PROBE + "a level from 0 to 100. Tooltip: \"%s\"."
+_PROBE_SWITCH = _PROBE + "a switch with two positions, 0 and 1."
+_PROBE_PRESS = _PROBE + "acts on every event and keeps no value, as a knob or push button does; which way it turns was not seen."
+
+VERIFIED = {
+    "DEICE_PITOT_1": _PROBE_SWITCH, "LIGHTING_STROBE_1": _PROBE_SWITCH, "LIGHTING_WING_1": _PROBE_SWITCH + " Also set through calculator code ((>B:..._Set)).",
+    "SF50_LIGHTING_LANDING_LIGHTS": _PROBE_SWITCH, "SF50_CABIN_ECS_AFT_CONTROL": _PROBE_SWITCH, "SF50_CABIN_ECS_DEFOG": _PROBE_SWITCH,
+    "SF50_CABIN_ECS_DISABLE": _PROBE_SWITCH, "SF50_CABIN_ECS_TEMP_BACKUP": _PROBE_SWITCH, "SF50_DEICE_ENGINE": _PROBE_SWITCH,
+    "SF50_DEICE_WINDSHIELD": _PROBE_SWITCH, "SF50_DEICE_WINDSHIELD_HIGH": _PROBE_SWITCH, "SF50_DEICE_WINGSTAB": _PROBE_SWITCH,
+    "SF50_HANDLING_FLAP_SELECTOR": _PROBE + "a selector with three positions, 0, 1 and 2 (UP, 50 %, 100 %).",
+    "AUTOPILOT_BARO_1_SYNC": _PROBE_PRESS, "SF50_AUTOPILOT_ALTITUDE_SYNC": _PROBE_PRESS, "SF50_AUTOPILOT_HEADING_SYNC": _PROBE_PRESS,
+    "SF50_AUTOPILOT_APPROACH_MODE": _PROBE + "acts on every event and keeps no value (a push button).",
+    "SF50_AUTOPILOT_FMS_SPEED_MODE": _PROBE + "acts on every event and keeps no value (a push button).",
+}
 
 _TIP = "Tooltip in the aircraft: "
 _CHK = "Name in the sim's checklist: "
@@ -76,25 +93,25 @@ def _walk(function, item):
 _SIMPLE = {
     # --- autopilot ---------------------------------------------------------------------------------------------------------------------
     "AUTOPILOT_AP_1": press(P_AP, "Master", "AP", note="Standard autopilot event name; the CJ4's toggles on every event whatever its value. Not tried."),
-    "AUTOPILOT_FD_1_MODE": press(P_AP, "Master", "FD", note="Standard flight director event name. Not tried."),
+    "AUTOPILOT_FD_1_MODE": latched(P_AP, "Master", "FD", note=_PROBE_MODE),
     "AUTOPILOT_BARO_1": knob(P_AP, "Baro", "Baro knob", "up", "down", note=NOT_TRIED),
     "AUTOPILOT_BARO_1_SYNC": press(P_AP, "Baro", "Baro knob push", note=NOT_TRIED),
     "SF50_AUTOPILOT_HEADING": knob(P_AP, "Heading", "HDG knob", "up", "down", note=NOT_TRIED),
     "SF50_AUTOPILOT_HEADING_SYNC": press(P_AP, "Heading", "HDG sync", note=NOT_TRIED),
-    "SF50_AUTOPILOT_HEADING_MODE": press(P_AP, "Lateral", "HDG mode", note=NOT_TRIED),
-    "SF50_AUTOPILOT_NAV_MODE": press(P_AP, "Lateral", "NAV mode", note=NOT_TRIED),
+    "SF50_AUTOPILOT_HEADING_MODE": latched(P_AP, "Lateral", "HDG mode", note=_PROBE_MODE),
+    "SF50_AUTOPILOT_NAV_MODE": latched(P_AP, "Lateral", "NAV mode", note=_PROBE_MODE),
     "SF50_AUTOPILOT_APPROACH_MODE": press(P_AP, "Lateral", "APR mode", note=NOT_TRIED),
     "SF50_AUTOPILOT_LEVEL": press(P_AP, "Lateral", "LVL (wings level)", note=NOT_TRIED),
     "SF50_AUTOPILOT_ALTITUDE": knob(P_AP, "Altitude", "ALT knob", "up", "down", note=NOT_TRIED),
     "SF50_AUTOPILOT_ALTITUDE_SYNC": press(P_AP, "Altitude", "ALT sync", note=NOT_TRIED),
-    "SF50_AUTOPILOT_ALTITUDE_MODE": press(P_AP, "Altitude", "ALT mode", note=NOT_TRIED),
+    "SF50_AUTOPILOT_ALTITUDE_MODE": latched(P_AP, "Altitude", "ALT mode", note=_PROBE_MODE),
     "SF50_AUTOPILOT_VERTICALSPEED": knob(P_AP, "Vertical", "VS wheel", "up", "down", note=NOT_TRIED),
-    "SF50_AUTOPILOT_VS_MODE": press(P_AP, "Vertical", "VS mode", note=NOT_TRIED),
-    "SF50_AUTOPILOT_FLC_MODE": press(P_AP, "Vertical", "FLC mode", note=NOT_TRIED),
-    "SF50_AUTOPILOT_VNAV_MODE": press(P_AP, "Vertical", "VNAV mode", note=NOT_TRIED),
+    "SF50_AUTOPILOT_VS_MODE": latched(P_AP, "Vertical", "VS mode", note=_PROBE_MODE),
+    "SF50_AUTOPILOT_FLC_MODE": latched(P_AP, "Vertical", "FLC mode", note=_PROBE_MODE),
+    "SF50_AUTOPILOT_VNAV_MODE": latched(P_AP, "Vertical", "VNAV mode", note=_PROBE_MODE),
     "SF50_AUTOPILOT_SPEED": knob(P_AP, "Speed", "SPD knob", "up", "down", note=NOT_TRIED),
     "SF50_AUTOPILOT_FMS_SPEED_MODE": press(P_AP, "Speed", "Speed reference: FMS", note=_TIP + "\"Set airspeed reference mode to FMS\". Not tried."),
-    "SF50_AUTOPILOT_MAN_SPEED_MODE": press(P_AP, "Speed", "Speed reference: manual", note=_TIP + "\"Set airspeed reference mode to manual\". Not tried."),
+    "SF50_AUTOPILOT_MAN_SPEED_MODE": press(P_AP, "Speed", "Speed reference: manual", note=_PROBE + "it selects manual speed and stays selected (setting it back to 0 does not undo it): FMS speed is the way back. Tooltip: \"Set airspeed reference mode to manual\"."),
     "SF50_AUTOPILOT_AUTOTHROTTLE_ARM": press(P_AP, "Autothrottle", "Autothrottle arm", note=NOT_TRIED),
     "SF50_AUTOPILOT_AUTOTHROTTLE_DISCONNECT": press(P_AP, "Autothrottle", "Autothrottle disconnect", note=NOT_TRIED),
     # --- engine and thrust -------------------------------------------------------------------------------------------------------------
@@ -123,15 +140,15 @@ _SIMPLE = {
     "SF50_LIGHTING_LANDING_LIGHTS": latched(P_LIGHT, "Exterior", "Landing lights", note=_CHK + "Landing Lights, A/R. How many positions the switch has is not known. Not tried."),
     "SF50_LIGHTING_NAV_LIGHTS_INTERCEPT": unknown(P_LIGHT, "Exterior", "Navigation lights (intercept)", _INTERCEPT % "the navigation lights"),
     "SF50_LIGHTING_RECOGNITION_LIGHTS_INTERCEPT": unknown(P_LIGHT, "Exterior", "Recognition lights (intercept)", _INTERCEPT % "the recognition lights"),
-    "SF50_LIGHTING_INSTRUMENT_LIGHTS": unknown(P_LIGHT, "Interior", "Instrument lights", _TIP + "\"Panel Lighting: Set the brightness of the panel lighting\". Not tried: a dimmer, its range is not known."),
-    "SF50_LIGHTING_CONVENIENCE_SWITCH": latched(P_LIGHT, "Interior", "Convenience lights", note=_TIP + "\"Convenience Lights\". Not tried."),
-    "SF50_LIGHTING_PILOT_TASK_LIGHT": unknown(P_LIGHT, "Interior", "Pilot task light", "Not tried; a switch or a dimmer, which is not known."),
-    "SF50_LIGHTING_COPILOT_TASK_LIGHT": unknown(P_LIGHT, "Interior", "Copilot task light", "Not tried; a switch or a dimmer, which is not known."),
-    "SF50_LIGHTING_CABIN_TASK_LIGHT_FORWARD_L": unknown(P_LIGHT, "Cabin", "Cabin light, forward left", _TIP + "\"Cabin Lighting\". Not tried; a switch or a dimmer, which is not known."),
-    "SF50_LIGHTING_CABIN_TASK_LIGHT_FORWARD_C": unknown(P_LIGHT, "Cabin", "Cabin light, forward centre", _TIP + "\"Cabin Lighting\". Not tried; a switch or a dimmer, which is not known."),
-    "SF50_LIGHTING_CABIN_TASK_LIGHT_FORWARD_R": unknown(P_LIGHT, "Cabin", "Cabin light, forward right", _TIP + "\"Cabin Lighting\". Not tried; a switch or a dimmer, which is not known."),
-    "SF50_LIGHTING_CABIN_TASK_LIGHT_AFT_L": unknown(P_LIGHT, "Cabin", "Cabin light, aft left", _TIP + "\"Cabin Lighting\". Not tried; a switch or a dimmer, which is not known."),
-    "SF50_LIGHTING_CABIN_TASK_LIGHT_AFT_R": unknown(P_LIGHT, "Cabin", "Cabin light, aft right", _TIP + "\"Cabin Lighting\". Not tried; a switch or a dimmer, which is not known."),
+    "SF50_LIGHTING_INSTRUMENT_LIGHTS": level(P_LIGHT, "Interior", "Instrument lights", note=_PROBE_LEVEL % "Panel Lighting: Set the brightness of the panel lighting"),
+    "SF50_LIGHTING_CONVENIENCE_SWITCH": latched(P_LIGHT, "Interior", "Convenience lights", positions=3, note=_PROBE + "a switch with three positions (0, 1, 2; it was at 2). Tooltip: \"Convenience Lights\"."),
+    "SF50_LIGHTING_PILOT_TASK_LIGHT": level(P_LIGHT, "Interior", "Pilot task light", note=_PROBE + "a dimmer from 0 to 100."),
+    "SF50_LIGHTING_COPILOT_TASK_LIGHT": level(P_LIGHT, "Interior", "Copilot task light", note=_PROBE + "a dimmer from 0 to 100."),
+    "SF50_LIGHTING_CABIN_TASK_LIGHT_FORWARD_L": level(P_LIGHT, "Cabin", "Cabin light, forward left", note=_PROBE_LEVEL % "Cabin Lighting"),
+    "SF50_LIGHTING_CABIN_TASK_LIGHT_FORWARD_C": level(P_LIGHT, "Cabin", "Cabin light, forward centre", note=_PROBE_LEVEL % "Cabin Lighting"),
+    "SF50_LIGHTING_CABIN_TASK_LIGHT_FORWARD_R": level(P_LIGHT, "Cabin", "Cabin light, forward right", note=_PROBE_LEVEL % "Cabin Lighting"),
+    "SF50_LIGHTING_CABIN_TASK_LIGHT_AFT_L": level(P_LIGHT, "Cabin", "Cabin light, aft left", note=_PROBE_LEVEL % "Cabin Lighting"),
+    "SF50_LIGHTING_CABIN_TASK_LIGHT_AFT_R": level(P_LIGHT, "Cabin", "Cabin light, aft right", note=_PROBE_LEVEL % "Cabin Lighting"),
     # --- ice protection ----------------------------------------------------------------------------------------------------------------
     "DEICE_PITOT_1": latched(P_ICE, "Probe heat", "Probe heat switch", note=_CHK + "PROBE HEAT Switch, ON or OFF. Standard event name; the CJ4's takes set 1 / set 0. Not tried."),
     "SF50_DEICE_ENGINE": latched(P_ICE, "IPS", "Engine IPS switch", note=_TIP + "\"Toggle engine ice protection\"; " + _CHK + "ENGINE IPS Switch. Not tried."),
@@ -160,10 +177,10 @@ _SIMPLE = {
     "SF50_CABIN_ECS_DISABLE": latched(P_CABIN, "ECS", "ECS disable", note=_TIP + "\"Toggle ECS disable\". Not tried."),
     "SF50_CABIN_ECS_DEFOG": latched(P_CABIN, "ECS", "Windshield defog", note=_TIP + "\"Toggle windshield defog\". Not tried."),
     "SF50_CABIN_ECS_AFT_CONTROL": latched(P_CABIN, "ECS", "Aft temperature control", note=_TIP + "\"Toggle aft temperature control\". Not tried."),
-    "SF50_CABIN_ECS_TEMP_KNOB_FORWARD": unknown(P_CABIN, "ECS", "Cabin temperature knob, forward", _TIP + "\"Adjust set temperature\" (\"Adjust temperature control valve position\" in backup mode). Not tried; its range is not known."),
-    "SF50_CABIN_ECS_TEMP_KNOB_AFT": unknown(P_CABIN, "ECS", "Cabin temperature knob, aft", _TIP + "\"Adjust set temperature\". Not tried; its range is not known."),
-    "SF50_CABIN_ECS_FAN_KNOB_FORWARD": unknown(P_CABIN, "ECS", "Fan knob, forward", _TIP + "\"Adjust fan speed\". Not tried; its range is not known."),
-    "SF50_CABIN_ECS_FAN_KNOB_AFT": unknown(P_CABIN, "ECS", "Fan knob, aft", _TIP + "\"Adjust fan speed\". Not tried; its range is not known."),
+    "SF50_CABIN_ECS_TEMP_KNOB_FORWARD": level(P_CABIN, "ECS", "Cabin temperature knob, forward", note=_PROBE_LEVEL % "Adjust set temperature"),
+    "SF50_CABIN_ECS_TEMP_KNOB_AFT": level(P_CABIN, "ECS", "Cabin temperature knob, aft", note=_PROBE_LEVEL % "Adjust set temperature"),
+    "SF50_CABIN_ECS_FAN_KNOB_FORWARD": level(P_CABIN, "ECS", "Fan knob, forward", note=_PROBE_LEVEL % "Adjust fan speed"),
+    "SF50_CABIN_ECS_FAN_KNOB_AFT": level(P_CABIN, "ECS", "Fan knob, aft", note=_PROBE_LEVEL % "Adjust fan speed"),
     # --- safety ------------------------------------------------------------------------------------------------------------------------
     "SF50_CAPS_HANDLE": unknown(P_SAFE, "CAPS", "CAPS handle (parachute)",
                                 "DANGER: " + _TIP + "\"Pull handle down to activate parachute\". It fires the airframe parachute; do not bind it to a button you can press by accident. Never tried."),
@@ -214,6 +231,12 @@ _SIMPLE = {
 }
 for _n in (1, 2, 3):
     _SIMPLE.update(_tsc(_n))
+
+
+# every row whose note comes from the probe is verified
+for _n, _rows in _SIMPLE.items():
+    if _rows and str(_rows[0].get("note", "")).startswith(_PROBE):
+        VERIFIED.setdefault(_n, _rows[0]["note"])
 
 
 def classify(name):

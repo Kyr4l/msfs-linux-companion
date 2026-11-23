@@ -17,7 +17,7 @@ namespace lr::mcdu {
 
 // Laid out like the pages of an Airbus MCDU: function keys open them (RAD NAV, PERF = FCU, FUEL PRED, PROG, ATC COMM = XPDR,
 // DATA = ENGINE, MCDU MENU), green = actual values and engaged modes, cyan = values to change, white = labels and actions.
-enum class AvionicsPage { Menu, Comm, Nav, Fcu, Xpdr, Fuel, Engine, Prog, Pfd, Mfd };
+enum class AvionicsPage { Menu, Comm, Nav, Fcu, Xpdr, Fuel, Engine, Prog, Pfd, Mfd, PfdKeys, MfdKeys, Gtc };
 
 class AvionicsPages {
 public:
@@ -30,7 +30,15 @@ public:
     // the calculator code the key sends (none for a key that only changes the page or the scratchpad)
     std::vector<std::string> onKey(Key key, const Read& read);
     AvionicsPage page() const { return page_; }
-    void reset();  // back to the menu, scratchpad empty (another aircraft)
+    void reset();
+    // "aircraft" (engine temperatures in °F, outside air in °C, as the aircraft shows them), "c", "f", or "both" (the other unit small, on the label line)
+    void setTemperatures(const std::string& unit) { tempUnit_ = unit; }
+    // "gal", "l", "kg", or a volume with the mass small on the label line: "gal_kg", "l_kg"
+    void setFuelUnit(const std::string& unit) { fuelUnit_ = unit; }
+    // A G3000 with touch controllers (the Vision Jet): MCDU MENU offers the GTCs, whose softkeys and knobs are the aircraft's own input
+    // events (sent as (>B:..._Set), checked on the SF50), instead of the G1000 pages.
+    void setG3000(bool on) { g3000_ = on; }
+    int gtc() const { return gtc_; }  // back to the menu, scratchpad empty (another aircraft)
 
     // typed values; nullopt: not valid
     static std::optional<int> frequencyHz(const std::string& typed, bool nav);  // "11830", "118.3", "118.305"
@@ -40,9 +48,18 @@ public:
 private:
     std::vector<std::string> lineKey(int line, bool right, const Read& read);
     std::vector<std::string> g1000Key(Key key);
+    std::vector<std::string> gtcKey(Key key);
+    bool baroStd(std::optional<double> flag, std::optional<double> mb) const;
+    bool isG1000() const { return page_ == AvionicsPage::Pfd || page_ == AvionicsPage::Mfd || page_ == AvionicsPage::PfdKeys || page_ == AvionicsPage::MfdKeys; }
 
     AvionicsPage page_ = AvionicsPage::Menu;
     AvionicsPage last_ = AvionicsPage::Prog;  // where AVIONICS in MCDU MENU goes back to
+    std::string tempUnit_ = "aircraft";
+    std::string fuelUnit_ = "gal";
+    bool g1000Back_ = false;
+    bool g3000_ = false;
+    bool stdByPage_ = false;  // STD was set from the XPDR page (some G1000s show STD without the sim's STD flag)
+    int gtc_ = 1;  // the touch controller on the GTC page, 1 to 3  // +/- pressed on a G1000 page: the next FMS knob key turns it back
     std::string scratch_;
     std::string message_;  // shown in the scratchpad until the next key
 };

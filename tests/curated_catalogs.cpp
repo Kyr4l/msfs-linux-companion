@@ -289,6 +289,28 @@ int main(int argc, char** argv) {
         CHECK(throttle1 == 3);  // the aircraft's own three entries, not duplicated by the axis list
     }
 
+    // ---- the Cessna 400 Corvalis TT: events from the companion's live cache of MSFS 2024, labels from the names, the aircraft's tooltips and
+    // the public G1000 NXi sources; nothing claimed as tried
+    {
+        Catalog c4;
+        if (!c4.load(root + "/data/microsoft_c400_corvalis_catalog.json", err)) { std::printf("cannot load the C400 catalog: %s\n", err.c_str()); return 1; }
+        CHECK(c4.aircraft == "Microsoft_C400_Corvalis" && c4.curated && c4.axisControls);
+        std::ifstream in(root + "/tools/aircraft_rules/microsoft_c400_corvalis_events.json");
+        nlohmann::json j;
+        in >> j;
+        std::set<std::string> have;
+        for (const auto& e : c4.entries) have.insert(e.name);
+        size_t missing = 0;
+        for (const auto& n : j["input_events"]) if (!have.count(n.get<std::string>())) { std::printf("  no entry for %s\n", n.get<std::string>().c_str()); ++missing; }
+        CHECK(missing == 0 && j["input_events"].size() == 302);
+        for (const auto& e : c4.entries) CHECK(!e.function.empty() && !e.note.empty() && !e.verified);
+        const auto* key = find(c4, "ENGINE_MAGNETO", "latched");
+        CHECK(key && key->positions == 5);  // OFF, R, L, BOTH, START
+        const auto* fuel = find(c4, "FUEL_SELECTOR", "latched");
+        CHECK(fuel && fuel->positions == 3);
+        CHECK(find(c4, "AS1000_SOFTKEY_12_MFD", "press") && find(c4, "AS1000_FMS_UPPER_PFD", "knob_up") && find(c4, "BREAKER_PFD", "latched"));
+    }
+
     // ---- the Cirrus Vision Jet G2: the event list is what the running MSFS 2024 reported; labels come from the aircraft's tooltips,
     // its own checklist and the public G3000 sources, nothing claimed as tried
     {
@@ -303,10 +325,14 @@ int main(int argc, char** argv) {
         size_t missing = 0;
         for (const auto& n : j["input_events"]) if (!have.count(n.get<std::string>())) { std::printf("  no entry for %s\n", n.get<std::string>().c_str()); ++missing; }
         CHECK(missing == 0 && j["input_events"].size() == 141);
+        size_t verified = 0;
         for (const auto& e : sf.entries) {
             CHECK(!e.function.empty() && !e.note.empty());
-            CHECK(!e.verified);  // nothing was tried through the program yet; the notes say where each entry comes from
+            if (e.verified) { ++verified; CHECK(e.note.rfind("Tried on MSFS 2024", 0) == 0); }  // the probe of 2026-11-23, on the ground
         }
+        CHECK(verified >= 30);
+        const auto* fd = find(sf, "AUTOPILOT_FD_1_MODE", "latched");
+        CHECK(fd && fd->verified);  // holds 0 or 1: it toggles, a plain press would only ever set it
         // the switches the sim's checklist names flip between their positions
         for (const char* n : {"SF50_ELECTRICAL_BATTERY_1_SWITCH", "SF50_ELECTRICAL_GEN_2_SWITCH", "SF50_PRESSURIZATION_SWITCH_AIR_BLEED", "SF50_ENGINE_RUN_KNOB"}) {
             const auto* e = find(sf, n, "latched");

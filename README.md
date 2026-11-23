@@ -18,12 +18,14 @@ TCP to the sim running under Proton.
   Fighter HUD); a profile can bring its own.
 * **Throttle calibration** for levers with gates: leave out the cut-off, use idle to the max gate or to the end, add named
   stages (Airbus CL, FLX/MCT, TOGA), start from a recipe, and let the cut-off zone run reverse thrust.
-* **Cockpit catalogs** to pick controls from: A32NX, A380X, A320neo V2 and A400M (MSFS 2024), CJ4 (MSFS 2020 and 2024), F/A-18E, Spirit of St. Louis, Vision Jet, Cabri G2, and an
+* **Cockpit catalogs** to pick controls from: A32NX, A380X, A320neo V2 and A400M (MSFS 2024), CJ4 (MSFS 2020 and 2024), F/A-18E, Spirit of St. Louis, Vision Jet, Corvalis TT, Cabri G2, and an
   automatic one for any other aircraft.
 * **Guides**: step-by-step procedures in the app, with steps the sim confirms ticked for you.
 * **Vibration** for Winwing URSA MINOR devices, driven by flight data.
-* **WINCTRL MCDU**: mirrors the aircraft's MCDU (A32NX, A380X, iniBuilds Airbuses). For aircraft without one, like the C172
-  and its G1000 NXi, it shows Airbus-style pages for radios, autopilot, transponder, fuel and engine, and drives the G1000.
+* **WINCTRL MCDU**: mirrors the aircraft's MCDU (A32NX, A380X, iniBuilds Airbuses). For aircraft without one (C172, Corvalis TT,
+  Vision Jet ...) it shows Airbus-style pages for radios, autopilot, transponder, QNH, fuel and engine, in the units you choose, and
+  drives the G1000 or the Vision Jet's G3000 touch controllers. On the desktop it shows the time, the PC's load (colours you set),
+  media, shortcuts, weather and more, in a classic or an Airbus layout.
 * **Desktop controls**: joysticks as mouse and keyboard while the sim is not running; tray icon (colour, light or dark),
   start at login.
 * **Plugins** for new aircraft, tabs and commands.
@@ -35,6 +37,8 @@ TCP to the sim running under Proton.
 | **Throttle**: idle to end with CL, FLX/MCT and TOGA stages | **Catalog**: the A32NX cockpit by panel |
 | ![Guide](docs/screenshots/guide.png) | ![Vibration](docs/screenshots/vibration.png) |
 | **Guides**: a step of the A32NX start-up, with the control lit | **Vibration**: rules that drive the Winwing motors |
+| ![MCDU](docs/screenshots/mcdu.png) | ![Profiles](docs/screenshots/profiles.png) |
+| **MCDU**: the PC status page in the Airbus layout, with load colours | **Profiles**: one per aircraft family, switched automatically |
 
 ## Install
 

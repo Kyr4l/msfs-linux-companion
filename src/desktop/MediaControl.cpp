@@ -2,7 +2,9 @@
 // Copyright (C) 2026 Kyr4l
 #include "desktop/MediaControl.hpp"
 
+#include <algorithm>
 #include <cstring>
+#include <strings.h>
 #include <vector>
 
 #include "util/Isolated.hpp"
@@ -13,6 +15,9 @@ namespace {
 constexpr const char* kPrefix = "org.mpris.MediaPlayer2.";
 constexpr const char* kPlayerPath = "/org/mpris/MediaPlayer2";
 constexpr const char* kPlayerInterface = "org.mpris.MediaPlayer2.Player";
+constexpr const char* kRootInterface = "org.mpris.MediaPlayer2";
+// KDE's browser integration speaks for the browser a second time: dropped when the browser has a player of its own
+constexpr const char* kBrowserIntegration = "org.mpris.MediaPlayer2.plasma-browser-integration";
 constexpr uint64_t kCallTimeoutUs = 150'000;  // a player that hangs must not hold up the MCDU
 constexpr size_t kMaxPlayers = 16;
 }  // namespace
@@ -48,7 +53,52 @@ std::vector<std::string> MediaControl::listPlayers() {
         api_->message_exit_container(reply);
     }
     api_->message_unref(reply);
+    // the same app twice (KDE's browser integration and the browser itself): keep the browser's own player
+    const auto it = std::find(names.begin(), names.end(), kBrowserIntegration);
+    if (it != names.end()) {
+        std::string entry;
+        if (getString(*it, kRootInterface, "DesktopEntry", entry) && !entry.empty()) {
+            bool twin = false;
+            for (const auto& n : names) {
+                std::string other;
+                if (n != *it && getString(n, kRootInterface, "DesktopEntry", other) && other == entry) twin = true;
+            }
+            if (twin) names.erase(it);
+        }
+    }
     return names;
+}
+
+bool MediaControl::getString(const std::string& dest, const char* iface, const char* name, std::string& out) {
+    sdbus::Message* q = nullptr, *a = nullptr;
+    sdbus::Error e;
+    if (api_->message_new_method_call(bus_, &q, dest.c_str(), kPlayerPath, "org.freedesktop.DBus.Properties", "Get") < 0) return false;
+    api_->message_append(q, "ss", iface, name);
+    const int got = api_->call(bus_, q, kCallTimeoutUs, &e, &a);
+    api_->message_unref(q);
+    api_->error_free(&e);
+    if (got < 0) return false;
+    const char* v = nullptr;
+    const bool ok = api_->message_read(a, "v", "s", &v) > 0 && v;
+    if (ok) out = v;
+    api_->message_unref(a);
+    return ok;
+}
+
+bool MediaControl::getBool(const std::string& dest, const char* iface, const char* name, bool& out) {
+    sdbus::Message* q = nullptr, *a = nullptr;
+    sdbus::Error e;
+    if (api_->message_new_method_call(bus_, &q, dest.c_str(), kPlayerPath, "org.freedesktop.DBus.Properties", "Get") < 0) return false;
+    api_->message_append(q, "ss", iface, name);
+    const int got = api_->call(bus_, q, kCallTimeoutUs, &e, &a);
+    api_->message_unref(q);
+    api_->error_free(&e);
+    if (got < 0) return false;
+    int v = 0;
+    const bool ok = api_->message_read(a, "v", "b", &v) > 0;
+    if (ok) out = v != 0;
+    api_->message_unref(a);
+    return ok;
 }
 
 // The player chosen with the side key, else the one that is playing, else the first one there is.
@@ -91,8 +141,26 @@ MediaInfo MediaControl::read() {
     info.present = true;
     info.playing = playing;
     info.players = count;
-    info.player = player_.substr(std::strlen(kPrefix));
-    if (const size_t dot = info.player.find('.'); dot != std::string::npos) info.player.resize(dot);  // "vlc.instance1234"
+    // the name the player gives itself; else its bus name without the instance ("vlc.instance1234"), and without a reversed domain
+    // ("de.haeckerfelix.Shortwave": the last part)
+    if (!getString(player_, kRootInterface, "Identity", info.player) || info.player.empty()) {
+        std::string bus = player_.substr(std::strlen(kPrefix));
+        if (const size_t inst = bus.find(".instance"); inst != std::string::npos) bus.resize(inst);
+        if (const size_t dot = bus.rfind('.'); dot != std::string::npos) bus = bus.substr(dot + 1);
+        info.player = bus;
+    }
+    // without the maker's name in front ("Mozilla firefox" -> "firefox"): the MCDU line is short
+    for (const char* maker : {"mozilla ", "gnome ", "kde "}) {
+        const size_t n = std::strlen(maker);
+        if (info.player.size() > n && strncasecmp(info.player.c_str(), maker, n) == 0) {
+            info.player.erase(0, n);
+            break;
+        }
+    }
+    // MPRIS makes CanGoNext and CanGoPrevious mandatory: a player that does not answer is taken as able to
+    info.canNext = info.canPrevious = true;
+    getBool(player_, kPlayerInterface, "CanGoNext", info.canNext);
+    getBool(player_, kPlayerInterface, "CanGoPrevious", info.canPrevious);
 
     sdbus::Message* q = nullptr, *a = nullptr;
     sdbus::Error e;
@@ -130,35 +198,30 @@ MediaInfo MediaControl::read() {
         api_->message_exit_container(a);
     }
     api_->message_unref(a);
-    auto property = [&](const char* name, const char* type, void* out) {
-        sdbus::Message* p = nullptr, *v = nullptr;
-        sdbus::Error err;
-        if (api_->message_new_method_call(bus_, &p, player_.c_str(), kPlayerPath, "org.freedesktop.DBus.Properties", "Get") < 0) return;
-        api_->message_append(p, "ss", kPlayerInterface, name);
-        const int rc = api_->call(bus_, p, kCallTimeoutUs, &err, &v);
-        api_->message_unref(p);
-        api_->error_free(&err);
-        if (rc < 0) return;
-        api_->message_read(v, "v", type, out);
-        api_->message_unref(v);
-    };
-    int shuffle = 0;
-    property("Shuffle", "b", &shuffle);
+    bool shuffle = false;
+    info.hasShuffle = getBool(player_, kPlayerInterface, "Shuffle", shuffle);
     const char* loop = nullptr;
     sdbus::Message* p = nullptr, *v = nullptr;
     sdbus::Error err;
     if (api_->message_new_method_call(bus_, &p, player_.c_str(), kPlayerPath, "org.freedesktop.DBus.Properties", "Get") >= 0) {
         api_->message_append(p, "ss", kPlayerInterface, "LoopStatus");
         if (api_->call(bus_, p, kCallTimeoutUs, &err, &v) >= 0) {
-            if (api_->message_read(v, "v", "s", &loop) > 0 && loop) repeat_ = std::strcmp(loop, "None") != 0;
+            if (api_->message_read(v, "v", "s", &loop) > 0 && loop) {
+                repeat_ = std::strcmp(loop, "None") != 0;
+                info.hasRepeat = true;
+            }
             api_->message_unref(v);
         }
         api_->message_unref(p);
         api_->error_free(&err);
     }
-    shuffle_ = shuffle != 0;
+    shuffle_ = shuffle;
     info.shuffle = shuffle_;
     info.repeat = repeat_;
+    // shuffle and repeat mean something only for a list of tracks: a stream that cannot skip (a radio) lists them and ignores them
+    const bool list = info.canNext || info.canPrevious;
+    info.hasShuffle = info.hasShuffle && list;
+    info.hasRepeat = info.hasRepeat && list;
     return info;
 }
 

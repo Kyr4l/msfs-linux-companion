@@ -443,6 +443,33 @@ bool loadSettings(const std::string& path, Settings& out, std::string& err) {
             s.mcdu.refreshSeconds = std::clamp(m.value("refresh_seconds", s.mcdu.refreshSeconds), 1, 5);
             s.mcdu.clockUtc = m.value("clock_utc", false);
             s.mcdu.clock12h = m.value("clock_12h", false);
+            s.mcdu.pageStyle = m.value("page_style", std::string("classic")) == "airbus" ? "airbus" : "classic";
+            {
+                const std::string t = m.value("avionics_temp", std::string("aircraft"));
+                s.mcdu.avionicsTemp = t == "c" || t == "f" || t == "both" ? t : "aircraft";
+                const std::string f = m.value("avionics_fuel", std::string("gal"));
+                s.mcdu.avionicsFuel = f == "l" || f == "kg" || f == "gal_kg" || f == "l_kg" ? f : "gal";
+            }
+            if (m.contains("load_colors") && m["load_colors"].is_object()) {
+                const json& lc = m["load_colors"];
+                auto colorName = [](const json& o, const std::string& fallback) {
+                    const std::string c = o.is_object() ? o.value("color", fallback) : fallback;
+                    for (const char* n : desktop::kLoadColorNames)
+                        if (c == n) return c;
+                    return fallback;
+                };
+                auto stage = [&](const char* key, desktop::LoadStage& st) {
+                    if (!lc.contains(key) || !lc[key].is_object()) return;
+                    const json& o = lc[key];
+                    st.on = o.value("on", st.on);
+                    st.above = std::clamp(o.value("above", st.above), 0, 99);
+                    st.color = colorName(o, st.color);
+                };
+                s.mcdu.loadColors.on = lc.value("on", true);
+                s.mcdu.loadColors.normal = colorName(json{{"color", lc.value("normal", s.mcdu.loadColors.normal)}}, s.mcdu.loadColors.normal);
+                stage("warn", s.mcdu.loadColors.warn);
+                stage("alert", s.mcdu.loadColors.alert);
+            }
             auto readShortcuts = [&m](const char* key, std::vector<desktop::Shortcut>& out, int slots) {
                 for (const auto& sj : m.value(key, json::array())) {
                     if (out.size() >= static_cast<size_t>(slots)) break;
@@ -566,6 +593,12 @@ bool saveSettings(const std::string& path, const Settings& s, std::string& err) 
                          {"gpu_view", s.mcdu.gpuView}, {"disk_view", s.mcdu.diskView}, {"disk_mount", s.mcdu.diskMount}, {"gpu_index", s.mcdu.gpuIndex}, {"refresh_seconds", s.mcdu.refreshSeconds},
                          {"clock_utc", s.mcdu.clockUtc}, {"clock_12h", s.mcdu.clock12h}, {"shortcuts2", shortcutList(s.mcdu.shortcuts2)},
                          {"comms_shortcuts", shortcutList(s.mcdu.commsShortcuts)}, {"home_airport", s.mcdu.homeAirport}, {"net_bits", s.mcdu.netBits}, {"comms_app", s.mcdu.commsApp}, {"direct_apps", s.mcdu.directApps}};
+        const desktop::LoadColors& lc = s.mcdu.loadColors;
+        auto stageJ = [](const desktop::LoadStage& st) { return json{{"on", st.on}, {"above", st.above}, {"color", st.color}}; };
+        j["mcdu"]["page_style"] = s.mcdu.pageStyle;
+        j["mcdu"]["avionics_temp"] = s.mcdu.avionicsTemp;
+        j["mcdu"]["avionics_fuel"] = s.mcdu.avionicsFuel;
+        j["mcdu"]["load_colors"] = json{{"on", lc.on}, {"normal", lc.normal}, {"warn", stageJ(lc.warn)}, {"alert", stageJ(lc.alert)}};
     }
     try {
         // First save over a file written by an older schema: keep a copy of it once, untouched, so an

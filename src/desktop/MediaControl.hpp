@@ -11,8 +11,10 @@ namespace lr::desktop {
 
 struct MediaInfo {
     bool present = false, playing = false, shuffle = false, repeat = false;
+    // what the player can do: a radio stream cannot skip, and has no shuffle or repeat even when it lists them
+    bool canPrevious = false, canNext = false, hasShuffle = false, hasRepeat = false;
     int players = 0;
-    std::string player, title, artist;
+    std::string player, title, artist;  // player: the name it gives itself ("Shortwave", "Firefox")
     bool operator==(const MediaInfo&) const = default;
 };
 
@@ -34,6 +36,8 @@ private:
     std::vector<std::string> listPlayers();
     std::string choosePlayer(bool* playing, int* count);
     void setProperty(const char* name, const char* type, const void* value);
+    bool getString(const std::string& dest, const char* iface, const char* name, std::string& out);
+    bool getBool(const std::string& dest, const char* iface, const char* name, bool& out);
     const sdbus::Api* api_ = nullptr;
     sdbus::Bus* bus_ = nullptr;
     std::string player_, pinned_;  // pinned_: the player chosen with the side key

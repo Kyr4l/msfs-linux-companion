@@ -869,6 +869,18 @@ int main() {
         CHECK(std::fabs(t.enginePower() - 65.0) < 1e-9);  // a jet: the N1
     }
 
+    // a piston engine has no N1: its power comes from the RPM (the C400 runs up at 1700 of 2600 RPM, takes off at 2600)
+    {
+        lr::sim::Telemetry t;
+        t.engineType = 0;
+        t.rpmPctEng1 = 1700.0 / 2600.0 * 100.0;
+        CHECK(t.enginePower() < 35.0);  // run-up: below the 35 % where the vibration starts
+        t.rpmPctEng1 = 100;
+        CHECK(std::fabs(t.enginePower() - 100.0) < 1e-9);
+        t.rpmPctEng1 = 0;
+        CHECK(t.enginePower() == 0.0);  // stopped
+    }
+
     // MSFS 2024 says "in a flight" behind its menus: only a flight camera counts
     {
         lr::sim::Telemetry t;

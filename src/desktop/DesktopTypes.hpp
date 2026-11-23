@@ -72,6 +72,22 @@ inline int curveAt(const std::array<int, 4>& c, int room) {
     return static_cast<int>(c[i] + (c[i + 1] - c[i]) * (p - i) + 0.5f);
 }
 
+// The colour of a load (CPU, memory, GPU, disk) on the MCDU's desktop pages: one colour, or another above each stage.
+// Colours by name: green, amber, red, yellow, cyan, white, magenta.
+struct LoadStage {
+    bool on = true;
+    int above = 80;  // percent
+    std::string color = "amber";
+    bool operator==(const LoadStage&) const = default;
+};
+struct LoadColors {
+    bool on = true;  // off: every load in the normal colour
+    std::string normal = "green";
+    LoadStage warn{true, 80, "amber"}, alert{true, 95, "red"};
+    bool operator==(const LoadColors&) const = default;
+};
+inline constexpr const char* kLoadColorNames[] = {"green", "amber", "red", "yellow", "cyan", "white", "magenta"};
+
 struct McduConfig {
     int screenPercent = 80, keysPercent = 60, ledPercent = 80;
     bool autoBrightness = false;  // follow the panel's light sensors
@@ -95,11 +111,15 @@ struct McduConfig {
     int refreshSeconds = 2;                 // 1, 2 or 5
     bool clockUtc = false, clock12h = false;
     std::string font = "built-in";          // the screen's font: "built-in" (the unit's own), "b612" or "aircraft" (sent to the unit)
+    LoadColors loadColors;
+    std::string avionicsFuel = "gal";       // the avionics pages' fuel: "gal", "l", "kg", "gal_kg" or "l_kg" (volume, mass small)
+    std::string avionicsTemp = "aircraft";  // the avionics pages' temperatures: "aircraft" (engine °F, outside °C), "c", "f" or "both"
+    std::string pageStyle = "classic";      // the desktop pages: "classic", or "airbus" (laid out like the aircraft's)
     bool isDefault() const {
         const McduConfig d;
         return screenPercent == d.screenPercent && keysPercent == d.keysPercent && ledPercent == d.ledPercent && autoBrightness == d.autoBrightness && autoScreen == d.autoScreen && autoKeys == d.autoKeys && autoLeds == d.autoLeds &&
                sleepMinutes == d.sleepMinutes && keyboardLayout == d.keyboardLayout && shortcuts.empty() && shortcuts2.empty() && commsShortcuts.empty() && directApps.empty() && commsApp == d.commsApp && homeAirport.empty() && !netBits && systemLook == d.systemLook && gpuView == d.gpuView &&
-               diskView == d.diskView && diskMount.empty() && gpuIndex == 0 && refreshSeconds == d.refreshSeconds && !clockUtc && !clock12h && font == d.font;
+               diskView == d.diskView && diskMount.empty() && gpuIndex == 0 && refreshSeconds == d.refreshSeconds && !clockUtc && !clock12h && font == d.font && loadColors == d.loadColors && pageStyle == d.pageStyle && avionicsTemp == d.avionicsTemp && avionicsFuel == d.avionicsFuel;
     }
 };
 

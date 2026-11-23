@@ -34,7 +34,7 @@ On the desktop:
 | MCDU MENU | Menu |
 | INIT | Clock |
 | DATA | System: CPU, memory, every GPU, temperatures, every disk |
-| PERF | Media: player, track, previous, play, next, volume, shuffle, repeat |
+| PERF | Media: player, track, previous, play, next, volume, shuffle, repeat. Only what the player can do is shown (a radio stream has no previous, next, shuffle or repeat); the player is named as it names itself; KDE's browser integration is skipped when the browser has its own entry |
 | F-PLN | Keys: 12 shortcuts you choose on the MCDU page |
 | RAD NAV | Type: the keys type on the PC (CLR deletes, OVFY is Enter) |
 | FUEL PRED | Power: GPU watts, fans, every temperature |
@@ -47,6 +47,33 @@ On the desktop:
 
 The side keys work on every page; the MCDU page of the program lists what they do on the page on screen. Under **System page** you choose the look (list or bars), how
 GPUs are shown (both, one with a switch key, or on their own page) and how disks are shown (a switch key, a list to pick from, or all on a page). NVIDIA cards need the NVIDIA driver to show numbers.
+
+**Load colours** colour the CPU, memory, GPU and disk loads: the normal colour, then **Warning** above one percentage and
+**Alert** above another (by default amber above 80 % and red above 95 %). Each stage can be turned off, each colour chosen, or
+the whole thing turned off to show every load in the normal colour.
+
+### Airbus style
+
+**Desktop pages › Style** on the MCDU page switches the desktop pages to an **Airbus** layout (**Classic** stays the default).
+The function keys open the same pages, laid out like the aircraft's MCDU: small white labels over large values, green for what
+is on or measured, cyan for what you can change or press, amber boxes for an entry still to make.
+
+| Key | Page |
+|---|---|
+| MCDU MENU | DESKTOP (back to the last page), mute, lock the PC, screen off |
+| INIT | Local and UTC time, 24H/12H, chrono, home airport |
+| DATA | DATA INDEX: PC status, and a monitor each for CPU (and its cores), memory, GPU, disks, network and power |
+| PERF | Media: player, track, shuffle and repeat, play, mute, PREV / NEXT TRACK; ↑ ↓ change the volume |
+| F-PLN, SEC F-PLN | Keys and SEC keys: the keys each shortcut sends are shown above it |
+| RAD NAV | Text: the keys type on the PC |
+| ATC COMM | Comms: microphone, voice and sound of the voice app, your key (the network is on DATA) |
+| FUEL PRED | Power: CPU and GPU watts and temperatures, fans, every other temperature |
+| AIRPORT | Weather: type the airport, press 1L |
+| DIR | DIR TO: type in the scratchpad, then 1L or OVFY runs it; apps on the left, searches on the right |
+| PROG | Progress: a side key hides a task |
+
+Typing goes to the scratchpad (line 14). A side key next to a field takes what you typed, or copies the field into an empty
+scratchpad. CLR takes a message away, then deletes. ← → go through the monitor pages; <RETURN on them goes back to DATA INDEX.
 
 With MSFS running the unit belongs to the aircraft:
 
@@ -61,12 +88,16 @@ With MSFS running the unit belongs to the aircraft:
 For an aircraft whose MCDU is not known, the unit shows pages of the program's own, laid out like an Airbus MCDU and made from the
 sim's standard variables and events (read and sent through the MobiFlight module), so they work in most aircraft. Green: actual
 values and engaged modes; cyan: values to change; white: labels and actions.
+Temperatures (**Aircraft without an MCDU › Temperatures** on the MCDU page): as the aircraft shows them (engine in °F, outside air
+in °C), all in Celsius, all in Fahrenheit, or both (the other unit small, on the label line).
+Fuel (**Fuel**, same place): gallons, litres, kilograms, or gallons or litres with the mass small on the label line. The mass
+uses the fuel's weight per gallon as the aircraft reports it (avgas about 6 lb, jet fuel about 6.7 lb).
 
 | Key | Page | Line keys |
 |---|---|---|
 | RAD NAV | RADIO COMM, RADIO NAV (← → or RAD NAV again) | 1: active, 2: standby, 3: SWAP; NAV 4: CRS |
 | PERF | FCU: SPD, HDG, ALT, V/S, the mode line (lateral, vertical, AP FD) | 1-2: targets; 3-5: HDG, ALT, NAV, V/S, APR, FLC; 6: AP, FD |
-| ATC COMM | XPDR: code, mode (STBY, ON, ALT), IDENT, QNH, STD | L1 code, R1-R3 mode, L2 IDENT, L4 QNH, R4 STD |
+| ATC COMM | XPDR: code, mode (STBY, ON, ALT), IDENT, QNH, STD | L1 code, R1-R3 mode, L2 IDENT, L4 QNH, R4 STD / QNH (back to the local setting the G1000 remembered: one click of its baro knob, checked on the C400) |
 | FUEL PRED | FUEL PRED: ETE and fuel at the next waypoint, FOB, FF, left/right, endurance, range | |
 | DATA | ENGINE: RPM or N1, FF, oil, EGT, CHT | |
 | PROG | PROG: bearing and distance to the next waypoint, DTK, XTK, GS, TAS, wind, OAT, altitude | |
@@ -77,9 +108,17 @@ copies the field into the scratchpad. Frequencies as `11830`, `118.3` or `118.30
 or `1013`; V/S with **+/-** for a descent. A wrong entry gives FORMAT ERROR or ENTRY OUT OF RANGE and stays in the scratchpad;
 CLR removes the message, then the last character. The sim does not give waypoint names this way: the next waypoint is "NEXT".
 
-On the G1000 PFD and MFD pages the 12 line keys are the 12 softkeys; DIR = Direct-to, F-PLN = FPL, PERF = PROC, DATA = MENU,
-CLR = CLR, OVFY = ENT, ← → = FMS outer knob, ↑ ↓ = FMS inner knob, +/- = push the FMS knob (cursor), MCDU MENU leaves. The softkey
-labels are not shown: the G1000 does not tell them. The event names come from the Working Title G1000 NXi source
+The G1000 PFD and MFD pages list the G1000's functions by name: DIRECT TO, FLIGHT PLAN, PROCEDURES, ENTER, CLEAR, MENU,
+the FMS knob (L4 outer, L5 inner: one click per press, +/- first turns it back), RANGE in and out (R4, R5), CURSOR (push the FMS
+knob) and SOFTKEYS> (the page with the 12 softkeys, 1-6 on the left and 7-12 on the right). ← → go through PFD, PFD SOFTKEYS, MFD and
+MFD SOFTKEYS. The unit's own keys stay shortcuts there: DIR = Direct-to, F-PLN = FPL, PERF = PROC, DATA = MENU, CLR = CLR,
+OVFY = ENT, ↑ ↓ = FMS inner knob; MCDU MENU leaves. The softkey labels are not shown: the G1000 does not tell them.
+
+In the Cirrus Vision Jet (G3000 with touch controllers) MCDU MENU offers **GTC** instead: the page of one touch controller (← → pick
+GTC 1, 2 or 3) with its softkeys PFD, MFD and NAV/COM, the frequency knob (outer, inner, SWAP), the map knob (turn, push) and the
+checklist wheel (turn, push). A knob turns one click per press; +/- first turns it back. The keys are the aircraft's own cockpit
+events, sent as calculator code (`1 (>B:AS3000_TSC_1_SOFTKEY_1_Set)`); setting a cockpit event that way was checked on the SF50, the
+GTC keys themselves were not tried yet. The event names come from the Working Title G1000 NXi source
 (`AS1000_PFD_SOFTKEYS_1` ...). Values were read live in the MSFS 2024 C172 (G1000 NXi); **the keys were not tried in the aircraft
 yet**, nor the transponder mode, or leaving STD on the G1000.
 

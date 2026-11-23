@@ -68,6 +68,8 @@ const TelemetryVar kTelemetryVars[] = {
     {"ENGINE TYPE", "Enum", &Telemetry::engineType},
     {"TURB ENG MAX TORQUE PERCENT:1", "Percent", &Telemetry::torqueEng1},
     {"TURB ENG MAX TORQUE PERCENT:2", "Percent", &Telemetry::torqueEng2},
+    {"GENERAL ENG PCT MAX RPM:1", "Percent", &Telemetry::rpmPctEng1},
+    {"GENERAL ENG PCT MAX RPM:2", "Percent", &Telemetry::rpmPctEng2},
     {"CAMERA STATE", "Enum", &Telemetry::cameraState},
     {"SPOILER AVAILABLE", "Bool", &Telemetry::spoilerAvailable},
 };

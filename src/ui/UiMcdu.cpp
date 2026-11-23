@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <cfloat>
 #include <cmath>
 #include <cstdio>
@@ -337,7 +338,6 @@ void Ui::drawMcduTab() {
         ImGui::EndTable();
     }
 
-    ImGui::SeparatorText("System page");
     auto choice = [&](const char* label, std::string& value, std::initializer_list<std::pair<const char*, const char*>> options) {
         const char* preview = options.begin()->second;
         for (const auto& [id, text] : options)
@@ -352,9 +352,63 @@ void Ui::drawMcduTab() {
             }
         ImGui::EndCombo();
     };
+    ImGui::SeparatorText("Desktop pages");
+    choice("Style", cfg.pageStyle, {{"classic", "Classic"}, {"airbus", "Airbus"}});
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Airbus: laid out like the aircraft's MCDU, with a scratchpad for typing");
+    ImGui::SeparatorText("Aircraft without an MCDU");
+    choice("Temperatures", cfg.avionicsTemp, {{"aircraft", "As the aircraft"}, {"c", "Celsius"}, {"f", "Fahrenheit"}, {"both", "Both"}});
+    choice("Fuel", cfg.avionicsFuel, {{"gal", "Gallons"}, {"l", "Litres"}, {"kg", "Kilograms"}, {"gal_kg", "Gallons + kg"}, {"l_kg", "Litres + kg"}});
+    ImGui::SeparatorText("System page");
     choice("Look", cfg.systemLook, {{"list", "List"}, {"bars", "Bars"}});
     choice("GPUs", cfg.gpuView, {{"both", "Both shown"}, {"switch", "Switch key"}, {"page", "Own page"}});
     choice("Disks", cfg.diskView, {{"switch", "Switch key"}, {"pick", "Pick from list"}, {"page", "All on a page"}});
+    {   // the colour of CPU, memory, GPU and disk loads
+        desktop::LoadColors& lc = cfg.loadColors;
+        auto swatch = [](const std::string& name) {
+            static const std::pair<const char*, ImVec4> colors[] = {
+                {"green", ImVec4(0.30f, 0.90f, 0.40f, 1)}, {"amber", ImVec4(1.00f, 0.62f, 0.10f, 1)}, {"red", ImVec4(1.00f, 0.30f, 0.30f, 1)},
+                {"yellow", ImVec4(1.00f, 0.90f, 0.20f, 1)}, {"cyan", ImVec4(0.30f, 0.85f, 1.00f, 1)}, {"white", ImVec4(1, 1, 1, 1)}, {"magenta", ImVec4(1.00f, 0.40f, 1.00f, 1)}};
+            for (const auto& [n, c] : colors)
+                if (name == n) return c;
+            return colors[0].second;
+        };
+        auto label = [](const std::string& name) { std::string s = name; if (!s.empty()) s[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(s[0]))); return s; };
+        auto colorPick = [&](const char* id, std::string& value) {
+            ImGui::SetNextItemWidth(fs * 7);
+            ImGui::PushStyleColor(ImGuiCol_Text, swatch(value));
+            const bool open = ImGui::BeginCombo(id, label(value).c_str());
+            ImGui::PopStyleColor();
+            if (!open) return;
+            for (const char* n : desktop::kLoadColorNames) {
+                ImGui::PushStyleColor(ImGuiCol_Text, swatch(n));
+                if (ImGui::Selectable(label(n).c_str(), value == n)) { value = n; apply(); }
+                ImGui::PopStyleColor();
+            }
+            ImGui::EndCombo();
+        };
+        auto stage = [&](const char* name, desktop::LoadStage& st) {
+            fieldLabel(name);
+            ImGui::PushID(name);
+            if (ImGui::Checkbox("##on", &st.on)) apply();
+            ImGui::BeginDisabled(!st.on);
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(fs * 9);
+            if (ImGui::SliderInt("##above", &st.above, 1, 99, "Above %d %%")) apply();
+            ImGui::SameLine();
+            colorPick("##color", st.color);
+            ImGui::EndDisabled();
+            ImGui::PopID();
+        };
+        fieldLabel("Load colours");
+        if (ImGui::Checkbox("##load_colors", &lc.on)) apply();
+        ImGui::BeginDisabled(!lc.on);
+        fieldLabel("Normal");
+        colorPick("##load_normal", lc.normal);
+        stage("Warning", lc.warn);
+        stage("Alert", lc.alert);
+        ImGui::EndDisabled();
+        if (!lc.on) { fieldLabel(""); ImGui::TextDisabled("All loads in the normal colour"); }
+    }
 
     ImGui::SeparatorText("Brightness");
     if (ImGui::Checkbox("Automatic", &cfg.autoBrightness)) apply();

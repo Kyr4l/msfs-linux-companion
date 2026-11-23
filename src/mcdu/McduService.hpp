@@ -43,6 +43,7 @@ struct SimState {
     std::string hEventPrefix;      // keys become H events <prefix><key>; empty: this aircraft's keys are not known
     bool simBridge = false;        // the aircraft has a SimBridge screen (the A32NX)
     bool iniBuildsKeys = false;    // the keys are the L: variables of the iniBuilds Airbuses
+    bool g3000 = false;            // a G3000 with touch controllers (the Vision Jet): the avionics pages offer the GTCs instead of a G1000
     bool hasLamps = false;         // the aircraft says which lamps are lit (iniBuilds: L:INI_FMC<n>_*)
     LampState lamps{};
     bool operator==(const SimState&) const = default;

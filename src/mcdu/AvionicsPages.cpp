@@ -17,7 +17,7 @@ enum V : int {
     Squawk, XpdrState, BaroHg, BaroMb, BaroStd,
     ApHdg, ApAlt, ApVs, ApSpd, ApMaster, ApFd, ApHdgOn, ApAltOn, ApNavOn, ApAprOn, ApVsOn, ApFlcOn,
     EngType, Rpm, N1, OilT, OilP, Egt, Cht, FuelL, FuelR, FuelTot, Flow,
-    Gs, Tas, WindDir, WindKt, AltInd, Oat, WpDist, WpBrg, WpEte, WpDtk, WpXtk, FplActive,
+    Gs, Tas, WindDir, WindKt, AltInd, Oat, WpDist, WpBrg, WpEte, WpDtk, WpXtk, FplActive, FuelDensity,
     kCount
 };
 
@@ -37,6 +37,7 @@ const char* const kCodes[kCount] = {
     "(A:GPS GROUND SPEED, Knots)", "(A:AIRSPEED TRUE, Knots)", "(A:AMBIENT WIND DIRECTION, Degrees)", "(A:AMBIENT WIND VELOCITY, Knots)",
     "(A:INDICATED ALTITUDE, Feet)", "(A:AMBIENT TEMPERATURE, Celsius)", "(A:GPS WP DISTANCE, Nautical miles)", "(A:GPS WP BEARING, Degrees)",
     "(A:GPS WP ETE, Seconds)", "(A:GPS WP DESIRED TRACK, Degrees)", "(A:GPS WP CROSS TRK, Nautical miles)", "(A:GPS IS ACTIVE FLIGHT PLAN, Bool)",
+    "(A:FUEL WEIGHT PER GALLON, Pounds)",
 };
 
 constexpr int kScratchMax = 22;
@@ -105,6 +106,41 @@ void labels(Screen& s, int line, const std::string& left, const std::string& rig
 }
 
 Color engaged(bool on) { return on ? Color::Green : Color::White; }
+
+// Fuel in the unit of the settings: "gal", "l", "kg", or a volume with the mass small on the label line ("gal_kg", "l_kg").
+// The mass needs the fuel's weight per gallon (avgas about 6, jet fuel about 6.7 lb); without it a mass shows "---".
+struct FuelText {
+    std::string value, extra;
+};
+constexpr double kLitresPerGallon = 3.78541, kKgPerLb = 0.453592;
+FuelText fuelText(std::optional<double> gallons, std::optional<double> lbPerGallon, const std::string& unit, bool flow) {
+    if (!gallons) return {"---", ""};
+    auto kg = [&]() -> std::string {
+        if (!lbPerGallon || *lbPerGallon <= 0.1) return "---";
+        return format("%.0f", *gallons * *lbPerGallon * kKgPerLb) + (flow ? "KG/H" : "KG");
+    };
+    const bool litres = unit == "l" || unit == "l_kg";
+    std::string volume = litres ? format(*gallons * kLitresPerGallon >= 100 ? "%.0f" : "%.1f", *gallons * kLitresPerGallon) + (flow ? "L/H" : "L")
+                                : format("%.1f", *gallons) + (flow ? "GPH" : "GAL");
+    if (unit == "kg") return {kg(), ""};
+    if (unit == "gal_kg" || unit == "l_kg") return {volume, " " + kg()};
+    return {volume, ""};
+}
+
+constexpr const char* kSlew = "\xe2\x86\x90\xe2\x86\x92";  // ←→: more pages of this kind
+
+// A temperature in the unit of the settings; with "both", the other unit goes small on the label line.
+struct Temperature {
+    std::string value, extra;
+};
+Temperature temperature(std::optional<double> x, bool readInFahrenheit, bool engine, bool sign, const std::string& unit) {
+    if (!x) return {"---", ""};
+    const double c = readInFahrenheit ? (*x - 32.0) * 5.0 / 9.0 : *x, f = readInFahrenheit ? *x : *x * 9.0 / 5.0 + 32.0;
+    auto text = [sign](double v, const char* u) { return format(sign ? "%+.0f\xc2\xb0" : "%.0f\xc2\xb0", v) + u; };
+    if (unit == "both") return {text(c, "C"), " " + text(f, "F")};
+    const bool fahrenheit = unit == "f" || (unit != "c" && engine);
+    return {fahrenheit ? text(f, "F") : text(c, "C"), ""};
+}
 }  // namespace
 
 const std::vector<std::string>& AvionicsPages::codes() {
@@ -116,6 +152,8 @@ void AvionicsPages::reset() {
     page_ = AvionicsPage::Menu;
     last_ = AvionicsPage::Prog;
     scratch_.clear();
+    g1000Back_ = false;
+    stdByPage_ = false;
     message_.clear();
 }
 
@@ -166,8 +204,13 @@ void AvionicsPages::render(Screen& s, const Read& read) const {
         case AvionicsPage::Menu:
             s.putCentered(0, "MCDU MENU");
             s.put(2, 0, "<AVIONICS", Color::Green);
-            s.put(4, 0, "<G1000 PFD");
-            s.put(6, 0, "<G1000 MFD");
+            if (g3000_) {
+                s.put(4, 0, "<GTC");
+                s.put(4, 5, "(TOUCH CONTROLLERS)", Color::White, true);
+            } else {
+                s.put(4, 0, "<G1000 PFD");
+                s.put(6, 0, "<G1000 MFD");
+            }
             s.putCentered(12, "SELECT DESIRED SYSTEM", Color::White, true);
             break;
         case AvionicsPage::Comm:
@@ -230,7 +273,7 @@ void AvionicsPages::render(Screen& s, const Read& read) const {
             for (const auto& m : modes) s.putRight(m.row, now == m.state ? std::string(m.name) : std::string(m.name) + ">", now == m.state ? Color::Green : Color::Cyan);
             s.put(4, 0, "<IDENT");
             labels(s, 4, "QNH", "");
-            if (v.on(BaroStd)) {
+            if (baroStd(v.get(BaroStd), v.get(BaroMb))) {
                 s.put(8, 0, "STD", Color::Green);
                 s.putRight(8, "QNH>", Color::Cyan);
             } else {
@@ -244,18 +287,21 @@ void AvionicsPages::render(Screen& s, const Read& read) const {
             s.putCentered(0, "FUEL PRED");
             const auto fob = v.get(FuelTot), ff = v.get(Flow), ete = v.get(WpEte), gs = v.get(Gs);
             const bool plan = v.on(FplActive);
+            const auto density = v.get(FuelDensity);
+            auto fuel = [&](std::optional<double> gal, bool flow = false) { return fuelText(gal, density, fuelUnit_, flow); };
             labels(s, 1, "TO", "EFOB");
             s.put(1, 9, "ETE", Color::White, true);
             s.put(2, 0, plan ? "NEXT" : "----", Color::Green);
             s.put(2, 9, plan && ete ? hoursMinutes(*ete) : std::string("---"), Color::Green);
-            s.putRight(2, plan && ete && fob && ff ? format("%.1f", std::max(*fob - *ff * *ete / 3600.0, 0.0)) : std::string("---"), Color::Green);
-            labels(s, 2, "FOB", "FF");
-            s.put(4, 0, v.text(FuelTot, "%.1f"), Color::Green);
-            s.put(4, 5, "GAL", Color::Green, true);
-            s.putRight(4, v.text(Flow, "%.1fGPH"), Color::Green);
-            labels(s, 3, "LEFT", "RIGHT");
-            s.put(6, 0, v.text(FuelL, "%.1f"), Color::Green);
-            s.putRight(6, v.text(FuelR, "%.1f"), Color::Green);
+            const std::optional<double> efob = plan && ete && fob && ff ? std::optional<double>(std::max(*fob - *ff * *ete / 3600.0, 0.0)) : std::nullopt;
+            s.putRight(2, fuel(efob).value, Color::Green);
+            const FuelText total = fuel(fob), flowText = fuel(ff, true), left = fuel(v.get(FuelL)), right = fuel(v.get(FuelR));
+            labels(s, 2, "FOB" + total.extra, "FF" + flowText.extra);
+            s.put(4, 0, total.value, Color::Green);
+            s.putRight(4, flowText.value, Color::Green);
+            labels(s, 3, "LEFT" + left.extra, "RIGHT" + right.extra);
+            s.put(6, 0, left.value, Color::Green);
+            s.putRight(6, right.value, Color::Green);
             labels(s, 4, "ENDURANCE", "RANGE");
             const bool flowing = fob && ff && *ff > 0.1;
             s.put(8, 0, flowing ? hoursMinutes(*fob / *ff * 3600.0) : std::string("---"), Color::Green);
@@ -266,16 +312,19 @@ void AvionicsPages::render(Screen& s, const Read& read) const {
             s.putCentered(0, "ENGINE");
             const auto type = v.get(EngType);
             const bool piston = !type || std::lround(*type) == 0;
-            labels(s, 1, piston ? "RPM" : "N1", "FF");
+            const FuelText flow = fuelText(v.get(Flow), v.get(FuelDensity), fuelUnit_, true);
+            labels(s, 1, piston ? "RPM" : "N1", "FF" + flow.extra);
             s.put(2, 0, piston ? v.text(Rpm, "%.0f") : v.text(N1, "%.1f%%"), Color::Green);
-            s.putRight(2, v.text(Flow, "%.1fGPH"), Color::Green);
-            labels(s, 2, "OIL T", "OIL P");
-            s.put(4, 0, v.text(OilT, "%.0f\xc2\xb0" "F"), Color::Green);
+            s.putRight(2, flow.value, Color::Green);
+            const Temperature oil = temperature(v.get(OilT), true, true, false, tempUnit_);
+            labels(s, 2, "OIL T" + oil.extra, "OIL P");
+            s.put(4, 0, oil.value, Color::Green);
             s.putRight(4, v.text(OilP, "%.0fPSI"), Color::Green);
             if (piston) {
-                labels(s, 3, "EGT", "CHT");
-                s.put(6, 0, v.text(Egt, "%.0f\xc2\xb0" "F"), Color::Green);
-                s.putRight(6, v.text(Cht, "%.0f\xc2\xb0" "F"), Color::Green);
+                const Temperature egt = temperature(v.get(Egt), true, true, false, tempUnit_), cht = temperature(v.get(Cht), true, true, false, tempUnit_);
+                labels(s, 3, "EGT" + egt.extra, "CHT" + cht.extra);
+                s.put(6, 0, egt.value, Color::Green);
+                s.putRight(6, cht.value, Color::Green);
             }
             break;
         }
@@ -291,31 +340,72 @@ void AvionicsPages::render(Screen& s, const Read& read) const {
             labels(s, 3, "GS", "TAS");
             s.put(6, 0, v.text(Gs, "%.0fKT"), Color::Green);
             s.putRight(6, v.text(Tas, "%.0fKT"), Color::Green);
-            labels(s, 4, "WIND", "OAT");
+            const Temperature oat = temperature(v.get(Oat), false, false, true, tempUnit_);
+            labels(s, 4, "WIND", "OAT" + oat.extra);
             const auto wk = v.get(WindKt);
             s.put(8, 0, wk ? v.degrees(WindDir) + format("/%.0f", *wk) : std::string("---/--"), Color::Green);
-            s.putRight(8, v.text(Oat, "%+.0f\xc2\xb0"), Color::Green);
+            s.putRight(8, oat.value, Color::Green);
             labels(s, 5, "ALT", "");
             s.put(10, 0, v.text(AltInd, "%.0f"), Color::Green);
             break;
         }
         case AvionicsPage::Pfd:
-        case AvionicsPage::Mfd: {
-            s.putCentered(0, page_ == AvionicsPage::Pfd ? "G1000 PFD" : "G1000 MFD");
+        case AvionicsPage::Mfd: {  // the G1000's functions by name
+            const bool mfd = page_ == AvionicsPage::Mfd;
+            s.putCentered(0, mfd ? "G1000 MFD" : "G1000 PFD");
+            s.putRight(0, kSlew);
+            labels(s, 1, "FMS", "FMS");
+            s.put(2, 0, "<DIRECT TO", Color::Cyan);
+            s.putRight(2, "ENTER>", Color::Cyan);
+            s.put(4, 0, "<FLIGHT PLAN", Color::Cyan);
+            s.putRight(4, "CLEAR>", Color::Cyan);
+            s.put(6, 0, "<PROCEDURES", Color::Cyan);
+            s.putRight(6, "MENU>", Color::Cyan);
+            labels(s, 4, "FMS KNOB", "RANGE");
+            s.put(8, 0, "<OUTER  +/-", Color::Cyan);
+            s.putRight(8, mfd ? "ZOOM IN>" : "IN>", Color::Cyan);
+            s.put(10, 0, "<INNER  +/-", Color::Cyan);
+            s.putRight(10, mfd ? "ZOOM OUT>" : "OUT>", Color::Cyan);
+            s.put(12, 0, "<CURSOR");
+            s.putRight(12, "SOFTKEYS>");
+            break;
+        }
+        case AvionicsPage::Gtc: {  // a G3000 touch controller: its three softkeys and its knobs
+            s.putCentered(0, format("GTC %d", gtc_));
+            s.putRight(0, kSlew);
+            labels(s, 1, "SOFTKEYS", "FREQ KNOB");
+            s.put(2, 0, "<PFD", Color::Cyan);
+            s.putRight(2, "OUTER>", Color::Cyan);
+            s.put(4, 0, "<MFD", Color::Cyan);
+            s.putRight(4, "INNER>", Color::Cyan);
+            s.put(6, 0, "<NAV/COM", Color::Cyan);
+            s.putRight(6, "SWAP>", Color::Cyan);
+            labels(s, 4, "MAP KNOB", "CHECKLIST");
+            s.put(8, 0, "<TURN", Color::Cyan);
+            s.putRight(8, "TURN>", Color::Cyan);
+            s.put(10, 0, "<PUSH", Color::Cyan);
+            s.putRight(10, "PUSH>", Color::Cyan);
+            s.put(12, 1, "+/- FIRST: TURN BACK", Color::White, true);
+            break;
+        }
+        case AvionicsPage::PfdKeys:
+        case AvionicsPage::MfdKeys: {  // the 12 softkeys, in the order they sit under the screen; their labels are on the G1000
+            const char* unit = page_ == AvionicsPage::MfdKeys ? "MFD" : "PFD";
+            s.putCentered(0, std::string(unit) + " SOFTKEYS");
+            s.putRight(0, kSlew);
             for (int i = 0; i < 6; ++i) {
+                labels(s, i + 1, format("SOFTKEY %d", i + 1), format("SOFTKEY %d", i + 7));
                 s.put(2 + i * 2, 0, format("<%d", i + 1), Color::Cyan);
                 s.putRight(2 + i * 2, format("%d>", i + 7), Color::Cyan);
             }
-            // what the other keys do here, between the softkeys (the softkey labels are the G1000's own: it does not tell them)
-            static const char* const legend[][2] = {{"DIR", "D\xe2\x86\x92"}, {"F-PLN", "FPL"}, {"PERF", "PROC"}, {"DATA", "MENU"}, {"CLR", "CLR"},
-                                                    {"OVFY", "ENT"}, {"\xe2\x86\x90\xe2\x86\x92", "FMS OUTER"}, {"\xe2\x86\x91\xe2\x86\x93", "FMS INNER"},
-                                                    {"+/-", "CRSR"}, {"MENU", "EXIT"}};
-            for (int i = 0; i < 10; ++i) {
-                s.put(1 + i, 4, legend[i][0], Color::White, true);
-                s.put(1 + i, 10, legend[i][1], Color::White, true);
-            }
+            s.put(7, 8, "LABELS ON", Color::White, true);
+            s.put(8, 8, std::string("THE ") + unit, Color::White, true);
             break;
         }
+    }
+    if (message_.empty() && g1000Back_ && (isG1000() || page_ == AvionicsPage::Gtc)) {
+        s.put(13, 0, "-");
+        return;
     }
     s.put(13, 0, message_.empty() ? scratch_ : message_);
 }
@@ -323,16 +413,31 @@ void AvionicsPages::render(Screen& s, const Read& read) const {
 std::vector<std::string> AvionicsPages::onKey(Key key, const Read& read) {
     const bool hadMessage = !message_.empty();
     message_.clear();
-    const bool g1000 = page_ == AvionicsPage::Pfd || page_ == AvionicsPage::Mfd;
+    const bool g1000 = isG1000();
     auto open = [this](AvionicsPage p) {
         page_ = p;
-        if (p != AvionicsPage::Menu && p != AvionicsPage::Pfd && p != AvionicsPage::Mfd) last_ = p;
+        g1000Back_ = false;
+        if (p != AvionicsPage::Menu && !isG1000()) last_ = p;
     };
     if (key == Key::Menu) {  // MCDU MENU, from anywhere
         open(AvionicsPage::Menu);
         return {};
     }
+    if (page_ == AvionicsPage::Gtc) {
+        auto out = gtcKey(key);
+        const int kk = static_cast<int>(key);
+        const bool consumed = !out.empty() || (kk >= static_cast<int>(Key::L1) && kk <= static_cast<int>(Key::R6)) || key == Key::PlusMinus ||
+                              key == Key::LeftArrow || key == Key::RightArrow;
+        if (consumed) return out;
+    }
     if (g1000) {
+        if (key == Key::LeftArrow || key == Key::RightArrow) {  // PFD, PFD SOFTKEYS, MFD, MFD SOFTKEYS
+            static const AvionicsPage kOrder[4] = {AvionicsPage::Pfd, AvionicsPage::PfdKeys, AvionicsPage::Mfd, AvionicsPage::MfdKeys};
+            int i = 0;
+            while (kOrder[i] != page_) ++i;
+            open(kOrder[(i + (key == Key::RightArrow ? 1 : 3)) % 4]);
+            return {};
+        }
         auto out = g1000Key(key);
         if (!out.empty()) return out;
     }
@@ -349,7 +454,7 @@ std::vector<std::string> AvionicsPages::onKey(Key key, const Read& read) {
             return {};
         default: break;
     }
-    if (g1000) return {};
+    if (g1000 || page_ == AvionicsPage::Gtc) return {};
 
     // the scratchpad
     const auto k = static_cast<int>(key);
@@ -416,8 +521,8 @@ std::vector<std::string> AvionicsPages::lineKey(int line, bool right, const Read
         case AvionicsPage::Menu:
             if (right) return {};
             if (line == 1) page_ = last_;
-            else if (line == 2) page_ = AvionicsPage::Pfd;
-            else if (line == 3) page_ = AvionicsPage::Mfd;
+            else if (line == 2) page_ = g3000_ ? AvionicsPage::Gtc : AvionicsPage::Pfd;
+            else if (line == 3 && !g3000_) page_ = AvionicsPage::Mfd;
             return {};
         case AvionicsPage::Comm:
         case AvionicsPage::Nav: {
@@ -466,11 +571,19 @@ std::vector<std::string> AvionicsPages::lineKey(int line, bool right, const Read
             } else if (!right && line == 2) {
                 out.push_back(calc("XPNDR_IDENT_ON"));
             } else if (!right && line == 4) {
-                field(v.on(BaroStd) ? std::string() : v.text(BaroHg, "%.2f", ""), baroMillibars, [](double mb) { return calc("KOHLSMAN_SET", std::lround(mb * 16.0)); });
+                // in STD the G1000 keeps its display on STD whatever K:KOHLSMAN_SET says: QNH> first
+                if (baroStd(v.get(BaroStd), v.get(BaroMb)) && !typed.empty()) message_ = "NOT ALLOWED";
+                else field(baroStd(v.get(BaroStd), v.get(BaroMb)) ? std::string() : v.text(BaroHg, "%.2f", ""), baroMillibars, [](double mb) { return calc("KOHLSMAN_SET", std::lround(mb * 16.0)); });
             } else if (right && line == 4) {
-                // STD; back to the local setting the way the G1000's knob does it (its STD event only sets STD)
-                if (v.on(BaroStd)) out.push_back("(>H:AS1000_PFD_BARO_INC) (>H:AS1000_PFD_BARO_DEC)");
-                else out.push_back(calc("BAROMETRIC_STD_PRESSURE"));
+                // STD, and back: the G1000's STD event only sets STD, and one click of its baro knob leaves STD and restores the local
+                // setting it remembered (checked on the C400: a second click would step it 1 hPa further)
+                if (baroStd(v.get(BaroStd), v.get(BaroMb))) {
+                    out.push_back("(>H:AS1000_PFD_BARO_INC)");
+                    stdByPage_ = false;
+                } else {
+                    out.push_back(calc("BAROMETRIC_STD_PRESSURE"));
+                    stdByPage_ = true;
+                }
             }
             return out;
         default:
@@ -478,24 +591,108 @@ std::vector<std::string> AvionicsPages::lineKey(int line, bool right, const Read
     }
 }
 
-std::vector<std::string> AvionicsPages::g1000Key(Key key) {
-    const std::string unit = page_ == AvionicsPage::Mfd ? "AS1000_MFD_" : "AS1000_PFD_";
-    auto h = [&](const std::string& event) { return std::vector<std::string>{"(>H:" + unit + event + ")"}; };
+// STD: the sim's flag, or STD set from this page while the setting is still 29.92 (the G1000 of the C400 shows STD without raising the flag)
+bool AvionicsPages::baroStd(std::optional<double> flag, std::optional<double> mb) const {
+    if (flag && *flag > 0.5) return true;
+    return stdByPage_ && mb && std::fabs(*mb - 1013.25) < 0.3;
+}
+
+std::vector<std::string> AvionicsPages::gtcKey(Key key) {
+    if (key == Key::LeftArrow || key == Key::RightArrow) {  // GTC 1, 2, 3
+        gtc_ = (gtc_ - 1 + (key == Key::RightArrow ? 1 : 2)) % 3 + 1;
+        g1000Back_ = false;
+        return {};
+    }
+    if (key == Key::PlusMinus) {
+        g1000Back_ = !g1000Back_;
+        return {};
+    }
+    // the aircraft's input events: a push takes 1, a knob turns one click with +1 or -1 (the sign picks the direction, G3000 GTC.xml)
+    auto event = [this](const std::string& name, int value, const std::string& said) {
+        message_ = "SENT " + said;
+        return std::vector<std::string>{(value < 0 ? std::string("1 neg") : std::string("1")) + " (>B:" + name + "_Set)"};
+    };
+    const std::string tsc = format("AS3000_TSC_%d_", gtc_);
     const int k = static_cast<int>(key);
-    if (k >= static_cast<int>(Key::L1) && k <= static_cast<int>(Key::L6)) return h("SOFTKEYS_" + std::to_string(k - static_cast<int>(Key::L1) + 1));
-    if (k >= static_cast<int>(Key::R1) && k <= static_cast<int>(Key::R6)) return h("SOFTKEYS_" + std::to_string(k - static_cast<int>(Key::R1) + 7));
-    switch (key) {
-        case Key::Dir: return h("DIRECTTO");
-        case Key::Fpln: return h("FPL_Push");
-        case Key::Perf: return h("PROC_Push");
-        case Key::Data: return h("MENU_Push");
-        case Key::Clr: return h("CLR");
-        case Key::Ovfy: return h("ENT_Push");
-        case Key::UpArrow: return h("FMS_Lower_INC");
-        case Key::DownArrow: return h("FMS_Lower_DEC");
-        case Key::RightArrow: return h("FMS_Upper_INC");
-        case Key::LeftArrow: return h("FMS_Upper_DEC");
-        case Key::PlusMinus: return h("FMS_Upper_PUSH");
+    const bool left = k >= static_cast<int>(Key::L1) && k <= static_cast<int>(Key::L6), right = k >= static_cast<int>(Key::R1) && k <= static_cast<int>(Key::R6);
+    if (!left && !right) return {};
+    const int line = left ? k - static_cast<int>(Key::L1) + 1 : k - static_cast<int>(Key::R1) + 1;
+    const bool back = g1000Back_;
+    g1000Back_ = false;
+    const int turn = back ? -1 : 1;
+    const std::string dir = back ? " -" : " +";
+    if (left) {
+        switch (line) {
+            case 1: return event(tsc + "SOFTKEY_1", 1, "PFD");
+            case 2: return event(tsc + "SOFTKEY_2", 1, "MFD");
+            case 3: return event(tsc + "SOFTKEY_3", 1, "NAV/COM");
+            case 4: return event(tsc + "MULTIFUNCTION_KNOB", turn, "MAP KNOB" + dir);
+            case 5: return event(tsc + "MULTIFUNCTION_KNOB_BUTTON", 1, "MAP PUSH");
+            default: return {};
+        }
+    }
+    switch (line) {
+        case 1: return event(tsc + "FREQUENCY_KNOB_MHZ", turn, "OUTER" + dir);
+        case 2: return event(tsc + "FREQUENCY_KNOB_KHZ", turn, "INNER" + dir);
+        case 3: return event(tsc + "FREQUENCY_SWAP", 1, "SWAP");
+        case 4: return event("AS3000_CHECKLIST_WHEEL", turn, "CHECKLIST" + dir);
+        case 5: return event("AS3000_CHECKLIST_WHEEL_PUSH", 1, "CHECKLIST PUSH");
+        default: return {};
+    }
+}
+
+std::vector<std::string> AvionicsPages::g1000Key(Key key) {
+    const bool mfd = page_ == AvionicsPage::Mfd || page_ == AvionicsPage::MfdKeys;
+    const std::string unit = mfd ? "AS1000_MFD_" : "AS1000_PFD_";
+    auto h = [&](const std::string& event, const std::string& name) {
+        message_ = "SENT " + name;
+        return std::vector<std::string>{"(>H:" + unit + event + ")"};
+    };
+    const int k = static_cast<int>(key);
+    const bool left = k >= static_cast<int>(Key::L1) && k <= static_cast<int>(Key::L6), right = k >= static_cast<int>(Key::R1) && k <= static_cast<int>(Key::R6);
+    const int line = left ? k - static_cast<int>(Key::L1) + 1 : right ? k - static_cast<int>(Key::R1) + 1 : 0;
+    if (page_ == AvionicsPage::PfdKeys || page_ == AvionicsPage::MfdKeys) {
+        if (line) {
+            const int n = line + (right ? 6 : 0);
+            return h("SOFTKEYS_" + std::to_string(n), "SOFTKEY " + std::to_string(n));
+        }
+    } else if (line) {
+        // a knob turns one click per press; +/- first turns it back
+        const bool back = g1000Back_;
+        g1000Back_ = false;
+        if (left) {
+            switch (line) {
+                case 1: return h("DIRECTTO", "DIRECT TO");
+                case 2: return h("FPL_Push", "FPL");
+                case 3: return h("PROC_Push", "PROC");
+                case 4: return h(back ? "FMS_Upper_DEC" : "FMS_Upper_INC", back ? "OUTER -" : "OUTER +");
+                case 5: return h(back ? "FMS_Lower_DEC" : "FMS_Lower_INC", back ? "INNER -" : "INNER +");
+                default: return h("FMS_Upper_PUSH", "CURSOR");
+            }
+        }
+        switch (line) {
+            case 1: return h("ENT_Push", "ENT");
+            case 2: return h("CLR", "CLR");
+            case 3: return h("MENU_Push", "MENU");
+            case 4: return h("RANGE_DEC", "RANGE IN");
+            case 5: return h("RANGE_INC", "RANGE OUT");
+            default:
+                page_ = mfd ? AvionicsPage::MfdKeys : AvionicsPage::PfdKeys;
+                return {};
+        }
+    }
+    switch (key) {  // the unit's own keys keep their G1000 shortcuts on every G1000 page
+        case Key::Dir: return h("DIRECTTO", "DIRECT TO");
+        case Key::Fpln: return h("FPL_Push", "FPL");
+        case Key::Perf: return h("PROC_Push", "PROC");
+        case Key::Data: return h("MENU_Push", "MENU");
+        case Key::Clr: g1000Back_ = false; return h("CLR", "CLR");
+        case Key::Ovfy: return h("ENT_Push", "ENT");
+        case Key::UpArrow: return h("FMS_Lower_INC", "INNER +");
+        case Key::DownArrow: return h("FMS_Lower_DEC", "INNER -");
+        case Key::PlusMinus:
+            if (page_ == AvionicsPage::Pfd || page_ == AvionicsPage::Mfd) g1000Back_ = !g1000Back_;
+            return {};
         default: return {};
     }
 }

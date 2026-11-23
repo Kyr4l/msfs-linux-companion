@@ -646,8 +646,29 @@ static void testAvionics() {
     pages.onKey(Key::Menu, read);
     pages.onKey(Key::L2, read);
     CHECK(pages.page() == AvionicsPage::Pfd);
+    out = pages.onKey(Key::L1, read);  // the functions by name
+    CHECK(out.size() == 1 && out[0] == "(>H:AS1000_PFD_DIRECTTO)");
+    pages.render(s, read);
+    CHECK(rowText(s, 2).find("<DIRECT TO") == 0 && rowText(s, 13).find("SENT DIRECT TO") == 0);
+    out = pages.onKey(Key::L4, read);
+    CHECK(out.size() == 1 && out[0] == "(>H:AS1000_PFD_FMS_Upper_INC)");
+    pages.onKey(Key::PlusMinus, read);  // +/- then the knob: one click back
+    out = pages.onKey(Key::L4, read);
+    CHECK(out.size() == 1 && out[0] == "(>H:AS1000_PFD_FMS_Upper_DEC)");
+    out = pages.onKey(Key::L6, read);
+    CHECK(out.size() == 1 && out[0] == "(>H:AS1000_PFD_FMS_Upper_PUSH)");
+    CHECK(pages.onKey(Key::R6, read).empty() && pages.page() == AvionicsPage::PfdKeys);  // SOFTKEYS>
     out = pages.onKey(Key::R6, read);
     CHECK(out.size() == 1 && out[0] == "(>H:AS1000_PFD_SOFTKEYS_12)");
+    pages.onKey(Key::RightArrow, read);  // PFD SOFTKEYS -> MFD -> MFD SOFTKEYS -> PFD
+    CHECK(pages.page() == AvionicsPage::Mfd);
+    pages.onKey(Key::RightArrow, read);
+    out = pages.onKey(Key::L1, read);
+    CHECK(pages.page() == AvionicsPage::MfdKeys && out.size() == 1 && out[0] == "(>H:AS1000_MFD_SOFTKEYS_1)");
+    pages.onKey(Key::RightArrow, read);
+    CHECK(pages.page() == AvionicsPage::Pfd);
+    pages.onKey(Key::Atc, read);  // the other function keys still open their pages
+    CHECK(pages.page() == AvionicsPage::Xpdr);
     pages.onKey(Key::Menu, read);
     pages.onKey(Key::L3, read);
     out = pages.onKey(Key::Ovfy, read);
@@ -660,6 +681,203 @@ static void testAvionics() {
     CHECK(rowText(s, 0).find("G1000 MFD") != std::string::npos);
     pages.onKey(Key::Menu, read);
     CHECK(pages.page() == AvionicsPage::Menu);
+}
+
+// The Airbus style: same function keys, a scratchpad, the slew keys, and the load colours of the settings.
+static void testAirbusPages() {
+    using namespace mcdu;
+    FakeActions a;
+    PageHost p(a);
+    desktop::McduConfig cfg;
+    cfg.pageStyle = "airbus";
+    p.configure(cfg);
+    p.setSystem(sampleSystem());
+    std::tm now{};
+    now.tm_hour = 9; now.tm_min = 5; now.tm_sec = 7; now.tm_mday = 18; now.tm_mon = 10; now.tm_year = 126; now.tm_wday = 3;
+    Screen s;
+    p.render(s, now);
+    CHECK(rowText(s, 0).find("MCDU MENU") != std::string::npos && rowText(s, 2).find("<DESKTOP") == 0);
+    CHECK(rowText(s, 13).find("SELECT DESIRED SYSTEM") == 0);
+
+    p.onKey(Key::Data);
+    p.render(s, now);
+    CHECK(p.page() == PageId::DataIndex && rowText(s, 0).find("DATA INDEX") != std::string::npos);
+    p.onKey(Key::L1);  // PC status
+    p.render(s, now);
+    CHECK(p.page() == PageId::System && rowText(s, 0).find("PC STATUS") != std::string::npos);
+    CHECK(rowText(s, 2).find("34%") != std::string::npos && rowText(s, 12).find("<RETURN") == 0);
+    CHECK(s.at(2, 2).color == Color::Green);  // 34 %: below the warning stage
+    p.onKey(Key::RightArrow);
+    CHECK(p.page() == PageId::Cpu);
+    p.onKey(Key::RightArrow);
+    p.render(s, now);
+    CHECK(p.page() == PageId::Cpu && rowText(s, 0).find("CPU CORES") != std::string::npos);
+    p.onKey(Key::LeftArrow);
+    p.onKey(Key::LeftArrow);
+    CHECK(p.page() == PageId::System);
+    p.onKey(Key::LeftArrow);  // round to the last one
+    CHECK(p.page() == PageId::Power);
+
+    // the load colours follow the settings
+    cfg.loadColors.warn.above = 30;
+    p.configure(cfg);
+    p.onKey(Key::Data);
+    p.onKey(Key::L1);
+    p.render(s, now);
+    CHECK(s.at(2, 2).color == Color::Amber);  // 34 % is above 30
+    cfg.loadColors.on = false;
+    p.configure(cfg);
+    p.render(s, now);
+    CHECK(s.at(2, 2).color == Color::Green);
+
+    // the scratchpad and a field: the home airport on INIT
+    p.onKey(Key::Init);
+    p.render(s, now);
+    CHECK(rowText(s, 0).find("INIT") != std::string::npos && s.at(10, 0).color == Color::Amber);  // boxes until set
+    for (Key k : {Key::L, Key::F}) p.onKey(k);
+    p.onKey(Key::L5);
+    p.render(s, now);
+    CHECK(rowText(s, 13).find("FORMAT ERROR") == 0);
+    p.onKey(Key::Clr);  // the message goes first
+    for (Key k : {Key::P, Key::G}) p.onKey(k);
+    p.onKey(Key::L5);
+    p.render(s, now);
+    CHECK(rowText(s, 10).find("LFPG") == 0 && p.homeAirport() == "LFPG" && p.takeWeatherRequest());
+    p.onKey(Key::L5);  // empty scratchpad: the field is copied into it
+    p.render(s, now);
+    CHECK(rowText(s, 13).find("LFPG") == 0);
+
+    // F-PLN: each shortcut with its keys above it
+    p.onKey(Key::Fpln);
+    p.render(s, now);
+    CHECK(rowText(s, 0).find("KEYS") != std::string::npos && rowText(s, 2).find("<VOL UP") == 0 && rowText(s, 1).find("VOL+") != std::string::npos);
+    CHECK(rowText(s, 9).find("CTRL+C") != std::string::npos);
+    a.taps.clear();
+    p.onKey(Key::R5);
+    CHECK(a.taps.size() == 1 && a.taps[0] == std::vector<int>({KEY_LEFTCTRL, KEY_C}));
+
+    // DIR TO: the scratchpad runs, OVFY too
+    p.onKey(Key::Dir);
+    p.onKey(Key::Clr);
+    for (int i = 0; i < 4; ++i) p.onKey(Key::Clr);
+    for (Key k : {Key::K, Key::A, Key::T, Key::E}) p.onKey(k);
+    p.onKey(Key::Ovfy);
+    CHECK(!a.queries.empty() && a.queries.back() == "KATE");
+
+    // PERF: volume on the arrows
+    p.onKey(Key::Perf);
+    a.taps.clear();
+    p.onKey(Key::UpArrow);
+    CHECK(a.taps.size() == 1 && a.taps[0] == std::vector<int>({KEY_VOLUMEUP}));
+
+    // back to the classic pages
+    cfg.pageStyle = "classic";
+    p.configure(cfg);
+    p.onKey(Key::Data);
+    CHECK(p.page() == PageId::System);
+}
+
+// the Vision Jet's G3000: MCDU MENU offers the touch controllers, whose softkeys and knobs are the aircraft's input events
+// STD on a G1000 that does not raise the sim's STD flag (the C400): the page remembers it set STD, and one knob click leaves it
+static void testFuelUnits() {
+    using namespace mcdu;
+    AvionicsPages p;
+    const AvionicsPages::Read read = [](const std::string& code) -> std::optional<double> {
+        if (code.find("FUEL TOTAL QUANTITY") != std::string::npos) return 50.0;  // gallons
+        if (code.find("FUEL WEIGHT PER GALLON") != std::string::npos) return 6.0;  // avgas, pounds
+        if (code.find("FUEL FLOW GPH") != std::string::npos) return 10.0;
+        return std::nullopt;
+    };
+    p.onKey(Key::Fuel, read);
+    Screen s;
+    p.render(s, read);
+    CHECK(rowText(s, 4).find("50.0GAL") == 0 && rowText(s, 4).find("10.0GPH") != std::string::npos);
+    p.setFuelUnit("l");
+    p.render(s, read);
+    CHECK(rowText(s, 4).find("189L") == 0 && rowText(s, 4).find("37.9L/H") != std::string::npos);
+    p.setFuelUnit("kg");
+    p.render(s, read);
+    CHECK(rowText(s, 4).find("136KG") == 0 && rowText(s, 4).find("27KG/H") != std::string::npos);  // 50 gal x 6 lb x 0.4536
+    p.setFuelUnit("gal_kg");
+    p.render(s, read);
+    CHECK(rowText(s, 4).find("50.0GAL") == 0 && rowText(s, 3).find("FOB 136KG") != std::string::npos);
+}
+
+static void testBaroStd() {
+    using namespace mcdu;
+    AvionicsPages p;
+    double mb = 1009.0;
+    const AvionicsPages::Read read = [&mb](const std::string& code) -> std::optional<double> {
+        if (code.find("KOHLSMAN SETTING STD") != std::string::npos) return 0.0;  // never raised
+        if (code.find("KOHLSMAN SETTING MB") != std::string::npos) return mb;
+        if (code.find("KOHLSMAN SETTING HG") != std::string::npos) return mb / 33.8639;
+        return std::nullopt;
+    };
+    Screen s;
+    p.onKey(Key::Atc, read);
+    p.render(s, read);
+    CHECK(rowText(s, 8).find("STD>") != std::string::npos);
+    auto out = p.onKey(Key::R4, read);
+    CHECK(out.size() == 1 && out[0] == "(>K:BAROMETRIC_STD_PRESSURE)");
+    mb = 1013.19;  // the G1000 went to STD
+    p.render(s, read);
+    CHECK(rowText(s, 8).find("STD") == 0 && rowText(s, 8).find("QNH>") != std::string::npos);
+    for (Key k : {Key::D1, Key::D0, Key::D1, Key::D0}) p.onKey(k, read);
+    CHECK(p.onKey(Key::L4, read).empty());  // a typed value in STD: QNH> first
+    p.render(s, read);
+    CHECK(rowText(s, 13).find("NOT ALLOWED") == 0);
+    for (int i = 0; i < 4; ++i) p.onKey(Key::Clr, read);
+    out = p.onKey(Key::R4, read);
+    CHECK(out.size() == 1 && out[0] == "(>H:AS1000_PFD_BARO_INC)");  // one click: leaves STD, back to the local setting
+}
+
+static void testGtc() {
+    using namespace mcdu;
+    AvionicsPages p;
+    p.setG3000(true);
+    const AvionicsPages::Read read = [](const std::string&) -> std::optional<double> { return std::nullopt; };
+    Screen s;
+    p.render(s, read);
+    CHECK(rowText(s, 4).find("<GTC") == 0 && rowText(s, 6).find("G1000") == std::string::npos);
+    p.onKey(Key::L2, read);
+    CHECK(p.page() == AvionicsPage::Gtc);
+    auto out = p.onKey(Key::L1, read);
+    CHECK(out.size() == 1 && out[0] == "1 (>B:AS3000_TSC_1_SOFTKEY_1_Set)");
+    p.onKey(Key::RightArrow, read);  // GTC 2
+    CHECK(p.gtc() == 2);
+    out = p.onKey(Key::R1, read);
+    CHECK(out.size() == 1 && out[0] == "1 (>B:AS3000_TSC_2_FREQUENCY_KNOB_MHZ_Set)");
+    p.onKey(Key::PlusMinus, read);  // then one click back
+    out = p.onKey(Key::R1, read);
+    CHECK(out.size() == 1 && out[0] == "1 neg (>B:AS3000_TSC_2_FREQUENCY_KNOB_MHZ_Set)");
+    p.onKey(Key::LeftArrow, read);
+    p.onKey(Key::LeftArrow, read);  // round to GTC 3
+    CHECK(p.gtc() == 3);
+    p.render(s, read);
+    CHECK(rowText(s, 0).find("GTC 3") != std::string::npos && rowText(s, 13).find("SENT INNER") == std::string::npos);
+    CHECK(p.onKey(Key::A, read).empty());  // no scratchpad here
+    p.onKey(Key::Rad, read);  // the function keys still open their pages
+    CHECK(p.page() == AvionicsPage::Comm);
+}
+
+static void testAvionicsTemperatures() {
+    using namespace mcdu;
+    AvionicsPages p;
+    const AvionicsPages::Read read = [](const std::string& code) -> std::optional<double> {
+        if (code.find("OIL TEMPERATURE") != std::string::npos) return 212.0;  // read in °F
+        if (code.find("ENGINE TYPE") != std::string::npos) return 0.0;      // piston
+        return std::nullopt;
+    };
+    p.onKey(Key::Data, read);  // ENGINE
+    Screen s;
+    p.render(s, read);
+    CHECK(rowText(s, 4).find("212?F") == 0);  // as the aircraft: engine in °F
+    p.setTemperatures("c");
+    p.render(s, read);
+    CHECK(rowText(s, 4).find("100?C") == 0);
+    p.setTemperatures("both");
+    p.render(s, read);
+    CHECK(rowText(s, 4).find("100?C") == 0 && rowText(s, 3).find("OIL T 212?F") != std::string::npos);
 }
 
 static void testPages() {
@@ -696,6 +914,11 @@ static void testPages() {
     CHECK(a.commands.size() == 1 && a.commands[0] == desktop::MediaCommand::PlayPause);
     p.onKey(Key::R1);
     CHECK(a.taps.back() == std::vector<int>{KEY_VOLUMEUP});
+    {
+        desktop::MediaInfo list;  // shuffle shows only for a player that has it
+        list.present = true; list.canNext = list.hasShuffle = true;
+        p.setMedia(list);
+    }
     p.onKey(Key::R4);
     CHECK(a.commands.back() == desktop::MediaCommand::Shuffle);
     p.onKey(Key::L4);
@@ -706,6 +929,11 @@ static void testPages() {
     p.render(s, now);
     CHECK(rowText(s, 3).find(" A VERY LONG TRACK TITLE") == 0 || rowText(s, 3).find(" A VERY LONG TRACK TITL") == 0);
     CHECK(rowText(s, 4).find("<PAUSE") == 0);
+    CHECK(rowText(s, 2).find("<PREV") == std::string::npos && rowText(s, 8).find("SHUFFLE") == std::string::npos);  // a player that cannot skip
+    m.canPrevious = m.canNext = m.hasShuffle = m.hasRepeat = true;  // a playlist
+    p.setMedia(m);
+    p.render(s, now);
+    CHECK(rowText(s, 2).find("<PREV") == 0 && rowText(s, 8).find("SHUFFLE OFF>") != std::string::npos);
 
     p.onKey(Key::Fpln);
     CHECK(p.page() == PageId::Keys);
@@ -1159,6 +1387,11 @@ int main() {
     testEngine();
     testHighResolutionWheel();
     testPages();
+    testAirbusPages();
+    testAvionicsTemperatures();
+    testGtc();
+    testBaroStd();
+    testFuelUnits();
     testSystemPage();
     testMetar();
     testNewPages();

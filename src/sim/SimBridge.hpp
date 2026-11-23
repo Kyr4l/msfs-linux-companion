@@ -4,6 +4,7 @@
 // Owns the SimConnect connection on its own thread: reconnects, maps event names to IDs,
 // talks to the MobiFlight WASM module (for H: events, L: vars and calculator code) and
 // executes queued actions coming from the input engine or the UI.
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -55,6 +56,7 @@ struct Telemetry {
            rotorRpmPct = 0, collective = 0,  // helicopter: main rotor speed and collective, both 0..1 (1 = 100 %); 0 on an aircraft without a rotor
            engineType = 0,                   // ENGINE TYPE: 0 piston, 1 jet, 3 turbine helicopter, 5 turboprop
            torqueEng1 = 0, torqueEng2 = 0,   // percent of the rated torque
+           rpmPctEng1 = 0, rpmPctEng2 = 0,   // percent of the maximum RPM (a piston engine has no N1)
            cameraState = 0,                  // CAMERA STATE: 2 cockpit ... 10 drone aircraft are views of a flight; 11 and up are menus, the world map, hangars
            spoilerAvailable = 0,             // SPOILER AVAILABLE: the aircraft has spoilers. Its handle variable moves without them (a lever bound in the sim)
            gearCenter = 1, gearLeft = 1, gearRight = 1;  // each leg 0..1; gearPct is their average (see SimBridge::handleTelemetry)
@@ -69,8 +71,15 @@ struct Telemetry {
     double turningN1() const { return meanTurning(n1Eng1, n1Eng2); }
     double turningTorque() const { return meanTurning(torqueEng1, torqueEng2); }
 
+    // A piston engine's power from its RPM: nothing up to 60 % of the maximum (idle, taxi, the 1700 RPM run-up of a 2600 RPM engine), 100 at full RPM.
+    static double pistonPower(double rpmPct) { return std::clamp((rpmPct - 60.0) / 40.0 * 100.0, 0.0, 100.0); }
+
     // How hard the engines pull, 0..100. A turboprop's N1 is its gas generator, already 55-70 % at idle: its power is the torque.
-    double enginePower() const { return engineType == 3 || engineType == 5 ? turningTorque() : turningN1(); }
+    // A piston engine reports no N1: its power is read from its RPM.
+    double enginePower() const {
+        if (engineType == 0) return meanTurning(pistonPower(rpmPctEng1), pistonPower(rpmPctEng2));
+        return engineType == 3 || engineType == 5 ? turningTorque() : turningN1();
+    }
 
 private:
     static double meanTurning(double v1, double v2) {

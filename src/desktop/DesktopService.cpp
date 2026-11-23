@@ -122,6 +122,7 @@ void DesktopService::poll() {
         for (const auto& [aircraft, prefix] : prefixes_)
             if (sim::sameAircraft(aircraft, id.id)) sim.hEventPrefix = prefix;
         sim.simBridge = sim::sameAircraft("A32NX", id.id);
+        sim.g3000 = sim::sameAircraft("Microsoft_SF50", id.id);
         for (const char* aircraft : {"microsoft-a320neo", "microsoft-a321", "microsoft-a330", "microsoft-belugaxl"})
             sim.iniBuildsKeys = sim.iniBuildsKeys || sim::sameAircraft(aircraft, id.id);
         // Any other Airbus built on the iniBuilds systems has the same MCDU variables: found in its L: list, once per aircraft

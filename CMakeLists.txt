@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 Kyr4l
 cmake_minimum_required(VERSION 3.20)
-project(msfs-linux-companion VERSION 0.9.16 LANGUAGES CXX)
+project(msfs-linux-companion VERSION 0.9.20 LANGUAGES CXX)
 # Version MAJOR.MINOR.FEATURE (MINOR up to 99, FEATURE one digit), plus a letter for a release with fixes only:
 # 0.9.0 -> fixes 0.9.0a, 0.9.0b -> next feature 0.9.1 (letter cleared). CMake's VERSION takes no letter, so it is here.
 set(COMPANION_VERSION_FIX "")
@@ -108,6 +108,7 @@ add_executable(msfs-linux-companion
   src/desktop/Uinput.cpp
   src/mcdu/AvionicsPages.cpp
   src/mcdu/McduPages.cpp
+  src/mcdu/McduPagesAirbus.cpp
   src/mcdu/McduProtocol.cpp
   src/mcdu/McduService.cpp
   src/mcdu/Metar.cpp
@@ -172,7 +173,7 @@ if(COMPANION_BUILD_TESTS)
   target_link_libraries(live_catalog PRIVATE Threads::Threads)
   add_test(NAME live_catalog COMMAND live_catalog)
   # the MCDU protocol and pages, the antiMicroX import and the desktop engine: no hardware, no window
-  add_executable(desktop_mcdu tests/desktop_mcdu.cpp src/mcdu/AvionicsPages.cpp src/desktop/AmgpImport.cpp src/desktop/AudioControl.cpp src/desktop/DesktopEngine.cpp src/desktop/DesktopLauncher.cpp src/desktop/ProgressTracker.cpp src/desktop/SdBus.cpp src/mcdu/McduPages.cpp src/mcdu/McduProtocol.cpp
+  add_executable(desktop_mcdu tests/desktop_mcdu.cpp src/mcdu/AvionicsPages.cpp src/desktop/AmgpImport.cpp src/desktop/AudioControl.cpp src/desktop/DesktopEngine.cpp src/desktop/DesktopLauncher.cpp src/desktop/ProgressTracker.cpp src/desktop/SdBus.cpp src/mcdu/McduPages.cpp src/mcdu/McduPagesAirbus.cpp src/mcdu/McduProtocol.cpp
                  src/mcdu/McduSimLink.cpp src/mcdu/Metar.cpp src/mcdu/SystemInfo.cpp src/mcdu/ScreenReader.cpp src/mcdu/McduFont.cpp src/input/Evdev.cpp src/app/Lights.cpp src/app/Paths.cpp)
   # reads captured pop-out pictures (.ppm) with the character samples of this machine: a developer tool, not a test
   add_executable(mcdu_read tests/mcdu_read.cpp src/mcdu/ScreenReader.cpp src/mcdu/McduProtocol.cpp)

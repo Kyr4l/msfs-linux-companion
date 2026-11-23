@@ -546,6 +546,8 @@ void McduService::run() {
         }
         if (reconfigure) {
             pages_.configure(active_);
+            avionics_.setTemperatures(active_.avionicsTemp);
+            avionics_.setFuelUnit(active_.avionicsFuel);
             applyLights(false);
             nextRefresh_ = Clock::time_point{};
         }
@@ -561,6 +563,7 @@ void McduService::run() {
             lastKey_ = now;
             nextRefresh_ = Clock::time_point{};
             avionics_.reset();
+            avionics_.setG3000(activeSim_.g3000);
         }
         // the avionics pages' values: read only while they can be on screen
         if (avionicsMode() != avionicsWatched_) {

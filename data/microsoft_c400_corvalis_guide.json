@@ -1,0 +1,789 @@
+{
+ "aircraft": "Microsoft_C400_Corvalis",
+ "title": "Cessna 400 Corvalis TT",
+ "notice": "The aircraft's own checklist is inside its encrypted archive and was not read. The steps come from the checklist texts and tooltips the aircraft ships in plain text (1700 RPM, 2600 RPM, 75 and 110 KIAS, flaps up at 400 ft and 95 KIAS, IDLE CUTOFF, the primer, the backup fuel pumps) and from the usual order for a single-engine piston; each step says which. Not a substitute for the aircraft's manual. The guide has not been run on the aircraft and none of its controls is marked verified; the ticks read standard simulation variables that the aircraft may not drive.",
+ "sources": [
+  "en-us.locpak of Official2024/Steam/microsoft-aircraft-c400-corvalis (minimal.fsarchive): the aircraft's tooltips and the texts of its checklist",
+  "the usual procedure order for a single-engine piston aircraft with a constant-speed propeller"
+ ],
+ "topics": [
+  {
+   "id": "before_start",
+   "title": "Before engine start",
+   "summary": "Parking brake, fuel, batteries, backup fuel pumps.",
+   "start": "before_start_where"
+  },
+  {
+   "id": "engine_start",
+   "title": "Engine start",
+   "summary": "Mixture, propeller, primer, ignition key, 1700 RPM, alternators, avionics.",
+   "start": "engine_start_where"
+  },
+  {
+   "id": "taxi_takeoff",
+   "title": "Taxi and takeoff",
+   "summary": "Taxi light, flaps, full power with an eye on the manifold pressure, 75 KIAS, 110 KIAS, flaps up.",
+   "start": "taxi_takeoff_where"
+  },
+  {
+   "id": "shutdown",
+   "title": "Shutdown",
+   "summary": "Avionics off, mixture to IDLE CUTOFF, key off, batteries off.",
+   "start": "shutdown_where"
+  }
+ ],
+ "nodes": {
+  "before_start_where": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "help": "The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, on the ground",
+     "next": "bs_power"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "before_start_air"
+    }
+   ]
+  },
+  "before_start_air": {
+   "type": "info",
+   "title": "Not now",
+   "text": "This is done on the ground.",
+   "next": ""
+  },
+  "bs_power": {
+   "type": "steps",
+   "title": "Power up",
+   "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+   "steps": [
+    {
+     "text": "Set the parking brake.",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+     "controls": [
+      {
+       "api": "LANDING_PARKING_BRAKE"
+      }
+     ],
+     "check": {
+      "code": "(A:BRAKE PARKING POSITION, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Select the fullest fuel tank.",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+     "controls": [
+      {
+       "api": "FUEL_SELECTOR"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Fuel left",
+       "unit": "gal",
+       "code": "(A:FUEL TANK LEFT MAIN QUANTITY, gallons)"
+      },
+      {
+       "label": "Fuel right",
+       "unit": "gal",
+       "code": "(A:FUEL TANK RIGHT MAIN QUANTITY, gallons)"
+      }
+     ]
+    },
+    {
+     "text": "Battery 1 ON.",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+     "controls": [
+      {
+       "api": "ELECTRICAL_BATTERY_LEFT"
+      }
+     ],
+     "check": {
+      "code": "(A:ELECTRICAL MASTER BATTERY:1, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Battery 2 ON.",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+     "controls": [
+      {
+       "api": "ELECTRICAL_BATTERY_RIGHT"
+      }
+     ]
+    },
+    {
+     "text": "Avionics master OFF for the start.",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+     "controls": [
+      {
+       "api": "ELECTRICAL_AVIONICS"
+      }
+     ],
+     "check": {
+      "code": "(A:AVIONICS MASTER SWITCH, Bool)",
+      "op": "==",
+      "value": 0
+     },
+     "why": "Keeps the avionics off the bus while the starter draws current."
+    },
+    {
+     "text": "Test the annunciator lights.",
+     "source": "tooltip of the aircraft (en-us.locpak): \"Test Annunciator Lights\"",
+     "controls": [
+      {
+       "api": "ELECTRICAL_TEST"
+      }
+     ]
+    },
+    {
+     "text": "Backup fuel pumps: ARMED.",
+     "source": "en-us.locpak of the aircraft (minimal.fsarchive), checklist text \"Backup Fuel Pump: ARMED\"",
+     "controls": [
+      {
+       "api": "FUEL_PUMP_LEFT"
+      },
+      {
+       "api": "FUEL_PUMP_RIGHT"
+      }
+     ]
+    },
+    {
+     "text": "Strobe lights ON.",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+     "controls": [
+      {
+       "api": "LIGHTING_STROBE_LIGHT"
+      }
+     ],
+     "check": {
+      "code": "(A:LIGHT STROBE, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    }
+   ],
+   "next": ""
+  },
+  "engine_start_where": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "help": "The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, on the ground",
+     "next": "es_levers"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "engine_start_air"
+    }
+   ]
+  },
+  "engine_start_air": {
+   "type": "info",
+   "title": "Not now",
+   "text": "This is done on the ground.",
+   "next": ""
+  },
+  "es_levers": {
+   "type": "steps",
+   "title": "Levers",
+   "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+   "steps": [
+    {
+     "text": "Mixture full rich.",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+     "controls": [
+      {
+       "api": "ENGINE_MIXTURE_LEFT"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG MIXTURE LEVER POSITION:1, percent)",
+      "op": ">=",
+      "value": 95
+     }
+    },
+    {
+     "text": "Propeller full forward (high RPM).",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+     "controls": [
+      {
+       "api": "ENGINE_PROPELLER_LEFT"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG PROPELLER LEVER POSITION:1, percent)",
+      "op": ">=",
+      "value": 95
+     }
+    },
+    {
+     "text": "Throttle open a little (about a quarter inch).",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+     "controls": [
+      {
+       "api": "ENGINE_THROTTLE_LEFT"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "Throttle",
+       "unit": "%",
+       "code": "(A:GENERAL ENG THROTTLE LEVER POSITION:1, percent)"
+      }
+     ]
+    }
+   ],
+   "next": "es_start"
+  },
+  "es_start": {
+   "type": "steps",
+   "title": "Start",
+   "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+   "steps": [
+    {
+     "text": "Prime: PUSH the primer and hold it 3 to 5 seconds.",
+     "source": "tooltip of the aircraft (en-us.locpak): \"Primer control button. Hold between 3 - 5 seconds\"",
+     "controls": [
+      {
+       "api": "ENGINE_PRIMER"
+      }
+     ],
+     "why": "The sim's checklist text for the primer is \"PUSH\"; the tooltip asks for 3 to 5 seconds."
+    },
+    {
+     "text": "Look outside: propeller area clear.",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)"
+    },
+    {
+     "text": "Ignition key to START, let go to BOTH when the engine runs.",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+     "controls": [
+      {
+       "api": "ENGINE_MAGNETO"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG RPM:1, Rpm)",
+      "op": ">=",
+      "value": 500
+     },
+     "readouts": [
+      {
+       "label": "RPM",
+       "unit": "rpm",
+       "code": "(A:GENERAL ENG RPM:1, Rpm)"
+      }
+     ]
+    },
+    {
+     "text": "Adjust the throttle for about 1700 RPM.",
+     "source": "en-us.locpak of the aircraft (minimal.fsarchive), checklist text \"Adjust throttle to get around 1700 RPM\"",
+     "controls": [
+      {
+       "api": "ENGINE_THROTTLE_LEFT"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "RPM",
+       "unit": "rpm",
+       "code": "(A:GENERAL ENG RPM:1, Rpm)"
+      }
+     ]
+    },
+    {
+     "text": "Check the oil pressure rises.",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+     "readouts": [
+      {
+       "label": "Oil pressure",
+       "unit": "psi",
+       "code": "(A:GENERAL ENG OIL PRESSURE:1, psi)"
+      }
+     ]
+    }
+   ],
+   "next": "es_after"
+  },
+  "es_after": {
+   "type": "steps",
+   "title": "After start",
+   "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+   "steps": [
+    {
+     "text": "Alternator 1 ON.",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+     "controls": [
+      {
+       "api": "ELECTRICAL_ALTERNATOR_LEFT"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG MASTER ALTERNATOR:1, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Alternator 2 ON.",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+     "controls": [
+      {
+       "api": "ELECTRICAL_ALTERNATOR_RIGHT"
+      }
+     ]
+    },
+    {
+     "text": "Avionics master ON.",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+     "controls": [
+      {
+       "api": "ELECTRICAL_AVIONICS"
+      }
+     ],
+     "check": {
+      "code": "(A:AVIONICS MASTER SWITCH, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Navigation lights ON.",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+     "controls": [
+      {
+       "api": "LIGHTING_NAVIGATION_LIGHT"
+      }
+     ],
+     "check": {
+      "code": "(A:LIGHT NAV, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    }
+   ],
+   "next": ""
+  },
+  "taxi_takeoff_where": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "help": "The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, on the ground",
+     "next": "tt_taxi"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "taxi_takeoff_air"
+    }
+   ]
+  },
+  "taxi_takeoff_air": {
+   "type": "info",
+   "title": "Not now",
+   "text": "This is done on the ground.",
+   "next": ""
+  },
+  "tt_taxi": {
+   "type": "steps",
+   "title": "Taxi",
+   "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+   "steps": [
+    {
+     "text": "Taxi light ON.",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+     "controls": [
+      {
+       "api": "LIGHTING_TAXI_LIGHT"
+      }
+     ],
+     "check": {
+      "code": "(A:LIGHT TAXI, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Release the parking brake.",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+     "controls": [
+      {
+       "api": "LANDING_PARKING_BRAKE"
+      }
+     ],
+     "check": {
+      "code": "(A:BRAKE PARKING POSITION, Bool)",
+      "op": "==",
+      "value": 0
+     }
+    }
+   ],
+   "next": "tt_lineup"
+  },
+  "tt_lineup": {
+   "type": "steps",
+   "title": "Line up",
+   "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+   "steps": [
+    {
+     "text": "Flaps to the takeoff position.",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+     "controls": [
+      {
+       "api": "HANDLING_FLAPS"
+      }
+     ],
+     "check": {
+      "code": "(A:FLAPS HANDLE INDEX, Number)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Landing light ON.",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+     "controls": [
+      {
+       "api": "LIGHTING_LANDING_LIGHT"
+      }
+     ],
+     "check": {
+      "code": "(A:LIGHT LANDING, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Mixture and propeller full forward.",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+     "controls": [
+      {
+       "api": "ENGINE_MIXTURE_LEFT"
+      },
+      {
+       "api": "ENGINE_PROPELLER_LEFT"
+      }
+     ]
+    }
+   ],
+   "next": "tt_roll"
+  },
+  "tt_roll": {
+   "type": "steps",
+   "title": "Takeoff",
+   "source": "en-us.locpak of the aircraft (minimal.fsarchive), checklist text \"Advance smoothly to full power (2600 RPM)\"",
+   "steps": [
+    {
+     "text": "Advance smoothly to full power (2600 RPM). Watch the manifold pressure for an overboost.",
+     "source": "en-us.locpak of the aircraft (minimal.fsarchive), checklist text \"Advance slowly to full power and watch manifold pressure for indication overboost\"",
+     "controls": [
+      {
+       "api": "ENGINE_THROTTLE_LEFT"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "RPM",
+       "unit": "rpm",
+       "code": "(A:GENERAL ENG RPM:1, Rpm)"
+      },
+      {
+       "label": "Manifold pressure",
+       "unit": "inHg",
+       "code": "(A:RECIP ENG MANIFOLD PRESSURE:1, inHg)"
+      }
+     ]
+    },
+    {
+     "text": "Lift the nose at 75 KIAS.",
+     "source": "en-us.locpak of the aircraft (minimal.fsarchive), checklist text \"Lift nose at 75 KIAS\"",
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      }
+     ]
+    },
+    {
+     "text": "Accelerate to 110 KIAS, best rate of climb.",
+     "source": "en-us.locpak of the aircraft (minimal.fsarchive), checklist text \"Accelerate to best rate of climb speed\"",
+     "check": {
+      "code": "(A:AIRSPEED INDICATED, knots)",
+      "op": ">=",
+      "value": 105
+     },
+     "readouts": [
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      }
+     ]
+    },
+    {
+     "text": "At 400 ft above the ground and 95 KIAS or more: retract the flaps.",
+     "source": "en-us.locpak of the aircraft (minimal.fsarchive), checklist text \"At 400 feet AGL and at or above 95 KIAS\"",
+     "controls": [
+      {
+       "api": "HANDLING_FLAPS"
+      }
+     ],
+     "check": {
+      "code": "(A:FLAPS HANDLE INDEX, Number)",
+      "op": "==",
+      "value": 0
+     },
+     "readouts": [
+      {
+       "label": "Height above ground",
+       "unit": "ft",
+       "code": "(A:PLANE ALT ABOVE GROUND, feet)"
+      },
+      {
+       "label": "Airspeed",
+       "unit": "kt",
+       "code": "(A:AIRSPEED INDICATED, knots)"
+      }
+     ]
+    },
+    {
+     "text": "Taxi light OFF.",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+     "controls": [
+      {
+       "api": "LIGHTING_TAXI_LIGHT"
+      }
+     ],
+     "check": {
+      "code": "(A:LIGHT TAXI, Bool)",
+      "op": "==",
+      "value": 0
+     }
+    }
+   ],
+   "next": ""
+  },
+  "shutdown_where": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "help": "The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, on the ground",
+     "next": "sd_steps"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "shutdown_air"
+    }
+   ]
+  },
+  "shutdown_air": {
+   "type": "info",
+   "title": "Not now",
+   "text": "This is done on the ground.",
+   "next": ""
+  },
+  "sd_steps": {
+   "type": "steps",
+   "title": "Shutdown",
+   "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+   "steps": [
+    {
+     "text": "Set the parking brake.",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+     "controls": [
+      {
+       "api": "LANDING_PARKING_BRAKE"
+      }
+     ],
+     "check": {
+      "code": "(A:BRAKE PARKING POSITION, Bool)",
+      "op": "==",
+      "value": 1
+     }
+    },
+    {
+     "text": "Throttle to idle.",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+     "controls": [
+      {
+       "api": "ENGINE_THROTTLE_LEFT"
+      }
+     ]
+    },
+    {
+     "text": "Avionics master OFF.",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+     "controls": [
+      {
+       "api": "ELECTRICAL_AVIONICS"
+      }
+     ],
+     "check": {
+      "code": "(A:AVIONICS MASTER SWITCH, Bool)",
+      "op": "==",
+      "value": 0
+     }
+    },
+    {
+     "text": "Mixture to IDLE CUTOFF.",
+     "source": "en-us.locpak of the aircraft (minimal.fsarchive), checklist text \"IDLE CUTOFF\"",
+     "controls": [
+      {
+       "api": "ENGINE_MIXTURE_LEFT"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG RPM:1, Rpm)",
+      "op": "<",
+      "value": 100
+     },
+     "readouts": [
+      {
+       "label": "RPM",
+       "unit": "rpm",
+       "code": "(A:GENERAL ENG RPM:1, Rpm)"
+      }
+     ]
+    },
+    {
+     "text": "Ignition key OFF.",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+     "controls": [
+      {
+       "api": "ENGINE_MAGNETO"
+      }
+     ]
+    },
+    {
+     "text": "Alternators OFF.",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+     "controls": [
+      {
+       "api": "ELECTRICAL_ALTERNATOR_LEFT"
+      },
+      {
+       "api": "ELECTRICAL_ALTERNATOR_RIGHT"
+      }
+     ]
+    },
+    {
+     "text": "Lights OFF.",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+     "controls": [
+      {
+       "api": "LIGHTING_STROBE_LIGHT"
+      },
+      {
+       "api": "LIGHTING_NAVIGATION_LIGHT"
+      },
+      {
+       "api": "LIGHTING_LANDING_LIGHT"
+      }
+     ]
+    },
+    {
+     "text": "Batteries OFF.",
+     "source": "usual order for a single-engine piston with a constant-speed propeller (the aircraft's own checklist is in its encrypted archive, not read)",
+     "controls": [
+      {
+       "api": "ELECTRICAL_BATTERY_LEFT"
+      },
+      {
+       "api": "ELECTRICAL_BATTERY_RIGHT"
+      }
+     ],
+     "check": {
+      "code": "(A:ELECTRICAL MASTER BATTERY:1, Bool)",
+      "op": "==",
+      "value": 0
+     }
+    }
+   ],
+   "next": ""
+  }
+ }
+}

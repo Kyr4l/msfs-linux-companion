@@ -188,6 +188,21 @@ int main(int argc, char** argv) {
         CHECK(loadSettings(f.string(), u, err) && u.trayIcon == lr::desktop::TrayIcon::Dark);
     }
 
+    std::printf("MCDU load colours are kept\n");
+    {
+        std::string err;
+        const fs::path f = tmp / "loadcolors.json";
+        Settings s;
+        CHECK(s.mcdu.loadColors.warn.above == 80 && s.mcdu.loadColors.alert.above == 95 && s.mcdu.isDefault());
+        s.mcdu.loadColors.warn = {true, 60, "yellow"};
+        s.mcdu.loadColors.alert.on = false;
+        s.mcdu.loadColors.normal = "cyan";
+        CHECK(!s.mcdu.isDefault());
+        CHECK(saveSettings(f.string(), s, err));
+        Settings t;
+        CHECK(loadSettings(f.string(), t, err) && t.mcdu.loadColors == s.mcdu.loadColors);
+    }
+
     std::printf("the settings of the gates stay in the file while the gates are off\n");
     {
         Settings s;

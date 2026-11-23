@@ -41,8 +41,9 @@
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "press",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "behavior": "latched",
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): holds 0 (off) or 1 (on): sending 1 engages the mode, 0 leaves it; it toggles between the two."
   },
   {
    "panel": "Autopilot",
@@ -54,7 +55,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "press",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): acts on every event and keeps no value, as a knob or push button does; which way it turns was not seen."
   },
   {
    "panel": "Autopilot",
@@ -90,7 +92,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "press",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): acts on every event and keeps no value, as a knob or push button does; which way it turns was not seen."
   },
   {
    "panel": "Autopilot",
@@ -150,7 +153,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "press",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): acts on every event and keeps no value, as a knob or push button does; which way it turns was not seen."
   },
   {
    "panel": "Autopilot",
@@ -162,7 +166,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "press",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): acts on every event and keeps no value (a push button)."
   },
   {
    "panel": "Autopilot",
@@ -173,8 +178,9 @@
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "press",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "behavior": "latched",
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): holds 0 (off) or 1 (on): sending 1 engages the mode, 0 leaves it; it toggles between the two."
   },
   {
    "panel": "Autopilot",
@@ -197,8 +203,9 @@
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "press",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "behavior": "latched",
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): holds 0 (off) or 1 (on): sending 1 engages the mode, 0 leaves it; it toggles between the two."
   },
   {
    "panel": "Autopilot",
@@ -221,8 +228,9 @@
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "press",
-   "note": "Standard flight director event name. Not tried."
+   "behavior": "latched",
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): holds 0 (off) or 1 (on): sending 1 engages the mode, 0 leaves it; it toggles between the two."
   },
   {
    "panel": "Autopilot",
@@ -258,7 +266,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "press",
-   "note": "Tooltip in the aircraft: \"Set airspeed reference mode to FMS\". Not tried."
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): acts on every event and keeps no value (a push button)."
   },
   {
    "panel": "Autopilot",
@@ -270,7 +279,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "press",
-   "note": "Tooltip in the aircraft: \"Set airspeed reference mode to manual\". Not tried."
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): it selects manual speed and stays selected (setting it back to 0 does not undo it): FMS speed is the way back. Tooltip: \"Set airspeed reference mode to manual\"."
   },
   {
    "panel": "Autopilot",
@@ -281,8 +291,9 @@
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "press",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "behavior": "latched",
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): holds 0 (off) or 1 (on): sending 1 engages the mode, 0 leaves it; it toggles between the two."
   },
   {
    "panel": "Autopilot",
@@ -293,8 +304,9 @@
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "press",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "behavior": "latched",
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): holds 0 (off) or 1 (on): sending 1 engages the mode, 0 leaves it; it toggles between the two."
   },
   {
    "panel": "Autopilot",
@@ -305,8 +317,9 @@
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "press",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "behavior": "latched",
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): holds 0 (off) or 1 (on): sending 1 engages the mode, 0 leaves it; it toggles between the two."
   },
   {
    "panel": "Autopilot",
@@ -486,8 +499,13 @@
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "",
-   "note": "Tooltip in the aircraft: \"Cabin Lighting\". Not tried; a switch or a dimmer, which is not known."
+   "behavior": "level",
+   "axis_range": [
+    0,
+    100
+   ],
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): a level from 0 to 100. Tooltip: \"Cabin Lighting\"."
   },
   {
    "panel": "Lights",
@@ -498,8 +516,13 @@
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "",
-   "note": "Tooltip in the aircraft: \"Cabin Lighting\". Not tried; a switch or a dimmer, which is not known."
+   "behavior": "level",
+   "axis_range": [
+    0,
+    100
+   ],
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): a level from 0 to 100. Tooltip: \"Cabin Lighting\"."
   },
   {
    "panel": "Lights",
@@ -510,8 +533,13 @@
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "",
-   "note": "Tooltip in the aircraft: \"Cabin Lighting\". Not tried; a switch or a dimmer, which is not known."
+   "behavior": "level",
+   "axis_range": [
+    0,
+    100
+   ],
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): a level from 0 to 100. Tooltip: \"Cabin Lighting\"."
   },
   {
    "panel": "Lights",
@@ -522,8 +550,13 @@
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "",
-   "note": "Tooltip in the aircraft: \"Cabin Lighting\". Not tried; a switch or a dimmer, which is not known."
+   "behavior": "level",
+   "axis_range": [
+    0,
+    100
+   ],
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): a level from 0 to 100. Tooltip: \"Cabin Lighting\"."
   },
   {
    "panel": "Lights",
@@ -534,8 +567,13 @@
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "",
-   "note": "Tooltip in the aircraft: \"Cabin Lighting\". Not tried; a switch or a dimmer, which is not known."
+   "behavior": "level",
+   "axis_range": [
+    0,
+    100
+   ],
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): a level from 0 to 100. Tooltip: \"Cabin Lighting\"."
   },
   {
    "panel": "Lights",
@@ -547,7 +585,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Name in the sim's checklist: Landing Lights, A/R. How many positions the switch has is not known. Not tried."
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): a switch with two positions, 0 and 1."
   },
   {
    "panel": "Lights",
@@ -583,7 +622,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Name in the sim's checklist: Strobe Lights, ON. Standard event name; the CJ4's takes set 1 / set 0. Not tried."
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): a switch with two positions, 0 and 1."
   },
   {
    "panel": "Lights",
@@ -595,7 +635,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Standard event name. The checklist's ICE Light is the aircraft's wing inspection light and the only wing light in the list, so this is most likely it. Not tried."
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): a switch with two positions, 0 and 1. Also set through calculator code ((>B:..._Set))."
   },
   {
    "panel": "Lights",
@@ -607,7 +648,9 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Tooltip in the aircraft: \"Convenience Lights\". Not tried."
+   "positions": 3,
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): a switch with three positions (0, 1, 2; it was at 2). Tooltip: \"Convenience Lights\"."
   },
   {
    "panel": "Lights",
@@ -618,8 +661,13 @@
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "",
-   "note": "Not tried; a switch or a dimmer, which is not known."
+   "behavior": "level",
+   "axis_range": [
+    0,
+    100
+   ],
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): a dimmer from 0 to 100."
   },
   {
    "panel": "Lights",
@@ -630,8 +678,13 @@
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "",
-   "note": "Tooltip in the aircraft: \"Panel Lighting: Set the brightness of the panel lighting\". Not tried: a dimmer, its range is not known."
+   "behavior": "level",
+   "axis_range": [
+    0,
+    100
+   ],
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): a level from 0 to 100. Tooltip: \"Panel Lighting: Set the brightness of the panel lighting\"."
   },
   {
    "panel": "Lights",
@@ -642,8 +695,13 @@
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "",
-   "note": "Not tried; a switch or a dimmer, which is not known."
+   "behavior": "level",
+   "axis_range": [
+    0,
+    100
+   ],
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): a dimmer from 0 to 100."
   },
   {
    "panel": "Ice protection",
@@ -667,7 +725,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Tooltip in the aircraft: \"Toggle engine ice protection\"; Name in the sim's checklist: ENGINE IPS Switch. Not tried."
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): a switch with two positions, 0 and 1."
   },
   {
    "panel": "Ice protection",
@@ -679,7 +738,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Tooltip in the aircraft: \"Toggle windshield ice protection\"; Name in the sim's checklist: WINDSHLD IPS Switch. Not tried."
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): a switch with two positions, 0 and 1."
   },
   {
    "panel": "Ice protection",
@@ -691,7 +751,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Tooltip in the aircraft: \"Toggle windshield ice protection high mode\". The checklist's MAX switch (press and hold until fluid exits the spray bar) is not in the event list as such. Not tried."
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): a switch with two positions, 0 and 1."
   },
   {
    "panel": "Ice protection",
@@ -715,7 +776,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Tooltip in the aircraft: \"Toggle wing/stabilizer ice protection\"; Name in the sim's checklist: WING/STAB IPS Switch. Not tried."
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): a switch with two positions, 0 and 1."
   },
   {
    "panel": "Ice protection",
@@ -727,7 +789,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Name in the sim's checklist: PROBE HEAT Switch, ON or OFF. Standard event name; the CJ4's takes set 1 / set 0. Not tried."
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): a switch with two positions, 0 and 1."
   },
   {
    "panel": "Handling",
@@ -752,7 +815,8 @@
    "rw": "R/W",
    "behavior": "latched",
    "positions": 3,
-   "note": "Name in the sim's checklist: Flaps, UP, 50% or 100%. Which value is which position is not confirmed."
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): a selector with three positions, 0, 1 and 2 (UP, 50 %, 100 %)."
   },
   {
    "panel": "Handling",
@@ -884,7 +948,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Tooltip in the aircraft: \"Toggle aft temperature control\". Not tried."
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): a switch with two positions, 0 and 1."
   },
   {
    "panel": "Cabin and ECS",
@@ -895,8 +960,13 @@
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "",
-   "note": "Tooltip in the aircraft: \"Adjust set temperature\". Not tried; its range is not known."
+   "behavior": "level",
+   "axis_range": [
+    0,
+    100
+   ],
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): a level from 0 to 100. Tooltip: \"Adjust set temperature\"."
   },
   {
    "panel": "Cabin and ECS",
@@ -907,8 +977,13 @@
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "",
-   "note": "Tooltip in the aircraft: \"Adjust set temperature\" (\"Adjust temperature control valve position\" in backup mode). Not tried; its range is not known."
+   "behavior": "level",
+   "axis_range": [
+    0,
+    100
+   ],
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): a level from 0 to 100. Tooltip: \"Adjust set temperature\"."
   },
   {
    "panel": "Cabin and ECS",
@@ -920,7 +995,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Tooltip in the aircraft: \"Toggle ECS disable\". Not tried."
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): a switch with two positions, 0 and 1."
   },
   {
    "panel": "Cabin and ECS",
@@ -931,8 +1007,13 @@
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "",
-   "note": "Tooltip in the aircraft: \"Adjust fan speed\". Not tried; its range is not known."
+   "behavior": "level",
+   "axis_range": [
+    0,
+    100
+   ],
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): a level from 0 to 100. Tooltip: \"Adjust fan speed\"."
   },
   {
    "panel": "Cabin and ECS",
@@ -943,8 +1024,13 @@
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "",
-   "note": "Tooltip in the aircraft: \"Adjust fan speed\". Not tried; its range is not known."
+   "behavior": "level",
+   "axis_range": [
+    0,
+    100
+   ],
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): a level from 0 to 100. Tooltip: \"Adjust fan speed\"."
   },
   {
    "panel": "Cabin and ECS",
@@ -956,7 +1042,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Tooltip in the aircraft: \"Toggle temperature backup mode\"; the checklist's TEMP BACKUP. Not tried."
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): a switch with two positions, 0 and 1."
   },
   {
    "panel": "Cabin and ECS",
@@ -968,7 +1055,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Tooltip in the aircraft: \"Toggle windshield defog\". Not tried."
+   "verified": true,
+   "note": "Tried on MSFS 2024 (the sim's own value read back): a switch with two positions, 0 and 1."
   },
   {
    "panel": "Cabin and ECS",

@@ -19,7 +19,8 @@
 
 namespace lr::mcdu {
 
-enum class PageId { Menu, Clock, System, Cpu, Memory, Gpus, Disks, Media, Keys, Type, Power, Keys2, Comms, Weather, Direct, Progress };
+// DataIndex and Network are pages of the Airbus style only.
+enum class PageId { Menu, Clock, System, Cpu, Memory, Gpus, Disks, Media, Keys, Type, Power, Keys2, Comms, Weather, Direct, Progress, DataIndex, Network };
 
 // What the twelve line select keys do on the page on screen: L1..L6, then R1..R6. An empty label: nothing.
 using SideLabels = std::array<std::string, 12>;
@@ -76,6 +77,7 @@ private:
     void build(Frame& f);
     void buildMenu(Frame& f);
     void buildClock(Frame& f);
+    Color levelColor(int percent) const;  // a load in the colour of its stage
     void buildSystem(Frame& f);
     void buildCpu(Frame& f);
     void buildMemory(Frame& f);
@@ -91,6 +93,34 @@ private:
     void buildDirect(Frame& f);
     void buildProgress(Frame& f);
     void runnerPress(const std::string& text);
+    void sideKey(Key key);
+    void typeKey(Key key);
+    void scrollDisks(bool down);
+    void drawCores(Screen& s) const;
+    std::string netSpeed(double bytes) const;
+
+    // The Airbus style (McduPagesAirbus.cpp): the same function keys, pages laid out like the aircraft's, a scratchpad for typing.
+    void airbusKey(Key key);
+    bool slew(int step);  // through the monitor pages; false: not on one
+    std::function<void()> airportField();
+    void buildAirbus(Frame& f);
+    void buildAMenu(Frame& f);
+    void buildAClock(Frame& f);
+    void buildADataIndex(Frame& f);
+    void buildAStatus(Frame& f);
+    void buildACpu(Frame& f);
+    void buildAMemory(Frame& f);
+    void buildAGpus(Frame& f);
+    void buildADisks(Frame& f);
+    void buildANetwork(Frame& f);
+    void buildAPower(Frame& f);
+    void buildAMedia(Frame& f);
+    void buildAKeys(Frame& f, const char* title, const std::vector<desktop::Shortcut>& list);
+    void buildAType(Frame& f);
+    void buildAComms(Frame& f);
+    void buildAWeather(Frame& f);
+    void buildADirect(Frame& f);
+    void buildAProgress(Frame& f);
     void buildShortcuts(Frame& f, const std::vector<desktop::Shortcut>& list);
     void go(PageId page);
     void say(std::string text) { toast_ = std::move(text); }
@@ -100,11 +130,14 @@ private:
 
     PageActions& actions_;
     PageId page_ = PageId::Menu;
+    bool airbus_ = false;
+    PageId lastPage_ = PageId::DataIndex;  // where DESKTOP in MCDU MENU goes back to (Airbus style)
     std::vector<desktop::Shortcut> shortcuts_, shortcuts2_, comms_;
     bool azerty_ = false;
     std::string look_ = "list", gpuView_ = "both", diskView_ = "switch", diskMount_;
     int gpuIndex_ = 0, refreshSeconds_ = 2;
     bool utc_ = false, h12_ = false, prefsChanged_ = false;
+    desktop::LoadColors loadColors_;
     bool cpuCores_ = false;  // the CPU page shows every core
     SystemSample system_;
     desktop::MediaInfo media_;
