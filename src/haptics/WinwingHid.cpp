@@ -23,6 +23,8 @@ namespace {
 constexpr uint8_t REPORT_ID = 0x02;
 constexpr uint8_t OP_REQUEST_DEVICE_HW = 0x01;
 constexpr uint8_t OP_READ_CFG_DATA = 0x05;
+constexpr uint8_t OP_WRITE_CFG_DATA = 0x06;  // stored settings: one 4-byte word, acknowledged with [06 offset x3] (SimAppPro2's WWTHID.dll)
+constexpr uint32_t CFG_WRITABLE_END = 0x1000;
 constexpr uint8_t OP_SET_LEDX = 0x49;
 constexpr int ECHO_FAMILY_OFFSET = 0x10;  // echoed family = family + 0x10 (0xb9 -> 0xc9, 0xbf -> 0xcf)
 constexpr int BROADCAST_DEVICE = 0x01;
@@ -154,6 +156,64 @@ bool WinwingHidManager::readCfg(Dev& d, int device, int family, uint32_t offset,
         return true;
     }
     return false;
+}
+
+bool WinwingHidManager::writeCfg(Dev& d, int device, int family, uint32_t offset, const uint8_t word[4]) {
+    if (offset % 4 != 0 || offset >= CFG_WRITABLE_END) return false;
+    uint8_t f[FRAME_LEN];
+    const uint8_t args[7] = {static_cast<uint8_t>(offset), static_cast<uint8_t>(offset >> 8), static_cast<uint8_t>(offset >> 16), word[0], word[1], word[2], word[3]};
+    buildFrame(f, device, family, OP_WRITE_CFG_DATA, args, 7);
+    collect(d, -1, 20);  // flush stale replies
+    if (!writeFrame(d, f)) return false;
+    auto acked = [&](const std::vector<uint8_t>& r) {
+        return r.size() >= 10 && r[1] == static_cast<uint8_t>(device) && r[5] == 4 && static_cast<uint32_t>(r[7] | (r[8] << 8) | (r[9] << 16)) == offset;
+    };
+    for (const auto& r : collect(d, OP_WRITE_CFG_DATA, 600, acked))
+        if (acked(r)) return true;
+    return false;
+}
+
+bool WinwingHidManager::saveConfigByte(const std::string& key, int device, int family, uint32_t offset, int byte, uint8_t value,
+                                       const std::function<void(const std::vector<uint8_t>&, uint32_t)>& keepBackup, std::string& error) {
+    std::lock_guard<std::mutex> lock(m_);
+    Dev* d = find(key);
+    std::vector<uint8_t> before;
+    if (!d || d->fd < 0) { error = "Not connected"; return false; }
+    if (offset % 4 != 0 || offset >= CFG_WRITABLE_END || byte < 0 || byte > 3) { error = "Not a stored setting"; return false; }
+    const uint32_t first = offset >= 0x40 ? offset - 0x40 : 0, last = std::min<uint32_t>(offset + 0x40, CFG_WRITABLE_END);
+    auto readSpan = [&](std::vector<uint8_t>& out) {
+        out.clear();
+        for (uint32_t o = first; o < last; o += 4) {
+            uint8_t w[4];
+            if (!readCfg(*d, device, family, o, w)) return false;
+            out.insert(out.end(), w, w + 4);
+        }
+        return true;
+    };
+    if (!readSpan(before)) { error = "No answer"; return false; }
+    if (keepBackup) keepBackup(before, first);  // on disk before the device is touched
+    const size_t at = offset - first;
+    uint8_t original[4], word[4];
+    std::memcpy(original, &before[at], 4);
+    std::memcpy(word, original, 4);
+    word[byte] = value;
+    if (std::memcmp(word, original, 4) == 0) return true;  // already stored
+    if (!writeCfg(*d, device, family, offset, word)) {
+        error = "Not acknowledged";
+        LOG_WARN("Winwing %s: save 0x%02x/0x%02x @0x%03x not acknowledged", d->info.name.c_str(), device, family, offset);
+        return false;
+    }
+    std::vector<uint8_t> after;
+    bool good = readSpan(after) && after.size() == before.size();
+    for (size_t i = 0; good && i < after.size(); ++i) good = after[i] == (i == at + static_cast<size_t>(byte) ? value : before[i]);
+    if (!good) {  // something else changed, or the byte did not: put the original word back
+        writeCfg(*d, device, family, offset, original);
+        error = "Read-back differs: restored";
+        LOG_WARN("Winwing %s: save 0x%02x/0x%02x @0x%03x byte %d: read-back differs, original word written back", d->info.name.c_str(), device, family, offset, byte);
+        return false;
+    }
+    LOG_INFO("Winwing %s: saved 0x%02x/0x%02x @0x%03x byte %d = %u (read back, only that byte changed)", d->info.name.c_str(), device, family, offset, byte, value);
+    return true;
 }
 
 std::vector<ControllerInfo> WinwingHidManager::discoverLocked(Dev& d) {

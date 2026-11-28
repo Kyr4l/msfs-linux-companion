@@ -338,11 +338,6 @@ void Ui::drawHomeTab() {
         items.push_back({kRed, std::to_string(twice.size()) + (twice.size() == 1 ? " button bound twice" : " buttons bound twice"),
                          "your MSFS control profile \"" + twice[0].msfsProfile + "\" also uses button" + (twice.size() == 1 ? " " : "s ") + which, "Show", 3, "twice"});
     }
-    int untried = 0;
-    for (const auto& b : p.bindings) if (b.enabled && !bindingChecked(b)) ++untried;
-    if (untried > 0)
-        items.push_back({kYellow, std::to_string(untried) + (untried == 1 ? " binding not tried on this aircraft" : " bindings not tried on this aircraft"),
-                         "they were not marked as checked in the sim yet", "List", 3, "untried"});
     for (const auto& b : p.bindings)
         if (b.cutoffMode == ZoneMode::Reverse && bindingChecked(b)) {
             items.push_back({kGreen, "Reverse in the cut-off is ready", "\"" + b.label + "\" and its pair, from a checked recipe", "Open", 3, "reverse"});

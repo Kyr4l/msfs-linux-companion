@@ -154,11 +154,19 @@ void PageHost::airbusKey(Key key) {
         return;
     }
     if (key == Key::LeftArrow || key == Key::RightArrow) {
+        if (page_ == PageId::Media) {  // one page per player
+            actions_.media(key == Key::RightArrow ? desktop::MediaCommand::NextPlayer : desktop::MediaCommand::PrevPlayer);
+            return;
+        }
         if (!slew(key == Key::RightArrow ? 1 : -1) && page_ == PageId::Type) typeKey(key);
         return;
     }
     if (key == Key::UpArrow || key == Key::DownArrow) {
-        if (page_ == PageId::Media) actions_.tapKeys({key == Key::UpArrow ? KEY_VOLUMEUP : KEY_VOLUMEDOWN});
+        if (page_ == PageId::Media) {  // the player's program, or the PC (R1)
+            const bool up = key == Key::UpArrow, pc = volumeAll_ || !media_.present;
+            using C = desktop::MediaCommand;
+            actions_.media(pc ? (up ? C::PcVolumeUp : C::PcVolumeDown) : (up ? C::AppVolumeUp : C::AppVolumeDown));
+        }
         else if (page_ == PageId::Disks) scrollDisks(key == Key::DownArrow);
         else if (page_ == PageId::Type) typeKey(key);
         return;
@@ -543,11 +551,12 @@ void PageHost::buildAPower(Frame& f) {
         if (g.fanRpm >= 0) s.put(row + 1, 1, "FAN " + std::to_string(g.fanRpm) + "RPM", Color::White, true);
         else if (g.fanPercent >= 0) s.put(row + 1, 1, "FAN " + std::to_string(g.fanPercent) + "%", Color::White, true);
     }
-    // every other temperature, small, two to a row
+    // every other temperature, small, two to a row; row 11 is the REFRESH label, row 12 its line
     row += 2;
-    if (!system_.sensors.empty() && row <= 10) {
+    constexpr int kLastSensorRow = 10;
+    if (!system_.sensors.empty() && row < kLastSensorRow) {
         s.put(row, 1, "SENSORS", Color::White, true);
-        for (size_t i = 0; i < system_.sensors.size() && row + 1 + static_cast<int>(i / 2) <= 11; ++i) {
+        for (size_t i = 0; i < system_.sensors.size() && row + 1 + static_cast<int>(i / 2) <= kLastSensorRow; ++i) {
             const SensorSample& t = system_.sensors[i];
             const int r = row + 1 + static_cast<int>(i / 2), col = i % 2 ? 13 : 0;
             const Color c = t.tempC >= 85 ? Color::Red : t.tempC >= 70 ? Color::Amber : Color::Green;
@@ -564,16 +573,39 @@ void PageHost::buildAPower(Frame& f) {
 
 void PageHost::buildAMedia(Frame& f) {
     Screen& s = f.screen;
+    // what ↑ ↓ and MUTE act on: the player's program (APP) or the PC's output (ALL); without a player, the PC
+    const bool pc = volumeAll_ || !media_.present;
+    const int volume = pc ? media_.pcVolume : media_.appVolume;
+    const std::string level = volume >= 0 ? std::to_string(volume) + "%" : std::string("---");
     if (!media_.present) {
         s.putCentered(0, "MEDIA");
         s.putCentered(6, "NO PLAYER", Color::Amber);
+        s.put(1, 24 - static_cast<int>(level.size()) - 7, "VOLUME", Color::White, true);
+        s.putRight(1, level, Color::Green, true);
     } else {
-        s.put(0, 5, "MEDIA");
-        s.put(0, 11, media_.playing ? "PLAYING" : "PAUSED", Color::Green);
-        label(s, 1, "PLAYER", "VOLUME");
-        s.put(2, 0, fit(upper(media_.player), 21), Color::Cyan);  // up to the ↑↓ on the right
-        f.side(0, "Player", [this] { actions_.media(desktop::MediaCommand::NextPlayer); });
-        s.putRight(2, kUpDown);
+        s.put(0, 1, "MEDIA");
+        s.put(0, 7, media_.playing ? "PLAYING" : "PAUSED", Color::Green);
+        if (media_.players > 1) {  // one page per player, ← → between them, as the aircraft's lateral pages
+            const std::string pageOf = std::to_string(std::max(media_.page, 1)) + "/" + std::to_string(media_.players);
+            s.put(0, 21 - static_cast<int>(pageOf.size()), pageOf);
+            s.putRight(0, kSlew);
+        }
+        label(s, 1, "PLAYER");
+        s.put(1, 24 - static_cast<int>(level.size()) - 7, "VOLUME", Color::White, true);
+        s.putRight(1, level, Color::Green, true);
+        s.put(2, 0, fit(upper(media_.player), 16), Color::Green);
+        // APP/ALL: the chosen one large and green, the other small and cyan
+        if (pc) {
+            s.put(2, 17, "APP/", Color::Cyan, true);
+            s.put(2, 21, "ALL", Color::Green);
+        } else {
+            s.put(2, 17, "APP", Color::Green);
+            s.put(2, 20, "/ALL", Color::Cyan, true);
+        }
+        f.side(6, pc ? "Volume: PC" : "Volume: app", [this] {
+            volumeAll_ = !volumeAll_;
+            prefsChanged_ = true;
+        });
         label(s, 2, "TRACK");
         s.put(4, 0, fit(upper(media_.title), 24), Color::Green);
         label(s, 3, "ARTIST");
@@ -599,8 +631,9 @@ void PageHost::buildAMedia(Frame& f) {
             f.side(11, "Next", [this] { actions_.media(desktop::MediaCommand::Next); say("NEXT"); });
         }
     }
-    s.putRight(10, "MUTE>", Color::Cyan);
-    f.side(10, "Mute", [this] { actions_.tapKeys({KEY_MUTE}); say("MUTE"); });
+    const bool muted = pc || media_.appVolume < 0 ? media_.pcMuted : media_.muted;  // a player with no sound: MUTE falls back to the PC
+    s.putRight(10, muted ? "UNMUTE>" : "MUTE>", muted ? Color::Amber : Color::Cyan);
+    f.side(10, muted ? "Unmute" : "Mute", [this, pc] { actions_.media(pc ? desktop::MediaCommand::PcMute : desktop::MediaCommand::Mute); });
 }
 
 void PageHost::buildAKeys(Frame& f, const char* title, const std::vector<desktop::Shortcut>& list) {

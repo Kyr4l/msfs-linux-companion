@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Kyr4l
-// Lights: the colours stored in a device, drawn on a picture of it (data/*_lights.json). Read only: nothing is written to the device.
+// Lights: the colours stored in a device, drawn on a picture of it (data/*_lights.json), the settings it stores, and live brightness.
+// Stored values are read with opcode 0x05; a live level is the light command only (SET_LEDX, opcode 0x49), which the device forgets
+// when unplugged. Only a setting marked "save" in the device file is ever written, through WinwingHidManager::saveConfigByte (a
+// backup of the words around it is kept first, and the read-back must show only that byte changed).
 #include "ui/Ui.hpp"
 #include "ui/UiCommon.hpp"
 #include "ui/Theme.hpp"
@@ -8,6 +11,11 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
+#include <ctime>
+#include <filesystem>
+#include <fstream>
+
+#include "app/Paths.hpp"
 
 #include <imgui.h>
 
@@ -37,6 +45,15 @@ void Ui::drawLightsTab() {
         return;
     }
     if (lightsReading_.valid() && lightsReading_.wait_for(std::chrono::seconds(0)) == std::future_status::ready) lightsRead_ = lightsReading_.get();
+    // a save finished (for whichever device it was): its result, and that device read again; edits on screen belong to the device shown
+    if (lightSaving_.valid() && lightSaving_.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+        const std::string err = lightSaving_.get();
+        if (lightSaveKey_ == lightLevelsKey_) {
+            lightSaveResult_ = err.empty() ? "Saved" : err;
+            if (err.empty()) std::fill(lightPending_.begin(), lightPending_.end(), -1);
+        }
+        if (lightsRead_ && lightsRead_->key == lightSaveKey_) lightsRead_.reset();
+    }
     bool reading = lightsReading_.valid();
 
     // the devices that have a light file, plugged in or not
@@ -69,15 +86,25 @@ void Ui::drawLightsTab() {
                 }
                 r.states.push_back(decodeLightState(d, bytes));
             }
+            for (const auto& s : d.settings) {
+                std::vector<uint8_t> bytes;
+                const bool ok = w.readConfigBlock(key, s.device, s.family, s.offset, 4, bytes) && bytes.size() == 4;
+                r.settings.push_back(ok ? bytes[static_cast<size_t>(s.byte)] : -1);
+                if (!ok) r.error = "No answer";
+            }
             return r;
         });
     };
     if (present && supported && !reading && (!lightsRead_ || lightsRead_->key != key)) startRead();  // the first look reads it
 
-    ImGui::SameLine(ImGui::GetContentRegionAvail().x + ImGui::GetCursorPosX() - ImGui::CalcTextSize("Refresh").x - ImGui::GetStyle().FramePadding.x * 2 -
-                    ImGui::CalcTextSize("Read only").x - ImGui::GetStyle().ItemSpacing.x * 2);
-    ImGui::TextColored(kYellow, "Read only");
-    ImGui::SameLine();
+    // "Read only" for a device nothing can be changed on; Refresh at the right edge
+    const bool editable = !dev.levels.empty() || std::any_of(dev.settings.begin(), dev.settings.end(), [](const LightSetting& s) { return s.save; });
+    const float noteW = editable ? 0.f : ImGui::CalcTextSize("Read only").x + ImGui::GetStyle().ItemSpacing.x;
+    ImGui::SameLine(ImGui::GetContentRegionAvail().x + ImGui::GetCursorPosX() - ImGui::CalcTextSize("Refresh").x - ImGui::GetStyle().FramePadding.x * 2 - noteW);
+    if (!editable) {
+        ImGui::TextColored(kYellow, "Read only");
+        ImGui::SameLine();
+    }
     ImGui::BeginDisabled(!present || !supported || reading);
     if (ImGui::Button("Refresh")) startRead();
     ImGui::EndDisabled();
@@ -86,6 +113,11 @@ void Ui::drawLightsTab() {
     else if (!present) ImGui::TextDisabled("Not connected");
     else if (reading) ImGui::TextDisabled("Reading");
     else if (lightsRead_ && !lightsRead_->error.empty()) ImGui::TextColored(kYellow, "%s", lightsRead_->error.c_str());
+
+    if (dev.states.empty() || dev.leds.empty()) {  // a device with settings only (no stored colours)
+        drawLightSettings(dev, key, present && supported);
+        return;
+    }
 
     // the lighting states
     lightState_ = std::min(lightState_, dev.states.size() - 1);
@@ -187,6 +219,156 @@ void Ui::drawLightsTab() {
         ImGui::Text("%d%%", c->level * 100 / 255);
     }
     ImGui::EndChild();
+    drawLightSettings(dev, key, present && supported);
+}
+
+// Saves every changed setting to the device, one after another, off the UI thread: for each, the words around it are kept as a
+// backup file first and the read-back must show only that byte changed (WinwingHidManager::saveConfigByte). Stops at the first problem.
+void Ui::startLightSave(const std::string& key, const std::vector<std::pair<LightSetting, int>>& changes) {
+    if (lightSaving_.valid() || changes.empty()) return;
+    lightSaveResult_.clear();
+    lightSaveKey_ = key;
+    lightSaving_ = std::async(std::launch::async, [&w = ctx_.winwing, key, changes]() -> std::string {
+        namespace fs = std::filesystem;
+        const fs::path dir = fs::path(stateDir()) / "winwing-backups";
+        std::error_code ec;
+        fs::create_directories(dir, ec);
+        for (const auto& [s, value] : changes) {
+            if (!s.save) continue;
+            std::string error;
+            auto keep = [&](const std::vector<uint8_t>& words, uint32_t from) {  // the backup, written before the device is touched
+                char name[96];
+                const std::time_t now = std::time(nullptr);
+                std::tm tm{};
+                localtime_r(&now, &tm);
+                snprintf(name, sizeof name, "%s_%02x%02x_%03x_%04d%02d%02d-%02d%02d%02d.bin", key.substr(key.find(':') + 1).c_str(), s.device, s.family, from,
+                         tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+                std::ofstream f(dir / name, std::ios::binary);
+                f.write(reinterpret_cast<const char*>(words.data()), static_cast<std::streamsize>(words.size()));
+                f.flush();
+            };
+            if (!w.saveConfigByte(key, s.device, s.family, s.offset, s.byte, static_cast<uint8_t>(value), keep, error)) return s.name + ": " + error;
+        }
+        std::vector<fs::path> files;  // the newest 20 backups are kept
+        for (const auto& e : fs::directory_iterator(dir, ec))
+            if (e.path().extension() == ".bin") files.push_back(e.path());
+        std::sort(files.begin(), files.end());
+        for (size_t i = 0; i + 20 < files.size(); ++i) fs::remove(files[i], ec);
+        return {};
+    });
+}
+
+// The settings the device stores, each with its usual control: change them (a level is shown live on the device), the changed ones
+// are marked, and Save writes them all; Discard puts them back.
+void Ui::drawLightSettings(const LightDevice& dev, const std::string& key, bool usable) {
+    if (dev.settings.empty() && dev.levels.empty()) return;
+    if (lightLevelsKey_ != key) {  // another device: its own edits
+        lightLevelsKey_ = key;
+        lightLevels_.assign(dev.levels.size(), {});
+        lightPending_.assign(dev.settings.size(), -1);
+        lightSaveResult_.clear();
+    }
+    lightLevels_.resize(dev.levels.size());
+    lightPending_.resize(dev.settings.size(), -1);
+    if (lightLevelSending_.valid() && lightLevelSending_.wait_for(std::chrono::seconds(0)) == std::future_status::ready) lightLevelSending_.get();
+
+    const bool readHere = lightsRead_ && lightsRead_->key == key;
+    const bool saving = lightSaving_.valid();
+    auto storedAt = [&](size_t i) { return readHere && i < lightsRead_->settings.size() ? lightsRead_->settings[i] : -1; };
+    auto levelFor = [&](const std::string& name) -> int {
+        for (size_t l = 0; l < dev.levels.size(); ++l)
+            if (dev.levels[l].setting == name) return static_cast<int>(l);
+        return -1;
+    };
+    auto percentOf = [](int v) { return (v * 100 + 127) / 255; };
+    auto valueOf = [](int pct) { return (pct * 255 + 50) / 100; };  // as SimAppPro: 0..100 % to 0..255
+    // a level is sent live: one light command at a time, the latest value wins
+    auto sendLive = [&](size_t l, int value) {
+        if (!usable || l >= dev.levels.size()) return;
+        lightLevels_[l].percent = value;  // here: the 0..255 value to send
+        if (!lightLevelSending_.valid() && lightLevels_[l].sent != value) {
+            lightLevels_[l].sent = value;
+            const LightLevel lv = dev.levels[l];
+            lightLevelSending_ = std::async(std::launch::async, [&w = ctx_.winwing, key, lv, value] { w.setLevel(key, lv.device, lv.family, lv.index, value); });
+        }
+    };
+    for (size_t l = 0; l < dev.levels.size(); ++l)  // a value that could not go out yet (one was on its way)
+        if (lightLevels_[l].percent >= 0 && lightLevels_[l].percent != lightLevels_[l].sent) sendLive(l, lightLevels_[l].percent);
+
+    ImGui::SeparatorText("Settings");
+    bool anyChanged = false;
+    for (size_t i = 0; i < dev.settings.size(); ++i) {
+        const LightSetting& set = dev.settings[i];
+        const int stored = storedAt(i);
+        int& pending = lightPending_[i];
+        if (pending >= 0 && pending == stored) pending = -1;  // set back to what the device has
+        const bool changed = pending >= 0;
+        anyChanged = anyChanged || changed;
+        const int shown = changed ? pending : stored;
+        ImGui::PushID(static_cast<int>(i));
+        if (changed) dot(kYellow);
+        fieldLabel(set.name.c_str());
+        const bool editable = set.save && usable && !saving && stored >= 0;
+        if (set.kind == "percent" && set.save) {
+            int pct = shown >= 0 ? percentOf(shown) : 0;
+            ImGui::SetNextItemWidth(ImGui::GetFontSize() * 14);
+            ImGui::BeginDisabled(!editable);
+            if (ImGui::SliderInt("##v", &pct, 0, 100, shown < 0 ? "--" : "%d%%")) {
+                pending = valueOf(pct);
+                if (const int l = levelFor(set.name); l >= 0) sendLive(static_cast<size_t>(l), pending);
+            }
+            ImGui::EndDisabled();
+        } else if ((set.kind == "on_off" || set.kind == "off_on") && set.save) {
+            bool on = shown >= 0 && (set.kind == "on_off" ? shown != 0 : shown == 0);
+            ImGui::BeginDisabled(!editable);
+            if (toggleSwitch(shown < 0 ? "--" : on ? "On" : "Off", &on)) pending = set.kind == "on_off" ? (on ? 1 : 0) : (on ? 0 : 1);
+            ImGui::EndDisabled();
+        } else {
+            ImGui::TextUnformatted(shown < 0 ? "--" : describeLightSetting(set, shown).c_str());
+        }
+        ImGui::PopID();
+    }
+    // a light that is set live only (no stored setting behind it)
+    for (size_t l = 0; l < dev.levels.size(); ++l) {
+        const LightLevel& lv = dev.levels[l];
+        if (!lv.setting.empty()) continue;
+        ImGui::PushID(static_cast<int>(1000 + l));
+        fieldLabel(lv.name.c_str());
+        int pct = lightLevels_[l].percent >= 0 ? percentOf(lightLevels_[l].percent) : 0;
+        ImGui::SetNextItemWidth(ImGui::GetFontSize() * 14);
+        ImGui::BeginDisabled(!usable);
+        if (ImGui::SliderInt("##live", &pct, 0, 100, "%d%%")) sendLive(l, valueOf(pct));
+        ImGui::EndDisabled();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Not saved: lasts until the device is unplugged");
+        ImGui::PopID();
+    }
+
+    const bool savable = std::any_of(dev.settings.begin(), dev.settings.end(), [](const LightSetting& c) { return c.save; });
+    if (!savable) return;
+    const float fs = ImGui::GetFontSize();
+    ImGui::BeginDisabled(!anyChanged || saving || !usable);
+    if (ImGui::Button("Save", ImVec2(fs * 9, 0))) {
+        std::vector<std::pair<LightSetting, int>> changes;
+        for (size_t i = 0; i < dev.settings.size(); ++i)
+            if (lightPending_[i] >= 0 && dev.settings[i].save) changes.push_back({dev.settings[i], lightPending_[i]});
+        startLightSave(key, changes);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Discard", ImVec2(fs * 9, 0))) {
+        for (size_t i = 0; i < dev.settings.size(); ++i) {
+            if (lightPending_[i] < 0) continue;
+            const int l = levelFor(dev.settings[i].name), stored = storedAt(i);
+            if (l >= 0 && stored >= 0) sendLive(static_cast<size_t>(l), stored);  // the light back as the device has it
+            lightPending_[i] = -1;
+        }
+    }
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    if (saving) ImGui::TextDisabled("Saving");
+    else if (!lightSaveResult_.empty()) {
+        if (lightSaveResult_ == "Saved") ImGui::TextDisabled("Saved");
+        else ImGui::TextColored(kYellow, "%s", lightSaveResult_.c_str());
+    }
 }
 
 }  // namespace lr::app

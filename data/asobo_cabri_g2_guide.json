@@ -386,6 +386,49 @@
       }
      ],
      "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): AIRCRAFT.TOOLTIPS.TITLE.ENGINE_MASTER"
+    },
+    {
+     "text": "Open the fuel valve.",
+     "why": "Its value 0 is OPEN and 1 is CLOSED.",
+     "controls": [
+      {
+       "api": "FUEL_VALVE"
+      }
+     ],
+     "check": {
+      "code": "(A:FUELSYSTEM VALVE OPEN:1, percent)",
+      "op": ">=",
+      "value": 99
+     },
+     "source": "Checked on the Cabri G2 in MSFS 2024 (2026-11-26): cold and dark it has the fuel valve closed and the mixture at cut-off; the engine was started with the valve open, the mixture rich and the fuel pump on."
+    },
+    {
+     "text": "Set the mixture to rich.",
+     "controls": [
+      {
+       "api": "ENGINE_MIXTURE"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG MIXTURE LEVER POSITION:1, percent)",
+      "op": ">=",
+      "value": 99
+     },
+     "source": "Checked on the Cabri G2 in MSFS 2024 (2026-11-26): cold and dark it has the fuel valve closed and the mixture at cut-off; the engine was started with the valve open, the mixture rich and the fuel pump on."
+    },
+    {
+     "text": "Switch the fuel pump on.",
+     "controls": [
+      {
+       "api": "FUEL_PUMP"
+      }
+     ],
+     "check": {
+      "code": "(A:FUELSYSTEM PUMP ACTIVE:1, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "source": "Checked on the Cabri G2 in MSFS 2024 (2026-11-26): cold and dark it has the fuel valve closed and the mixture at cut-off; the engine was started with the valve open, the mixture rich and the fuel pump on."
     }
    ],
    "next": "es_start"
@@ -430,7 +473,7 @@
      "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.INJECTIONS_COLLECTIVE"
     },
     {
-     "text": "Press the starter button. The STARTER light must light on, then back off.",
+     "text": "Hold the starter button until the engine runs (about 2 seconds). The STARTER light must light on, then back off.",
      "controls": [
       {
        "api": "ENGINE_STARTER"
@@ -448,7 +491,8 @@
        "code": "(A:GENERAL ENG RPM:1, rpm)"
       }
      ],
-     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.PRESS_STARTER_BUTTON_STARTER_LIGHT_ON_THEN_BACK_OFF"
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.PRESS_STARTER_BUTTON_STARTER_LIGHT_ON_THEN_BACK_OFF",
+     "why": "A short press does not start the engine: the button has to stay pressed (checked live 2026-11-26). The clutch must be released, or the starter only turns the rotor."
     },
     {
      "text": "The oil pressure annunciator must light off within 30 seconds of starting.",
@@ -536,7 +580,8 @@
       "op": "==",
       "value": 1
      },
-     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.ENGAGE_CLUTCH_AND_LOCK_SWITCH_CLUTCH_LIGHT_ON"
+     "source": "Cabri G2 language file (fs24-asobo-aircraft-cabri-g2, en-us.locpak): CHECKLIST.CLUE.ENGAGE_CLUTCH_AND_LOCK_SWITCH_CLUTCH_LIGHT_ON",
+     "why": "Engaging the clutch with the throttle closed stalled the engine (checked live 2026-11-26): keep the engine at about 2000 RPM, as set above."
     },
     {
      "text": "Wait for the CLUTCH light to light off.",

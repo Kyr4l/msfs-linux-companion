@@ -2,6 +2,8 @@
 // Copyright (C) 2026 Kyr4l
 #include "mcdu/McduService.hpp"
 
+#include "mcdu/ScreenReader.hpp"
+
 #include <algorithm>
 #include <cerrno>
 #include <cmath>
@@ -9,6 +11,7 @@
 #include <ctime>
 #include <fstream>
 #include <sstream>
+#include <utility>
 
 #include <fcntl.h>
 #include <poll.h>
@@ -34,6 +37,7 @@ constexpr auto kMediaInterval = std::chrono::milliseconds(1500);
 constexpr int kBrightnessStep = 10;
 constexpr int kAvionicsRefreshMs = 250;  // the avionics pages follow the sim's values
 constexpr auto kRepeatDelay = std::chrono::milliseconds(500), kRepeatEvery = std::chrono::milliseconds(150);  // BRT / DIM held
+constexpr auto kClrLong = std::chrono::milliseconds(1000);  // the CJ4's FMC: CLR held this long clears the scratchpad (checked 2026-11-26)
 constexpr size_t kMaxQueuedKeys = 32;
 constexpr int kReadCoalesceMs = 25;  // the light sensors report all the time: reports are read in small batches, not one wake-up each
 
@@ -90,6 +94,11 @@ void McduService::setPanelOpen(bool open) {
         std::lock_guard<std::mutex> lock(m_);
         if (panelOpen_ == open) return;
         panelOpen_ = open;
+        if (!open) {  // binding belongs to the page: a key pressed later must reach the aircraft
+            binding_ = false;
+            boundKey_ = 0;
+            status_.bindingKey = false;
+        }
     }
     updateThread();
 }
@@ -100,6 +109,33 @@ void McduService::pressKey(Key key) {
         if (queuedKeys_.size() < kMaxQueuedKeys) queuedKeys_.push_back(key);
     }
     wake();
+}
+
+void McduService::bindKey(bool on) {
+    std::lock_guard<std::mutex> lock(m_);
+    binding_ = on;
+    boundKey_ = 0;
+    bindingSince_ = Clock::now();
+    status_.bindingKey = on;
+}
+
+int McduService::takeBoundKey() {
+    std::lock_guard<std::mutex> lock(m_);
+    return std::exchange(boundKey_, 0);
+}
+
+bool McduService::tryBind(Key key) {
+    if (key == Key::Brt || key == Key::Dim) return false;
+    std::lock_guard<std::mutex> lock(m_);
+    if (binding_ && Clock::now() - bindingSince_ > kBindTimeout) {  // nobody pressed a key: the next one acts as always
+        binding_ = false;
+        status_.bindingKey = false;
+    }
+    if (!binding_) return false;
+    binding_ = false;
+    status_.bindingKey = false;
+    boundKey_ = static_cast<int>(key) + 1;
+    return true;
 }
 
 Screen McduService::screen() const {
@@ -123,6 +159,7 @@ bool McduService::applyRuntimePrefs(desktop::McduConfig& cfg) {
     cfg.refreshSeconds = runtimePrefs_.refreshSeconds;
     cfg.clockUtc = runtimePrefs_.clockUtc;
     cfg.clock12h = runtimePrefs_.clock12h;
+    cfg.mediaVolumeAll = runtimePrefs_.mediaVolumeAll;
     cfg.homeAirport = runtimePrefs_.homeAirport;
     cfg.netBits = runtimePrefs_.netBits;
     cfg_ = cfg;
@@ -155,7 +192,7 @@ void McduService::stop() {
     running_ = false;
     wake();
     if (thread_.joinable()) thread_.join();
-    mirror_.setWanted(false);  // before the wake-up descriptor goes: the mirror's thread uses it
+    mirror_.setWanted(nullptr);  // before the wake-up descriptor goes: the mirror's thread uses it
 }
 
 void McduService::tapKeys(const std::vector<int>& keys) {
@@ -163,6 +200,26 @@ void McduService::tapKeys(const std::vector<int>& keys) {
 }
 
 void McduService::media(desktop::MediaCommand command) {
+    using C = desktop::MediaCommand;
+    const std::vector<std::string> names{media_.app, media_.player};
+    constexpr int kStep = 5;  // percent per press
+    bool sound = true;
+    switch (command) {  // the sound server: the player's program, or the PC's output
+        case C::Mute:  // the player's program; a player that makes no sound (or none at all): the PC
+            if (!media_.present || !audioControl_.toggleAppMuted(names)) audioControl_.togglePcMute();
+            break;
+        case C::AppVolumeUp: audioControl_.stepAppVolume(names, kStep); break;
+        case C::AppVolumeDown: audioControl_.stepAppVolume(names, -kStep); break;
+        case C::PcVolumeUp: audioControl_.stepPcVolume(kStep); break;
+        case C::PcVolumeDown: audioControl_.stepPcVolume(-kStep); break;
+        case C::PcMute: audioControl_.togglePcMute(); break;
+        default: sound = false; break;
+    }
+    if (sound) {
+        nextMediaMute_ = Clock::time_point{};  // read the new levels at once
+        nextMedia_ = Clock::time_point{};
+        return;
+    }
     mediaControl_.command(command);
     nextMedia_ = Clock::time_point{};  // the page shows the new state at once
 }
@@ -282,9 +339,18 @@ void McduService::readDevice() {
         InputState s;
         if (!parseInputReport(buf, static_cast<size_t>(n), s)) continue;
         // every report is looked at: a key pressed and let go within one batch still counts
-        const KeyBits pressed = s.keys & ~previous;
-        for (int k = 0; k < kKeyCount; ++k)
-            if (pressed.test(static_cast<size_t>(k))) handleKey(static_cast<Key>(k));
+        const KeyBits pressed = s.keys & ~previous, released = previous & ~s.keys;
+        for (int k = 0; k < kKeyCount; ++k) {
+            const Key key = static_cast<Key>(k);
+            if (pressed.test(static_cast<size_t>(k)) && tryBind(key)) continue;
+            if (activeSim_.active && switch_.is(key) && !sleeping_) {  // the switch key exists only while MSFS runs
+                if (pressed.test(static_cast<size_t>(k)) && switch_.down(Clock::now()) == SwitchKey::Action::Toggle) toggleDesktop();
+                // let go before it switched: an ordinary press (MCDU MENU stays the aircraft's; a blank key does nothing)
+                if (released.test(static_cast<size_t>(k)) && switch_.up() == SwitchKey::Action::Press) handleKey(key);
+                continue;
+            }
+            if (pressed.test(static_cast<size_t>(k))) handleKey(key);
+        }
         previous = s.keys;
         input = s;
         got = true;
@@ -296,6 +362,20 @@ void McduService::readDevice() {
     // unit with firmware 1.09): a logarithmic scale, as the eye judges light, keeps ordinary rooms off the bottom of it.
     const double raw = (input.lightLeft + input.lightRight) / 2.0;
     ambient_ = static_cast<int>(std::lround(100.0 * std::log1p(std::max(raw, 0.0)) / std::log1p(4095.0)));
+}
+
+void McduService::toggleDesktop() {
+    if (!activeSim_.active) return;
+    desktopInSim_ = !desktopInSim_;
+    LOG_INFO("MCDU: %s", desktopInSim_ ? "desktop pages while MSFS runs" : "back to the aircraft");
+    if (!desktopInSim_) {  // what the desktop pages used is let go again
+        mediaControl_.close();
+        systemInfo_.release();
+        mediaShown_ = false;
+    }
+    sleeping_ = false;
+    lastKey_ = Clock::now();
+    nextRefresh_ = Clock::time_point{};
 }
 
 void McduService::handleKey(Key key) {
@@ -318,7 +398,7 @@ void McduService::handleKey(Key key) {
         nextRefresh_ = Clock::time_point{};
         return;
     }
-    if (activeSim_.active) {
+    if (simOwns()) {
         if (activeSim_.iniBuildsKeys) {
             uint16_t product;
             {
@@ -327,6 +407,18 @@ void McduService::handleKey(Key key) {
             }
             const std::string code = iniBuildsKeyCode(key, product);
             if (!code.empty() && hooks_.fireCode) hooks_.fireCode(code);
+            mirror_.boost();
+            return;
+        }
+        if (activeSim_.wt21) {
+            uint16_t product;
+            {
+                std::lock_guard<std::mutex> lock(m_);
+                product = productId_;
+            }
+            const std::string event = wt21KeyEvent(key, product);
+            if (!event.empty() && hooks_.fireHEvent) hooks_.fireHEvent(event);
+            if (key == Key::Clr) clrLongAt_ = Clock::now() + kClrLong;  // held on: run() clears the whole scratchpad
             mirror_.boost();
             return;
         }
@@ -342,7 +434,7 @@ void McduService::handleKey(Key key) {
 }
 
 bool McduService::avionicsMode() const {
-    return activeSim_.active && !activeSim_.aircraft.empty() && !activeSim_.simBridge && !activeSim_.iniBuildsKeys && activeSim_.hEventPrefix.empty();
+    return simOwns() && !activeSim_.aircraft.empty() && !activeSim_.simBridge && !activeSim_.iniBuildsKeys && !activeSim_.wt21 && activeSim_.hEventPrefix.empty();
 }
 
 void McduService::applyLights(bool force) {
@@ -364,8 +456,8 @@ void McduService::applyLights(bool force) {
         lastLevels_[i] = levels[i];
     }
     LampState lamps{};
-    if (activeSim_.active && link_.hasScreen()) lamps = link_.lamps();  // otherwise every lamp stays off: only an aircraft lights them
-    else if (activeSim_.active && activeSim_.hasLamps) lamps = activeSim_.lamps;
+    if (simOwns() && link_.hasScreen()) lamps = link_.lamps();  // otherwise every lamp stays off: only an aircraft lights them
+    else if (simOwns() && activeSim_.hasLamps) lamps = activeSim_.lamps;
     if (force || !lampsValid_ || lamps != lastLamps_) {
         for (size_t i = 0; i < kLamps.size(); ++i) {
             const auto report = encodeLight(kLamps[i], lamps[i] ? 1 : 0);
@@ -388,20 +480,31 @@ void McduService::renderScreen(Clock::time_point now) {
     Screen next;
     if (sleeping_) {
         next.clear();
-    } else if (activeSim_.active) {
+    } else if (simOwns()) {
         mirrorShown_ = false;
         if (link_.hasScreen()) next = link_.screen();
-        else if (activeSim_.iniBuildsKeys && mirror_.screen(next)) mirrorShown_ = true;
-        else if (avionicsMode()) avionics_.render(next, [this](const std::string& code) { return hooks_.readCode ? hooks_.readCode(code) : std::nullopt; });
-        else {
+        else if ((activeSim_.iniBuildsKeys || activeSim_.wt21) && mirror_.screen(next)) mirrorShown_ = true;
+        else if (avionicsMode()) {
+            // the waypoint names only while F-PLN is on screen (a SimConnect request once a second)
+            const bool fpln = avionics_.page() == AvionicsPage::Fpln;
+            if (fpln != waypointsWanted_ && hooks_.wantWaypoints) {
+                waypointsWanted_ = fpln;
+                hooks_.wantWaypoints(fpln);
+            }
+            if (fpln && hooks_.readWaypoints) {
+                const auto [prev, nextWp] = hooks_.readWaypoints();
+                avionics_.setWaypoints(prev, nextWp);
+            }
+            avionics_.render(next, [this](const std::string& code) { return hooks_.readCode ? hooks_.readCode(code) : std::nullopt; });
+        } else {
             next.putCentered(0, "MSFS");
             next.putCentered(4, activeSim_.aircraft.empty() ? "NO AIRCRAFT" : activeSim_.aircraft, Color::Green);
             if (activeSim_.simBridge) next.putCentered(7, link_.connected() ? "WAITING FOR AIRCRAFT" : "WAITING FOR SIMBRIDGE", Color::Amber);
-            else next.putCentered(7, activeSim_.hEventPrefix.empty() && !activeSim_.iniBuildsKeys ? "NO MCDU DATA" : "KEYS ONLY", Color::Amber);
-            if (activeSim_.iniBuildsKeys) {
+            else next.putCentered(7, activeSim_.hEventPrefix.empty() && !activeSim_.iniBuildsKeys && !activeSim_.wt21 ? "NO MCDU DATA" : "KEYS ONLY", Color::Amber);
+            if (activeSim_.iniBuildsKeys || activeSim_.wt21) {
                 const std::string hint = mirror_.hint();
                 next.putCentered(9, hint.empty() ? "READING THE SCREEN" : hint, Color::White, true);
-                if (hint == "POP OUT THE MCDU") next.putCentered(10, "RIGHT ALT + CLICK IT", Color::White, true);
+                if (hint.rfind("POP OUT THE ", 0) == 0) next.putCentered(10, "RIGHT ALT + CLICK IT", Color::White, true);
                 if (hint == "POP-OUT TOO SMALL") next.putCentered(10, "MAKE THE WINDOW BIGGER", Color::White, true);
             }
         }
@@ -425,8 +528,27 @@ void McduService::renderScreen(Clock::time_point now) {
         } else {
             nextAudio_ = Clock::time_point{};
         }
-        if (pages_.page() == PageId::Media && now >= nextMedia_) {
-            pages_.setMedia(mediaControl_.read());
+        const bool mediaPage = pages_.page() == PageId::Media;
+        if (mediaPage && !mediaShown_) mediaControl_.unpin();  // the page opens on the player that is playing
+        mediaShown_ = mediaPage;
+        if (mediaPage && now >= nextMedia_) {
+            media_ = mediaControl_.read();
+            if (now >= nextMediaMute_ || media_.app != mediaSoundApp_) {
+                // pactl calls: every few seconds while the page shows (and at once for another player), not with every read
+                const desktop::StreamSummary app = media_.present ? audioControl_.appSound({media_.app, media_.player}) : desktop::StreamSummary{};
+                mediaMuted_ = app.allMuted;
+                mediaAppVolume_ = app.volume;
+                const desktop::PcSound pc = audioControl_.pcSound();
+                mediaPcVolume_ = pc.volume;
+                mediaPcMuted_ = pc.muted;
+                mediaSoundApp_ = media_.app;
+                nextMediaMute_ = now + std::chrono::seconds(3);
+            }
+            media_.muted = mediaMuted_;
+            media_.appVolume = mediaAppVolume_;
+            media_.pcVolume = mediaPcVolume_;
+            media_.pcMuted = mediaPcMuted_;
+            pages_.setMedia(media_);
             nextMedia_ = now + kMediaInterval;
         } else if (pages_.page() != PageId::Media) {
             mediaControl_.close();
@@ -439,8 +561,8 @@ void McduService::renderScreen(Clock::time_point now) {
     desired_ = next;
     std::lock_guard<std::mutex> lock(m_);
     shown_ = next;
-    status_.sideLabels = sleeping_ || activeSim_.active ? SideLabels{} : pages_.sideLabels();
-    status_.lamps = panelLamps(activeSim_, activeSim_.active, link_);
+    status_.sideLabels = sleeping_ || simOwns() ? SideLabels{} : pages_.sideLabels();
+    status_.lamps = panelLamps(activeSim_, simOwns(), link_);
 }
 
 void McduService::sendScreen(Clock::time_point now) {
@@ -537,25 +659,34 @@ void McduService::run() {
             wanted = wantedPath_;
             keys.swap(queuedKeys_);
             if (cfgChanged_) { active_ = cfg_; cfgChanged_ = false; reconfigure = true; }
-            if (!(activeSim_ == sim_)) { activeSim_ = sim_; simChanged = true; }
-            status_.simMode = activeSim_.active;
-            status_.simScreen = activeSim_.active && (link_.hasScreen() || mirrorShown_ || avionicsMode());
+            if (!(activeSim_ == sim_)) {
+                SimState lampsAside = activeSim_;  // a lamp turning on or off is not another aircraft: it must not wake or reset anything
+                lampsAside.lamps = sim_.lamps;
+                lampsAside.hasLamps = sim_.hasLamps;
+                simChanged = !(lampsAside == sim_);
+                activeSim_ = sim_;
+            }
+            if (!activeSim_.active) desktopInSim_ = false;  // MSFS gone: the desktop has the unit anyway
+            status_.simMode = simOwns();
+            status_.desktopInSim = desktopInSim_;
+            status_.simScreen = simOwns() && (link_.hasScreen() || mirrorShown_ || avionicsMode());
             status_.sleeping = sleeping_;
             status_.ambientPercent = ambient_;
             status_.screenLevelPercent = screenShown_;
         }
         if (reconfigure) {
             pages_.configure(active_);
+            switch_.configure(switchKey(), active_.switchHold);
             avionics_.setTemperatures(active_.avionicsTemp);
             avionics_.setFuelUnit(active_.avionicsFuel);
             applyLights(false);
             nextRefresh_ = Clock::time_point{};
         }
-        progress_.setWanted(!activeSim_.active);  // nothing of this runs next to the simulator
+        progress_.setWanted(!simOwns());  // nothing of this runs next to the simulator, unless the desktop pages were asked for
         progress_.process();
         if (simChanged) {
             link_.setWanted(activeSim_.active && activeSim_.simBridge);
-            if (activeSim_.active) {
+            if (simOwns()) {
                 mediaControl_.close();
                 systemInfo_.release();
             }
@@ -563,20 +694,32 @@ void McduService::run() {
             lastKey_ = now;
             nextRefresh_ = Clock::time_point{};
             avionics_.reset();
-            avionics_.setG3000(activeSim_.g3000);
+            avionics_.setG3000(activeSim_.g3000, activeSim_.g3000Vertical);
+            avionics_.setElectric(activeSim_.g3000Vertical);
+            avionics_.setControlPad(activeSim_.g1000Pad);
         }
         // the avionics pages' values: read only while they can be on screen
         if (avionicsMode() != avionicsWatched_) {
             avionicsWatched_ = avionicsMode();
             if (hooks_.watchCodes) hooks_.watchCodes(avionicsWatched_ ? AvionicsPages::codes() : std::vector<std::string>{});
+            if (!avionicsWatched_ && waypointsWanted_ && hooks_.wantWaypoints) {
+                waypointsWanted_ = false;
+                hooks_.wantWaypoints(false);
+            }
         }
         if (!openPath_.empty() && openPath_ != wanted) closeDevice("unplugged");
         if (fd_ < 0 && !wanted.empty() && now >= retryOpenAt_) openDevice(wanted);
 
-        for (Key k : keys) handleKey(k);
+        for (Key k : keys) {  // the on-screen panel: a click cannot be held, so a free switch key switches on the click
+            if (tryBind(k)) continue;
+            if (activeSim_.active && switch_.is(k) && keyIsFree(k)) toggleDesktop();
+            else handleKey(k);
+        }
+        // the switch key held long enough
+        if (switch_.tick(now) == SwitchKey::Action::Toggle) toggleDesktop();
 
         // sleep: never while the aircraft owns the unit
-        const bool canSleep = !activeSim_.active && active_.sleepMinutes > 0;
+        const bool canSleep = !simOwns() && active_.sleepMinutes > 0;
         const auto sleepAt = lastKey_ + std::chrono::minutes(active_.sleepMinutes);
         if (canSleep && !sleeping_ && now >= sleepAt) {
             sleeping_ = true;
@@ -588,7 +731,8 @@ void McduService::run() {
             std::lock_guard<std::mutex> lock(m_);
             panelOpen = panelOpen_;
         }
-        mirror_.setWanted(activeSim_.active && activeSim_.iniBuildsKeys && (fd_ >= 0 || panelOpen));
+        const ScreenLayout* layout = activeSim_.iniBuildsKeys ? &airbusLayout() : activeSim_.wt21 ? &wt21Layout() : nullptr;
+        mirror_.setWanted(simOwns() && (fd_ >= 0 || panelOpen) ? layout : nullptr);
         if (mirror_.takeChanged()) nextRefresh_ = Clock::time_point{};
 
         // the weather: asked for only while its page is on screen
@@ -598,7 +742,7 @@ void McduService::run() {
             nextWeather_ = now + (weatherResult.status == WeatherStatus::Ok || weatherResult.status == WeatherStatus::NoReport ? kWeatherInterval : kWeatherRetry);
             nextRefresh_ = Clock::time_point{};
         }
-        if (!activeSim_.active && !sleeping_ && pages_.wantsWeather() && !pages_.homeAirport().empty() && (pages_.takeWeatherRequest() || now >= nextWeather_)) {
+        if (!simOwns() && !sleeping_ && pages_.wantsWeather() && !pages_.homeAirport().empty() && (pages_.takeWeatherRequest() || now >= nextWeather_)) {
             WeatherResult loading;
             loading.status = WeatherStatus::Loading;
             pages_.setWeather(loading);
@@ -610,7 +754,7 @@ void McduService::run() {
         if (now >= nextRefresh_) {
             renderScreen(now);
             applyLights(false);
-            const int refresh = sleeping_ ? 0 : avionicsMode() ? kAvionicsRefreshMs : activeSim_.active ? 0 : pages_.refreshMs();
+            const int refresh = sleeping_ ? 0 : avionicsMode() ? kAvionicsRefreshMs : simOwns() ? 0 : pages_.refreshMs();
             nextRefresh_ = refresh > 0 ? now + std::chrono::milliseconds(refresh) : Clock::time_point::max();
         }
         // BRT or DIM held down: a step every kRepeatEvery after kRepeatDelay
@@ -623,6 +767,22 @@ void McduService::run() {
         } else {
             holdStart_ = Clock::time_point{};
         }
+        // the CJ4: CLR held down clears the whole scratchpad, as on the real FMC (one CLR already went out on the press)
+        if (clrLongAt_ != Clock::time_point{}) {
+            if (fd_ < 0 || !keysDown_.test(static_cast<size_t>(Key::Clr)) || !simOwns() || !activeSim_.wt21) {
+                clrLongAt_ = Clock::time_point{};
+            } else if (now >= clrLongAt_) {
+                clrLongAt_ = Clock::time_point{};
+                uint16_t product;
+                {
+                    std::lock_guard<std::mutex> lock(m_);
+                    product = productId_;
+                }
+                const std::string event = wt21KeyEvent(Key::Clr, product) + "_LONG";
+                if (hooks_.fireHEvent) hooks_.fireHEvent(event);
+                mirror_.boost();
+            }
+        }
         applyLights(false);  // the room light changes on its own: only a changed level is sent
         applyFont();
         sendScreen(now);
@@ -633,8 +793,10 @@ void McduService::run() {
         if (fd_ < 0 && !wanted.empty()) until = std::min(until, retryOpenAt_);
         if (canSleep && !sleeping_) until = std::min(until, sleepAt);
         if (holdStart_ != Clock::time_point{}) until = std::min(until, nextRepeat_);
+        if (clrLongAt_ != Clock::time_point{}) until = std::min(until, clrLongAt_);
+        if (const auto due = switch_.due()) until = std::min(until, *due);
         if (fd_ >= 0 && active_.autoBrightness) until = std::min(until, now + std::chrono::seconds(1));  // the room light, once a second
-        if (!activeSim_.active && !sleeping_ && pages_.wantsWeather() && !pages_.homeAirport().empty()) until = std::min(until, std::max(nextWeather_, Clock::now() + std::chrono::seconds(1)));
+        if (!simOwns() && !sleeping_ && pages_.wantsWeather() && !pages_.homeAirport().empty()) until = std::min(until, std::max(nextWeather_, Clock::now() + std::chrono::seconds(1)));
         if (activeSim_.active && activeSim_.simBridge && !link_.connected()) until = std::min(until, now + std::chrono::seconds(1));
         const auto waitMs = std::chrono::duration_cast<std::chrono::milliseconds>(until - Clock::now()).count();
         const int timeout = static_cast<int>(std::clamp<long long>(waitMs, 0, 60000));
@@ -669,6 +831,7 @@ void McduService::run() {
         link_.process(linkIndex >= 0 ? pfds[linkIndex].revents : 0);
     }
     if (avionicsWatched_ && hooks_.watchCodes) hooks_.watchCodes({});
+    if (waypointsWanted_ && hooks_.wantWaypoints) hooks_.wantWaypoints(false);
     blankDevice();
     closeDevice("stopped");
     link_.setWanted(false);

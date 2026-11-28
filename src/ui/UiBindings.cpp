@@ -134,9 +134,6 @@ void Ui::drawLeverRecipes(const AxisCalibration* cal) {
         ImGui::PushTextWrapPos(0.0f);
         ImGui::TextUnformatted(r.title.c_str());
         ImGui::PopTextWrapPos();
-        ImGui::TextColored(r.verified ? kGreen : kYellow, "%s", r.verified ? "checked" : "not tried");
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", r.checked.c_str());
-        ImGui::SameLine();
         if (current) ImGui::TextDisabled("applied");
         else if (ImGui::SmallButton("Apply")) apply(r);
         ImGui::EndChild();
@@ -776,10 +773,10 @@ void Ui::drawBindingsTab() {
     };
     const float fsz = ImGui::GetFontSize();
     {   // what the list shows
-        const char* names[] = {"All", "Not tried", "Bound twice", "Reverse"};
-        const char* keys[] = {"", "untried", "twice", "reverse"};
-        for (int k = 0; k < 4; ++k) {
-            if (k == 3 && bindingsFilter_ != "reverse") continue;  // only reached from Home
+        const char* names[] = {"All", "Bound twice", "Reverse"};
+        const char* keys[] = {"", "twice", "reverse"};
+        for (int k = 0; k < 3; ++k) {
+            if (k == 2 && bindingsFilter_ != "reverse") continue;  // only reached from Home
             if (k) ImGui::SameLine(0, fsz * 0.3f);
             const bool on = bindingsFilter_ == keys[k];
             if (on) ImGui::PushStyleColor(ImGuiCol_Button, ui::palette::kAccentSoft);
@@ -795,7 +792,6 @@ void Ui::drawBindingsTab() {
     auto shownByFilter = [&](int i) {
         const Binding& b = prof.bindings[static_cast<size_t>(i)];
         if (!bindingMatches(b, filterWords)) return false;
-        if (bindingsFilter_ == "untried") return b.enabled && !bindingChecked(b);
         if (bindingsFilter_ == "twice") return twiceFor(i) != nullptr;
         if (bindingsFilter_ == "reverse") return b.cutoffMode == ZoneMode::Reverse;
         return true;
@@ -882,11 +878,8 @@ void Ui::drawBindingsTab() {
                 const DoubleBinding* dbl = twiceFor(i);
                 const ImVec2 dc(dotX, p0.y + rowH * 0.5f);
                 if (dbl) dl->AddCircleFilled(dc, fsz * 0.28f, ImGui::GetColorU32(kRed));
-                else if (bindingChecked(b)) dl->AddCircleFilled(dc, fsz * 0.28f, ImGui::GetColorU32(kGreen));
-                else dl->AddCircle(dc, fsz * 0.26f, ImGui::GetColorU32(ui::palette::kTextDim), 0, 1.5f);
-                if (ImGui::IsItemHovered())
-                    ImGui::SetTooltip("%s%s", dbl ? ("MSFS also: " + dbl->msfsAction + " (\"" + dbl->msfsProfile + "\")").c_str() : bindingChecked(b) ? "Checked on the aircraft" : "Not tried on the aircraft",
-                                      b.enabled ? "" : "\nSwitched off");
+                if (ImGui::IsItemHovered() && (dbl || !b.enabled))
+                    ImGui::SetTooltip("%s%s", dbl ? ("MSFS also: " + dbl->msfsAction + " (\"" + dbl->msfsProfile + "\")").c_str() : "", b.enabled ? "" : (dbl ? "\nSwitched off" : "Switched off"));
                 bool askDelete = false;
                 if (ImGui::BeginPopup("row_menu")) {
                     if (ImGui::MenuItem("Edit")) selectBinding(i);

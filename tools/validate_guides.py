@@ -5,9 +5,9 @@
 
 Errors (exit status 1): malformed nodes, dangling `next` / topic starts, unreachable nodes, questions that cannot be
 answered, steps without a source, controls that do not resolve to exactly one catalog entry, checks without a probe.
-Warnings: steps whose control behaviour is not verified on the real simulator (information only).
+With --unverified it also lists the steps whose control behaviour is not verified on the real simulator (information only).
 
-    tools/validate_guides.py [FILE ...]
+    tools/validate_guides.py [--unverified] [FILE ...]
 """
 import glob
 import json
@@ -166,20 +166,24 @@ def validate(path, cats, pads):
 
 
 def main():
-    paths = sys.argv[1:] or sorted(glob.glob(os.path.join(ROOT, "data", "*_guide.json")))
+    args = sys.argv[1:]
+    show_unverified = "--unverified" in args
+    args = [a for a in args if a != "--unverified"]
+    paths = args or sorted(glob.glob(os.path.join(ROOT, "data", "*_guide.json")))
     cats = load_catalogs()
     pads = load_keypads()
     bad = 0
     for p in paths:
         errs, warns = validate(p, cats, pads)
-        for w in warns:
-            print("warning:", w)
+        if show_unverified:
+            for w in warns:
+                print("unverified:", w)
         for e in errs:
             print("ERROR:", e)
         with open(p) as f:
             g = json.load(f)
         steps = sum(len(n.get("steps", [])) for n in g.get("nodes", {}).values())
-        print("%s: %d topics, %d nodes, %d steps, %d errors, %d warnings" % (os.path.basename(p), len(g.get("topics", [])), len(g.get("nodes", {})), steps, len(errs), len(warns)))
+        print("%s: %d topics, %d nodes, %d steps, %d errors" % (os.path.basename(p), len(g.get("topics", [])), len(g.get("nodes", {})), steps, len(errs)))
         bad += len(errs)
     sys.exit(1 if bad else 0)
 

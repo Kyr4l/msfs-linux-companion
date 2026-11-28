@@ -9,7 +9,9 @@
 //   Input:   report 1, 25 bytes: the keys as a bit field from byte 1, the two light sensors at bytes 17 and 19.
 #include <array>
 #include <bitset>
+#include <chrono>
 #include <cstddef>
+#include <optional>
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -70,6 +72,53 @@ const char* keyLabel(Key key);  // what is printed on the key
 // The iniBuilds Airbuses of MSFS 2024 (A320neo V2, A321, A330): calculator code that presses this key on the MCDU of the unit's seat. "" for a key they do not have
 // here (BRT and DIM stay the unit's own brightness). Checked in the aircraft: the variable goes back to 0 by itself, one write is one press.
 std::string iniBuildsKeyCode(Key key, uint16_t productId);
+// The CJ4 (Working Title WT21) FMC: the H event that presses this key on the FMC of the unit's seat, "" for none. The FMC reads
+// H:<anything>_FMC_<1|2>_BTN_<key> (its own code, checked in the aircraft). Its page keys take the Airbus keys of the same job.
+std::string wt21KeyEvent(Key key, uint16_t productId);
+
+// A key with nothing printed on it and no job (the two blank keys): it can switch on a short press.
+bool keyIsFree(Key key);
+// "Key 18", "Key 25 (MCDU MENU)": a key by its number on the unit (from 1), for the settings
+std::string keyNumberName(int number);
+inline std::optional<Key> keyFromNumber(int number) {
+    return number >= 1 && number <= kKeyCount ? std::optional<Key>(static_cast<Key>(number - 1)) : std::nullopt;
+}
+
+// The key that gives the unit to the desktop pages while MSFS runs, and back: held (kHold) or pressed. A held key let go before
+// it switched is an ordinary press of that key (MCDU MENU stays the aircraft's), which is why a key with a job is always held.
+class SwitchKey {
+public:
+    using Clock = std::chrono::steady_clock;
+    enum class Action { None, Toggle, Press };
+    static constexpr auto kHold = std::chrono::milliseconds(900);
+    void configure(std::optional<Key> key, bool hold) {
+        if (key != key_) downAt_.reset();
+        key_ = key;
+        hold_ = hold || (key && !keyIsFree(*key));
+    }
+    bool is(Key k) const { return key_ && *key_ == k; }
+    Action down(Clock::time_point now) {
+        downAt_ = now;
+        done_ = !hold_;
+        return hold_ ? Action::None : Action::Toggle;
+    }
+    Action up() {
+        const bool early = downAt_ && !done_;
+        downAt_.reset();
+        return early ? Action::Press : Action::None;
+    }
+    Action tick(Clock::time_point now) {  // held long enough
+        if (!downAt_ || done_ || now - *downAt_ < kHold) return Action::None;
+        done_ = true;
+        return Action::Toggle;
+    }
+    std::optional<Clock::time_point> due() const { return downAt_ && !done_ ? std::optional<Clock::time_point>(*downAt_ + kHold) : std::nullopt; }
+
+private:
+    std::optional<Key> key_;
+    bool hold_ = true, done_ = false;
+    std::optional<Clock::time_point> downAt_;
+};
 
 using KeyBits = std::bitset<kKeyCount>;
 

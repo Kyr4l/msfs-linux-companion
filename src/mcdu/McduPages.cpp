@@ -101,6 +101,7 @@ void PageHost::configure(const desktop::McduConfig& cfg) {
     refreshSeconds_ = cfg.refreshSeconds;
     utc_ = cfg.clockUtc;
     h12_ = cfg.clock12h;
+    volumeAll_ = cfg.mediaVolumeAll;
     loadColors_ = cfg.loadColors;
     const bool airbus = cfg.pageStyle == "airbus";
     if (airbus != airbus_) {
@@ -129,6 +130,7 @@ void PageHost::exportPrefs(desktop::McduConfig& cfg) const {
     cfg.refreshSeconds = refreshSeconds_;
     cfg.clockUtc = utc_;
     cfg.clock12h = h12_;
+    cfg.mediaVolumeAll = volumeAll_;
     cfg.homeAirport = airport_;
     cfg.netBits = netBits_;
 }
@@ -558,7 +560,9 @@ void PageHost::buildMedia(Frame& f) {
     if (!media_.present || media_.canNext) f.left(3, "Next", [this] { actions_.media(desktop::MediaCommand::Next); say("NEXT"); });
     f.right(1, "Vol up", [this] { actions_.tapKeys({KEY_VOLUMEUP}); say("VOLUME UP"); });
     f.right(2, "Vol down", [this] { actions_.tapKeys({KEY_VOLUMEDOWN}); say("VOLUME DOWN"); });
-    f.right(3, "Mute", [this] { actions_.tapKeys({KEY_MUTE}); say("MUTE"); });
+    // the player's program, or the PC when the player makes no sound; the label follows the state read back
+    const bool muted = media_.present && media_.appVolume >= 0 ? media_.muted : media_.pcMuted;
+    f.right(3, muted ? "Unmute" : "Mute", [this] { actions_.media(desktop::MediaCommand::Mute); }, muted ? Color::Amber : Color::Cyan);
     f.left(4, "Player", [this] { actions_.media(desktop::MediaCommand::NextPlayer); });
     if (media_.hasShuffle) f.right(4, media_.shuffle ? "Shuffle on" : "Shuffle off", [this] { actions_.media(desktop::MediaCommand::Shuffle); }, media_.shuffle ? Color::Green : Color::Cyan);
     if (media_.hasRepeat) f.right(5, media_.repeat ? "Repeat on" : "Repeat off", [this] { actions_.media(desktop::MediaCommand::Repeat); }, media_.repeat ? Color::Green : Color::Cyan);

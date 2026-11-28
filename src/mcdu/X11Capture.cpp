@@ -142,7 +142,7 @@ void X11Capture::close() {
     conn_ = nullptr;
 }
 
-std::vector<uint32_t> X11Capture::popOuts() {
+std::vector<uint32_t> X11Capture::popOuts(const std::string& name) {
     std::vector<uint32_t> out;
     auto* c = static_cast<xcb_connection_t*>(conn_);
     if (!c || !clientList_) return out;
@@ -170,7 +170,7 @@ std::vector<uint32_t> X11Capture::popOuts() {
         auto* nm = property(w, XCB_ATOM_WM_NAME, XCB_GET_PROPERTY_TYPE_ANY, 16);
         if (nm) {
             const std::string v(static_cast<const char*>(api_->propertyValue(nm)), static_cast<size_t>(std::max(api_->propertyLength(nm), 0)));
-            if (v == "WASMINSTRUMENT") out.push_back(w);
+            if (v.rfind(name, 0) == 0) out.push_back(w);
             std::free(nm);
         }
     }

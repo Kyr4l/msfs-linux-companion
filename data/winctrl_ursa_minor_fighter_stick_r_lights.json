@@ -1,0 +1,35 @@
+{
+ "_about": "WINWING URSA MINOR Fighter Flight Stick R (J5 base + F1-R grip). From SimAppPro2's own definition of this stick: the backlight is on the J5 base (part 47904 = 0xBB20, controller 0x20/0xbb), light 0, stored brightness in byte 0 of flash word 0xEC (0..255); the breathing light is byte 0 of word 0xF8 (0 = on, 1 = off).",
+ "name": "URSA MINOR Fighter Stick R",
+ "usb": "4098:bc2a",
+ "driver": "winwing",
+ "settings": [
+  {
+   "name": "Backlight",
+   "kind": "percent",
+   "device": "0x20",
+   "family": "0xbb",
+   "offset": "0xEC",
+   "byte": 0,
+   "save": true
+  },
+  {
+   "name": "Breathing light",
+   "kind": "off_on",
+   "device": "0x20",
+   "family": "0xbb",
+   "offset": "0xF8",
+   "byte": 0,
+   "save": true
+  }
+ ],
+ "levels": [
+  {
+   "name": "Backlight",
+   "setting": "Backlight",
+   "device": "0x20",
+   "family": "0xbb",
+   "index": 0
+  }
+ ]
+}

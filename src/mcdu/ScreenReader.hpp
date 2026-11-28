@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Kyr4l
 #pragma once
 // Reads the text of an aircraft's MCDU from a picture of its pop-out window, for aircraft that give the text to no one (the iniBuilds
-// A320neo V2, A321 and A330 of MSFS 2024). Every cell of the grid is compared with samples of the aircraft's own characters.
+// A320neo V2, A321 and A330 of MSFS 2024, the FMC of the CJ4). Every cell of the grid is compared with samples of the aircraft's own characters.
 // Those samples are not part of this program: the aircraft's font is not ours to hand out, so they are learned on the user's machine
 // and kept in a file of their own (defaultGlyphBankPath()).
 //
@@ -38,7 +38,23 @@ private:
     std::vector<GlyphSample> samples_;
 };
 
-std::string defaultGlyphBankPath();  // $XDG_DATA_HOME/msfs-linux-companion/mcdu-glyphs.bin
+// Where an aircraft family's screen sits in its pop-out at the size the pop-out opens with, and how its text is laid out.
+struct ScreenLayout {
+    const char* name;      // for the log
+    const char* window;    // how the X11 name of the pop-out window starts
+    const char* bankFile;  // the sample file, in the user's data folder
+    int refW, refH;        // the pop-out at the size it opens with (pixels)
+    int cols, rows;        // the grid: a 25th column is the Airbus scratchpad's spare one
+    float x0, pitchX;      // centre of the first column, distance between columns
+    std::array<float, 16> rowY;  // centre of each row
+    float panelX, panelY, panelW, panelH;  // the screen's ground inside the window
+    bool messageRow;       // the last row is a message line under the scratchpad (CJ4): shown on the unit's last row while the scratchpad is empty
+    const char* popOutHint;  // what to do when no pop-out is found
+};
+const ScreenLayout& airbusLayout();  // the iniBuilds Airbuses
+const ScreenLayout& wt21Layout();    // the CJ4 (Working Title WT21) FMC
+
+std::string defaultGlyphBankPath(const char* file = "mcdu-glyphs.bin");  // $XDG_DATA_HOME/msfs-linux-companion/<file>
 Color classifyColor(float r, float g, float b);
 
 struct DumpedCell {  // a character as the reader sees it, before it is matched (for learning samples)
@@ -55,11 +71,10 @@ struct ReadResult {
 
 class ScreenReader {
 public:
-    // The grid of the pop-out at the size it opens with; other sizes are scaled to it first.
-    static constexpr int kRefW = 442, kRefH = 366, kCols = 25, kRows = 14;
-    static constexpr float kX0 = 42.61f, kPitchX = 15.544f, kY0 = 29.5f, kPitchY = 23.67f;
+    static constexpr int kMaxCols = 26, kMaxRows = 16, kMaxRefW = 1024;  // the largest grid and reference width a layout may have
 
-    explicit ScreenReader(const GlyphBank& bank);
+    explicit ScreenReader(const GlyphBank& bank, const ScreenLayout& layout = airbusLayout());
+    const ScreenLayout& layout() const { return *layout_; }
     // The picture as the X server sends it: 4 bytes a pixel, blue green red unused.
     ReadResult read(const uint8_t* bgrx, int width, int height, int stride);
     void reset();  // forget what was read: the next picture is read whole
@@ -90,6 +105,7 @@ private:
     // the character centred on column cx of row r, whose text lies between yTop and yBottom (its centre cy)
     CellResult readCell(const uint8_t* img, int stride, int r, int cx, int cy, int yTop, int yBottom) const;
 
+    const ScreenLayout* layout_;
     std::shared_ptr<const Prepared> bank_;
     std::vector<Cache> cache_;
     std::vector<uint8_t> scaled_;

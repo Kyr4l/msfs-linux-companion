@@ -14,6 +14,7 @@
 #include <map>
 #include <string>
 #include <thread>
+#include <utility>
 #include <optional>
 #include <unordered_map>
 #include <vector>
@@ -183,6 +184,8 @@ public:
     bool inFlight() const;
     Telemetry telemetry() const;
     void setTelemetryEnabled(bool on);  // subscribe to flight data (needed for vibration)
+    void setWaypointsWanted(bool on);   // the GPS's previous and next waypoint names, once a second (the MCDU's F-PLN page)
+    std::pair<std::string, std::string> waypoints() const;  // previous, next; empty when not known
 
 private:
     void threadMain();
@@ -226,6 +229,7 @@ private:
     std::atomic<bool> forceProbe_{false};
 
     void setupTelemetry();
+    void requestWaypoints(bool on);
     void stopTelemetry();
     void requestTelemetry();
     void handleTelemetry(const RecvClientData& d);
@@ -240,6 +244,9 @@ private:
     std::chrono::steady_clock::time_point telemetryWindowStart_{};
     bool telemetryRetune_ = false;
     bool telemetryDefined_ = false;  // the data definition exists on this connection (defined once)
+    std::atomic<bool> waypointsWanted_{false};
+    bool waypointsDefined_ = false, waypointsRequested_ = false;
+    std::pair<std::string, std::string> waypoints_;  // previous, next (guarded by m_)
     int wakeFd_ = -1;                // eventfd: written when another thread has work for the bridge thread
     int failedConnects_ = 0;         // consecutive failed attempts, for the retry pace
     std::unordered_map<unsigned long, std::chrono::steady_clock::time_point> probeResting_;  // sandbox: listener inode -> may be probed again from

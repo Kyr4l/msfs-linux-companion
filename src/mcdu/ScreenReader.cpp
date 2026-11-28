@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
@@ -27,11 +28,8 @@ void pool(const float* pix, float* out) {
 }
 constexpr float kGeoWeight = 0.06f, kUnsure = 0.55f;
 
-// Where the screen sits in the pop-out at the size it opens with (pixels): its dark blue ground, inside a black border.
-constexpr float kPanelX = 20.f, kPanelY = 4.f, kPanelW = 401.f, kPanelH = 358.f;
-
 // The screen's rectangle in a picture of any size: the columns and rows that are mostly not black.
-bool findPanel(const uint8_t* img, int w, int h, int stride, float& x0, float& y0, float& pw, float& ph) {
+bool findPanel(const ScreenLayout& L, const uint8_t* img, int w, int h, int stride, float& x0, float& y0, float& pw, float& ph) {
     auto lit = [&](int x, int y) { const uint8_t* p = img + y * stride + x * 4; return std::max({p[0], p[1], p[2]}) >= 4; };
     const int stepY = std::max(1, h / 128), stepX = std::max(1, w / 128);
     int left = -1, right = -1, top = -1, bottom = -1;
@@ -47,12 +45,42 @@ bool findPanel(const uint8_t* img, int w, int h, int stride, float& x0, float& y
     }
     if (left < 0 || top < 0) return false;
     pw = static_cast<float>(right - left + 1), ph = static_cast<float>(bottom - top + 1);
-    const float aspect = (pw / ph) / (kPanelW / kPanelH);
+    const float aspect = (pw / ph) / (L.panelW / L.panelH);
     if (pw < 48 || ph < 40 || aspect < 0.9f || aspect > 1.1f) return false;  // not the screen as it should look: fall back
     x0 = static_cast<float>(left), y0 = static_cast<float>(top);
     return true;
 }
 
+std::array<float, 16> evenRows(float y0, float pitch, int n) {
+    std::array<float, 16> out{};
+    for (int r = 0; r < n; ++r) out[static_cast<size_t>(r)] = y0 + r * pitch;
+    return out;
+}
+std::array<float, 16> wt21Rows() {  // the title stands apart; the other 14 rows are evenly spaced (measured at 525 x 425)
+    std::array<float, 16> out = evenRows(62.5f - 25.73f, 25.73f, 15);
+    out[0] = 20.f;
+    return out;
+}
+}  // namespace
+
+const ScreenLayout& airbusLayout() {
+    // measured on the A330 and A320neo pop-outs at 442 x 366: the dark blue ground inside a black border
+    static const ScreenLayout l{"Airbus", "WASMINSTRUMENT", "mcdu-glyphs.bin", 442, 366, 25, 14, 42.61f, 15.544f, evenRows(29.5f, 23.67f, 14),
+                                20.f, 4.f, 401.f, 358.f, false, "POP OUT THE MCDU"};
+    return l;
+}
+
+const ScreenLayout& wt21Layout() {
+    // measured on the CJ4 of MSFS 2024 (2026-11-24): 24 x 15, scratchpad in brackets on row 13, messages under it
+    static const ScreenLayout l{"CJ4", "WT21_FMC_", "mcdu-glyphs-wt21.bin", 525, 425, 24, 15, 71.9f, 16.58f, wt21Rows(),
+                                59.f, 0.f, 407.f, 425.f, true, "POP OUT THE FMC"};
+    return l;
+}
+
+namespace {
+// Letters and digits under this height (in pixels at the reference size) are the small font: Airbus small 13-15 / large 18-19,
+// CJ4 small 14-16 / large 17-19.
+constexpr int kSmallBelow = 17;
 bool punctuation(char32_t ch) { return ch == U'.' || ch == U'-' || ch == U'/' || ch == U':' || ch == U'\'' || ch == U'"' || ch == U','; }
 }  // namespace
 
@@ -117,12 +145,12 @@ bool GlyphBank::save(const std::string& path, std::string& err) const {
     return true;
 }
 
-std::string defaultGlyphBankPath() {
+std::string defaultGlyphBankPath(const char* file) {
     std::string base;
     if (const char* d = std::getenv("XDG_DATA_HOME"); d && *d) base = d;
     else if (const char* home = std::getenv("HOME"); home && *home) base = std::string(home) + "/.local/share";
     else return {};
-    return base + "/msfs-linux-companion/mcdu-glyphs.bin";
+    return base + "/msfs-linux-companion/" + file;
 }
 
 Color classifyColor(float r, float g, float b) {
@@ -146,7 +174,7 @@ Color classifyColor(float r, float g, float b) {
 
 // ---- reading ----
 
-ScreenReader::ScreenReader(const GlyphBank& bank) : cache_(static_cast<size_t>(kRows * kCols)) {
+ScreenReader::ScreenReader(const GlyphBank& bank, const ScreenLayout& layout) : layout_(&layout), cache_(static_cast<size_t>(kMaxRows * kMaxCols)) {
     auto p = std::make_shared<Prepared>();
     const size_t n = bank.samples().size();
     p->pix.resize(n * kPix);
@@ -172,8 +200,9 @@ void ScreenReader::reset() {
 
 ScreenReader::CellResult ScreenReader::readCell(const uint8_t* img, int stride, int r, int cx, int cy, int yTop, int yBottom) const {
     CellResult out;
-    const int x0 = std::max(cx - kHalfW, 0), x1 = std::min(cx + kHalfW, kRefW - 1);
-    const int y0 = std::max({cy - kHalfH, yTop, 0}), y1 = std::min({cy + kHalfH, yBottom, kRefH - 1});
+    const int refW = layout_->refW, refH = layout_->refH;
+    const int x0 = std::max(cx - kHalfW, 0), x1 = std::min(cx + kHalfW, refW - 1);
+    const int y0 = std::max({cy - kHalfH, yTop, 0}), y1 = std::min({cy + kHalfH, yBottom, refH - 1});
     if (x1 < x0 || y1 < y0) return out;
     const int pw = x1 - x0 + 1, ph = y1 - y0 + 1;
     float v[kGlyphH * 15];
@@ -186,6 +215,51 @@ ScreenReader::CellResult ScreenReader::readCell(const uint8_t* img, int stride, 
             m = std::max(m, val);
         }
     if (m < 60.f) return out;
+    // Reverse video (the CJ4 draws EXEC as dark letters in a white box, 2026-11-26): most of the cell is bright. The box is found as the
+    // rows and columns that are mostly bright; inside it the picture is turned over (the letters become the bright strokes), outside it is
+    // dropped, and the colour is the box's.
+    bool inverse = false;
+    float boxR = 0, boxG = 0, boxB = 0;
+    {
+        int bright = 0, fullRows = 0;  // a box has rows bright across almost the whole cell; a letter, even a bold one, never does
+        for (int y = 0; y < ph; ++y) {
+            int c = 0;
+            for (int x = 0; x < pw; ++x) c += v[y * pw + x] > 0.55f * m;
+            bright += c;
+            fullRows += c * 100 >= pw * 85;
+        }
+        // and the gaps between letters, at both edges of the cell, are bright inside a box (two empty boxes side by side light only one)
+        int edgeL = 0, edgeR = 0;
+        for (int y = 0; y < ph; ++y) edgeL += v[y * pw] > 0.55f * m, edgeR += v[y * pw + pw - 1] > 0.55f * m;
+        const bool brightEdge = std::min(edgeL, edgeR) * 10 >= ph * 6;
+        if (bright > (pw * ph) * 45 / 100 && fullRows >= 2 && brightEdge) {
+            int bx0 = pw, bx1 = -1, by0 = ph, by1 = -1;
+            for (int y = 0; y < ph; ++y) {
+                int c = 0;
+                for (int x = 0; x < pw; ++x) c += v[y * pw + x] > 0.55f * m;
+                if (c * 10 >= pw * 3) by0 = std::min(by0, y), by1 = std::max(by1, y);
+            }
+            for (int x = 0; x < pw; ++x) {
+                int c = 0;
+                for (int y = 0; y < ph; ++y) c += v[y * pw + x] > 0.55f * m;
+                if (c * 10 >= ph * 3) bx0 = std::min(bx0, x), bx1 = std::max(bx1, x);
+            }
+            if (bx1 >= bx0 && by1 >= by0) {
+                inverse = true;
+                int n = 0;
+                for (int y = 0; y < ph; ++y)
+                    for (int x = 0; x < pw; ++x) {
+                        float& val = v[y * pw + x];
+                        if (val > 0.55f * m) {
+                            const uint8_t* px = img + (y0 + y) * stride + (x0 + x) * 4;
+                            boxB += px[0], boxG += px[1], boxR += px[2], ++n;
+                        }
+                        val = x >= bx0 && x <= bx1 && y >= by0 && y <= by1 ? m - val : 0.f;
+                    }
+                if (n) boxR /= n, boxG /= n, boxB /= n;
+            }
+        }
+    }
     int on = 0, minX = pw, maxX = -1, minY = ph, maxY = -1;
     float sr = 0, sg = 0, sb = 0;
     for (int y = 0; y < ph; ++y)
@@ -202,7 +276,7 @@ ScreenReader::CellResult ScreenReader::readCell(const uint8_t* img, int stride, 
         }
     if (on < 4) return out;
     out.blank = false;
-    out.color = classifyColor(sr / on, sg / on, sb / on);
+    out.color = inverse ? classifyColor(boxR, boxG, boxB) : classifyColor(sr / on, sg / on, sb / on);
     // the character, centred on its box, as the samples are
     const int bh = maxY - minY + 1, bw = maxX - minX + 1;
     float cv[kPix] = {};
@@ -218,7 +292,7 @@ ScreenReader::CellResult ScreenReader::readCell(const uint8_t* img, int stride, 
         d.row = r;
         d.sample.geo = {geo[0], geo[1], geo[2]};
         for (int k = 0; k < kPix; ++k) d.sample.pix[static_cast<size_t>(k)] = static_cast<uint8_t>(std::lround(std::clamp(cv[k], 0.f, 1.f) * 255.f));
-        d.sample.small = bh < 16;
+        d.sample.small = bh < kSmallBelow;
         dump_->push_back(d);
     }
     const Prepared& b = *bank_;
@@ -278,13 +352,21 @@ ScreenReader::CellResult ScreenReader::readCell(const uint8_t* img, int stride, 
         if (d < bestD) bestD = d, bestI = best[k].second;
     }
     out.ch = b.ch[bestI];
-    out.small = b.small[bestI] != 0;
+    // A letter's or digit's size is its height, not the size of the sample it matched: the two fonts share shapes, and a small D
+    // matched to a large one read "aDvISory" (2026-11-26). Other characters (< > / - ° boxes) have heights of their own.
+    const bool alnum = (out.ch >= U'A' && out.ch <= U'Z') || (out.ch >= U'0' && out.ch <= U'9');
+    // A letter turned over in a box (the CJ4's EXEC) measures shorter than it is drawn: the box holds the large font.
+    out.small = inverse ? false : alnum ? bh < kSmallBelow : b.small[bestI] != 0;
     if (bestD > kUnsure) out.unsure = true, out.ch = U'?';
     return out;
 }
 
 ReadResult ScreenReader::read(const uint8_t* bgrx, int width, int height, int stride) {
     ReadResult res;
+    const ScreenLayout& L = *layout_;
+    const int kRefW = L.refW, kRefH = L.refH, kCols = L.cols, kRows = L.rows;
+    const float kX0 = L.x0, kPitchX = L.pitchX;
+    if (kRefW > kMaxRefW || kCols > kMaxCols || kRows > kMaxRows) return res;  // a layout larger than the buffers below
     if (!bgrx || width < 64 || height < 64 || width > 8192 || height > 8192 || stride < width * 4) return res;
     const uint8_t* img = bgrx;
     int st = stride;
@@ -293,13 +375,13 @@ ReadResult ScreenReader::read(const uint8_t* bgrx, int width, int height, int st
         // pixels that does not grow with the window. The screen is found by its dark blue ground and brought back to the
         // size the grid was measured at.
         float px0, py0, pw, ph;
-        if (!findPanel(bgrx, width, height, stride, px0, py0, pw, ph)) {
-            const float fit = std::min((width - 8.f) / kPanelW, (height - 8.f) / kPanelH);
-            pw = kPanelW * fit, ph = kPanelH * fit, px0 = (width - pw) / 2.f, py0 = (height - ph) / 2.f;
+        if (!findPanel(L, bgrx, width, height, stride, px0, py0, pw, ph)) {
+            const float fit = std::min((width - 8.f) / L.panelW, (height - 8.f) / L.panelH);
+            pw = L.panelW * fit, ph = L.panelH * fit, px0 = (width - pw) / 2.f, py0 = (height - ph) / 2.f;
         }
-        const float scale = pw / kPanelW, scaleY = ph / kPanelH;
+        const float scale = pw / L.panelW, scaleY = ph / L.panelH;
         res.scale = scale;
-        const float offX = px0 - kPanelX * scale, offY = py0 - kPanelY * scaleY;
+        const float offX = px0 - L.panelX * scale, offY = py0 - L.panelY * scaleY;
         scaled_.resize(static_cast<size_t>(kRefW) * kRefH * 4);
         // Each pixel of the measured size takes the average of the area it covers: a bigger pop-out shrinks without losing thin
         // strokes (a point sample of it misses them and the small letters change: H reads as N). A smaller one is spread out.
@@ -345,7 +427,7 @@ ReadResult ScreenReader::read(const uint8_t* bgrx, int width, int height, int st
     }
     // Characters are found row by row from their outlines, not cut at fixed places: some text sits half a cell off the grid,
     // and a run of amber boxes is drawn as one frame whose edge reaches into the next cell.
-    CellResult cells[kRows][kCols];
+    CellResult cells[kMaxRows][kMaxCols];
     // the lines of the picture that have text on them, as bands (a gap of one line is still the same band)
     std::vector<std::pair<int, int>> bands;
     {
@@ -370,7 +452,7 @@ ReadResult ScreenReader::read(const uint8_t* bgrx, int width, int height, int st
         // The row's text as drawn: the band of lit lines nearest to where the grid puts the row. Aircraft place and size their
         // text a little differently (the A319 a few pixels lower and larger than the A330); centring on the band keeps the next
         // row out of the character.
-        const int gridY = static_cast<int>(std::lround(kY0 + r * kPitchY));
+        const int gridY = static_cast<int>(std::lround(L.rowY[static_cast<size_t>(r)]));
         int cy = gridY, top = std::max(gridY - 9, 0), bottom = std::min(gridY + 9, kRefH - 1);
         {
             // every band centred near the row belongs to it: dashes and the dot of "--.-" are two bands a few lines apart
@@ -382,7 +464,7 @@ ReadResult ScreenReader::read(const uint8_t* bgrx, int width, int height, int st
             }
             if (u0 >= 0 && u1 - u0 <= 26) cy = (u0 + u1) / 2, top = u0, bottom = u1;
         }
-        bool lit[kRefW];
+        uint8_t lit[kMaxRefW];
         for (int x = 0; x < kRefW; ++x) {
             lit[x] = false;
             for (int y = top; y <= bottom && !lit[x]; ++y) {
@@ -399,7 +481,7 @@ ReadResult ScreenReader::read(const uint8_t* bgrx, int width, int height, int st
             if (!spans.empty() && start - spans.back().second <= 3 && x - 1 - spans.back().first < kPitchX * 0.85f) spans.back().second = x - 1;
             else spans.push_back({start, x - 1});
         }
-        int taken[kCols];
+        int taken[kMaxCols];
         std::fill(taken, taken + kCols, -1);
         for (const auto& [first, last] : spans) {
             const float width = static_cast<float>(last - first + 1);
@@ -426,7 +508,7 @@ ReadResult ScreenReader::read(const uint8_t* bgrx, int width, int height, int st
                     for (int x = std::max(cx - kHalfW, 0); x <= std::min(cx + kHalfW, kRefW - 1); ++x)
                         for (int q = 0; q < 3; ++q) h = (h ^ row[x * 4 + q]) * 1099511628211ull;
                 }
-                Cache& cache = cache_[static_cast<size_t>(r * kCols + c)];
+                Cache& cache = cache_[static_cast<size_t>(r * kMaxCols + c)];
                 if (!cache.valid || cache.hash != h) {
                     const size_t dumped = dump_ ? dump_->size() : 0;
                     cache = {h, true, readCell(img, st, r, cx, cy, top, bottom)};
@@ -447,16 +529,30 @@ ReadResult ScreenReader::read(const uint8_t* bgrx, int width, int height, int st
                 if (b < kCols && !cells[r][b].blank && !punctuation(cells[r][b].ch)) { cell.small = cells[r][b].small; break; }
             }
         }
-        // the unit has 24 columns; the aircraft's scratchpad can use a 25th, then the line moves left by one
-        const int first = cells[r][kCols - 1].blank ? 0 : 1;
+        // the unit has 24 columns; the Airbus scratchpad can use a 25th, then the line moves left by one
+        const int first = kCols > 24 && !cells[r][kCols - 1].blank ? kCols - 24 : 0;
+        // The CJ4 has 15 rows: its message line goes on the unit's last row while the scratchpad (between its brackets) is empty.
+        int outRow = r;
+        if (L.messageRow && r >= 13) {
+            bool typed = false, message = false;
+            for (int c = 1; c < kCols - 1; ++c) typed = typed || !cells[13][c].blank;
+            for (int c = 0; c < kCols; ++c) message = message || !cells[14][c].blank;
+            const int shown = message && !typed ? 14 : 13;
+            if (r != shown) {
+                for (int c = 0; c < kCols; ++c) res.glyphs += !cells[r][c].blank, res.unsure += !cells[r][c].blank && cells[r][c].unsure;
+                continue;
+            }
+            outRow = 13;
+        }
+        if (outRow >= kRows || outRow >= 14) continue;
         for (int c = 0; c < kCols; ++c) {
             const CellResult& cell = cells[r][c];
             if (cell.blank) continue;
             ++res.glyphs;
             if (cell.unsure) ++res.unsure;
             const int col = c - first;
-            if (col < 0 || col >= kCols - 1) continue;
-            Cell& out = res.screen.at(r, col);
+            if (col < 0 || col >= 24) continue;
+            Cell& out = res.screen.at(outRow, col);
             out.ch = cell.ch;
             out.color = cell.color;
             out.small = cell.small;

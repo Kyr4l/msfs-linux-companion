@@ -32,7 +32,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "The sim's checklist says: \"Engage clutch and lock the switch, CLUTCH light must light on\"; \"Switch clutch off\" at shutdown. Asobo rotorcraft template (Rotorcrafts.xml): sends ROTOR_CLUTCH_SWITCH_SET, state (A:ROTOR CLUTCH SWITCH POS, Bool). Which value is ON is not confirmed. Not tried."
+   "verified": true,
+   "note": "Verified on the Cabri G2 in MSFS 2024 (2026-11-26): 1 = ENGAGED ((A:ROTOR CLUTCH SWITCH POS) = 1), 0 = released; it moves only while its cover is open (COMMON_ROTOR_CLUTCH_COVER = 1). (A:ROTOR CLUTCH ACTIVE) is 1 while the belt moves. Engaging it at idle stalled the engine: open the throttle first (the rotor then reached 530 RPM in about 15 s)."
   },
   {
    "panel": "Engine and rotor",
@@ -44,7 +45,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Asobo rotorcraft template (Rotorcrafts.xml): the cover over the clutch switch; its state is the L: variable XMLVAR_ROTORCRAFT_Clutch_Cover_Opened, and the switch only works while the cover is open. Which value is ON is not confirmed. Not tried."
+   "verified": true,
+   "note": "Verified on the Cabri G2 in MSFS 2024 (2026-11-26): 1 = OPEN (the clutch switch can move), 0 = closed. L:XMLVAR_ROTORCRAFT_Clutch_Cover_Opened does not follow it."
   },
   {
    "panel": "Engine and rotor",
@@ -91,8 +93,13 @@
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "",
-   "note": "The sim's checklist says: \"Pull rotor brake lever fully backward, check that indicator is On, then lock rotor brake lever fully forward\"; the rotor can be braked below 150 RPM. Asobo rotorcraft template (Rotorcrafts.xml): the lever sets ROTOR_BRAKE_SET and reads (A:ROTOR BRAKE HANDLE POS, Percent). Not tried; the range is not known."
+   "behavior": "level",
+   "axis_range": [
+    0,
+    1
+   ],
+   "verified": true,
+   "note": "Verified on the Cabri G2 in MSFS 2024 (2026-11-26): takes 0 to 1: 1 = full brake ((A:ROTOR BRAKE ACTIVE) = 1, (A:ROTOR BRAKE HANDLE POS) 100 %), 0 = off; it stopped the rotor from 185 RPM in a few seconds."
   },
   {
    "panel": "Engine and rotor",
@@ -128,7 +135,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "press",
-   "note": "The sim's own engine autostart and shutdown (MSFS 2024). Not tried; do not press it in flight."
+   "verified": true,
+   "note": "Verified on the Cabri G2 in MSFS 2024 (2026-11-26): one event starts the engine by the sim's own procedure (rotor at 100 % in about 30 s; it leaves the throttle open with the governor on, carburetor heat on AUTO and the clutch cover closed)."
   },
   {
    "panel": "Engine and rotor",
@@ -140,7 +148,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Tooltip in the aircraft: \"Toggle governor switch\". Asobo rotorcraft template (Rotorcrafts.xml): ON sends ROTOR_GOV_SWITCH_ON, OFF sends ROTOR_GOV_SWITCH_OFF, state (A:ROTOR GOV SWITCH POS, Bool); the checklist's GOV OFF light is lit when it is off. Which value is ON is not confirmed. Not tried."
+   "verified": true,
+   "note": "Verified on the Cabri G2 in MSFS 2024 (2026-11-26): 1 = ON ((A:ROTOR GOV ACTIVE:1) = 1), 0 = OFF. With the throttle fully open it holds the rotor at 530 RPM (100 %), moving the throttle back to about 77 %."
   },
   {
    "panel": "Engine and rotor",
@@ -152,7 +161,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "The sim's checklist says: \"Switch plasma and magneto switches off\" at shutdown. Asobo engine template (Engine_Inputs.xml): a magneto of type ON/OFF sends MAGNETO1_SET 0 or 3. Which value is ON is not confirmed. Not tried."
+   "verified": true,
+   "note": "Verified on the Cabri G2 in MSFS 2024 (2026-11-26): 1 = ON (both (A:RECIP ENG LEFT MAGNETO:1) and RIGHT go to 1), 0 = OFF. The engine stops only with the magneto AND the plasma ignition off."
   },
   {
    "panel": "Engine and rotor",
@@ -164,7 +174,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Tooltip in the aircraft: \"Master\". Which circuit it switches is not documented. Which value is ON is not confirmed. Not tried."
+   "verified": true,
+   "note": "Verified on the Cabri G2 in MSFS 2024 (2026-11-26): 1 = ON (battery on: (A:ELECTRICAL MASTER BATTERY:1) = 1), 0 = OFF."
   },
   {
    "panel": "Engine and rotor",
@@ -176,19 +187,21 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "The sim's checklist says: \"Switch plasma ignition on and check beeper\". Asobo engine template (Engine_Inputs.xml): sends PLASMA_SET 0 or 1 and reads (A:PLASMA ON:1, Bool). Which value is ON is not confirmed. Not tried."
+   "verified": true,
+   "note": "Verified on the Cabri G2 in MSFS 2024 (2026-11-26): 1 = ON ((A:PLASMA ON:1) = 1), 0 = OFF. The engine stops only with the magneto AND the plasma ignition off."
   },
   {
    "panel": "Engine and rotor",
    "section": "Start",
-   "function": "Starter button",
+   "function": "Starter button (send again while held)",
    "api": "ENGINE_STARTER",
    "name": "ENGINE_STARTER",
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "press",
-   "note": "The sim's checklist says: \"Press starter button, STARTER light must light on, then back off\". Asobo engine template (Engine_Inputs.xml): a starter sends TOGGLE_STARTER and reads (A:GENERAL ENG STARTER:1, Bool). Not tried: whether it needs the button held is not known."
+   "behavior": "latched",
+   "verified": true,
+   "note": "Verified on the Cabri G2 in MSFS 2024 (2026-11-26): a single set to 1 reads back 0 and does not start the engine: the button has to be sent again while held (every 150 ms worked; the engine caught after about 2 s and idled at 565 RPM). Start with the clutch released, or the starter only turns the rotor."
   },
   {
    "panel": "Engine and rotor",
@@ -199,8 +212,13 @@
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "",
-   "note": "The sim's checklist for this aircraft never names a mixture control. Not tried; the range is not known."
+   "behavior": "level",
+   "axis_range": [
+    0,
+    1
+   ],
+   "verified": true,
+   "note": "Verified on the Cabri G2 in MSFS 2024 (2026-11-26): takes 0 to 1: 0 = cut-off, 1 = rich ((A:GENERAL ENG MIXTURE LEVER POSITION:1) 0 to 100 %). Cold and dark is 0."
   },
   {
    "panel": "Engine and rotor",
@@ -211,8 +229,13 @@
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "",
-   "note": "The sim's checklist says: \"Turn throttle fully right\", \"Set throttle lever to get NR around 530 RPM\". Asobo engine template (Engine_Inputs.xml): the throttle set takes the position on a 16k scale (THROTTLE1_SET, (A:GENERAL ENG THROTTLE LEVER POSITION:1)). Not tried; the range this event takes is not known. For an axis use the Helicopter throttle of the Control list."
+   "behavior": "level",
+   "axis_range": [
+    0,
+    1
+   ],
+   "verified": true,
+   "note": "Verified on the Cabri G2 in MSFS 2024 (2026-11-26): takes 0 to 1 (read back x 16384), (A:GENERAL ENG THROTTLE LEVER POSITION:1) 0 to 100 %. For a lever use the axis AXIS_HELICOPTER_THROTTLE_SET (-16383 to 16383, also checked); THROTTLE1_SET does nothing here. The grip moves at a limited rate."
   },
   {
    "panel": "Electrical",
@@ -224,7 +247,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Tooltip in the aircraft: \"Alternator\". The sim's checklist says: \"ALT light must be Off\". Which value is ON is not confirmed. Not tried."
+   "verified": true,
+   "note": "Verified on the Cabri G2 in MSFS 2024 (2026-11-26): 1 = ON, 0 = OFF, read back with (A:GENERAL ENG MASTER ALTERNATOR:1)."
   },
   {
    "panel": "Fuel and heat",
@@ -253,7 +277,7 @@
   {
    "panel": "Fuel and heat",
    "section": "Carburetor",
-   "function": "Carburetor heat switch (COLD / AUTO / HOT)",
+   "function": "Carburetor heat switch (0 COLD / 1 AUTO / 2 HOT)",
    "api": "DEICE_CARB_HEAT",
    "name": "DEICE_CARB_HEAT",
    "kind": "input_event",
@@ -261,7 +285,8 @@
    "rw": "R/W",
    "behavior": "latched",
    "positions": 3,
-   "note": "The sim's checklist says: \"Set carburetor heat switch on COLD\" and \"on HOT\" (the NR drops when it is set to HOT). The input list has COLD, AUTO and HOT. Which value is which is not confirmed. Not tried."
+   "verified": true,
+   "note": "Verified on the Cabri G2 in MSFS 2024 (2026-11-26): 0 = COLD, 1 = AUTO, 2 = HOT, read back with (A:GENERAL ENG ANTI ICE POSITION:1) (0, partial, 1)."
   },
   {
    "panel": "Fuel and heat",
@@ -273,19 +298,21 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Fuel pump; the aircraft's input list has ON, OFF and TOGGLE. Which value is ON is not confirmed. Not tried."
+   "verified": true,
+   "note": "Verified on the Cabri G2 in MSFS 2024 (2026-11-26): 1 = ON, 0 = OFF, read back with (A:FUELSYSTEM PUMP ACTIVE:1)."
   },
   {
    "panel": "Fuel and heat",
    "section": "Fuel",
-   "function": "Fuel valve (OPEN / CLOSED)",
+   "function": "Fuel valve (0 OPEN / 1 CLOSED)",
    "api": "FUEL_VALVE",
    "name": "FUEL_VALVE",
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Fuel valve; the aircraft's input list has OPEN, CLOSED and TOGGLE. Which value is OPEN is not confirmed. Not tried."
+   "verified": true,
+   "note": "Verified on the Cabri G2 in MSFS 2024 (2026-11-26): 0 = OPEN ((A:FUELSYSTEM VALVE OPEN:1) = 100 %), 1 = CLOSED (0 %); cold and dark is 1."
   },
   {
    "panel": "Flight controls",
@@ -296,8 +323,13 @@
    "kind": "input_event",
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
-   "behavior": "",
-   "note": "Asobo rotorcraft template (Rotorcrafts.xml): the lever sets (A:COLLECTIVE HANDLE POSITION, Percent over 100). Not tried; the range this event takes is not known. For an axis use the Collective of the Control list (AXIS_COLLECTIVE_SET)."
+   "behavior": "level",
+   "axis_range": [
+    0,
+    1
+   ],
+   "verified": true,
+   "note": "Verified on the Cabri G2 in MSFS 2024 (2026-11-26): takes 0 to 1 (read back x 16384), (A:COLLECTIVE POSITION) 0 to 100 %. For a lever use the axis AXIS_COLLECTIVE_SET (-16383 to 16383, also checked)."
   },
   {
    "panel": "Flight controls",
@@ -441,7 +473,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "The sim's checklist says: \"Switch landing and navigation lights off\" at shutdown. Which value is ON is not confirmed. Not tried."
+   "verified": true,
+   "note": "Verified on the Cabri G2 in MSFS 2024 (2026-11-26): 1 = ON, 0 = OFF, read back with (A:LIGHT LANDING)."
   },
   {
    "panel": "Lights",
@@ -453,7 +486,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "The sim's checklist says: \"Switch landing and navigation lights off\" at shutdown. Which value is ON is not confirmed. Not tried."
+   "verified": true,
+   "note": "Verified on the Cabri G2 in MSFS 2024 (2026-11-26): 1 = ON, 0 = OFF, read back with (A:LIGHT NAV)."
   },
   {
    "panel": "Lights",
@@ -465,12 +499,13 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "latched",
-   "note": "Strobe light; the aircraft's input list has ON, OFF and TOGGLE. Which value is ON is not confirmed. Not tried."
+   "verified": true,
+   "note": "Verified on the Cabri G2 in MSFS 2024 (2026-11-26): 1 = ON, 0 = OFF, read back with (A:LIGHT STROBE)."
   },
   {
    "panel": "Lights",
    "section": "Interior",
-   "function": "Map / backup light (OFF / LEFT / RIGHT)",
+   "function": "Map / backup light (1 OFF; 0 and 2 the lamps)",
    "api": "LIGHTING_MAP_LIGHT",
    "name": "LIGHTING_MAP_LIGHT",
    "kind": "input_event",
@@ -478,7 +513,8 @@
    "rw": "R/W",
    "behavior": "latched",
    "positions": 3,
-   "note": "Tooltip in the aircraft: \"Map/Backup light\". The input list has OFF, LEFT and RIGHT. Which value is which is not confirmed. Not tried."
+   "verified": true,
+   "note": "Verified on the Cabri G2 in MSFS 2024 (2026-11-26): 1 = OFF ((A:LIGHT CABIN) = 0); 0 and 2 light it. Which of them is LEFT and which RIGHT was not seen."
   },
   {
    "panel": "Radio and transponder",

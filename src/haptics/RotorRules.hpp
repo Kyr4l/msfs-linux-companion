@@ -16,6 +16,14 @@ inline float rotorVibration(const sim::Telemetry& t) {
     return static_cast<float>(std::clamp(0.06 + 0.10 * std::min(1.0, nr) + 0.14 * std::clamp(t.collective, 0.0, 1.0), 0.0, 1.0));
 }
 
+// The takeoff rumble of the engines on the ground, 0..0.35, from 35 % power up. Not for a helicopter with its rotor turning: its engine runs
+// at full RPM on the ground (the Cabri G2, governed) and its torque reads ~90 % while the rotor spins up (H125); the rotor rules cover it.
+inline double groundEngineLevel(const sim::Telemetry& t) {
+    if (t.onGround < 0.5 || t.rotorRpmPct > 0.05) return 0.0;
+    const double power = t.enginePower();
+    return power > 35 ? (power - 35.0) / 65.0 * 0.35 : 0.0;
+}
+
 // True in flight when the rotor turns below 85 % of its speed: the lower limit of the Cabri G2's rotor gauge (450 of 530 RPM), where its horn sounds.
 inline bool rotorLow(const sim::Telemetry& t) { return t.onGround < 0.5 && t.rotorRpmPct > 0.3 && t.rotorRpmPct < 0.85; }
 

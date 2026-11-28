@@ -30,6 +30,8 @@ struct ServiceStatus {
     bool deviceOpen = false;
     std::string devicePath, seat, error;
     bool simMode = false, simScreen = false, sleeping = false;
+    bool desktopInSim = false;  // MSFS runs but the switch key gave the unit to the desktop pages
+    bool bindingKey = false;    // waiting for a key to bind (bindKey())
     int ambientPercent = -1;
     int screenLevelPercent = -1;  // the screen level sent last (Automatic included)
     uint64_t screensSent = 0;
@@ -43,7 +45,10 @@ struct SimState {
     std::string hEventPrefix;      // keys become H events <prefix><key>; empty: this aircraft's keys are not known
     bool simBridge = false;        // the aircraft has a SimBridge screen (the A32NX)
     bool iniBuildsKeys = false;    // the keys are the L: variables of the iniBuilds Airbuses
+    bool wt21 = false;             // the CJ4: its FMC keys are H events (wt21KeyEvent), its screen is read off the pop-out
     bool g3000 = false;            // a G3000 with touch controllers (the Vision Jet): the avionics pages offer the GTCs instead of a G1000
+    bool g3000Vertical = false;    // the ES-30: two vertical touch controllers (left, right) and traction batteries
+    bool g1000Pad = false;         // a G1000 with its control pad (the Corvalis): the MCDU's letters can type into it
     bool hasLamps = false;         // the aircraft says which lamps are lit (iniBuilds: L:INI_FMC<n>_*)
     LampState lamps{};
     bool operator==(const SimState&) const = default;
@@ -58,6 +63,9 @@ public:
         // values read as calculator code (the avionics pages): the codes to keep reading ({} for none), the last value of one
         std::function<void(const std::vector<std::string>& codes)> watchCodes;
         std::function<std::optional<double>(const std::string& code)> readCode;
+        // the GPS's previous and next waypoint names (text, which calculator code cannot return): asked only while F-PLN shows them
+        std::function<void(bool)> wantWaypoints;
+        std::function<std::pair<std::string, std::string>()> readWaypoints;
     };
 
     explicit McduService(Hooks hooks);
@@ -68,6 +76,10 @@ public:
     void setSim(const SimState& sim);
     void setPanelOpen(bool open);  // the on-screen panel of the MCDU page
     void pressKey(Key key);        // a key of that panel
+    // Press-to-bind: the next key pressed on the unit or the panel (not BRT or DIM) is kept instead of acting; takeBoundKey()
+    // gives its number once (from 1; 0 while there is none).
+    void bindKey(bool on);
+    int takeBoundKey();
 
     Screen screen() const;
     ServiceStatus status() const;
@@ -115,6 +127,11 @@ private:
     SimState sim_;
     bool panelOpen_ = false;
     std::deque<Key> queuedKeys_;
+    bool binding_ = false;
+    Clock::time_point bindingSince_{};
+    static constexpr auto kBindTimeout = std::chrono::seconds(20);
+    int boundKey_ = 0;
+    bool tryBind(Key key);  // a key while binding: kept (true), or BRT / DIM, which act as always
     Screen shown_;
     ServiceStatus status_;
     desktop::McduConfig runtimePrefs_;
@@ -126,8 +143,15 @@ private:
     ScreenMirror mirror_;  // the iniBuilds Airbuses: the text read off their pop-out window
     bool mirrorShown_ = false;
     AvionicsPages avionics_;  // an aircraft without an MCDU: the companion's own pages
+    bool waypointsWanted_ = false;  // the F-PLN page asked the sim for the waypoint names
     bool avionicsWatched_ = false;
     bool avionicsMode() const;
+    // The aircraft has the unit: MSFS runs and the switch key has not given it to the desktop pages.
+    bool simOwns() const { return activeSim_.active && !desktopInSim_; }
+    bool desktopInSim_ = false;  // MSFS runs, the switch key gave the unit to the desktop pages
+    std::optional<Key> switchKey() const { return keyFromNumber(active_.switchKey); }
+    void toggleDesktop();
+    SwitchKey switch_;
     SystemInfo systemInfo_;
     desktop::MediaControl mediaControl_;
     WeatherClient weather_;
@@ -135,6 +159,11 @@ private:
     desktop::AudioControl audioControl_;
     desktop::AudioState audioState_;
     Clock::time_point nextAudio_{};
+    desktop::MediaInfo media_;           // the media page's player as last read
+    Clock::time_point nextMediaMute_{};  // when to ask the sound server again whether that player is muted
+    bool mediaMuted_ = false, mediaPcMuted_ = false, mediaShown_ = false;
+    int mediaAppVolume_ = -1, mediaPcVolume_ = -1;
+    std::string mediaSoundApp_;  // the player whose sound was read last
     bool deafenMutedVoice_ = false;  // deafening also muted the microphone: undeafening gives it back
     Clock::time_point nextWeather_{};
     desktop::McduConfig active_;
@@ -152,6 +181,7 @@ private:
     int lastLevels_[3] = {-1, -1, -1};
     int screenShown_ = -1;
     Clock::time_point holdStart_{}, nextRepeat_{};  // BRT / DIM held down
+    Clock::time_point clrLongAt_{};  // the CJ4: CLR held until then clears the whole scratchpad (CLR_LONG); {} when not held
     LampState lastLamps_{};
     bool lampsValid_ = false;
 };

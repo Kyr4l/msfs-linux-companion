@@ -49,7 +49,9 @@ DesktopService::DesktopService(sim::SimBridge& bridge, app::Engine& engine, hapt
               simEngine_.fire({a}, "MCDU");
           },
           [this](const std::vector<std::string>& codes) { bridge_.watchLVars(codes, "mcdu-avionics"); },
-          [this](const std::string& code) { return bridge_.lvarValue(code); }}) {}
+          [this](const std::string& code) { return bridge_.lvarValue(code); },
+          [this](bool on) { bridge_.setWaypointsWanted(on); },
+          [this] { return bridge_.waypoints(); }}) {}
 
 DesktopService::~DesktopService() { stop(); }
 
@@ -123,6 +125,9 @@ void DesktopService::poll() {
             if (sim::sameAircraft(aircraft, id.id)) sim.hEventPrefix = prefix;
         sim.simBridge = sim::sameAircraft("A32NX", id.id);
         sim.g3000 = sim::sameAircraft("Microsoft_SF50", id.id);
+        sim.g1000Pad = sim::sameAircraft("Microsoft_C400_Corvalis", id.id);
+        sim.wt21 = sim::sameAircraft("asobo_cj4", id.id);
+        sim.g3000Vertical = sim::sameAircraft("asobo_es30", id.id);
         for (const char* aircraft : {"microsoft-a320neo", "microsoft-a321", "microsoft-a330", "microsoft-belugaxl"})
             sim.iniBuildsKeys = sim.iniBuildsKeys || sim::sameAircraft(aircraft, id.id);
         // Any other Airbus built on the iniBuilds systems has the same MCDU variables: found in its L: list, once per aircraft
@@ -150,6 +155,8 @@ void DesktopService::poll() {
         const std::string side = unit.second == 0xbb3e ? "2" : "1";
         for (const char* n : {"FAIL", "FM", "MCDU", "FM1", "IND", "RDY", "DASH", "FM2"}) watch.push_back("L:INI_FMC" + side + "_" + n);
     }
+    // The CJ4 (WT21): its FMC sets L:FMC_EXEC_ACTIVE while a change waits for EXEC (the unit's OVFY key); the RDY lamp shows it
+    if (sim.wt21) watch.push_back("L:FMC_EXEC_ACTIVE");
     if (watch != lampWatch_) {
         bridge_.watchLVars(watch, "mcdu-lamps");  // its own list: the profile's watches stay
         lampWatch_ = watch;
@@ -157,14 +164,17 @@ void DesktopService::poll() {
     if (!watch.empty()) {
         auto on = [&](size_t i) { const auto v = bridge_.lvarValue(watch[i]); return v && *v > 0.5; };
         // kLamps: FAIL, FM, MCDU, MENU, FM1, IND, RDY, line, FM2 (the aircraft's MCDU lamp lights the MCDU MENU pair)
-        sim.lamps = {on(0), on(1), on(2), on(2), on(3), on(4), on(5), on(6), on(7)};
+        if (sim.wt21) sim.lamps = {false, false, false, false, false, false, on(0), false, false};  // EXEC waiting: RDY
+        else sim.lamps = {on(0), on(1), on(2), on(2), on(3), on(4), on(5), on(6), on(7)};
         sim.hasLamps = std::any_of(watch.begin(), watch.end(), [&](const std::string& n) { return bridge_.lvarValue(n).has_value(); });
     }
     mcdu_.setSim(sim);
     mcdu_.setDevice(unit.first, unit.second);
 
-    // The virtual keyboard of the MCDU's pages: there before the first key (a new device takes the desktop a moment to notice), gone while the sim runs.
-    const bool wantTap = mcdu_.status().running && !simUp;
+    // The virtual keyboard of the MCDU's pages: there before the first key (a new device takes the desktop a moment to notice), gone while
+    // the aircraft has the unit (back while the switch key gives the desktop pages the unit in flight).
+    const auto mcduStatus = mcdu_.status();
+    const bool wantTap = mcduStatus.running && (!simUp || mcduStatus.desktopInSim);
     {
         std::lock_guard<std::mutex> lock(tapMutex_);
         if (wantTap && !tapOpen_) {

@@ -11,6 +11,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include "mcdu/McduProtocol.hpp"
 #include "sim/AircraftId.hpp"
 #include "util/AtomicFile.hpp"
 #include "util/Log.hpp"
@@ -443,7 +444,16 @@ bool loadSettings(const std::string& path, Settings& out, std::string& err) {
             s.mcdu.refreshSeconds = std::clamp(m.value("refresh_seconds", s.mcdu.refreshSeconds), 1, 5);
             s.mcdu.clockUtc = m.value("clock_utc", false);
             s.mcdu.clock12h = m.value("clock_12h", false);
+            s.mcdu.mediaVolumeAll = m.value("media_volume_all", false);
             s.mcdu.pageStyle = m.value("page_style", std::string("classic")) == "airbus" ? "airbus" : "classic";
+            if (const auto k = m.find("switch_key"); k != m.end()) {
+                if (k->is_number_integer()) s.mcdu.switchKey = std::clamp(k->get<int>(), 0, mcdu::kKeyCount);
+                else if (k->is_string()) {  // as 0.9.23 wrote it
+                    const std::string v = k->get<std::string>();
+                    s.mcdu.switchKey = v == "blank2" ? 28 : v == "menu" ? 25 : v == "none" ? 0 : 18;
+                }
+            }
+            s.mcdu.switchHold = m.value("switch_hold", true);
             {
                 const std::string t = m.value("avionics_temp", std::string("aircraft"));
                 s.mcdu.avionicsTemp = t == "c" || t == "f" || t == "both" ? t : "aircraft";
@@ -591,11 +601,13 @@ bool saveSettings(const std::string& path, const Settings& s, std::string& err) 
         j["mcdu"] = json{{"screen_percent", s.mcdu.screenPercent}, {"keys_percent", s.mcdu.keysPercent}, {"led_percent", s.mcdu.ledPercent}, {"auto_brightness", s.mcdu.autoBrightness}, {"auto_screen", s.mcdu.autoScreen}, {"auto_keys", s.mcdu.autoKeys}, {"auto_lights", s.mcdu.autoLeds},
                          {"sleep_minutes", s.mcdu.sleepMinutes}, {"font", s.mcdu.font}, {"keyboard_layout", s.mcdu.keyboardLayout}, {"shortcuts", shortcuts}, {"system_look", s.mcdu.systemLook},
                          {"gpu_view", s.mcdu.gpuView}, {"disk_view", s.mcdu.diskView}, {"disk_mount", s.mcdu.diskMount}, {"gpu_index", s.mcdu.gpuIndex}, {"refresh_seconds", s.mcdu.refreshSeconds},
-                         {"clock_utc", s.mcdu.clockUtc}, {"clock_12h", s.mcdu.clock12h}, {"shortcuts2", shortcutList(s.mcdu.shortcuts2)},
+                         {"clock_utc", s.mcdu.clockUtc}, {"clock_12h", s.mcdu.clock12h}, {"media_volume_all", s.mcdu.mediaVolumeAll}, {"shortcuts2", shortcutList(s.mcdu.shortcuts2)},
                          {"comms_shortcuts", shortcutList(s.mcdu.commsShortcuts)}, {"home_airport", s.mcdu.homeAirport}, {"net_bits", s.mcdu.netBits}, {"comms_app", s.mcdu.commsApp}, {"direct_apps", s.mcdu.directApps}};
         const desktop::LoadColors& lc = s.mcdu.loadColors;
         auto stageJ = [](const desktop::LoadStage& st) { return json{{"on", st.on}, {"above", st.above}, {"color", st.color}}; };
         j["mcdu"]["page_style"] = s.mcdu.pageStyle;
+        j["mcdu"]["switch_key"] = s.mcdu.switchKey;
+        j["mcdu"]["switch_hold"] = s.mcdu.switchHold;
         j["mcdu"]["avionics_temp"] = s.mcdu.avionicsTemp;
         j["mcdu"]["avionics_fuel"] = s.mcdu.avionicsFuel;
         j["mcdu"]["load_colors"] = json{{"on", lc.on}, {"normal", lc.normal}, {"warn", stageJ(lc.warn)}, {"alert", stageJ(lc.alert)}};

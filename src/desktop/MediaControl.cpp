@@ -53,17 +53,26 @@ std::vector<std::string> MediaControl::listPlayers() {
         api_->message_exit_container(reply);
     }
     api_->message_unref(reply);
-    // the same app twice (KDE's browser integration and the browser itself): keep the browser's own player
+    // The same browser twice: KDE's browser integration and the browser's own player. The integration follows the tab that plays
+    // media; the browser's own can keep a tab that stopped long ago (Firefox kept "Scenes | Stash" while YouTube played). Keep the
+    // integration, unless only the browser's own is playing.
     const auto it = std::find(names.begin(), names.end(), kBrowserIntegration);
     if (it != names.end()) {
         std::string entry;
         if (getString(*it, kRootInterface, "DesktopEntry", entry) && !entry.empty()) {
-            bool twin = false;
+            const std::string integration = *it;
+            std::string status;
+            const bool integrationPlays = getString(integration, kPlayerInterface, "PlaybackStatus", status) && status == "Playing";
+            std::vector<std::string> twins;
             for (const auto& n : names) {
                 std::string other;
-                if (n != *it && getString(n, kRootInterface, "DesktopEntry", other) && other == entry) twin = true;
+                if (n != integration && getString(n, kRootInterface, "DesktopEntry", other) && other == entry) twins.push_back(n);
             }
-            if (twin) names.erase(it);
+            bool twinPlays = false;
+            for (const auto& t : twins) twinPlays = twinPlays || (getString(t, kPlayerInterface, "PlaybackStatus", status) && status == "Playing");
+            if (!twins.empty() && twinPlays && !integrationPlays) names.erase(std::find(names.begin(), names.end(), integration));
+            else
+                for (const auto& t : twins) names.erase(std::find(names.begin(), names.end(), t));
         }
     }
     return names;
@@ -102,11 +111,13 @@ bool MediaControl::getBool(const std::string& dest, const char* iface, const cha
 }
 
 // The player chosen with the side key, else the one that is playing, else the first one there is.
-std::string MediaControl::choosePlayer(bool* playing, int* count) {
+std::string MediaControl::choosePlayer(bool* playing, int* count, int* index) {
     const std::vector<std::string> names = listPlayers();
     if (count) *count = static_cast<int>(names.size());
     std::string first;
+    int firstAt = 0, at = 0;
     for (const auto& n : names) {
+        ++at;
         sdbus::Message* q = nullptr, *a = nullptr;
         sdbus::Error e;
         if (api_->message_new_method_call(bus_, &q, n.c_str(), kPlayerPath, "org.freedesktop.DBus.Properties", "Get") < 0) continue;
@@ -115,19 +126,22 @@ std::string MediaControl::choosePlayer(bool* playing, int* count) {
         api_->message_unref(q);
         api_->error_free(&e);
         if (got < 0) continue;
-        if (first.empty()) first = n;
+        if (first.empty()) first = n, firstAt = at;
         const char* status = nullptr;
         const bool isPlaying = api_->message_read(a, "v", "s", &status) > 0 && status && std::strcmp(status, "Playing") == 0;
         api_->message_unref(a);
         if (n == pinned_) {
             *playing = isPlaying;
+            if (index) *index = at;
             return n;
         }
         if (isPlaying && pinned_.empty()) {
             *playing = true;
+            if (index) *index = at;
             return n;
         }
     }
+    if (index) *index = firstAt;
     return first;
 }
 
@@ -136,7 +150,9 @@ MediaInfo MediaControl::read() {
     if (!open()) return info;
     bool playing = false;
     int count = 0;
-    player_ = choosePlayer(&playing, &count);
+    int page = 0;
+    player_ = choosePlayer(&playing, &count, &page);
+    info.page = page;
     if (player_.empty()) return info;
     info.present = true;
     info.playing = playing;
@@ -157,6 +173,7 @@ MediaInfo MediaControl::read() {
             break;
         }
     }
+    getString(player_, kRootInterface, "DesktopEntry", info.app);
     // MPRIS makes CanGoNext and CanGoPrevious mandatory: a player that does not answer is taken as able to
     info.canNext = info.canPrevious = true;
     getBool(player_, kPlayerInterface, "CanGoNext", info.canNext);
@@ -239,12 +256,18 @@ void MediaControl::setProperty(const char* name, const char* type, const void* v
 void MediaControl::command(MediaCommand cmd) {
     if (!open()) return;
     bool playing = false;
-    if (cmd == MediaCommand::NextPlayer) {
+    switch (cmd) {  // the sound server's job (AudioControl), not the player's
+        case MediaCommand::Mute: case MediaCommand::AppVolumeUp: case MediaCommand::AppVolumeDown:
+        case MediaCommand::PcVolumeUp: case MediaCommand::PcVolumeDown: case MediaCommand::PcMute: return;
+        default: break;
+    }
+    if (cmd == MediaCommand::NextPlayer || cmd == MediaCommand::PrevPlayer) {
         const std::vector<std::string> names = listPlayers();
         if (names.empty()) return;
+        const size_t n = names.size(), step = cmd == MediaCommand::NextPlayer ? 1 : n - 1;
         size_t next = 0;
-        for (size_t i = 0; i < names.size(); ++i)
-            if (names[i] == player_) next = (i + 1) % names.size();
+        for (size_t i = 0; i < n; ++i)
+            if (names[i] == player_) next = (i + step) % n;
         pinned_ = names[next];
         player_ = pinned_;
         return;

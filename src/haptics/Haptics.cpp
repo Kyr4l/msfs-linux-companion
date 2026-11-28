@@ -153,8 +153,7 @@ void HapticsEngine::evaluate(const sim::Telemetry& t, float& left, float& right,
     const double rev = std::max(t.reverse1, t.reverse2);
     if (rev > 0.05) add("reverse", 0.25 + 0.5 * rev);
 
-    const double power = t.enginePower();
-    if (onGround && power > 35) add("engine", (power - 35.0) / 65.0 * 0.35);
+    if (const double engine = groundEngineLevel(t); engine > 0) add("engine", engine);
 
     const float rotor = rotorVibration(t);
     if (rotor > 0.f) add("rotor", rotor);

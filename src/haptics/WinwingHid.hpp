@@ -77,6 +77,13 @@ public:
     std::vector<std::string> dumpConfig(const std::string& key, uint32_t first = 0, uint32_t last = 0x110);
     // Reads `length` bytes of a controller's stored settings (opcode 0x05, read only), e.g. its lighting. False when a part did not answer.
     bool readConfigBlock(const std::string& key, int device, int family, uint32_t offset, size_t length, std::vector<uint8_t>& out);
+    // Saves one byte of a controller's stored settings (opcode 0x06 WRITE_CFG_DATA, one 4-byte word, as SimAppPro does). The only
+    // write to stored settings in this program, and protected: the words around it are read first and handed to `keepBackup`
+    // (with the offset of the first one) before anything is written; the word is written with that byte changed, the device must
+    // acknowledge it, and the same words are read again: only that byte may differ, otherwise the original word is written back and
+    // false returned.
+    bool saveConfigByte(const std::string& key, int device, int family, uint32_t offset, int byte, uint8_t value,
+                        const std::function<void(const std::vector<uint8_t>& words, uint32_t from)>& keepBackup, std::string& error);
     // Broadcast identity request; returns every controller behind the USB device with its name.
     std::vector<ControllerInfo> discover(const std::string& key);
     // SET_LEDX level on an explicit address (raw motor test / sweep).
@@ -94,6 +101,7 @@ private:
     std::vector<std::vector<uint8_t>> collect(Dev& d, int opcode, int ms,
                                               const std::function<bool(const std::vector<uint8_t>&)>& done = {});
     bool readCfg(Dev& d, int device, int family, uint32_t offset, uint8_t out[4]);
+    bool writeCfg(Dev& d, int device, int family, uint32_t offset, const uint8_t word[4]);  // true when the device acknowledged it
     std::vector<ControllerInfo> discoverLocked(Dev& d);
     void autoAssign(Dev& d);
     Dev* find(const std::string& key);

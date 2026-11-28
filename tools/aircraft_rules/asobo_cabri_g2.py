@@ -10,10 +10,11 @@ The helicopter has 97 cockpit input events (B:). What each one is comes from fil
     Transponder/AS21.xml, GlassCockpit/AS650.xml and Misc/AS_EPM.xml (radio, transponder, engine monitor)
   * the engine monitor's script (Packages/asobo-vcockpits-instruments-helicopters, AS_EPM.js): the simulation variables the aircraft's own gauges read
   * the sim's helicopter control profiles (Packages/asobo-input-profiles-pc/InputProfiles/Categories/Helicopter): the K: events it binds
-The aircraft's model and system files are encrypted and not read. Nothing here was tried through this program on a running helicopter yet, so no
-entry is marked verified; each note says where the entry comes from.
+The aircraft's model and system files are encrypted and not read. The engine, rotor, fuel, light and lever controls were checked on the
+running helicopter on 2026-11-26 (MSFS 2024, parked, cold and dark, engine started and stopped, everything put back): those entries are
+marked verified and say what was read back. The others say where they come from.
 """
-from common import NOT_TRIED, knob, latched, press, unknown
+from common import NOT_TRIED, knob, latched, level, press, unknown
 
 AIRCRAFT = "Asobo_Cabri_G2"
 TITLE = "Guimbal Cabri G2 (Asobo)"
@@ -40,7 +41,37 @@ P_EXT = "Walkaround"
 P_OTHER = "Other"
 PANEL_ORDER = [P_ENG, P_ELEC, P_FUEL, P_HAND, P_LIGHT, P_RADIO, P_INSTR, P_BRK, P_SAFE, P_EXT, P_OTHER]
 
-VERIFIED = {}
+_V = "Verified on the Cabri G2 in MSFS 2024 (2026-11-26): "
+VERIFIED = {
+    "ENGINE_MASTER": _V + "1 = ON (battery on: (A:ELECTRICAL MASTER BATTERY:1) = 1), 0 = OFF.",
+    "ELECTRICAL_ALTERNATOR": _V + "1 = ON, 0 = OFF, read back with (A:GENERAL ENG MASTER ALTERNATOR:1).",
+    "ENGINE_MAGNETO": _V + "1 = ON (both (A:RECIP ENG LEFT MAGNETO:1) and RIGHT go to 1), 0 = OFF. The engine stops only with the magneto AND the plasma ignition off.",
+    "ENGINE_PLASMA": _V + "1 = ON ((A:PLASMA ON:1) = 1), 0 = OFF. The engine stops only with the magneto AND the plasma ignition off.",
+    "FUEL_PUMP": _V + "1 = ON, 0 = OFF, read back with (A:FUELSYSTEM PUMP ACTIVE:1).",
+    "FUEL_VALVE": _V + "0 = OPEN ((A:FUELSYSTEM VALVE OPEN:1) = 100 %), 1 = CLOSED (0 %); cold and dark is 1.",
+    "ENGINE_GOVERNOR": _V + "1 = ON ((A:ROTOR GOV ACTIVE:1) = 1), 0 = OFF. With the throttle fully open it holds the rotor at 530 RPM (100 %), "
+                       "moving the throttle back to about 77 %.",
+    "ENGINE_STARTER": _V + "a single set to 1 reads back 0 and does not start the engine: the button has to be sent again while held (every 150 ms "
+                      "worked; the engine caught after about 2 s and idled at 565 RPM). Start with the clutch released, or the starter only turns the rotor.",
+    "ENGINE_THROTTLE": _V + "takes 0 to 1 (read back x 16384), (A:GENERAL ENG THROTTLE LEVER POSITION:1) 0 to 100 %. For a lever use the axis "
+                       "AXIS_HELICOPTER_THROTTLE_SET (-16383 to 16383, also checked); THROTTLE1_SET does nothing here. The grip moves at a limited rate.",
+    "ENGINE_MIXTURE": _V + "takes 0 to 1: 0 = cut-off, 1 = rich ((A:GENERAL ENG MIXTURE LEVER POSITION:1) 0 to 100 %). Cold and dark is 0.",
+    "ROTOR_CLUTCH": _V + "1 = ENGAGED ((A:ROTOR CLUTCH SWITCH POS) = 1), 0 = released; it moves only while its cover is open "
+                    "(COMMON_ROTOR_CLUTCH_COVER = 1). (A:ROTOR CLUTCH ACTIVE) is 1 while the belt moves. Engaging it at idle stalled the engine: "
+                    "open the throttle first (the rotor then reached 530 RPM in about 15 s).",
+    "COMMON_ROTOR_CLUTCH_COVER": _V + "1 = OPEN (the clutch switch can move), 0 = closed. L:XMLVAR_ROTORCRAFT_Clutch_Cover_Opened does not follow it.",
+    "ROTOR_BRAKE": _V + "takes 0 to 1: 1 = full brake ((A:ROTOR BRAKE ACTIVE) = 1, (A:ROTOR BRAKE HANDLE POS) 100 %), 0 = off; "
+                   "it stopped the rotor from 185 RPM in a few seconds.",
+    "ROTOR_COLLECTIVE": _V + "takes 0 to 1 (read back x 16384), (A:COLLECTIVE POSITION) 0 to 100 %. For a lever use the axis AXIS_COLLECTIVE_SET "
+                        "(-16383 to 16383, also checked).",
+    "DEICE_CARB_HEAT": _V + "0 = COLD, 1 = AUTO, 2 = HOT, read back with (A:GENERAL ENG ANTI ICE POSITION:1) (0, partial, 1).",
+    "LIGHTING_LANDING_LIGHT": _V + "1 = ON, 0 = OFF, read back with (A:LIGHT LANDING).",
+    "LIGHTING_NAVIGATION_LIGHT": _V + "1 = ON, 0 = OFF, read back with (A:LIGHT NAV).",
+    "LIGHTING_STROBE_LIGHT": _V + "1 = ON, 0 = OFF, read back with (A:LIGHT STROBE).",
+    "LIGHTING_MAP_LIGHT": _V + "1 = OFF ((A:LIGHT CABIN) = 0); 0 and 2 light it. Which of them is LEFT and which RIGHT was not seen.",
+    "PROCEDURE_AUTO_START_SHUTDOWN": _V + "one event starts the engine by the sim's own procedure (rotor at 100 % in about 30 s; it leaves the "
+                                     "throttle open with the governor on, carburetor heat on AUTO and the clutch cover closed).",
+}
 
 _TIP = "Tooltip in the aircraft: "
 _CLUE = "The sim's checklist says: "
@@ -88,23 +119,19 @@ _SIMPLE.update({
                               note=_CLUE + "\"Switch plasma and magneto switches off\" at shutdown. " + _ENGINE_T + "a magneto of type ON/OFF sends MAGNETO1_SET 0 or 3." + _POL + " Not tried."),
     "ENGINE_PLASMA": latched(P_ENG, "Start", "Plasma ignition switch",
                              note=_CLUE + "\"Switch plasma ignition on and check beeper\". " + _ENGINE_T + "sends PLASMA_SET 0 or 1 and reads (A:PLASMA ON:1, Bool)." + _POL + " Not tried."),
-    "ENGINE_STARTER": press(P_ENG, "Start", "Starter button",
+    "ENGINE_STARTER": latched(P_ENG, "Start", "Starter button (send again while held)",
                             note=_CLUE + "\"Press starter button, STARTER light must light on, then back off\". " + _ENGINE_T + "a starter sends TOGGLE_STARTER and reads (A:GENERAL ENG STARTER:1, Bool). Not tried: whether it needs the button held is not known."),
     "ENGINE_GOVERNOR": latched(P_ENG, "Start", "Governor switch (GOV)",
                                note=_TIP + "\"Toggle governor switch\". " + _ROTOR_T + "ON sends ROTOR_GOV_SWITCH_ON, OFF sends ROTOR_GOV_SWITCH_OFF, state (A:ROTOR GOV SWITCH POS, Bool); the checklist's GOV OFF light is lit when it is off." + _POL + " Not tried."),
-    "ENGINE_THROTTLE": unknown(P_ENG, "Throttle", "Throttle twist grip (cockpit event)",
-                               _CLUE + "\"Turn throttle fully right\", \"Set throttle lever to get NR around 530 RPM\". " + _ENGINE_T + "the throttle set takes the position on a 16k scale (THROTTLE1_SET, (A:GENERAL ENG THROTTLE LEVER POSITION:1)). Not tried; the range this event takes is not known. For an axis use the Helicopter throttle of the Control list."),
-    "ENGINE_MIXTURE": unknown(P_ENG, "Throttle", "Mixture (cockpit event)",
-                              "The sim's checklist for this aircraft never names a mixture control. Not tried; the range is not known."),
+    "ENGINE_THROTTLE": level(P_ENG, "Throttle", "Throttle twist grip (cockpit event)", (0, 1)),
+    "ENGINE_MIXTURE": level(P_ENG, "Throttle", "Mixture (cockpit event)", (0, 1)),
     "ROTOR_CLUTCH": latched(P_ENG, "Rotor", "Clutch switch",
                             note=_CLUE + "\"Engage clutch and lock the switch, CLUTCH light must light on\"; \"Switch clutch off\" at shutdown. " + _ROTOR_T + "sends ROTOR_CLUTCH_SWITCH_SET, state (A:ROTOR CLUTCH SWITCH POS, Bool)." + _POL + " Not tried."),
     "COMMON_ROTOR_CLUTCH_COVER": latched(P_ENG, "Rotor", "Clutch switch cover",
                                          note=_ROTOR_T + "the cover over the clutch switch; its state is the L: variable XMLVAR_ROTORCRAFT_Clutch_Cover_Opened, and the switch only works while the cover is open." + _POL + " Not tried."),
-    "ROTOR_BRAKE": unknown(P_ENG, "Rotor", "Rotor brake lever",
-                           _CLUE + "\"Pull rotor brake lever fully backward, check that indicator is On, then lock rotor brake lever fully forward\"; the rotor can be braked below 150 RPM. " + _ROTOR_T + "the lever sets ROTOR_BRAKE_SET and reads (A:ROTOR BRAKE HANDLE POS, Percent). Not tried; the range is not known."),
-    "ROTOR_COLLECTIVE": unknown(P_HAND, "Collective", "Collective lever (cockpit event)",
-                                _ROTOR_T + "the lever sets (A:COLLECTIVE HANDLE POSITION, Percent over 100). Not tried; the range this event takes is not known. For an axis use the Collective of the Control list (AXIS_COLLECTIVE_SET)."),
-    "DEICE_CARB_HEAT": latched(P_FUEL, "Carburetor", "Carburetor heat switch (COLD / AUTO / HOT)", positions=3,
+    "ROTOR_BRAKE": level(P_ENG, "Rotor", "Rotor brake lever", (0, 1)),
+    "ROTOR_COLLECTIVE": level(P_HAND, "Collective", "Collective lever (cockpit event)", (0, 1)),
+    "DEICE_CARB_HEAT": latched(P_FUEL, "Carburetor", "Carburetor heat switch (0 COLD / 1 AUTO / 2 HOT)", positions=3,
                                note=_CLUE + "\"Set carburetor heat switch on COLD\" and \"on HOT\" (the NR drops when it is set to HOT). The input list has COLD, AUTO and HOT. Which value is which is not confirmed. Not tried."),
     "PROCEDURE_AUTO_START_SHUTDOWN": press(P_ENG, "Start", "Autostart / shutdown (sim procedure)",
                                            note="The sim's own engine autostart and shutdown (MSFS 2024). Not tried; do not press it in flight."),
@@ -113,7 +140,7 @@ _SIMPLE.update({
                                      note=_TIP + "\"Alternator\". " + _CLUE + "\"ALT light must be Off\"." + _POL + " Not tried."),
     # --- fuel ------------------------------------------------------------------------------------------------------------------------------
     "FUEL_PUMP": latched(P_FUEL, "Fuel", "Fuel pump switch", note="Fuel pump; the aircraft's input list has ON, OFF and TOGGLE." + _POL + " Not tried."),
-    "FUEL_VALVE": latched(P_FUEL, "Fuel", "Fuel valve (OPEN / CLOSED)", note="Fuel valve; the aircraft's input list has OPEN, CLOSED and TOGGLE. Which value is OPEN is not confirmed. Not tried."),
+    "FUEL_VALVE": latched(P_FUEL, "Fuel", "Fuel valve (0 OPEN / 1 CLOSED)", note="Fuel valve; the aircraft's input list has OPEN, CLOSED and TOGGLE. Which value is OPEN is not confirmed. Not tried."),
     "PNEUMATICS_COLD_AIR_CONTROL": unknown(P_FUEL, "Cabin air", "Cold air control", _TIP + "\"Cold air control\". Not tried; the range is not known."),
     "PNEUMATICS_WARM_AIR_CONTROL": unknown(P_FUEL, "Cabin air", "Warm air control", _TIP + "\"Warm air control\". Not tried; the range is not known."),
     # --- cyclic trim -----------------------------------------------------------------------------------------------------------------------
@@ -127,7 +154,7 @@ _SIMPLE.update({
     "LIGHTING_LANDING_LIGHT": latched(P_LIGHT, "Exterior", "Landing light", note=_CLUE + "\"Switch landing and navigation lights off\" at shutdown." + _POL + " Not tried."),
     "LIGHTING_NAVIGATION_LIGHT": latched(P_LIGHT, "Exterior", "Navigation light", note=_CLUE + "\"Switch landing and navigation lights off\" at shutdown." + _POL + " Not tried."),
     "LIGHTING_STROBE_LIGHT": latched(P_LIGHT, "Exterior", "Strobe light", note="Strobe light; the aircraft's input list has ON, OFF and TOGGLE." + _POL + " Not tried."),
-    "LIGHTING_MAP_LIGHT": latched(P_LIGHT, "Interior", "Map / backup light (OFF / LEFT / RIGHT)", positions=3,
+    "LIGHTING_MAP_LIGHT": latched(P_LIGHT, "Interior", "Map / backup light (1 OFF; 0 and 2 the lamps)", positions=3,
                                   note=_TIP + "\"Map/Backup light\". The input list has OFF, LEFT and RIGHT. Which value is which is not confirmed. Not tried."),
     # --- radio, intercom and transponder ---------------------------------------------------------------------------------------------------
     "AS_650_FREQ": press(P_RADIO, "AS 650", "Frequency knob push (COM / NAV)",

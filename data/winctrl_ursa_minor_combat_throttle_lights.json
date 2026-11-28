@@ -1,5 +1,5 @@
 {
- "_about": "WINCTRL URSA MINOR Combat Throttle Metal.EX: where SimAppPro stores its lighting (read with Winwing opcode 0x05). 3 groups of 12 LEDs (red, green, blue, level); which part each LED lights is inferred from the colours of one user's profile and a photo, not tried one by one.",
+ "_about": "WINCTRL URSA MINOR Combat Throttle Metal.EX: where SimAppPro stores its lighting (read with Winwing opcode 0x05). 3 groups of 12 LEDs (red, green, blue, level). Which part each LED lights comes from SimAppPro2's own definition of this throttle (T-N-N-5-1 Base, part 47424 = 0xB940: key backlight 0x00, labels 0x04, B8 to B1 0x08 to 0x24, mode selected 0x28, mode others 0x2C). Settings: three inputs SimAppPro lets you set to key, axis or both (base word 0xEC bytes 0 and 1, right grip word 0xF0 byte 0); which physical controls they are is not known yet.",
  "name": "URSA MINOR Combat Throttle",
  "usb": "4098:b970",
  "driver": "winwing",
@@ -25,63 +25,51 @@
  "leds": [
   {
    "id": 1,
-   "name": "B labels",
-   "guess": true
+   "name": "Key backlight"
   },
   {
    "id": 2,
-   "name": "Panel labels",
-   "guess": true
+   "name": "Panel labels"
   },
   {
    "id": 3,
-   "name": "B1 bar",
-   "guess": true
+   "name": "B8 bar"
   },
   {
    "id": 4,
-   "name": "B2 bar",
-   "guess": true
+   "name": "B7 bar"
   },
   {
    "id": 5,
-   "name": "B3 bar",
-   "guess": true
+   "name": "B6 bar"
   },
   {
    "id": 6,
-   "name": "B4 bar",
-   "guess": true
+   "name": "B5 bar"
   },
   {
    "id": 7,
-   "name": "B5 bar",
-   "guess": true
+   "name": "B4 bar"
   },
   {
    "id": 8,
-   "name": "B6 bar",
-   "guess": true
+   "name": "B3 bar"
   },
   {
    "id": 9,
-   "name": "B7 bar",
-   "guess": true
+   "name": "B2 bar"
   },
   {
    "id": 10,
-   "name": "B8 bar",
-   "guess": true
+   "name": "B1 bar"
   },
   {
    "id": 11,
-   "name": "Mode, selected",
-   "guess": true
+   "name": "Mode, selected"
   },
   {
    "id": 12,
-   "name": "Mode, others",
-   "guess": true
+   "name": "Mode, others"
   }
  ],
  "parts": [
@@ -127,7 +115,7 @@
     0.14
    ],
    "text_led": 1,
-   "bar_led": 3
+   "bar_led": 10
   },
   {
    "text": "B2",
@@ -139,7 +127,7 @@
     0.14
    ],
    "text_led": 1,
-   "bar_led": 4
+   "bar_led": 9
   },
   {
    "text": "B3",
@@ -151,7 +139,7 @@
     0.14
    ],
    "text_led": 1,
-   "bar_led": 5
+   "bar_led": 8
   },
   {
    "text": "B4",
@@ -163,7 +151,7 @@
     0.14
    ],
    "text_led": 1,
-   "bar_led": 6
+   "bar_led": 7
   },
   {
    "text": "B5",
@@ -175,7 +163,7 @@
     0.14
    ],
    "text_led": 1,
-   "bar_led": 7
+   "bar_led": 6
   },
   {
    "text": "B6",
@@ -187,7 +175,7 @@
     0.14
    ],
    "text_led": 1,
-   "bar_led": 8
+   "bar_led": 5
   },
   {
    "text": "B7",
@@ -199,7 +187,7 @@
     0.14
    ],
    "text_led": 1,
-   "bar_led": 9
+   "bar_led": 4
   },
   {
    "text": "B8",
@@ -211,7 +199,7 @@
     0.14
    ],
    "text_led": 1,
-   "bar_led": 10
+   "bar_led": 3
   },
   {
    "text": "SW7 SW8 SW9",
@@ -373,6 +361,32 @@
     0.06
    ],
    "text_led": 2
+  }
+ ],
+ "settings": [
+  {
+   "name": "Base input 1",
+   "kind": "key_axis",
+   "device": "0x40",
+   "family": "0xb9",
+   "offset": "0xEC",
+   "byte": 0
+  },
+  {
+   "name": "Base input 2",
+   "kind": "key_axis",
+   "device": "0x40",
+   "family": "0xb9",
+   "offset": "0xEC",
+   "byte": 1
+  },
+  {
+   "name": "Right grip input",
+   "kind": "key_axis",
+   "device": "0x08",
+   "family": "0xb9",
+   "offset": "0xF0",
+   "byte": 0
   }
  ]
 }

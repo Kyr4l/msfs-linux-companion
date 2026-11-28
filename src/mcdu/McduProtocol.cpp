@@ -98,6 +98,16 @@ Report reportFromHex(std::string_view hex) {
 const char* keyId(Key key) { return kKeyNames[static_cast<size_t>(key)].id; }
 const char* keyLabel(Key key) { return kKeyNames[static_cast<size_t>(key)].label; }
 
+bool keyIsFree(Key key) { return !*keyLabel(key) && !*keyId(key); }
+
+std::string keyNumberName(int number) {
+    const auto key = keyFromNumber(number);
+    if (!key) return "None";
+    std::string label = keyLabel(*key);
+    if (label == "-") label = keyId(*key);  // the line keys: L1 ... R6
+    return "Key " + std::to_string(number) + (label.empty() ? std::string() : " (" + label + ")");
+}
+
 std::string iniBuildsKeyCode(Key key, uint16_t productId) {
     const char* name = keyId(key);  // letters and digits have the same name
     switch (key) {
@@ -127,6 +137,48 @@ std::string iniBuildsKeyCode(Key key, uint16_t productId) {
     }
     if (!*name) return {};
     return std::string("1 (>L:INI_MCDU") + (productId == 0xbb3e ? "2_" : "1_") + name + ")";  // the first officer's unit works the right-hand MCDU
+}
+
+std::string wt21KeyEvent(Key key, uint16_t productId) {
+    const char* name = keyId(key);  // letters and digits have the same name
+    switch (key) {
+        case Key::L1: name = "L1"; break;
+        case Key::L2: name = "L2"; break;
+        case Key::L3: name = "L3"; break;
+        case Key::L4: name = "L4"; break;
+        case Key::L5: name = "L5"; break;
+        case Key::L6: name = "L6"; break;
+        case Key::R1: name = "R1"; break;
+        case Key::R2: name = "R2"; break;
+        case Key::R3: name = "R3"; break;
+        case Key::R4: name = "R4"; break;
+        case Key::R5: name = "R5"; break;
+        case Key::R6: name = "R6"; break;
+        case Key::Init: name = "IDX"; break;
+        case Key::Fpln: name = "FPLN"; break;
+        case Key::Prog: name = "LEGS"; break;
+        case Key::Airport: name = "DEPARR"; break;
+        case Key::Perf: name = "PERF"; break;
+        case Key::Fuel: name = "PERF"; break;  // fuel is on the PERF pages
+        case Key::Dir: name = "DIR"; break;
+        case Key::Rad: name = "TUN"; break;
+        case Key::Sec: name = "MFD_ADV"; break;
+        case Key::Data: name = "MFD_DATA"; break;
+        case Key::Menu: name = "DSPL_MENU"; break;
+        case Key::Atc: name = "MSG"; break;
+        case Key::Ovfy: name = "EXEC"; break;
+        case Key::LeftArrow: case Key::UpArrow: name = "PREVPAGE"; break;
+        case Key::RightArrow: case Key::DownArrow: name = "NEXTPAGE"; break;
+        case Key::Dot: name = "DOT"; break;
+        case Key::Slash: name = "DIV"; break;
+        case Key::PlusMinus: name = "PLUSMINUS"; break;
+        case Key::Space: name = "SP"; break;
+        case Key::Clr: name = "CLR"; break;
+        case Key::Blank1: case Key::Blank2: case Key::Brt: case Key::Dim: name = ""; break;
+        default: break;
+    }
+    if (!*name) return {};
+    return std::string("WT21_FMC_") + (productId == 0xbb3e ? "2" : "1") + "_BTN_" + name;
 }
 
 bool parseInputReport(const uint8_t* data, size_t size, InputState& out) {

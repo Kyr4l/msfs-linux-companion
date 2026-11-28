@@ -117,6 +117,12 @@ static void testIniBuildsKeys() {
     CHECK(iniBuildsKeyCode(Key::Fpln, 0xbb3a) == "1 (>L:INI_MCDU1_FPLAN)");    // the observer's unit works the captain's side
     CHECK(iniBuildsKeyCode(Key::Data, 0xbb3e) == "1 (>L:INI_MCDU2_DATA)");     // the first officer's the other one
     for (Key k : {Key::Brt, Key::Dim, Key::Blank1, Key::Blank2}) CHECK(iniBuildsKeyCode(k, 0xbb36).empty());
+    // the CJ4 FMC (pressed in the aircraft 2026-11-24: letters, digits, page keys, CLR)
+    CHECK(wt21KeyEvent(Key::A, 0xbb36) == "WT21_FMC_1_BTN_A" && wt21KeyEvent(Key::D7, 0xbb36) == "WT21_FMC_1_BTN_7");
+    CHECK(wt21KeyEvent(Key::Init, 0xbb36) == "WT21_FMC_1_BTN_IDX" && wt21KeyEvent(Key::Prog, 0xbb36) == "WT21_FMC_1_BTN_LEGS");
+    CHECK(wt21KeyEvent(Key::R6, 0xbb3e) == "WT21_FMC_2_BTN_R6" && wt21KeyEvent(Key::Ovfy, 0xbb36) == "WT21_FMC_1_BTN_EXEC");
+    CHECK(wt21KeyEvent(Key::DownArrow, 0xbb36) == "WT21_FMC_1_BTN_NEXTPAGE" && wt21KeyEvent(Key::Slash, 0xbb36) == "WT21_FMC_1_BTN_DIV");
+    for (Key k : {Key::Brt, Key::Dim, Key::Blank1, Key::Blank2}) CHECK(wt21KeyEvent(k, 0xbb36).empty());
     std::map<std::string, int> seen;                                            // every other key has a name of its own
     for (int i = 0; i < kKeyCount; ++i) {
         const std::string code = iniBuildsKeyCode(static_cast<Key>(i), 0xbb36);
@@ -153,12 +159,13 @@ static void testScreenReader() {
     GlyphBank missing;
     CHECK(!missing.load("/nonexistent/glyphs.bin", err) && missing.empty());
 
-    const int W = ScreenReader::kRefW, H = ScreenReader::kRefH;
+    const ScreenLayout& AL = airbusLayout();
+    const int W = AL.refW, H = AL.refH;
     std::vector<uint8_t> img(static_cast<size_t>(W) * H * 4, 0);  // as the simulator draws it: a dark screen inside a black border
     for (int y = 4; y <= 361; ++y)
         for (int x = 20; x <= 420; ++x) std::memset(&img[(static_cast<size_t>(y) * W + x) * 4], 8, 3);
     auto draw = [&](const Shape& sh, int r, int c, uint8_t red, uint8_t green, uint8_t blue) {
-        const int cx = static_cast<int>(std::lround(ScreenReader::kX0 + c * ScreenReader::kPitchX)), cy = static_cast<int>(std::lround(ScreenReader::kY0 + r * ScreenReader::kPitchY));
+        const int cx = static_cast<int>(std::lround(AL.x0 + c * AL.pitchX)), cy = static_cast<int>(std::lround(AL.rowY[static_cast<size_t>(r)]));
         for (int y = 0; y < sh.h; ++y)
             for (int x = 0; x < sh.w; ++x)
                 if (on(sh, x, y)) {
@@ -187,6 +194,31 @@ static void testScreenReader() {
     r = reader2.read(big.data(), W * 2, H * 2, W * 8);
     CHECK(r.screen.at(0, 0).ch == U'A' && r.screen.at(2, 5).ch == U'B' && r.screen.at(13, 23).ch == U'C');
     CHECK(reader2.read(nullptr, W, H, W * 4).glyphs == 0);
+
+    // The CJ4 FMC: 15 rows, the message line under the scratchpad goes on the unit's last row while the scratchpad is empty
+    {
+        const ScreenLayout& WL = wt21Layout();
+        const int w = WL.refW, h = WL.refH;
+        std::vector<uint8_t> pic(static_cast<size_t>(w) * h * 4, 0);
+        for (int y = 0; y < h; ++y)
+            for (int x = 59; x <= 465; ++x) std::memset(&pic[(static_cast<size_t>(y) * w + x) * 4], 14, 3);
+        auto put = [&](const Shape& sh, int r, int c) {
+            const int cx = static_cast<int>(std::lround(WL.x0 + c * WL.pitchX)), cy = static_cast<int>(std::lround(WL.rowY[static_cast<size_t>(r)]));
+            for (int y = 0; y < sh.h; ++y)
+                for (int x = 0; x < sh.w; ++x)
+                    if (on(sh, x, y)) std::memset(&pic[(static_cast<size_t>(cy - 8 + y) * w + cx - sh.w / 2 + x) * 4], 230, 3);
+        };
+        put(shapes[0], 0, 3);
+        put(shapes[2], 13, 0), put(shapes[2], 13, 23);  // the scratchpad's brackets
+        put(shapes[1], 14, 0);  // a message
+        ScreenReader wr(loaded, WL);
+        ReadResult m = wr.read(pic.data(), w, h, w * 4);
+        CHECK(m.screen.at(0, 3).ch == U'A' && m.screen.at(13, 0).ch == U'B' && m.screen.at(13, 23).ch == U' ');
+        put(shapes[0], 13, 5);  // typed: the scratchpad wins
+        ScreenReader wr2(loaded, WL);
+        m = wr2.read(pic.data(), w, h, w * 4);
+        CHECK(m.screen.at(13, 0).ch == U'C' && m.screen.at(13, 5).ch == U'A' && m.screen.at(13, 23).ch == U'C');
+    }
     CHECK(classifyColor(80, 80, 80) == Color::Grey && classifyColor(200, 200, 200) == Color::White && classifyColor(80, 160, 80) == Color::Green &&
           classifyColor(240, 120, 0) == Color::Amber && classifyColor(80, 200, 200) == Color::Cyan);
 }
@@ -211,6 +243,29 @@ static void testLights() {
     CHECK(c.size() == 12 && c[0].r == 0xff && c[0].level == 0xb3 && c[2].g == 0x7e && c[10].g == 0xff && c[11].level == 0x99);
     CHECK(decodeLightState(d, {1, 2, 3}).empty());
     CHECK(!parseLightDevice("{\"name\":\"x\"}", d, err) && !parseLightDevice("not json", d, err));
+    // the throttle's key / axis / both inputs (SimAppPro: 1 key, 2 axis, 3 both), as read from the user's throttle
+    CHECK(d.settings.size() == 3 && d.settings[0].offset == 0xEC && d.settings[1].byte == 1 && d.settings[2].device == 0x08 && d.levels.empty());
+    CHECK(describeLightSetting(d.settings[0], 3) == "Both" && describeLightSetting(d.settings[2], 2) == "Axis" && describeLightSetting(d.settings[0], 9) == "?");
+
+    // the stick: no stored colours, two stored settings and one live light (SimAppPro2's definition of the Fighter Stick R)
+    std::ifstream g(std::string(COMPANION_TEST_FIXTURES) + "/../../data/winctrl_ursa_minor_fighter_stick_r_lights.json");
+    std::stringstream gs;
+    gs << g.rdbuf();
+    LightDevice stick;
+    CHECK(parseLightDevice(gs.str(), stick, err));
+    CHECK(stick.product == 0xbc2a && stick.states.empty() && stick.settings.size() == 2 && stick.levels.size() == 1);
+    CHECK(stick.settings[0].device == 0x20 && stick.settings[0].family == 0xbb && stick.settings[0].offset == 0xEC && stick.levels[0].index == 0);
+    CHECK(describeLightSetting(stick.settings[0], 128) == "50%" && describeLightSetting(stick.settings[0], 255) == "100%");
+    CHECK(describeLightSetting(stick.settings[1], 0) == "On" && describeLightSetting(stick.settings[1], 1) == "Off");  // inverted, as SimAppPro writes it
+    // a setting outside the stored words, or of an unknown kind, is refused
+    const std::string bad = R"({"name":"x","usb":"4098:1","driver":"winwing","settings":[{"name":"a","kind":"percent","device":"0x20","family":"0xbb","offset":"0x2000"}]})";
+    CHECK(!parseLightDevice(bad, stick, err));
+    const std::string odd = R"({"name":"x","usb":"4098:1","driver":"winwing","settings":[{"name":"a","kind":"write","device":"0x20","family":"0xbb","offset":"0xEC"}]})";
+    CHECK(!parseLightDevice(odd, stick, err));
+    // saving: the stick's two light settings may be saved; key / axis modes may not be marked so
+    CHECK(parseLightDevice(gs.str(), stick, err) && stick.settings[0].save && stick.settings[1].save && !d.settings[0].save);
+    const std::string mode = R"({"name":"x","usb":"4098:1","driver":"winwing","settings":[{"name":"a","kind":"key_axis","device":"0x40","family":"0xb9","offset":"0xEC","save":true}]})";
+    CHECK(!parseLightDevice(mode, stick, err));
 }
 
 // B612 for the unit: the shipped font file and packet map make the series SimAppPro sends, with the glyphs in their places.
@@ -717,6 +772,20 @@ static void testAirbusPages() {
     CHECK(p.page() == PageId::System);
     p.onKey(Key::LeftArrow);  // round to the last one
     CHECK(p.page() == PageId::Power);
+    {  // POWER with two GPUs (fans) and many sensors: nothing may run into the REFRESH line (rows 11 and 12)
+        SystemSample full = sampleSystem();
+        full.gpus[0].fanRpm = 1200;
+        full.gpus[1].fanPercent = 40;
+        for (const char* n : {"nvme", "acpitz", "ram", "wifi", "board", "vrm", "chipset", "ssd"}) full.sensors.push_back({n, 45});
+        p.setSystem(full);
+        p.render(s, now);
+        if (std::getenv("SHOW_POWER")) for (int r = 0; r < 14; ++r) std::printf("%2d|%s|\n", r, rowText(s, r).c_str());
+        const size_t refresh = rowText(s, 11).find("REFRESH");
+        CHECK(refresh != std::string::npos);
+        for (size_t c = 0; c < refresh; ++c) CHECK(s.at(11, static_cast<int>(c)).ch == U' ');  // the sensors stop before the REFRESH label row
+        CHECK(rowText(s, 4).find("RX 9070") == 0 && rowText(s, 6).find("GTX 1660") == 0);  // both GPU lines intact
+        p.setSystem(sampleSystem());
+    }
 
     // the load colours follow the settings
     cfg.loadColors.warn.above = 30;
@@ -764,11 +833,43 @@ static void testAirbusPages() {
     p.onKey(Key::Ovfy);
     CHECK(!a.queries.empty() && a.queries.back() == "KATE");
 
-    // PERF: volume on the arrows
-    p.onKey(Key::Perf);
-    a.taps.clear();
-    p.onKey(Key::UpArrow);
-    CHECK(a.taps.size() == 1 && a.taps[0] == std::vector<int>({KEY_VOLUMEUP}));
+    // PERF: one page per player (← →), ↑ ↓ on the player's program or the PC (R1), MUTE on the same
+    {
+        using C = desktop::MediaCommand;
+        p.onKey(Key::Perf);
+        desktop::MediaInfo m;
+        m.present = true; m.playing = true; m.players = 3; m.page = 1; m.player = "Firefox"; m.title = "Plane snaps";
+        m.appVolume = 68; m.pcVolume = 45;
+        p.setMedia(m);
+        p.render(s, now);
+        CHECK(rowText(s, 0).find("1/3") == 18 && rowText(s, 1).find("VOLUME 68%") == 14 && rowText(s, 2).find("FIREFOX") == 0 && rowText(s, 2).find("APP/ALL") == 17);
+        CHECK(s.at(2, 17).color == Color::Green && s.at(2, 21).small);  // APP chosen
+        a.taps.clear();
+        p.onKey(Key::UpArrow);
+        CHECK(a.commands.back() == C::AppVolumeUp && a.taps.empty());
+        p.onKey(Key::RightArrow);
+        CHECK(a.commands.back() == C::NextPlayer);
+        p.onKey(Key::LeftArrow);
+        CHECK(a.commands.back() == C::PrevPlayer);
+        p.onKey(Key::R5);
+        CHECK(a.commands.back() == C::Mute);
+        p.onKey(Key::R1);  // ALL
+        CHECK(p.takePrefsChanged());
+        desktop::McduConfig saved;
+        p.exportPrefs(saved);
+        CHECK(saved.mediaVolumeAll);
+        p.render(s, now);
+        CHECK(rowText(s, 1).find("VOLUME 45%") == 14 && s.at(2, 21).color == Color::Green && !s.at(2, 21).small);
+        p.onKey(Key::DownArrow);
+        CHECK(a.commands.back() == C::PcVolumeDown);
+        p.onKey(Key::R5);
+        CHECK(a.commands.back() == C::PcMute);
+        m.pcMuted = true; m.players = 1;
+        p.setMedia(m);
+        p.render(s, now);
+        CHECK(rowText(s, 10).find("UNMUTE>") != std::string::npos && rowText(s, 0).find("1/1") == std::string::npos);  // one player: no page number
+        p.onKey(Key::R1);  // back to APP
+    }
 
     // back to the classic pages
     cfg.pageStyle = "classic";
@@ -779,6 +880,41 @@ static void testAirbusPages() {
 
 // the Vision Jet's G3000: MCDU MENU offers the touch controllers, whose softkeys and knobs are the aircraft's input events
 // STD on a G1000 that does not raise the sim's STD flag (the C400): the page remembers it set STD, and one knob click leaves it
+// F-PLN: the leg the GPS flies, and on a G1000 with a control pad (the Corvalis) the MCDU's keys type into it
+static void testFpln() {
+    using namespace mcdu;
+    AvionicsPages p;
+    const AvionicsPages::Read read = [](const std::string& code) -> std::optional<double> {
+        if (code.find("GPS IS ACTIVE FLIGHT PLAN") != std::string::npos) return 1.0;
+        if (code.find("WP COUNT") != std::string::npos) return 9.0;
+        if (code.find("WP INDEX") != std::string::npos) return 4.0;
+        if (code.find("GPS WP DISTANCE") != std::string::npos) return 12.3;
+        if (code.find("GPS WP BEARING") != std::string::npos) return 87.0;
+        return std::nullopt;
+    };
+    p.onKey(Key::Fpln, read);
+    CHECK(p.page() == AvionicsPage::Fpln);
+    p.setWaypoints("KSEA", "SUMMA");
+    Screen s;
+    p.render(s, read);
+    CHECK(rowText(s, 2).find("KSEA") == 0 && rowText(s, 4).find("SUMMA") == 0 && rowText(s, 4).find("087?/12.3NM") != std::string::npos);
+    CHECK(rowText(s, 0).find("4/9") != std::string::npos && rowText(s, 12).find("ON") == std::string::npos);  // no control pad
+    auto out = p.onKey(Key::L5, read);
+    CHECK(out.size() == 1 && out[0] == "(>H:AS1000_MFD_FPL_Push)");
+    CHECK(p.onKey(Key::K, read).empty());  // without a pad the letters stay on the MCDU
+    p.setControlPad(true);
+    p.onKey(Key::L6, read);  // KEYS TO G1000 on
+    CHECK(p.keysToG1000());
+    out = p.onKey(Key::K, read);
+    CHECK(out.size() == 1 && out[0] == "1 (>B:INSTRUMENT_AS1000_CONTROLPAD_K_Set)");
+    out = p.onKey(Key::Ovfy, read);
+    CHECK(out.size() == 1 && out[0] == "1 (>B:INSTRUMENT_AS1000_CONTROLPAD_PUSH_ENTER_Set)");
+    out = p.onKey(Key::UpArrow, read);
+    CHECK(out.size() == 1 && out[0] == "(>H:AS1000_MFD_FMS_Lower_INC)");
+    p.onKey(Key::Prog, read);  // the function keys still open their pages
+    CHECK(p.page() == AvionicsPage::Prog);
+}
+
 static void testFuelUnits() {
     using namespace mcdu;
     AvionicsPages p;
@@ -860,6 +996,64 @@ static void testGtc() {
     CHECK(p.page() == AvionicsPage::Comm);
 }
 
+// The key that gives the unit to the desktop pages in flight
+static void testSwitchKey() {
+    using namespace mcdu;
+    using A = SwitchKey::Action;
+    const auto t0 = SwitchKey::Clock::now();
+    SwitchKey k;
+    k.configure(Key::Blank1, true);
+    CHECK(k.is(Key::Blank1) && !k.is(Key::Menu));
+    CHECK(k.down(t0) == A::None && k.due() && k.tick(t0 + std::chrono::milliseconds(500)) == A::None);
+    CHECK(k.tick(t0 + SwitchKey::kHold) == A::Toggle && !k.due());       // held: switches once, while still down
+    CHECK(k.tick(t0 + std::chrono::seconds(5)) == A::None && k.up() == A::None);  // and letting go does nothing more
+    CHECK(k.down(t0) == A::None && k.up() == A::Press);                    // let go early: an ordinary press
+    k.configure(Key::Blank2, false);                                       // a short press
+    CHECK(k.down(t0) == A::Toggle && k.up() == A::None);
+    k.configure(Key::Menu, false);                                         // MCDU MENU is always held
+    CHECK(k.down(t0) == A::None && k.up() == A::Press);
+    k.configure(Key::L1, false);                                           // any key with a job too
+    CHECK(k.down(t0) == A::None && k.up() == A::Press);
+    k.configure(std::nullopt, true);
+    CHECK(!k.is(Key::Blank1) && !k.is(Key::Menu));
+    CHECK(keyNumberName(18) == "Key 18" && keyNumberName(25) == "Key 25 (MCDU MENU)" && keyNumberName(1) == "Key 1 (L1)" && keyNumberName(0) == "None");
+    CHECK(keyFromNumber(28) == Key::Blank2 && !keyFromNumber(kKeyCount + 1) && keyIsFree(Key::Blank1) && !keyIsFree(Key::Brt) && !keyIsFree(Key::A));
+}
+
+// The ES-30: two vertical touch controllers, three knobs each, and its batteries on FUEL PRED
+static void testGtcVertical() {
+    using namespace mcdu;
+    AvionicsPages p;
+    p.setG3000(false, true);
+    p.setElectric(true);
+    const AvionicsPages::Read read = [](const std::string& code) -> std::optional<double> {
+        if (code.find("ESTIMATED CAPACITY PCT:3") != std::string::npos) return 99.5;
+        if (code.find("BATTERY VOLTAGE:1") != std::string::npos) return 28.04;
+        return std::nullopt;
+    };
+    p.onKey(Key::L2, read);
+    CHECK(p.page() == AvionicsPage::Gtc);
+    Screen s;
+    p.render(s, read);
+    CHECK(rowText(s, 0).find("LEFT GTC") != std::string::npos);
+    auto out = p.onKey(Key::R1, read);  // checked: COM1 standby +1 MHz
+    CHECK(out.size() == 1 && out[0] == "1 (>B:INSTRUMENT_G5000_CONTROL_3_G5000_SECONDARY_SCREEN_LEFT_Set)");
+    p.onKey(Key::PlusMinus, read);
+    out = p.onKey(Key::R2, read);
+    CHECK(out.size() == 1 && out[0] == "1 neg (>B:INSTRUMENT_G5000_CONTROL_3_INNER_G5000_SECONDARY_SCREEN_LEFT_Set)");
+    p.onKey(Key::RightArrow, read);
+    CHECK(p.gtc() == 2);
+    out = p.onKey(Key::R3, read);  // the name as the sim lists it, cut at 63 characters
+    CHECK(out.size() == 1 && out[0] == "1 (>B:INSTRUMENT_G5000_CONTROL_3_INNER_PUSH_G5000_SECONDARY_SCREEN_RI_Set)");
+    out = p.onKey(Key::L4, read);
+    CHECK(out.size() == 1 && out[0] == "1 (>B:INSTRUMENT_G5000_CONTROL_2_PUSH_G5000_SECONDARY_SCREEN_RIGHT_Set)");
+    p.onKey(Key::RightArrow, read);  // two controllers: back to the left one
+    CHECK(p.gtc() == 1);
+    p.onKey(Key::Fuel, read);
+    p.render(s, read);
+    CHECK(rowText(s, 9).find("HV BATT") != std::string::npos && rowText(s, 10).find("100%") == 0 && rowText(s, 10).find("28.0V") != std::string::npos);
+}
+
 static void testAvionicsTemperatures() {
     using namespace mcdu;
     AvionicsPages p;
@@ -934,6 +1128,19 @@ static void testPages() {
     p.setMedia(m);
     p.render(s, now);
     CHECK(rowText(s, 2).find("<PREV") == 0 && rowText(s, 8).find("SHUFFLE OFF>") != std::string::npos);
+    // Mute: the player's program only (the sound server), not the PC's mute key
+    const size_t tapsBefore = a.taps.size();
+    p.onKey(Key::R3);
+    CHECK(a.commands.back() == desktop::MediaCommand::Mute && a.taps.size() == tapsBefore);
+    m.muted = true;
+    m.appVolume = 60;  // the player makes sound: its own mute state shows
+    p.setMedia(m);
+    p.render(s, now);
+    CHECK(rowText(s, 6).find("UNMUTE>") != std::string::npos);
+    m.appVolume = -1;  // no sound from the player: MUTE falls back to the PC, and so does the label
+    p.setMedia(m);
+    p.render(s, now);
+    CHECK(rowText(s, 6).find("MUTE>") != std::string::npos && rowText(s, 6).find("UNMUTE>") == std::string::npos);
 
     p.onKey(Key::Fpln);
     CHECK(p.page() == PageId::Keys);
@@ -1312,6 +1519,11 @@ static void testAudioStreams() {
     CHECK(summarizeStreams(list, "discord").indexes.empty());
     CHECK(summarizeStreams("not json", "goofcord").indexes.empty());
     CHECK(!summarizeStreams("[]", "goofcord").allMuted);
+    const std::string withVolume = R"([{"index":12173,"mute":false,"volume":{"front-left":{"value":44564,"value_percent":"68%"},"front-right":{"value":45875,"value_percent":"70%"}},)"
+                                   R"("properties":{"application.name":"Firefox","application.process.binary":"firefox"}}])";
+    CHECK(summarizeStreams(withVolume, "firefox").volume == 70 && summarizeStreams(list, "firefox").volume == -1);
+    CHECK(parseVolumePercent("Volume: front-left: 45875 /  70% / -9.29 dB,   front-right: 45875 /  70% / -9.29 dB") == 70);
+    CHECK(parseVolumePercent("Mute: no") == -1 && parseVolumePercent("100%") == 100);
     setenv("PULSE_SERVER", "unix:/nonexistent/pulse", 1);  // a test run never reaches the real sound server
     AudioControl control;
     const AudioState st = control.read("goofcord");
@@ -1390,8 +1602,11 @@ int main() {
     testAirbusPages();
     testAvionicsTemperatures();
     testGtc();
+    testGtcVertical();
+    testSwitchKey();
     testBaroStd();
     testFuelUnits();
+    testFpln();
     testSystemPage();
     testMetar();
     testNewPages();

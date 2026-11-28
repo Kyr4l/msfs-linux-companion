@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Kyr4l
 // Developer tool: reads captured MCDU pop-out pictures (binary .ppm) with this machine's character samples and prints the text,
-// one line per row, to compare the reader with what the page says.  mcdu_read [--bank FILE] picture.ppm...
+// one line per row, to compare the reader with what the page says.  mcdu_read [--bank FILE] [--layout cj4] [--sizes] picture.ppm...
 #include <chrono>
 #include <cstdio>
 #include <cstring>
@@ -40,13 +40,20 @@ int main(int argc, char** argv) {
     std::string bankPath = defaultGlyphBankPath();
     std::vector<std::string> files;
     bool exhaustive = false;  // --exhaustive: compare every sample, as a reference for the quick pass
+    bool sizes = false;
     std::string dumpPath;  // --dump FILE: every character read, as raw samples (row, col, geo, pixels) for labelling
+    const ScreenLayout* layout = &airbusLayout();  // --layout cj4: the CJ4 FMC
     for (int i = 1; i < argc; ++i) {
         if (!std::strcmp(argv[i], "--bank") && i + 1 < argc) bankPath = argv[++i];
         else if (!std::strcmp(argv[i], "--dump") && i + 1 < argc) dumpPath = argv[++i];
         else if (!std::strcmp(argv[i], "--exhaustive")) exhaustive = true;
+        else if (!std::strcmp(argv[i], "--sizes")) sizes = true;  // small characters in lower case
+        else if (!std::strcmp(argv[i], "--layout") && i + 1 < argc) layout = !std::strcmp(argv[++i], "cj4") ? &wt21Layout() : &airbusLayout();
         else files.push_back(argv[i]);
     }
+    bool bankGiven = false;
+    for (int i = 1; i < argc; ++i) bankGiven = bankGiven || !std::strcmp(argv[i], "--bank");
+    if (!bankGiven) bankPath = defaultGlyphBankPath(layout->bankFile);  // the layout's own samples (the CJ4's are not the Airbus ones)
     GlyphBank bank;
     std::string err;
     if (!bank.load(bankPath, err)) { std::fprintf(stderr, "%s\n", err.c_str()); return 1; }
@@ -54,7 +61,7 @@ int main(int argc, char** argv) {
         std::vector<uint8_t> img;
         int w = 0, h = 0;
         if (!loadPpm(file, img, w, h)) { std::fprintf(stderr, "cannot read %s\n", file.c_str()); return 1; }
-        ScreenReader reader(bank);
+        ScreenReader reader(bank, *layout);
         std::vector<DumpedCell> dumped;
         if (!dumpPath.empty()) reader.setDump(&dumped);
         reader.setExhaustive(exhaustive);
@@ -77,7 +84,11 @@ int main(int argc, char** argv) {
         std::printf("== %s  (%d characters, %d unsure, %.1f ms, unchanged %.2f ms)\n", file.c_str(), r.glyphs, r.unsure, ms, again);
         for (int row = 0; row < kRows; ++row) {
             std::string line;
-            for (int c = 0; c < kCols; ++c) line += utf8(r.screen.at(row, c).ch);
+            for (int c = 0; c < kCols; ++c) {
+                char32_t ch = r.screen.at(row, c).ch;
+                if (sizes && r.screen.at(row, c).small && ch >= U'A' && ch <= U'Z') ch += 32;
+                line += utf8(ch);
+            }
             std::printf("%2d|%s|\n", row, line.c_str());
         }
     }

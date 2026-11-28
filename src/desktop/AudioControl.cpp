@@ -7,6 +7,7 @@
 #include <cerrno>
 #include <chrono>
 #include <csignal>
+#include <cstdlib>
 #include <cstring>
 
 #include <fcntl.h>
@@ -127,12 +128,81 @@ StreamSummary summarizeStreams(const std::string& text, const std::string& app) 
                            property("pipewire.access.portal.app_id").find(wanted) != std::string::npos;
         if (!match) continue;
         out.indexes.push_back(stream["index"].get<int>());
+        if (const auto vol = stream.find("volume"); vol != stream.end() && vol->is_object())
+            for (const auto& [channel, v] : vol->items())
+                if (v.is_object() && v.contains("value_percent") && v["value_percent"].is_string())
+                    out.volume = std::max(out.volume, parseVolumePercent(v["value_percent"].get<std::string>()));
         const auto mute = stream.find("mute");
         allMuted = allMuted && mute != stream.end() && mute->is_boolean() && mute->get<bool>();
     }
     out.allMuted = !out.indexes.empty() && allMuted;
     return out;
 }
+
+int parseVolumePercent(const std::string& text) {
+    const size_t pct = text.find('%');
+    if (pct == std::string::npos || pct == 0) return -1;
+    size_t start = pct;
+    while (start > 0 && std::isdigit(static_cast<unsigned char>(text[start - 1]))) --start;
+    if (start == pct) return -1;
+    return std::min(std::atoi(text.substr(start, pct - start).c_str()), 1000);
+}
+
+namespace {
+StreamSummary appStreams(const std::vector<std::string>& names) {
+    std::string text;
+    if (!pactl({"--format=json", "list", "sink-inputs"}, &text)) return {};
+    StreamSummary all;
+    bool allMuted = true;
+    for (const auto& name : names) {
+        const StreamSummary one = summarizeStreams(text, name);
+        for (int i : one.indexes)
+            if (std::find(all.indexes.begin(), all.indexes.end(), i) == all.indexes.end()) all.indexes.push_back(i);
+        if (!one.indexes.empty()) allMuted = allMuted && one.allMuted;
+        all.volume = std::max(all.volume, one.volume);
+    }
+    all.allMuted = !all.indexes.empty() && allMuted;
+    return all;
+}
+}  // namespace
+
+std::optional<bool> AudioControl::toggleAppMuted(const std::vector<std::string>& names) {
+    const StreamSummary s = appStreams(names);
+    if (s.indexes.empty()) return std::nullopt;
+    const bool mute = !s.allMuted;
+    for (int index : s.indexes) pactl({"set-sink-input-mute", std::to_string(index), mute ? "1" : "0"}, nullptr);
+    return mute;
+}
+
+StreamSummary AudioControl::appSound(const std::vector<std::string>& names) { return appStreams(names); }
+
+std::optional<int> AudioControl::stepAppVolume(const std::vector<std::string>& names, int delta) {
+    const StreamSummary s = appStreams(names);
+    if (s.indexes.empty()) return std::nullopt;
+    const int target = std::clamp((s.volume < 0 ? 100 : s.volume) + delta, 0, 100);
+    for (int index : s.indexes) pactl({"set-sink-input-volume", std::to_string(index), std::to_string(target) + "%"}, nullptr);
+    return target;
+}
+
+PcSound AudioControl::pcSound() {
+    PcSound p;
+    std::string vol, mute;
+    if (!pactl({"get-sink-volume", "@DEFAULT_SINK@"}, &vol) || !pactl({"get-sink-mute", "@DEFAULT_SINK@"}, &mute)) return p;
+    p.known = true;
+    p.volume = parseVolumePercent(vol);
+    p.muted = mute.find("yes") != std::string::npos;
+    return p;
+}
+
+std::optional<int> AudioControl::stepPcVolume(int delta) {
+    const PcSound p = pcSound();
+    if (!p.known || p.volume < 0) return std::nullopt;
+    const int target = std::clamp(p.volume + delta, 0, 100);
+    if (!pactl({"set-sink-volume", "@DEFAULT_SINK@", std::to_string(target) + "%"}, nullptr)) return std::nullopt;
+    return target;
+}
+
+bool AudioControl::togglePcMute() { return pactl({"set-sink-mute", "@DEFAULT_SINK@", "toggle"}, nullptr); }
 
 AudioState AudioControl::read(const std::string& app) {
     AudioState s;

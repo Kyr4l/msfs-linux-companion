@@ -137,6 +137,7 @@ private:
     std::string look_ = "list", gpuView_ = "both", diskView_ = "switch", diskMount_;
     int gpuIndex_ = 0, refreshSeconds_ = 2;
     bool utc_ = false, h12_ = false, prefsChanged_ = false;
+    bool volumeAll_ = false;  // the Airbus media page: ↑ ↓ and MUTE on the PC's output (else on the player's program)
     desktop::LoadColors loadColors_;
     bool cpuCores_ = false;  // the CPU page shows every core
     SystemSample system_;

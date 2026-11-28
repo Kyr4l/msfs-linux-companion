@@ -1,0 +1,383 @@
+{
+ "aircraft": "Asobo_H125",
+ "title": "Airbus H125",
+ "notice": "Start and shutdown as they worked on the H125 in MSFS 2024 (checked live on 2026-11-26), with the sim's own checklist wording where it has one. The full checklist (pre-flight tests, hydraulic test, fire test) is longer: use the sim's checklist for it.",
+ "sources": [
+  "Checked on the H125 in MSFS 2024, 2026-11-26 (parked, cold and dark; the sequence that started and stopped the engine)",
+  "MSFS2024/minimalcache/fs24-asobo-aircraft-h125/minimal.fsarchive, en-us.locpak: CLUE.* (the sim's checklist wording; unencrypted archive)"
+ ],
+ "topics": [
+  {
+   "id": "engine_start",
+   "title": "Start the engine",
+   "summary": "Battery, generator, rotor brake, starting selector, twist grip to FLIGHT.",
+   "start": "hs_ground"
+  },
+  {
+   "id": "shutdown",
+   "title": "Shut down",
+   "summary": "Twist grip to IDLE, starting selector OFF with the guard down, rotor brake.",
+   "start": "hd_ground"
+  }
+ ],
+ "nodes": {
+  "hs_ground": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "help": "The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, on the ground",
+     "next": "hs_power"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "hs_air"
+    }
+   ]
+  },
+  "hs_power": {
+   "type": "steps",
+   "title": "Power",
+   "next": "hs_start",
+   "steps": [
+    {
+     "text": "Lower the collective all the way down.",
+     "check": {
+      "code": "(A:COLLECTIVE POSITION, percent)",
+      "op": "<=",
+      "value": 2
+     },
+     "source": "Checked on the H125 in MSFS 2024, 2026-11-26 (parked, cold and dark; the sequence that started and stopped the engine)"
+    },
+    {
+     "text": "Switch the battery on (BAT: ON).",
+     "why": "The switch has three positions: 1 is OFF, 2 is ON.",
+     "controls": [
+      {
+       "api": "ELECTRICAL_BATTERY"
+      }
+     ],
+     "check": {
+      "code": "(A:CIRCUIT ON:1, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "source": "Checked on the H125 in MSFS 2024, 2026-11-26 (parked, cold and dark; the sequence that started and stopped the engine)"
+    },
+    {
+     "text": "Switch the generator on (GENE: ON).",
+     "controls": [
+      {
+       "api": "ELECTRICAL_GENERATOR"
+      }
+     ],
+     "source": "Checked on the H125 in MSFS 2024, 2026-11-26 (parked, cold and dark; the sequence that started and stopped the engine)"
+    },
+    {
+     "text": "Release the rotor brake: push the lever fully forward.",
+     "controls": [
+      {
+       "api": "ROTOR_BRAKE"
+      }
+     ],
+     "check": {
+      "code": "(A:ROTOR BRAKE ACTIVE, Bool)",
+      "op": "==",
+      "value": 0
+     },
+     "source": "H125 language file (fs24-asobo-aircraft-h125, en-us.locpak): CLUE.RELEASE_ROTOR_BRAKE_CONTROL_FORWARD_SAFETY_GUARD_MUST_BE_REMOVED"
+    },
+    {
+     "text": "Check that the fuel shut-off lever is forward.",
+     "controls": [
+      {
+       "api": "FUEL_SHUTOFF"
+      }
+     ],
+     "source": "H125 language file (fs24-asobo-aircraft-h125, en-us.locpak): CLUE.FUEL_SHUT_OFF_LEVER_MUST_BE_IN_FORWARD_POSITION_SAFETY_DEVICE_MUST_BE_IN_PLACE"
+    },
+    {
+     "text": "Switch the booster pump on.",
+     "controls": [
+      {
+       "api": "FUEL_PUMP"
+      }
+     ],
+     "source": "H125 language file (fs24-asobo-aircraft-h125, en-us.locpak): CLUE.SWITCH_BOOSTER_PUMP_ON_BLUE_INDIC_LIGHT_MUST_BE_ON"
+    }
+   ],
+   "source": "Checked on the H125 in MSFS 2024, 2026-11-26, and the sources named in each step"
+  },
+  "hs_start": {
+   "type": "steps",
+   "title": "Start",
+   "next": "hs_done",
+   "steps": [
+    {
+     "text": "Lift the guard of the starting selector and set the selector to ON. The engine starts by itself (FADEC).",
+     "controls": [
+      {
+       "api": "COMMON_ENGINE_STARTER_COVER"
+      },
+      {
+       "api": "ENGINE_STARTER"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG COMBUSTION:1, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "readouts": [
+      {
+       "label": "N1",
+       "unit": "%",
+       "code": "(A:TURB ENG N1:1, percent)"
+      }
+     ],
+     "source": "H125 language file (fs24-asobo-aircraft-h125, en-us.locpak): CLUE.SET_STARTING_SELECTOR_ON_ON"
+    },
+    {
+     "text": "Wait until the engine is stable at idle.",
+     "readouts": [
+      {
+       "label": "N1",
+       "unit": "%",
+       "code": "(A:TURB ENG N1:1, percent)"
+      },
+      {
+       "label": "NR",
+       "unit": "%",
+       "code": "(A:ROTOR RPM PCT:1, percent)"
+      }
+     ],
+     "source": "Checked on the H125 in MSFS 2024, 2026-11-26 (parked, cold and dark; the sequence that started and stopped the engine)"
+    },
+    {
+     "text": "Set the twist grip to FLIGHT.",
+     "why": "The twist grip has two positions, IDLE and FLIGHT; the FADEC sets the fuel.",
+     "controls": [
+      {
+       "api": "ENGINE_THROTTLE_TWIST"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "NR",
+       "unit": "%",
+       "code": "(A:ROTOR RPM PCT:1, percent)"
+      }
+     ],
+     "source": "H125 language file (fs24-asobo-aircraft-h125, en-us.locpak): CLUE.SET_EMERGENCY_ROTARY_THROTTLE_CONTROL_IN_FLIGHT_NOTCH_WITH_FLIGHT_STOP_IN_POSITION"
+    },
+    {
+     "text": "Wait for the rotor to reach 100 %.",
+     "why": "It took about a minute from the start.",
+     "check": {
+      "code": "(A:ROTOR RPM PCT:1, percent)",
+      "op": ">=",
+      "value": 97
+     },
+     "readouts": [
+      {
+       "label": "NR",
+       "unit": "%",
+       "code": "(A:ROTOR RPM PCT:1, percent)"
+      }
+     ],
+     "source": "Checked on the H125 in MSFS 2024, 2026-11-26 (parked, cold and dark; the sequence that started and stopped the engine)"
+    },
+    {
+     "text": "Switch the lights on as needed.",
+     "controls": [
+      {
+       "api": "LIGHTING_ANTI_COLLISION_LIGHT"
+      },
+      {
+       "api": "LIGHTING_LANDING_LIGHT"
+      }
+     ],
+     "source": "H125 language file (fs24-asobo-aircraft-h125, en-us.locpak): CLUE.SWITCH_LIGHTS_ON_IF_REQUIRED"
+    }
+   ],
+   "source": "Checked on the H125 in MSFS 2024, 2026-11-26, and the sources named in each step"
+  },
+  "hs_done": {
+   "type": "end",
+   "title": "Running",
+   "text": "The engine runs in FLIGHT and the rotor turns at 100 %. Take off to a hover."
+  },
+  "hs_air": {
+   "type": "info",
+   "title": "Flying",
+   "text": "Do not start the engine in flight.",
+   "next": ""
+  },
+  "hd_ground": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "help": "The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, on the ground",
+     "next": "hd_steps"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "hd_air"
+    }
+   ]
+  },
+  "hd_steps": {
+   "type": "steps",
+   "title": "Shut down",
+   "next": "hd_done",
+   "steps": [
+    {
+     "text": "Lower the collective all the way down.",
+     "check": {
+      "code": "(A:COLLECTIVE POSITION, percent)",
+      "op": "<=",
+      "value": 2
+     },
+     "source": "Checked on the H125 in MSFS 2024, 2026-11-26 (parked, cold and dark; the sequence that started and stopped the engine)"
+    },
+    {
+     "text": "Set the twist grip to IDLE.",
+     "controls": [
+      {
+       "api": "ENGINE_THROTTLE_TWIST"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "N1",
+       "unit": "%",
+       "code": "(A:TURB ENG N1:1, percent)"
+      },
+      {
+       "label": "NR",
+       "unit": "%",
+       "code": "(A:ROTOR RPM PCT:1, percent)"
+      }
+     ],
+     "source": "Checked on the H125 in MSFS 2024, 2026-11-26 (parked, cold and dark; the sequence that started and stopped the engine)"
+    },
+    {
+     "text": "Lower the guard of the starting selector, then set the selector to OFF. The engine stops.",
+     "why": "The selector goes to OFF only with its guard down (checked).",
+     "controls": [
+      {
+       "api": "COMMON_ENGINE_STARTER_COVER"
+      },
+      {
+       "api": "ENGINE_STARTER"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG COMBUSTION:1, Bool)",
+      "op": "==",
+      "value": 0
+     },
+     "source": "H125 language file (fs24-asobo-aircraft-h125, en-us.locpak): CLUE.SET_STARTING_SELECTOR_ON_OFF_WITH_SWITCH_GUARD_DOWN"
+    },
+    {
+     "text": "When the rotor has slowed down, apply the rotor brake.",
+     "controls": [
+      {
+       "api": "ROTOR_BRAKE"
+      }
+     ],
+     "check": {
+      "code": "(A:ROTOR BRAKE ACTIVE, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "readouts": [
+      {
+       "label": "NR",
+       "unit": "%",
+       "code": "(A:ROTOR RPM PCT:1, percent)"
+      }
+     ],
+     "source": "Checked on the H125 in MSFS 2024, 2026-11-26 (parked, cold and dark; the sequence that started and stopped the engine)"
+    },
+    {
+     "text": "Switch the booster pump off.",
+     "controls": [
+      {
+       "api": "FUEL_PUMP"
+      }
+     ],
+     "source": "H125 language file (fs24-asobo-aircraft-h125, en-us.locpak): CLUE.SWITCH_BOOSTER_PUMP_OFF_PUMP_AND_FUEL_P_CAPTIONS_MUST_BE_OFF"
+    },
+    {
+     "text": "Switch the generator and the battery off.",
+     "controls": [
+      {
+       "api": "ELECTRICAL_GENERATOR"
+      },
+      {
+       "api": "ELECTRICAL_BATTERY"
+      }
+     ],
+     "check": {
+      "code": "(A:CIRCUIT ON:1, Bool)",
+      "op": "==",
+      "value": 0
+     },
+     "source": "Checked on the H125 in MSFS 2024, 2026-11-26 (parked, cold and dark; the sequence that started and stopped the engine)"
+    }
+   ],
+   "source": "Checked on the H125 in MSFS 2024, 2026-11-26, and the sources named in each step"
+  },
+  "hd_done": {
+   "type": "end",
+   "title": "Shut down",
+   "text": "The engine is stopped and the rotor braked."
+  },
+  "hd_air": {
+   "type": "info",
+   "title": "Flying",
+   "text": "Land first.",
+   "next": ""
+  }
+ }
+}

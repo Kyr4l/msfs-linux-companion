@@ -28,11 +28,23 @@ constexpr int kMinGlyphs = 12;  // a pop-out with fewer characters than this is 
 
 ScreenMirror::ScreenMirror(std::function<void()> changed) : notify_(std::move(changed)) {}
 
-ScreenMirror::~ScreenMirror() { setWanted(false); }
+ScreenMirror::~ScreenMirror() { setWanted(nullptr); }
 
-void ScreenMirror::setWanted(bool wanted) {
-    if (wanted == thread_.joinable()) return;
-    if (wanted) {
+void ScreenMirror::setWanted(const ScreenLayout* layout) {
+    if (layout == layout_ && thread_.joinable() == (layout != nullptr)) return;
+    if (thread_.joinable()) {  // another aircraft family: start again with its layout
+        {
+            std::lock_guard<std::mutex> lock(m_);
+            stop_ = true;
+        }
+        cv_.notify_all();
+        thread_.join();
+        std::lock_guard<std::mutex> lock(m_);
+        have_ = false;
+        hint_.clear();
+    }
+    layout_ = layout;
+    if (layout) {
         {
             std::lock_guard<std::mutex> lock(m_);
             stop_ = false;
@@ -40,17 +52,7 @@ void ScreenMirror::setWanted(bool wanted) {
             hint_.clear();
         }
         thread_ = std::thread([this] { run(); });
-        return;
     }
-    {
-        std::lock_guard<std::mutex> lock(m_);
-        stop_ = true;
-    }
-    cv_.notify_all();
-    thread_.join();
-    std::lock_guard<std::mutex> lock(m_);
-    have_ = false;
-    hint_.clear();
 }
 
 bool ScreenMirror::screen(Screen& out) const {
@@ -110,7 +112,8 @@ void ScreenMirror::run() {
     setpriority(PRIO_PROCESS, static_cast<id_t>(syscall(SYS_gettid)), 19);  // the simulator always comes first
     GlyphBank bank;
     std::string err;
-    const std::string path = defaultGlyphBankPath();
+    const ScreenLayout& layout = *layout_;
+    const std::string path = defaultGlyphBankPath(layout.bankFile);
     std::string logged;
     auto note = [&logged](const std::string& what) {  // each message once, not every retry
         if (what != logged) LOG_INFO("MCDU mirror: %s", what.c_str());
@@ -122,14 +125,14 @@ void ScreenMirror::run() {
         if (!idle(kRetry)) return;
     }
     X11Capture capture;
-    const ScreenReader prepared(bank);  // the samples made ready once; every reader below is a copy sharing them
+    const ScreenReader prepared(bank, layout);  // the samples made ready once; every reader below is a copy sharing them
     std::unique_ptr<ScreenReader> reader;
     std::vector<uint8_t> frame, previous;
     int previousW = 0, previousH = 0;
     ReadResult last;
     uint32_t window = 0;
     auto nextScan = Clock::time_point{};
-    LOG_INFO("MCDU mirror: started (%zu character samples)", bank.samples().size());
+    LOG_INFO("MCDU mirror: started for the %s (%zu character samples)", layout.name, bank.samples().size());
     for (;;) {
         if (!capture.isOpen() && !capture.open(err)) {
             note(err);
@@ -141,7 +144,7 @@ void ScreenMirror::run() {
         if (!window || now >= nextScan) {
             // several pop-outs can be open: the MCDU is the one with the most characters on the grid
             nextScan = now + kRescan;
-            const auto windows = capture.popOuts();
+            const auto windows = capture.popOuts(layout.window);
             uint32_t best = 0;
             int bestGlyphs = 0;
             bool tooSmall = false;
@@ -163,7 +166,7 @@ void ScreenMirror::run() {
                 note(best ? "reading the MCDU pop-out" : "no MCDU pop-out");
             }
             if (!window) {
-                publish(nullptr, tooSmall ? "POP-OUT TOO SMALL" : "POP OUT THE MCDU");
+                publish(nullptr, tooSmall ? "POP-OUT TOO SMALL" : layout.popOutHint);
                 if (!idle(kRescan)) return;
                 continue;
             }

@@ -7,6 +7,7 @@
 #include <fstream>
 #include <map>
 #include <set>
+#include <tuple>
 #include <string>
 
 #include <nlohmann/json.hpp>
@@ -54,7 +55,7 @@ int main(int argc, char** argv) {
         const auto* ldg = find(cj4, "LIGHTING_LANDING_0", "latched");
         CHECK(ldg && ldg->verified);
         const auto* bat = find(cj4, "ELECTRICAL_SWITCH_BATTERY_MASTER", "latched");
-        CHECK(bat && !bat->verified && bat->positions == 3);  // positions seen, but OFF / EMER could not be read with the engines running
+        CHECK(bat && bat->verified && bat->positions == 3 && bat->note.find("EMER") != std::string::npos);  // told apart by the battery current (2026-11-26)
         for (const char* n : {"ELECTRICAL_Battery_1", "ELECTRICAL_Avionics_Bus_1", "LIGHTING_LANDING_1", "FUEL_Crossfeed_1"}) {
             const auto* e = find(cj4, n, "");
             CHECK(e && e->remark.rfind("MSFS 2020 only; in MSFS 2024 use ", 0) == 0);
@@ -384,7 +385,7 @@ int main(int argc, char** argv) {
     }
 
     // ---- the Guimbal Cabri G2 (a helicopter): the event list is what the running MSFS 2024 reported; labels come from the aircraft's tooltips and
-    // checklist wording and from the Asobo behaviour files of the install, nothing claimed as tried
+    // checklist wording and from the Asobo behaviour files of the install; the engine, rotor, fuel and light controls were checked live on 2026-11-26
     {
         Catalog cab;
         if (!cab.load(root + "/data/asobo_cabri_g2_catalog.json", err)) { std::printf("cannot load the Cabri catalog: %s\n", err.c_str()); return 1; }
@@ -397,10 +398,17 @@ int main(int argc, char** argv) {
         size_t missing = 0;
         for (const auto& n : j["input_events"]) if (!have.count(n.get<std::string>())) { std::printf("  no entry for %s\n", n.get<std::string>().c_str()); ++missing; }
         CHECK(missing == 0 && j["input_events"].size() == 97);
+        size_t verified = 0;
         for (const auto& e : cab.entries) {
             CHECK(!e.function.empty() && !e.note.empty());
-            CHECK(!e.verified);
+            verified += e.verified;
         }
+        CHECK(verified >= 20);
+        for (const char* n : {"ENGINE_MASTER", "FUEL_VALVE", "ROTOR_CLUTCH", "COMMON_ROTOR_CLUTCH_COVER", "ENGINE_STARTER"}) {
+            const auto* e = find(cab, n, "latched");
+            CHECK(e && e->verified);
+        }
+        CHECK(!find(cab, "AS_21_MODE", "latched")->verified);  // the radios were not tried
         // the switches the sim's checklist names flip between their positions
         for (const char* n : {"ENGINE_PLASMA", "ENGINE_MAGNETO", "ENGINE_GOVERNOR", "ROTOR_CLUTCH", "ELECTRICAL_ALTERNATOR", "FUEL_VALVE", "BREAKER_BREAKER_PFD"}) {
             const auto* e = find(cab, n, "latched");
@@ -413,10 +421,10 @@ int main(int argc, char** argv) {
         // the radio knobs: the sign of the value picks the direction (AS650.xml)
         const auto* mhz = find(cab, "AS_650_FREQ_MHZ", "knob_up");
         CHECK(mhz && mhz->toAction().value == 1 && find(cab, "AS_650_FREQ_MHZ", "knob_down")->toAction().value == -1);
-        // levers whose range is not known are listed without a behaviour, with a note, so nothing sets a wrong value
-        for (const char* n : {"ROTOR_COLLECTIVE", "ROTOR_BRAKE", "ENGINE_THROTTLE"}) {
-            const auto* e = find(cab, n, "");
-            CHECK(e && e->behavior.empty() && e->note.find("Not tried") != std::string::npos);
+        // the levers take 0 to 1 (checked live)
+        for (const char* n : {"ROTOR_COLLECTIVE", "ROTOR_BRAKE", "ENGINE_THROTTLE", "ENGINE_MIXTURE"}) {
+            const auto* e = find(cab, n, "level");
+            CHECK(e && e->verified && e->hasAxisRange && e->axisMin == 0 && e->axisMax == 1);
         }
         // the sim's own helicopter trim and autostart events
         for (const char* n : {"ROTOR_LATERAL_TRIM_INC", "ROTOR_TRIM_RESET", "ENGINE_AUTO_START"}) {
@@ -439,6 +447,41 @@ int main(int argc, char** argv) {
                 (e.name == "AXIS_COLLECTIVE_SET" || e.name == "AXIS_CYCLIC_LONGITUDINAL_SET" || e.name == "AXIS_CYCLIC_LATERAL_SET" || e.name == "AXIS_TAIL_ROTOR_SET"))
                 ++heli;
         CHECK(heli == 4);
+    }
+
+    // ---- the H125 and the UH-1H (MSFS 2024 helicopters): every event of the sim's list has an entry; the engine, rotor and power controls
+    // checked live on 2026-11-26 are verified, the rest is labelled from the names and says so
+    for (const auto& [file, events, id, count] : std::vector<std::tuple<std::string, std::string, std::string, size_t>>{
+             {"asobo_h125_catalog.json", "asobo_h125_events.json", "Asobo_H125", 207}, {"microsoft_uh1h_catalog.json", "microsoft_uh1h_events.json", "Microsoft_UH1H", 83}}) {
+        Catalog c;
+        if (!c.load(root + "/data/" + file, err)) { std::printf("cannot load %s: %s\n", file.c_str(), err.c_str()); return 1; }
+        CHECK(c.aircraft == id && c.curated && c.axisControls);
+        std::ifstream in(root + "/tools/aircraft_rules/" + events);
+        nlohmann::json j;
+        in >> j;
+        std::set<std::string> have;
+        size_t verified = 0;
+        for (const auto& e : c.entries) {
+            have.insert(e.name);
+            CHECK(!e.function.empty() && !e.note.empty());
+            verified += e.verified;
+        }
+        size_t missing = 0;
+        for (const auto& n : j["input_events"]) missing += !have.count(n.get<std::string>());
+        CHECK(missing == 0 && j["input_events"].size() == count);
+        CHECK(verified >= 6);
+    }
+    {
+        Catalog h;
+        CHECK(h.load(root + "/data/asobo_h125_catalog.json", err));
+        const auto* twist = find(h, "ENGINE_THROTTLE_TWIST", "latched");
+        CHECK(twist && twist->verified);  // IDLE / FLIGHT
+        const auto* bat = find(h, "ELECTRICAL_BATTERY", "latched");
+        CHECK(bat && bat->verified && bat->positions == 3);  // 1 OFF / 2 ON
+        Catalog u;
+        CHECK(u.load(root + "/data/microsoft_uh1h_catalog.json", err));
+        const auto* thr = find(u, "HELICOPTER_ENGINE_THROTTLE_1", "level");
+        CHECK(thr && thr->verified && thr->hasAxisRange && thr->axisMax == 1);
     }
 
     // ---- the iniBuilds A320neo V2 of MSFS 2024: its cockpit is driven by INI_* L: variables, calculator code and standard events;

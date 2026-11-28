@@ -28,8 +28,9 @@ fi
 
 rm -rf "$APPDIR"
 cmake -S "$ROOT" -B "$BUILD" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DCOMPANION_STATIC_CXX=ON -DCOMPANION_BUILD_TESTS=OFF
-ninja -C "$BUILD"
-DESTDIR="$APPDIR" ninja -C "$BUILD" install
+# ninja starts a job per core by default: JOBS (default 1) keeps the build gentle on a PC that is also running a simulator
+ninja -j "${JOBS:-1}" -C "$BUILD"
+DESTDIR="$APPDIR" ninja -j "${JOBS:-1}" -C "$BUILD" install
 
 # Bundle GLFW next to the binary (it dlopens the platform libraries itself at runtime).
 mkdir -p "$APPDIR/usr/lib"

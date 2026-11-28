@@ -1,0 +1,308 @@
+{
+ "aircraft": "Microsoft_UH1H",
+ "title": "Bell UH-1H",
+ "notice": "Start and shutdown as they worked on the UH-1H in MSFS 2024 (checked live on 2026-11-26). The aircraft's checklist is not readable offline, so this is the sequence that worked, not the full checklist.",
+ "sources": [
+  "Checked on the UH-1H in MSFS 2024, 2026-11-26 (parked, cold and dark; the sequence that started and stopped the engine)"
+ ],
+ "topics": [
+  {
+   "id": "engine_start",
+   "title": "Start the engine",
+   "summary": "Battery, throttle at idle, starter, throttle full.",
+   "start": "us_ground"
+  },
+  {
+   "id": "shutdown",
+   "title": "Shut down",
+   "summary": "Throttle to idle, idle release and cut-off, rotor brake, battery.",
+   "start": "ud_ground"
+  }
+ ],
+ "nodes": {
+  "us_ground": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "help": "The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, on the ground",
+     "next": "us_steps"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "us_air"
+    }
+   ]
+  },
+  "us_steps": {
+   "type": "steps",
+   "title": "Start",
+   "next": "us_done",
+   "steps": [
+    {
+     "text": "Lower the collective all the way down.",
+     "check": {
+      "code": "(A:COLLECTIVE POSITION, percent)",
+      "op": "<=",
+      "value": 2
+     },
+     "source": "Checked on the UH-1H in MSFS 2024, 2026-11-26 (parked, cold and dark; the sequence that started and stopped the engine)"
+    },
+    {
+     "text": "Release the rotor brake.",
+     "controls": [
+      {
+       "api": "MB_ROTOR_BRAKE"
+      }
+     ],
+     "check": {
+      "code": "(A:ROTOR BRAKE ACTIVE, Bool)",
+      "op": "==",
+      "value": 0
+     },
+     "source": "Checked on the UH-1H in MSFS 2024, 2026-11-26 (parked, cold and dark; the sequence that started and stopped the engine)"
+    },
+    {
+     "text": "Switch the battery on.",
+     "controls": [
+      {
+       "api": "ELECTRICAL_BATTERY_1"
+      }
+     ],
+     "check": {
+      "code": "(A:ELECTRICAL MASTER BATTERY:1, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "source": "Checked on the UH-1H in MSFS 2024, 2026-11-26 (parked, cold and dark; the sequence that started and stopped the engine)"
+    },
+    {
+     "text": "Check that the governor is on (AUTO).",
+     "controls": [
+      {
+       "api": "HELICOPTER_ENGINE_GOV"
+      }
+     ],
+     "check": {
+      "code": "(A:ROTOR GOV SWITCH POS:1, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "source": "Checked on the UH-1H in MSFS 2024, 2026-11-26 (parked, cold and dark; the sequence that started and stopped the engine)"
+    },
+    {
+     "text": "Set the throttle to the idle stop.",
+     "why": "Without the idle release the throttle stops at idle (25 %).",
+     "controls": [
+      {
+       "api": "HELICOPTER_ENGINE_THROTTLE_1"
+      }
+     ],
+     "source": "Checked on the UH-1H in MSFS 2024, 2026-11-26 (parked, cold and dark; the sequence that started and stopped the engine)"
+    },
+    {
+     "text": "Press the starter once. It runs until about 40 % N1 and lets go by itself; the engine lights at about 10 % N1.",
+     "check": {
+      "code": "(A:GENERAL ENG COMBUSTION:1, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "readouts": [
+      {
+       "label": "N1",
+       "unit": "%",
+       "code": "(A:TURB ENG N1:1, percent)"
+      }
+     ],
+     "source": "Checked on the UH-1H in MSFS 2024, 2026-11-26 (parked, cold and dark; the sequence that started and stopped the engine)"
+    },
+    {
+     "text": "When the engine is stable, open the throttle fully. The governor holds the rotor at 100 %.",
+     "controls": [
+      {
+       "api": "HELICOPTER_ENGINE_THROTTLE_1"
+      }
+     ],
+     "check": {
+      "code": "(A:ROTOR RPM PCT:1, percent)",
+      "op": ">=",
+      "value": 97
+     },
+     "readouts": [
+      {
+       "label": "N1",
+       "unit": "%",
+       "code": "(A:TURB ENG N1:1, percent)"
+      },
+      {
+       "label": "NR",
+       "unit": "%",
+       "code": "(A:ROTOR RPM PCT:1, percent)"
+      }
+     ],
+     "source": "Checked on the UH-1H in MSFS 2024, 2026-11-26 (parked, cold and dark; the sequence that started and stopped the engine)"
+    }
+   ],
+   "source": "Checked on the UH-1H in MSFS 2024, 2026-11-26, and the sources named in each step"
+  },
+  "us_done": {
+   "type": "end",
+   "title": "Running",
+   "text": "The engine runs with the throttle open and the rotor at 100 %."
+  },
+  "us_air": {
+   "type": "info",
+   "title": "Flying",
+   "text": "Do not start the engine in flight.",
+   "next": ""
+  },
+  "ud_ground": {
+   "type": "question",
+   "title": "Where is the aircraft?",
+   "text": "Is the aircraft on the ground?",
+   "help": "The answer is filled in from the simulator when it can tell.",
+   "auto": {
+    "code": "(A:SIM ON GROUND, Bool)",
+    "rules": [
+     {
+      "op": "==",
+      "value": 1,
+      "choice": "yes"
+     },
+     {
+      "op": "==",
+      "value": 0,
+      "choice": "no"
+     }
+    ]
+   },
+   "choices": [
+    {
+     "id": "yes",
+     "label": "Yes, on the ground",
+     "next": "ud_steps"
+    },
+    {
+     "id": "no",
+     "label": "No, it is flying",
+     "next": "ud_air"
+    }
+   ]
+  },
+  "ud_steps": {
+   "type": "steps",
+   "title": "Shut down",
+   "next": "ud_done",
+   "steps": [
+    {
+     "text": "Lower the collective all the way down.",
+     "check": {
+      "code": "(A:COLLECTIVE POSITION, percent)",
+      "op": "<=",
+      "value": 2
+     },
+     "source": "Checked on the UH-1H in MSFS 2024, 2026-11-26 (parked, cold and dark; the sequence that started and stopped the engine)"
+    },
+    {
+     "text": "Set the throttle to the idle stop and let the engine cool down.",
+     "controls": [
+      {
+       "api": "HELICOPTER_ENGINE_THROTTLE_1"
+      }
+     ],
+     "readouts": [
+      {
+       "label": "N1",
+       "unit": "%",
+       "code": "(A:TURB ENG N1:1, percent)"
+      },
+      {
+       "label": "NR",
+       "unit": "%",
+       "code": "(A:ROTOR RPM PCT:1, percent)"
+      }
+     ],
+     "source": "Checked on the UH-1H in MSFS 2024, 2026-11-26 (parked, cold and dark; the sequence that started and stopped the engine)"
+    },
+    {
+     "text": "Press the idle release, then close the throttle fully: the engine stops.",
+     "controls": [
+      {
+       "api": "HELICOPTER_ENGINE_IDLE_RELEASE_1"
+      },
+      {
+       "api": "HELICOPTER_ENGINE_THROTTLE_1"
+      }
+     ],
+     "check": {
+      "code": "(A:GENERAL ENG COMBUSTION:1, Bool)",
+      "op": "==",
+      "value": 0
+     },
+     "source": "Checked on the UH-1H in MSFS 2024, 2026-11-26 (parked, cold and dark; the sequence that started and stopped the engine)"
+    },
+    {
+     "text": "When the rotor has slowed down, apply the rotor brake.",
+     "controls": [
+      {
+       "api": "MB_ROTOR_BRAKE"
+      }
+     ],
+     "check": {
+      "code": "(A:ROTOR BRAKE ACTIVE, Bool)",
+      "op": "==",
+      "value": 1
+     },
+     "readouts": [
+      {
+       "label": "NR",
+       "unit": "%",
+       "code": "(A:ROTOR RPM PCT:1, percent)"
+      }
+     ],
+     "source": "Checked on the UH-1H in MSFS 2024, 2026-11-26 (parked, cold and dark; the sequence that started and stopped the engine)"
+    },
+    {
+     "text": "Switch the battery off.",
+     "controls": [
+      {
+       "api": "ELECTRICAL_BATTERY_1"
+      }
+     ],
+     "source": "Checked on the UH-1H in MSFS 2024, 2026-11-26 (parked, cold and dark; the sequence that started and stopped the engine)"
+    }
+   ],
+   "source": "Checked on the UH-1H in MSFS 2024, 2026-11-26, and the sources named in each step"
+  },
+  "ud_done": {
+   "type": "end",
+   "title": "Shut down",
+   "text": "The engine is stopped and the rotor braked."
+  },
+  "ud_air": {
+   "type": "info",
+   "title": "Flying",
+   "text": "Land first.",
+   "next": ""
+  }
+ }
+}

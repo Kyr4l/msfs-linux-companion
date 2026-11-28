@@ -131,8 +131,22 @@ private:
     struct LightsRead {
         std::string key;                             // the device read
         std::vector<std::vector<LightRgb>> states;   // per state, per LED
+        std::vector<int> settings;                   // per stored setting, its byte (-1: not read)
         std::string error;
     };
+    struct LightLevelState {
+        int percent = -1;  // the value wanted on the device live, 0..255 (-1: none)
+        int sent = -1;     // what the device was last sent
+    };
+    std::vector<int> lightPending_;                  // per stored setting: the value it will be saved as (-1: unchanged)
+    std::string lightLevelsKey_;                     // the device the sliders below belong to
+    std::vector<LightLevelState> lightLevels_;
+    std::future<void> lightLevelSending_;            // one light command at a time, off the UI thread (it waits up to 150 ms for the echo)
+    std::future<std::string> lightSaving_;           // a save to the device, off the UI thread; "" when it worked, else what went wrong
+    std::string lightSaveResult_;
+    std::string lightSaveKey_;                       // the device the save is for
+    void drawLightSettings(const LightDevice& dev, const std::string& key, bool usable);
+    void startLightSave(const std::string& key, const std::vector<std::pair<LightSetting, int>>& changes);
     std::vector<LightDevice> lightDevices_;
     bool lightsLoaded_ = false;
     size_t lightDevice_ = 0, lightState_ = 1;
@@ -189,7 +203,7 @@ private:
     bool draftChanged() const;    // the open binding differs from what is saved
     void saveDraft();             // writes the open binding into the profile and keeps it open
     void selectBinding(int index);  // opens it in the inspector, asking first when the open one has changes
-    std::string bindingsFilter_;  // the Bindings list shows only: "" all, "twice", "untried", "reverse" (set from Home)
+    std::string bindingsFilter_;  // the Bindings list shows only: "" all, "twice", "reverse" (set from Home)
     int editIndex_ = -1;      // the binding being edited, or -1 for a new one
     int insertAt_ = -1;       // where a new binding goes in the list (a copy goes right after its original); -1 = the end
     bool draftIsCopy_ = false;

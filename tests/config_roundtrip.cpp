@@ -202,6 +202,22 @@ int main(int argc, char** argv) {
         Settings t;
         CHECK(loadSettings(f.string(), t, err) && t.mcdu.loadColors == s.mcdu.loadColors);
     }
+    {
+        std::string err;
+        const fs::path f = tmp / "switchkey.json";
+        Settings s;
+        CHECK(s.mcdu.switchKey == 18 && s.mcdu.switchHold);  // key 18, held
+        s.mcdu.switchKey = 28;
+        s.mcdu.switchHold = false;
+        CHECK(!s.mcdu.isDefault());
+        CHECK(saveSettings(f.string(), s, err));
+        Settings t;
+        CHECK(loadSettings(f.string(), t, err) && t.mcdu.switchKey == 28 && !t.mcdu.switchHold);
+        // as 0.9.23 wrote it: a name
+        std::ofstream(f) << R"({"mcdu": {"switch_key": "menu"}})";
+        Settings u;
+        CHECK(loadSettings(f.string(), u, err) && u.mcdu.switchKey == 25);
+    }
 
     std::printf("the settings of the gates stay in the file while the gates are off\n");
     {

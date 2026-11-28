@@ -583,7 +583,7 @@
    "rw": "R/W",
    "behavior": "latched",
    "verified": true,
-   "note": "Verified on a CJ4: set 1 engages the starter ((A:GENERAL ENG STARTER:1) = 1, N2 rises about 3 % every 0.7 s); it drops out by itself at about 50 % N2 and the value returns to 0."
+   "note": "Verified on a CJ4: set 1 engages the starter ((A:GENERAL ENG STARTER:1) = 1, N2 rises about 3 % every 0.7 s); it drops out by itself at about 50 % N2 and the value returns to 0. MSFS 2024 (2026-11-26): the same (it lets go by itself)."
   },
   {
    "panel": "Engines",
@@ -596,7 +596,7 @@
    "rw": "R/W",
    "behavior": "latched",
    "verified": true,
-   "note": "Verified on a CJ4: set 1 engages the starter ((A:GENERAL ENG STARTER:2) = 1, N2 rises about 3 % every 0.7 s); it drops out by itself at about 50 % N2 and the value returns to 0."
+   "note": "Verified on a CJ4: set 1 engages the starter ((A:GENERAL ENG STARTER:2) = 1, N2 rises about 3 % every 0.7 s); it drops out by itself at about 50 % N2 and the value returns to 0. MSFS 2024 (2026-11-26): the same."
   },
   {
    "panel": "Engines",
@@ -620,7 +620,8 @@
    "type": "COCKPIT INPUT EVENT",
    "rw": "R/W",
    "behavior": "press",
-   "note": "Behaviour taken from the control's name, not tried on a real aircraft."
+   "verified": true,
+   "note": "Verified on a CJ4 in MSFS 2024 (2026-11-26) with the flight director on: one event sets L:WT_TOGA_ACTIVE to 1 (the takeoff / go-around mode); VS cancels it."
   },
   {
    "panel": "Engines",
@@ -684,7 +685,7 @@
    "rw": "R/W",
    "behavior": "latched",
    "verified": true,
-   "note": "Verified on a CJ4: set 1 with N2 at 20 % or more lights the engine ((A:GENERAL ENG COMBUSTION:1) = 1); the value reads 1 while it runs."
+   "note": "Verified on a CJ4: set 1 with N2 at 20 % or more lights the engine ((A:GENERAL ENG COMBUSTION:1) = 1); the value reads 1 while it runs. MSFS 2024 (2026-11-26): RUN set together with the starter (N2 still under 10 %) lights the engine at about 12 % N2, so RUN can be set early; set 0 stops the engine. Idle is 52.5 % N2."
   },
   {
    "panel": "Fuel",
@@ -697,7 +698,7 @@
    "rw": "R/W",
    "behavior": "latched",
    "verified": true,
-   "note": "Verified on a CJ4: set 1 with N2 at 20 % or more lights the engine ((A:GENERAL ENG COMBUSTION:2) = 1), set 0 stops it; the value reads 1 while it runs."
+   "note": "Verified on a CJ4: set 1 with N2 at 20 % or more lights the engine ((A:GENERAL ENG COMBUSTION:2) = 1), set 0 stops it; the value reads 1 while it runs. MSFS 2024 (2026-11-26): the starter alone left N2 at 24 %; RUN then lit the engine. Set 0 stops it."
   },
   {
    "panel": "Fuel",
@@ -839,7 +840,8 @@
    "rw": "R/W",
    "behavior": "latched",
    "positions": 3,
-   "note": "MSFS 2024 name of ELECTRICAL_Battery_1. Seen on a CJ4 in MSFS 2024 (engines running): the value follows set 0 / 1 / 2 and rests at 0 = BATT (ON, as on the 2020 CJ4, where 1 = OFF); (A:ELECTRICAL MASTER BATTERY) stayed 1 in every position with the generators on, so OFF and EMER were not confirmed."
+   "verified": true,
+   "note": "Verified on a CJ4 in MSFS 2024 (2026-11-26), by the battery current ((A:ELECTRICAL BATTERY LOAD:1)): 0 = BATT (about 27 A), 1 = OFF (0 A), 2 = EMER (about 11 A). (A:ELECTRICAL MASTER BATTERY) reads 1 in every position. A cold and dark CJ4 reported 0 while dark: set the position you want rather than toggling."
   },
   {
    "panel": "Electrical",

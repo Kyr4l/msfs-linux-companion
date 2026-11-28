@@ -21,8 +21,8 @@ public:
     bool open(std::string& err);
     void close();
     bool isOpen() const { return conn_ != nullptr; }
-    // MSFS 2020 and 2024 pop-outs of glass instruments ("WASMINSTRUMENT"), at most a few dozen.
-    std::vector<uint32_t> popOuts();
+    // MSFS 2020 and 2024 pop-outs of glass instruments whose window name starts so ("WASMINSTRUMENT", "WT21_FMC_"), at most a few dozen.
+    std::vector<uint32_t> popOuts(const std::string& name);
     // The window's picture, 4 bytes a pixel (blue green red unused). False when the window is gone or cannot be read.
     bool grab(uint32_t window, std::vector<uint8_t>& out, int& width, int& height);
 

@@ -118,6 +118,22 @@ for _k, _t in {
     "AUTOPILOT_AP_1": "the same; K:AUTOPILOT_OFF and AUTOPILOT_AP_Disconnect_1 disengage it.",
 }.items():
     VERIFIED[_k] += _V24 + _t
+# --- MSFS 2024, 2026-11-26 (parked, cold and dark, engines started and stopped, each control put back) ----------------------------------
+for _k, _t in {
+    "ENGINE_Starter_1": "the same (it lets go by itself).",
+    "ENGINE_Starter_2": "the same.",
+    "FUEL_RunStop_1": "RUN set together with the starter (N2 still under 10 %) lights the engine at about 12 % N2, so RUN can be set early; "
+                      "set 0 stops the engine. Idle is 52.5 % N2.",
+    "FUEL_RunStop_2": "the starter alone left N2 at 24 %; RUN then lit the engine. Set 0 stops it.",
+}.items():
+    VERIFIED[_k] += " MSFS 2024 (2026-11-26): " + _t
+VERIFIED.update({
+    "ELECTRICAL_SWITCH_BATTERY_MASTER": "Verified on a CJ4 in MSFS 2024 (2026-11-26), by the battery current ((A:ELECTRICAL BATTERY LOAD:1)): "
+                                        "0 = BATT (about 27 A), 1 = OFF (0 A), 2 = EMER (about 11 A). (A:ELECTRICAL MASTER BATTERY) reads 1 in every position. "
+                                        "A cold and dark CJ4 reported 0 while dark: set the position you want rather than toggling.",
+    "ENGINE_TOGA_PUSH": "Verified on a CJ4 in MSFS 2024 (2026-11-26) with the flight director on: one event sets L:WT_TOGA_ACTIVE to 1 "
+                        "(the takeoff / go-around mode); VS cancels it.",
+})
 VERIFIED.update({
     "AUTOPILOT_AP_Disconnect_1": "Verified on a CJ4 in MSFS 2024: one event disengages the autopilot ((A:AUTOPILOT MASTER) 1 to 0).",
     "AUTOPILOT_Baro_1_STD": "Verified on a CJ4 in MSFS 2024: every event toggles STD, read back with (L:XMLVAR_Baro1_ForcedToSTD) (the WT21 flag; "
@@ -263,7 +279,7 @@ def _simple(name):
         "ENGINE_Starter_1": latched(P_ENG, "Starters", "Starter 1 (left)"),
         "ENGINE_Starter_2": latched(P_ENG, "Starters", "Starter 2 (right)"),
         "ENGINE_Starter_Disengage": press(P_ENG, "Starters", "Starter disengage", note=NOT_TRIED),
-        "ENGINE_TOGA_PUSH": press(P_ENG, "Thrust levers", "TOGA button", note=NOT_TRIED),
+        "ENGINE_TOGA_PUSH": press(P_ENG, "Thrust levers", "TOGA button"),
         "ENGINE_Throttle_1": unknown(P_ENG, "Thrust levers", "Thrust lever 1 (left)",
                                      "Seen on a CJ4 with the brake set: values up to 10 leave the lever at idle and 11 or more send it to 100 % (not a usable axis). " + _THR),
         "ENGINE_Throttle_2": unknown(P_ENG, "Thrust levers", "Thrust lever 2 (right)",

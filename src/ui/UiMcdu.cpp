@@ -355,6 +355,34 @@ void Ui::drawMcduTab() {
     ImGui::SeparatorText("Desktop pages");
     choice("Style", cfg.pageStyle, {{"classic", "Classic"}, {"airbus", "Airbus"}});
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Airbus: laid out like the aircraft's MCDU, with a scratchpad for typing");
+    ImGui::SeparatorText("Desktop in flight");
+    {
+        if (const int bound = svc.takeBoundKey()) {
+            cfg.switchKey = bound;
+            apply();
+        }
+        fieldLabel("Switch key");
+        const std::string text = st.bindingKey ? std::string("Press a key...") : mcdu::keyNumberName(cfg.switchKey);
+        if (ImGui::Button((text + "##switchkey").c_str(), ImVec2(fs * 14, 0))) svc.bindKey(!st.bindingKey);
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip(st.bindingKey ? "Press the key on the MCDU or the panel. Click to cancel" : "Switches between the aircraft and the desktop pages while MSFS runs. Click, then press a key");
+        if (cfg.switchKey && !st.bindingKey) {
+            ImGui::SameLine();
+            if (ImGui::SmallButton("Clear##switchkey")) {
+                cfg.switchKey = 0;
+                apply();
+            }
+        }
+    }
+    // a key with a job is always held, so that its short press keeps it
+    if (const auto key = mcdu::keyFromNumber(cfg.switchKey); key && mcdu::keyIsFree(*key)) {
+        std::string press = cfg.switchHold ? "hold" : "press";
+        choice("Switch with", press, {{"hold", "Long press"}, {"press", "Short press"}});
+        if (cfg.switchHold != (press == "hold")) {
+            cfg.switchHold = press == "hold";
+            apply();
+        }
+    }
     ImGui::SeparatorText("Aircraft without an MCDU");
     choice("Temperatures", cfg.avionicsTemp, {{"aircraft", "As the aircraft"}, {"c", "Celsius"}, {"f", "Fahrenheit"}, {"both", "Both"}});
     choice("Fuel", cfg.avionicsFuel, {{"gal", "Gallons"}, {"l", "Litres"}, {"kg", "Kilograms"}, {"gal_kg", "Gallons + kg"}, {"l_kg", "Litres + kg"}});

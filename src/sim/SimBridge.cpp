@@ -39,6 +39,8 @@ constexpr uint32_t REQ_SYS_SIM = 2;
 constexpr uint32_t REQ_ENUM_INPUT_EVENTS = 200;
 constexpr uint32_t DEF_TELEMETRY = 10;
 constexpr uint32_t REQ_TELEMETRY = 10;
+constexpr uint32_t DEF_WAYPOINTS = 11;  // the names of the GPS's previous and next waypoints (text: SimConnect, not MobiFlight)
+constexpr uint32_t REQ_WAYPOINTS = 11;
 
 struct TelemetryVar { const char* name; const char* units; double Telemetry::*field; };
 const TelemetryVar kTelemetryVars[] = {
@@ -416,6 +418,32 @@ void SimBridge::setTelemetryEnabled(bool on) {
     wake();
 }
 
+void SimBridge::setWaypointsWanted(bool on) {
+    if (waypointsWanted_ == on) return;
+    waypointsWanted_ = on;
+    wake();
+}
+
+std::pair<std::string, std::string> SimBridge::waypoints() const {
+    std::lock_guard<std::mutex> lock(m_);
+    return waypoints_;
+}
+
+// The GPS's previous and next waypoint names, once a second while an MCDU page shows them.
+void SimBridge::requestWaypoints(bool on) {
+    if (on && !waypointsDefined_) {
+        rememberSend(client_.addToDataDefinition(DEF_WAYPOINTS, "GPS WP PREV ID", "", DATATYPE_STRING32), "define GPS WP PREV ID");
+        rememberSend(client_.addToDataDefinition(DEF_WAYPOINTS, "GPS WP NEXT ID", "", DATATYPE_STRING32), "define GPS WP NEXT ID");
+        waypointsDefined_ = true;
+    }
+    rememberSend(client_.requestDataOnSimObject(REQ_WAYPOINTS, DEF_WAYPOINTS, OBJECT_ID_USER, on ? PERIOD_SECOND : PERIOD_NEVER), on ? "request waypoints" : "stop waypoints");
+    waypointsRequested_ = on;
+    if (!on) {
+        std::lock_guard<std::mutex> lock(m_);
+        waypoints_ = {};
+    }
+}
+
 void SimBridge::setupTelemetry() {
     if (!telemetryDefined_) {  // the definition is made once per connection; stopping and restarting only touches the request
         for (size_t i = 0; i < kTelemetryCount; ++i) {
@@ -564,6 +592,8 @@ void SimBridge::dropConnection(const std::string& why) {
     telemetryRetunes_ = 0;
     telemetryInterval_ = 2;
     telemetryDefined_ = false;
+    waypointsDefined_ = waypointsRequested_ = false;
+    waypoints_ = {};  // the names of the last connection mean nothing on the next one (m_ is held here)
     mfSetupDone_ = false;
     mfClientReady_ = false;
     mfClientRequested_ = false;
@@ -1131,6 +1161,16 @@ void SimBridge::handleMessage(const RecvMessage& m) {
         case RecvId::SimObjectData: {
             RecvClientData d = SimConnectClient::parseSimObjectData(m);
             if (d.requestId == REQ_TELEMETRY) handleTelemetry(d);
+            else if (d.requestId == REQ_WAYPOINTS) {
+                // two STRING32 in a row: the previous and the next waypoint
+                auto text = [&](size_t at) {
+                    if (d.data.size() < at + 32) return std::string();
+                    const char* s = reinterpret_cast<const char*>(d.data.data() + at);
+                    return std::string(s, strnlen(s, 32));
+                };
+                std::lock_guard<std::mutex> lock(m_);
+                waypoints_ = {text(0), text(32)};
+            }
             break;
         }
         case RecvId::ClientData: {
@@ -1481,6 +1521,7 @@ void SimBridge::threadMain() {
             if (telemetryWanted_ && !telemetryRequested_) setupTelemetry();
             else if (!telemetryWanted_ && telemetryRequested_) stopTelemetry();
             else if (telemetryRetune_ && telemetryRequested_) { telemetryRetune_ = false; requestTelemetry(); }
+            if (waypointsWanted_ != waypointsRequested_) requestWaypoints(waypointsWanted_);
             pumpLiveScan();
             bool dirty;
             {

@@ -13,7 +13,8 @@
 namespace lr::app {
 
 namespace {
-constexpr size_t kMaxLeds = 256, kMaxStates = 8, kMaxParts = 512;
+constexpr size_t kMaxLeds = 256, kMaxStates = 8, kMaxParts = 512, kMaxSettings = 32, kMaxLevels = 16;
+constexpr uint32_t kMaxOffset = 0x1000;  // the stored settings the read command reaches
 
 long number(const nlohmann::json& v) {  // 64 or "0x40"
     if (v.is_number_integer()) return v.get<long>();
@@ -39,11 +40,11 @@ bool parseLightDevice(const std::string& text, LightDevice& out, std::string& er
         }
         d.aspect = j.value("aspect", 1.5f);
         if (!(d.aspect > 0.2f && d.aspect < 5.f)) throw std::runtime_error("aspect out of range");
-        for (const auto& s : j.at("states")) {
+        for (const auto& s : j.value("states", nlohmann::json::array())) {
             if (d.states.size() >= kMaxStates) break;
             d.states.push_back({s.at("name").get<std::string>(), static_cast<uint32_t>(number(s.at("offset")))});
         }
-        for (const auto& l : j.at("leds")) {
+        for (const auto& l : j.value("leds", nlohmann::json::array())) {
             if (d.leds.size() >= kMaxLeds) break;
             d.leds.push_back({static_cast<int>(number(l.at("id"))), l.at("name").get<std::string>(), l.value("guess", false)});
         }
@@ -58,7 +59,33 @@ bool parseLightDevice(const std::string& text, LightDevice& out, std::string& er
             part.barLed = p.value("bar_led", 0);
             d.parts.push_back(part);
         }
-        if (d.states.empty() || d.leds.empty()) throw std::runtime_error("no states or no leds");
+        for (const auto& s : j.value("settings", nlohmann::json::array())) {
+            if (d.settings.size() >= kMaxSettings) break;
+            LightSetting ls;
+            ls.name = s.at("name").get<std::string>();
+            ls.kind = s.at("kind").get<std::string>();
+            if (ls.kind != "percent" && ls.kind != "on_off" && ls.kind != "off_on" && ls.kind != "key_axis") throw std::runtime_error("unknown setting kind " + ls.kind);
+            ls.device = static_cast<int>(number(s.at("device")));
+            ls.family = static_cast<int>(number(s.at("family")));
+            ls.offset = static_cast<uint32_t>(number(s.at("offset")));
+            ls.byte = static_cast<int>(number(s.value("byte", nlohmann::json(0))));
+            if (ls.offset >= kMaxOffset || ls.offset % 4 != 0 || ls.byte < 0 || ls.byte > 3) throw std::runtime_error("setting " + ls.name + ": offset or byte out of range");
+            ls.save = s.value("save", false);
+            if (ls.save && ls.kind == "key_axis") throw std::runtime_error("setting " + ls.name + ": key / axis modes cannot be saved yet");
+            d.settings.push_back(ls);
+        }
+        for (const auto& l : j.value("levels", nlohmann::json::array())) {
+            if (d.levels.size() >= kMaxLevels) break;
+            LightLevel lv;
+            lv.name = l.at("name").get<std::string>();
+            lv.setting = l.value("setting", "");
+            lv.device = static_cast<int>(number(l.at("device")));
+            lv.family = static_cast<int>(number(l.at("family")));
+            lv.index = static_cast<int>(number(l.at("index")));
+            if (lv.index < 0 || lv.index > 31) throw std::runtime_error("level " + lv.name + ": index out of range");
+            d.levels.push_back(lv);
+        }
+        if ((d.states.empty() || d.leds.empty()) && d.settings.empty() && d.levels.empty()) throw std::runtime_error("no states and leds, settings or levels");
         out = std::move(d);
         return true;
     } catch (const std::exception& e) {
@@ -85,6 +112,15 @@ std::vector<LightDevice> loadLightDevices() {
         if (!dup) out.push_back(std::move(d));
     }
     return out;
+}
+
+std::string describeLightSetting(const LightSetting& s, int value) {
+    if (value < 0 || value > 255) return "?";
+    if (s.kind == "percent") return std::to_string((value * 100 + 127) / 255) + "%";
+    if (s.kind == "on_off") return value ? "On" : "Off";
+    if (s.kind == "off_on") return value == 0 ? "On" : value == 1 ? "Off" : "?";
+    if (s.kind == "key_axis") return value == 1 ? "Key" : value == 2 ? "Axis" : value == 3 ? "Both" : "?";
+    return "?";
 }
 
 std::vector<LightRgb> decodeLightState(const LightDevice& d, const std::vector<uint8_t>& bytes) {

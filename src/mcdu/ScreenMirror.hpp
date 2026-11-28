@@ -16,6 +16,8 @@
 
 namespace lr::mcdu {
 
+struct ScreenLayout;
+
 class ScreenMirror {
 public:
     explicit ScreenMirror(std::function<void()> changed);
@@ -23,7 +25,7 @@ public:
     ScreenMirror(const ScreenMirror&) = delete;
     ScreenMirror& operator=(const ScreenMirror&) = delete;
 
-    void setWanted(bool wanted);
+    void setWanted(const ScreenLayout* layout);  // the aircraft's screen to read; nullptr: none (the thread stops)
     bool screen(Screen& out) const;  // the latest text, while it is recent
     std::string hint() const;        // what to do when there is no text yet, for the screen of the unit ("" when there is text)
     bool takeChanged() { return changed_.exchange(false); }
@@ -36,6 +38,7 @@ private:
     bool idle(std::chrono::milliseconds wait);  // false: asked to stop
 
     std::function<void()> notify_;
+    const ScreenLayout* layout_ = nullptr;  // set only while the thread is stopped
     mutable std::mutex m_;
     std::condition_variable cv_;
     std::thread thread_;
